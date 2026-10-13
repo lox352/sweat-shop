@@ -1,0 +1,302 @@
+.chart-frame {
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+}
+
+.chart-help { margin: 1rem 0; }
+.chart-help summary { cursor: pointer; min-height: 44px; }
+.chart-help li { margin: .4rem 0; }
+
+.stitch-key {
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stitch-key li {
+  display: grid;
+  grid-template-columns: 3.2rem 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  margin: 0;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--rule);
+}
+
+.stitch-key .key-swatch {
+  justify-self: center;
+  margin-top: 0.1rem;
+}
+
+.key-cell {
+  fill: #fff;
+  stroke: var(--ink-faint);
+  stroke-width: 0.04;
+}
+
+.key-mark {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 0.07;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.key-dot {
+  fill: var(--ink);
+}
+
+.stitch-key p {
+  margin: 0.15rem 0 0;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  max-width: 60ch;
+}
+
+.stitch-abbr {
+  font-size: 0.85rem;
+  color: var(--ink-faint);
+}
+
+.stitch-key .stitch-note {
+  font-style: italic;
+}
+.chart-help select { max-width: 100%; }
+.chart-yarn-numbers { display: flex; flex-wrap: wrap; gap: .4rem 1.5rem; }
+
+.chart-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* Let a horizontal drag scroll the chart without stealing page scrolling. */
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* The chart and the progress over it, stacked. */
+.chart-sheets {
+  position: relative;
+}
+
+.chart-pickable {
+  cursor: pointer;
+}
+
+/* The stitch a tap picked, and the bubble offering to carry on from it. */
+.chart-picked {
+  position: absolute;
+  border: 2px dashed var(--crimson);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.stitch-picker {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem 0.7rem 0.75rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+  cursor: auto;
+}
+
+.stitch-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.stitch-picker-close {
+  width: 32px;
+  height: 32px;
+  margin: -6px -6px -6px 0;
+  border: none;
+  background: none;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.stitch-picker-note {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.chart-sheets canvas {
+  display: block;
+  /* Cells are flat colour, so never let a browser blur them when scaling. */
+  image-rendering: pixelated;
+}
+
+.chart-sheets canvas + canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.chart-svg {
+  display: block;
+  /* The join's arrows reach just past the chart's edges. */
+  overflow: visible;
+}
+
+.chart-join {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  shape-rendering: geometricPrecision;
+}
+
+.chart-rule {
+  fill: none;
+  stroke: rgb(0 0 0 / 0.22);
+  stroke-width: 1;
+}
+
+.chart-rule-heavy {
+  stroke: rgb(0 0 0 / 0.7);
+}
+
+/*
+ * Where the needles are changed: a dashed rule in ink, on a pale line of its
+ * own so that it shows on dark wool as well as light.
+ */
+.chart-rule-needles-ground {
+  stroke: #fff;
+  stroke-width: 4;
+}
+
+.chart-rule-needles {
+  stroke: #1d1a17;
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+  shape-rendering: geometricPrecision;
+}
+
+.chart-mark {
+  fill: none;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chart-mark-halo {
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Worked stitches are veiled, so what is left to do is what stands out. */
+.chart-done {
+  fill: var(--paper);
+  opacity: 0.62;
+}
+
+.chart-next {
+  fill: none;
+  stroke: var(--crimson);
+  stroke-width: 2;
+}
+
+.chart-numbers text {
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  fill: var(--ink-faint);
+}
+
+.chart-caption {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  max-width: none;
+}
+
+.chart-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chart-key li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.chart-key .swatch {
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 1px solid rgb(0 0 0 / 0.35);
+  border-radius: 2px;
+  flex: none;
+}
+
+.stitch-picker-what {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.55rem;
+  align-items: start;
+  font-size: 0.88rem;
+}
+
+.stitch-picker-what > div:only-child {
+  grid-column: 1 / -1;
+}
+
+.stitch-picker-what p {
+  margin: 0.2rem 0 0;
+  color: var(--ink-soft);
+  line-height: 1.35;
+}
+
+.stitch-picker-yarn,
+.stitch-picker-needles {
+  display: block;
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+}
+
+.stitch-picker-where {
+  display: block;
+  font-weight: 400;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.key-join {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 0.08;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.key-needles {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+}
+
+/* Anything drawn over the chart, such as a heat map: seen, never tapped. */
+.chart-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}

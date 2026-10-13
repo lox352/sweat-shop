@@ -1,0 +1,333 @@
+.knitting-panel {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  /* Edge to edge, whatever the page's own padding. */
+  margin: 2rem calc(-1 * var(--gutter, 1rem)) calc(-1 * var(--foot, 4rem));
+  padding: 0.9rem 1rem 1.1rem;
+  background: var(--paper-raised);
+  box-shadow: 0 -8px 24px rgb(0 0 0 / 0.1);
+}
+
+.knitting-readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 1.6rem;
+}
+
+.knitting-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.knitting-figure em {
+  font-family: var(--display);
+  font-style: normal;
+  font-size: 2.1rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.knitting-figure .quiet {
+  font-size: 0.85rem;
+}
+
+.run-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.4rem;
+  height: 2.1rem;
+  padding: 0 0.4rem;
+  border: 1px solid rgb(0 0 0 / 0.3);
+  border-radius: 3px;
+  font-family: var(--display);
+  font-size: 1.3rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.run-swatch-small {
+  min-width: 1.5rem;
+  height: 1.35rem;
+  font-size: 0.85rem;
+  margin: 0 0.1rem;
+}
+
+/* How far through the sweater, drawn as the panel's top edge. */
+.knitting-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--paper-sunk);
+  overflow: hidden;
+}
+
+.knitting-bar span {
+  display: block;
+  height: 100%;
+  background: var(--crimson);
+  transition: width 0.2s ease;
+}
+
+/*
+ * The run in front of you is the one big button, at the bottom where a thumb
+ * lands; "End of round" and Undo sit above it on a phone and beside it on
+ * anything wider.
+ */
+.knitting-actions {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  grid-template-areas:
+    "undo . key round"
+    "go go go go";
+  gap: 0.6rem 0.6rem;
+  align-items: center;
+  margin-top: 0.8rem;
+}
+
+.knitting-undo {
+  grid-area: undo;
+  gap: 0.35rem;
+}
+
+.knitting-round {
+  grid-area: round;
+}
+
+.knitting-key {
+  grid-area: key;
+}
+
+.knitting-go {
+  grid-area: go;
+  white-space: normal;
+  text-align: center;
+}
+
+@media (min-width: 621px) {
+  .knitting-actions {
+    grid-template-columns: auto auto auto 1fr;
+    grid-template-areas: "undo key round go";
+    gap: 0.75rem 1.25rem;
+  }
+  .knitting-go {
+    justify-self: end;
+    min-width: 18rem;
+  }
+}
+
+/* Stop: out of the way in the corner, where closing a sheet usually is. */
+.knitting-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .knitting-close:hover {
+    background: var(--paper-sunk);
+    color: var(--ink);
+  }
+}
+
+.knitting-readout {
+  padding-right: 2.75rem;
+}
+
+.knitting-done-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.knitting-panel-done {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.knitting-done {
+  display: flex;
+  flex-direction: column;
+}
+
+.knitting-done strong {
+  font-family: var(--display);
+  text-transform: uppercase;
+  font-size: 1.3rem;
+}
+
+@media (max-width: 620px) {
+  .knitting-figure em {
+    font-size: 1.7rem;
+  }
+}
+
+/*
+ * A step - turning the work, joining the round, changing needles - in place
+ * of the readout: what to do, and how, above the panel's usual Undo, Key and
+ * button. Kept clear of the close button in the corner.
+ */
+.knitting-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.5rem 0 0;
+  padding: 0.1rem 2.5rem 0.1rem 0;
+}
+
+/* Every step's heading alike: in ink, after the key's symbol for it. */
+.knitting-step-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* One width for every symbol, so the headings line up from step to step. */
+.knitting-step-symbol {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  width: 48px;
+}
+
+.knitting-turn strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.knitting-turn-open strong {
+  font-size: 1.15rem;
+}
+
+.knitting-turn .quiet {
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+
+/*
+ * The stitches this round asks for that are not plain knits, and how to work
+ * them: the one in hand marked with the accent.
+ */
+.knitting-hint {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.knitting-hint li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.6rem;
+  align-items: start;
+  padding: 0.45rem 0.6rem;
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.knitting-hint li.knitting-hint-now {
+  color: var(--ink);
+  box-shadow: inset 3px 0 0 var(--crimson);
+}
+
+.knitting-hint p {
+  margin: 0;
+}
+
+.knitting-hint .key-swatch {
+  margin-top: 0.1rem;
+}
+
+/* The whole key, in a sheet over the lower part of the screen. */
+.key-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  max-height: 62dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper-raised);
+  border-top: 2px solid var(--crimson);
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 -10px 30px rgb(0 0 0 / 0.22);
+}
+
+.key-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.6rem 0.2rem 1rem;
+  font-size: 1.1rem;
+}
+
+.key-sheet-close {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: none;
+  font-size: 1.6rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.key-sheet-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 1rem 1.2rem;
+}
+
+.full-key-yarns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.2rem;
+  margin: 0 0 0.3rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+
+.full-key-yarns .swatch,
+.stitch-picker-yarn .swatch {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 1px solid rgb(0 0 0 / 0.3);
+  border-radius: 2px;
+  vertical-align: -0.1rem;
+}
+
+.stitch-key li.stitch-key-current {
+  box-shadow: inset 3px 0 0 var(--crimson);
+  padding-left: 0.4rem;
+}
+
+.stitch-key-here {
+  font-size: 0.85rem;
+  color: var(--crimson);
+}
+
+

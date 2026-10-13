@@ -1,0 +1,66 @@
+.page {
+  /* The page's side and foot padding, which full-width strips reach back across. */
+  --gutter: 1rem;
+  --foot: 4rem;
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 1.5rem var(--gutter) var(--foot);
+}
+
+.masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-bottom: 1rem;
+  margin-bottom: 1.75rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.masthead-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto;
+}
+
+.masthead-title {
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 1.05rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .masthead-title:hover {
+    color: var(--crimson);
+  }
+}
+
+.page-title {
+  margin-bottom: 0.35em;
+}
+
+.colophon {
+  margin-top: 4rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.colophon p {
+  max-width: 68ch;
+  margin-bottom: 0.5em;
+}
+
+@media (max-width: 620px) {
+  .page {
+    --gutter: 0.9rem;
+    --foot: 3rem;
+    padding: 1rem var(--gutter) var(--foot);
+  }
+}

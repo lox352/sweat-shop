@@ -1,0 +1,173 @@
+.settings-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 38px;
+  padding: 0 0.2rem;
+  border: none;
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .settings-button:hover {
+    color: var(--crimson);
+  }
+}
+
+@media (pointer: coarse) {
+  .settings-button {
+    min-height: 44px;
+  }
+}
+
+/* Only the icon where the masthead is tight. */
+@media (max-width: 420px) {
+  .settings-button span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+.settings-sheet {
+  max-width: 480px;
+}
+
+.settings-body {
+  padding: 18px 22px 22px;
+}
+
+.settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.settings-head .dialog-title {
+  margin: 0;
+}
+
+.settings-group + .settings-group {
+  margin-top: 1.4rem;
+}
+
+.settings-group h3 {
+  margin: 0 0 0.3rem;
+  font-family: var(--display);
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.settings-note {
+  margin: 0 0 0.4rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.settings-group ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--rule);
+}
+
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.setting-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.setting-title {
+  font-weight: 600;
+}
+
+.setting-detail {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.setting-control {
+  flex: none;
+}
+
+.setting-control .btn {
+  min-width: 6.5rem;
+}
+
+/* The file input is hidden behind its label, so the label shows its focus. */
+.setting-control input:focus-visible + label {
+  outline: 2px solid var(--crimson);
+  outline-offset: 2px;
+}
+
+.settings-message:empty {
+  display: none;
+}
+
+.settings-message {
+  margin: 0.6rem 0 0;
+  font-size: 0.9rem;
+}
+
+/* A switch: a checkbox that looks like what it does. */
+.switch {
+  appearance: none;
+  position: relative;
+  width: 44px;
+  height: 26px;
+  margin: 0;
+  border-radius: 13px;
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  transition: transform 0.15s;
+}
+
+.switch:checked {
+  background: var(--crimson);
+  border-color: var(--crimson);
+}
+
+.switch:checked::after {
+  transform: translateX(18px);
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--crimson);
+  outline-offset: 2px;
+}

@@ -1,0 +1,6 @@
+/* The design page shares its layout with a project; see Project.css. */
+@import "./Project.css";
+
+.sweater-about p:last-child {
+  margin-bottom: 0;
+}

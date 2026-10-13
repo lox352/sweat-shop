@@ -1,0 +1,62 @@
+.wool-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 0.4rem;
+}
+
+.wool-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  /* A thumb, not a pointer: this is read and tapped on a phone. */
+  min-height: 2.9rem;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.6rem;
+}
+
+.wool-row:focus-visible {
+  border-color: var(--crimson);
+}
+
+@media (hover: hover) {
+  .wool-row:hover {
+    border-color: var(--crimson);
+  }
+}
+
+.wool-row .shade-chip {
+  flex: none;
+}
+
+.wool-row-what {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.92rem;
+  line-height: 1.3;
+}
+
+.wool-row-count {
+  display: block;
+  font-size: 0.82rem;
+}
+
+.wool-row-change {
+  flex: none;
+  font-size: 0.85rem;
+  color: var(--crimson);
+  text-decoration: underline;
+}
+
+.wool-list-restore {
+  margin: 0.75rem 0 0;
+}

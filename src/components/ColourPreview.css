@@ -1,0 +1,42 @@
+/* The body, scaled up square and repeated to fill the strip. */
+.body-strip {
+  display: block;
+  background-color: var(--paper-sunk);
+  /* Scaled up square to the strip's height, and repeated round the yoke. */
+  background-size: auto 100%;
+  background-repeat: repeat-x;
+  background-position: center;
+  image-rendering: pixelated;
+}
+
+/* The body at the head of the wool picker. */
+.picker-preview {
+  width: 100%;
+  height: 110px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  margin-top: 0.75rem;
+}
+
+/* The body on each colourway card, and each yarn's part in it. */
+.colourway-motif {
+  width: 8rem;
+  height: 3.2rem;
+  border: 1px solid rgb(0 0 0 / 0.2);
+  border-radius: 2px;
+  margin-bottom: 0.35rem;
+}
+
+.wool-row-motif {
+  width: 5.5rem;
+  height: 2.4rem;
+  flex: none;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+}
+
+@media (max-width: 480px) {
+  .wool-row-motif {
+    width: 3.6rem;
+  }
+}

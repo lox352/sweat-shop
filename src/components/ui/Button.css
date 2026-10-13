@@ -1,0 +1,119 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 9px 18px;
+  min-height: 38px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.2s,
+    transform 0.08s;
+}
+
+/* A thumb-sized target on a touch screen; the mouse can have the tighter one. */
+@media (pointer: coarse) {
+  .btn {
+    min-height: 44px;
+  }
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-lg {
+  font-size: 1.05rem;
+  padding: 12px 26px;
+  min-height: 48px;
+}
+
+/* The pattern's own crimson, filled. */
+.btn-primary {
+  background: var(--crimson);
+  border-color: var(--crimson);
+  color: #fff;
+}
+
+@media (hover: hover) {
+  .btn-primary:hover:not(:disabled) {
+    background: var(--crimson-dark);
+    border-color: var(--crimson-dark);
+  }
+}
+
+/* Paper with a hairline round it. */
+.btn-secondary {
+  background: var(--paper-raised);
+  border-color: var(--rule);
+  color: var(--ink);
+}
+
+@media (hover: hover) {
+  .btn-secondary:hover:not(:disabled) {
+    border-color: var(--ink-faint);
+    background: var(--paper-sunk);
+  }
+}
+
+.btn-danger {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--crimson) 45%, transparent);
+  color: var(--crimson-dark);
+}
+
+@media (hover: hover) {
+  .btn-danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--crimson) 10%, transparent);
+    border-color: var(--crimson);
+  }
+}
+
+/* A link that happens to be a button. */
+.btn-quiet {
+  background: none;
+  border: none;
+  border-radius: 3px;
+  padding: 0;
+  min-height: 0;
+  color: var(--crimson-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--crimson) 45%, transparent);
+  font-weight: 500;
+}
+
+/*
+ * It reads as a text link, but it is still a button you have to hit with a
+ * thumb, and `min-height: 0` above undoes the shared rule.
+ */
+@media (pointer: coarse) {
+  .btn-quiet {
+    min-height: 44px;
+  }
+}
+
+@media (hover: hover) {
+  .btn-quiet:hover:not(:disabled) {
+    color: var(--crimson);
+    text-decoration-color: currentColor;
+  }
+}
+
+.btn-quiet:active:not(:disabled) {
+  transform: none;
+}

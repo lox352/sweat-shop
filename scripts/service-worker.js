@@ -1,0 +1,37 @@
+const version = __VERSION__;
+const assets = __ASSETS__;
+const prefix = "sweat-shop-static-";
+const cacheName = prefix + version;
+const urlFor = path => new URL(path, self.registration.scope).href;
+const urls = assets.map(urlFor);
+
+self.addEventListener("install", event => {
+  // addAll is atomic: a failed download must not advertise offline readiness.
+  event.waitUntil(caches.open(cacheName).then(cache => cache.addAll(urls)));
+  // No skipWaiting: keep an open knitting session on one coherent release.
+});
+
+self.addEventListener("activate", event => {
+  event.waitUntil((async () => {
+    for (const key of await caches.keys()) {
+      if (key.startsWith(prefix) && key !== cacheName) await caches.delete(key);
+    }
+    await self.clients.claim();
+  })());
+});
+
+self.addEventListener("fetch", event => {
+  const request = event.request;
+  if (request.method !== "GET") return;
+  const url = new URL(request.url);
+  const scope = new URL(self.registration.scope);
+  if (url.origin !== scope.origin) return;
+  const home = request.mode === "navigate" &&
+    (url.pathname === scope.pathname || url.pathname === `${scope.pathname}index.html`);
+  const key = home ? urlFor("index.html") : url.href;
+  if (!home && !urls.includes(key)) return;
+  event.respondWith((async () => {
+    const cached = await (await caches.open(cacheName)).match(key);
+    return cached ?? fetch(request);
+  })());
+});

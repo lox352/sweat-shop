@@ -1,0 +1,43 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Local tool state
+.claude/
+
+# Pattern PDFs are sold to fund Shetland Wool Week and never belong in here.
+# See PATTERNS.md.
+*.pdf
+
+# Python bytecode from the chart extractor.
+__pycache__/
+*.pyc
+
+# Progress log from the settle script.
+settle.log
+bench.log
+gauge-*.log
+gauge-*.json
+gauge-shots/
+trace.log
+test-results/
+playwright-report/

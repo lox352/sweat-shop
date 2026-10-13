@@ -1,0 +1,73 @@
+/* The sweater as it will be knitted: the one colourway that is chosen. */
+.your-colourway {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 1rem 0 0;
+  padding: 0.75rem 0.8rem 0.8rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--crimson);
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 0 1px var(--crimson);
+}
+
+.your-colourway strong {
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-size: 1.1rem;
+}
+
+.your-colourway .quiet {
+  font-size: 0.85rem;
+}
+
+/* Keeps the strip's place in the card while it is the banner. */
+.your-colourway-slot {
+  height: 4.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.your-colourway-strip {
+  height: 100%;
+  border: 1px solid rgb(0 0 0 / 0.2);
+  border-radius: 2px;
+}
+
+/*
+ * The strip at the top of the screen, over the page: its own edge fading
+ * as it opens, and a banner's crimson rule and shadow coming in.
+ */
+.your-colourway-strip.is-docked {
+  z-index: 20;
+  pointer-events: none;
+  border-color: rgb(0 0 0 / calc(0.2 * (1 - var(--open, 0))));
+  border-radius: calc(2px * (1 - var(--open, 0)));
+  box-shadow:
+    0 2px 0 color-mix(in srgb, var(--crimson) calc(100% * var(--open, 0)), transparent),
+    0 6px 18px rgb(0 0 0 / calc(0.14 * var(--open, 0)));
+}
+
+.colourway-starts-title {
+  margin: 1.1rem 0 0;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+/* The pattern's colourways, smaller: starting points rather than choices. */
+.colourway-starts {
+  margin-top: 0.4rem;
+}
+
+.colourway-starts .colourway-option {
+  padding: 0.4rem 0.55rem;
+}
+
+.colourway-starts .colourway-motif {
+  width: 5.5rem;
+  height: 2.2rem;
+}
+
+.colourway-starts strong {
+  font-size: 0.9rem;
+}

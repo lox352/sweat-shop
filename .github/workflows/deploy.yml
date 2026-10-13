@@ -1,0 +1,51 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# One deploy at a time; a queued run supersedes an older one rather than
+# racing it, but a run already publishing is left to finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # The suite checks every chart against the stitch counts its pattern
+      # prints, so a misread chart fails here instead of reaching a knitter.
+      - name: Test
+        run: npm test
+
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Desktop and mobile knitting regression tests
+        run: npm run test:e2e
+
+      # Publishing to a branch rather than through the Pages API, as the
+      # sibling hat sites do: it needs only a push, so it works without the
+      # workflow token being able to administer the repository.
+      - name: Publish
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: dist

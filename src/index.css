@@ -1,0 +1,169 @@
+/*
+ * The look is taken from the patterns themselves: the warm paper they are
+ * laid out on, the crimson of their headings, the soft grey-brown of their
+ * subheadings. Their body face is Source Sans Pro, so the site uses Source
+ * Sans 3, and their display face is a tight condensed grotesque, so Oswald
+ * stands in for it.
+ *
+ * Deliberately light. The two generated-hat sites are dark because they are about
+ * night skies and deep oceans; this one is about wool on paper.
+ */
+
+:root {
+  --paper: #eae7e4;
+  --paper-raised: #f3f1ef;
+  --paper-sunk: #ded9d4;
+  --ink: #1f1d1b;
+  --ink-soft: #57534e;
+  --ink-faint: #66605a;
+  --crimson: #bb2c43;
+  --crimson-dark: #94202f;
+  --rule: #cec7c0;
+
+  --display: "Oswald", "Franchise", "Haettenschweiler", "Arial Narrow", sans-serif;
+  --body: "Source Sans 3", "Source Sans Pro", system-ui, -apple-system, sans-serif;
+
+  --measure: 62ch;
+  --radius: 4px;
+
+  color-scheme: light;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--body);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--paper);
+}
+
+body {
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.02;
+  text-transform: uppercase;
+  margin: 0 0 0.4em;
+}
+
+h1 {
+  font-size: clamp(2.4rem, 7vw, 3.9rem);
+  color: var(--crimson);
+}
+
+h2 {
+  font-size: clamp(1.3rem, 3.4vw, 1.75rem);
+}
+
+h3 {
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+
+p {
+  margin: 0 0 1em;
+  max-width: var(--measure);
+}
+
+a {
+  color: var(--crimson-dark);
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: from-font;
+}
+
+@media (hover: hover) {
+  a:hover {
+    color: var(--crimson);
+  }
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 2.5rem 0;
+}
+
+.lede {
+  font-size: 1.15rem;
+  color: var(--ink-soft);
+}
+
+.quiet {
+  color: var(--ink-faint);
+}
+
+.eyebrow {
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.82rem;
+  color: var(--ink-faint);
+}
+
+/* A hair rule of Fair Isle, used to separate the big sections. */
+.peerie-rule {
+  height: 10px;
+  margin: 2.5rem 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--crimson) 0 5px,
+    transparent 5px 10px,
+    var(--ink-faint) 10px 15px,
+    transparent 15px 20px
+  );
+  opacity: 0.55;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--crimson);
+  outline-offset: 2px;
+}
+
+.storage-notice { border: 2px solid var(--crimson); padding: 1rem; margin: 1rem 0; }
+
+/* Read by a screen reader, not seen. */.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media print {
+  .screen-only {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

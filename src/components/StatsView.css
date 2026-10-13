@@ -1,0 +1,168 @@
+/* Explore statistics: the knitting screen's layout, with a panel for looking back. */
+.stats-panel {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.stats-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.4rem;
+}
+
+.stats-figures > div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.stats-figures em {
+  font-family: var(--display);
+  font-style: normal;
+  font-size: 1.45rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-figures .quiet {
+  font-size: 0.85rem;
+}
+
+.stats-layers {
+  display: inline-flex;
+  justify-self: start;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--paper-sunk);
+}
+
+.stats-layers button {
+  min-height: 40px;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.stats-layers button.on {
+  background: var(--paper-raised);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
+}
+
+.stats-layers button:focus-visible {
+  outline: 2px solid var(--crimson);
+  outline-offset: 1px;
+}
+
+.stats-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.5rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.stats-legend-scale {
+  display: inline-flex;
+  border: 1px solid rgb(0 0 0 / 0.15);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.stats-legend-scale span {
+  width: 1.1rem;
+  height: 0.8rem;
+}
+
+.stats-legend-usual {
+  flex-basis: 100%;
+  font-size: 0.8rem;
+}
+
+.stats-hint {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.stats-actions {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.6rem;
+}
+
+.stats-note {
+  margin: 0.4rem 0 0;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.stats-note p {
+  margin: 0.25rem 0 0;
+}
+
+.stats-chip {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-right: 0.35rem;
+  border: 1px solid rgb(0 0 0 / 0.2);
+  border-radius: 2px;
+  vertical-align: -0.08rem;
+}
+
+.stats-summary {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+}
+
+.stats-speed-list {
+  margin: 0.6rem 0 0.6rem;
+  padding: 0;
+  list-style: none;
+}
+
+.stats-speed-list li {
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  grid-template-areas: "swatch name you";
+  align-items: center;
+  column-gap: 0.7rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.stats-speed-swatch {
+  grid-area: swatch;
+  display: flex;
+  justify-content: center;
+}
+
+.stats-speed-name {
+  grid-area: name;
+  font-weight: 600;
+}
+
+.stats-speed-you {
+  grid-area: you;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.stats-swatch-yarns {
+  width: 1.4rem;
+  height: 1.4rem;
+  background: linear-gradient(90deg, #7a3b2e 50%, #e2d6b8 50%);
+  border: 1px solid rgb(0 0 0 / 0.25);
+}
+
+.stats-swatch-text {
+  font-family: var(--display);
+  font-size: 0.95rem;
+}
