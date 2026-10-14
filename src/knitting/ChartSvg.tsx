@@ -13,6 +13,7 @@ import {
   markPaths,
   numberedRows,
   progressPath,
+  regionPath,
 } from "./chart-paths";
 
 interface ChartSvgProps {
@@ -37,6 +38,8 @@ interface ChartSvgProps {
    * side you are on: hatched over.
    */
   hatch?: [number, number][];
+  /** The regions on hold: held stitches, and everything to be knitted from them. See holds.ts. */
+  onHold?: Set<number>[];
   /** The side of the sweater shown: every stitch is drawn as it looks from there. */
   face?: Face;
   /** Which way this pattern's make-ones lean, if it says. */
@@ -119,6 +122,7 @@ const ChartSvg: React.FC<ChartSvgProps> = ({
   holds,
   turns,
   hatch = [],
+  onHold,
   face = "right",
   makeOneLean,
 }) => {
@@ -142,6 +146,15 @@ const ChartSvg: React.FC<ChartSvgProps> = ({
     [layout, needleChanges],
   );
   const next = nextStitchId === undefined ? undefined : layout.cells.get(nextStitchId);
+  /*
+   * What is on hold, washed over and crosshatched: set aside, there to see
+   * but not to knit, until it is taken up again. Each region is a shape of
+   * its own, as each is taken up on its own.
+   */
+  const held = useMemo(
+    () => (onHold ?? []).map((region) => regionPath(layout, region, cell)).filter(Boolean),
+    [onHold, layout, cell],
+  );
 
   return (
     <svg
@@ -185,6 +198,28 @@ const ChartSvg: React.FC<ChartSvgProps> = ({
               height={(to - from + 1) * cell}
               fill="url(#chart-hatch)"
             />
+          ))}
+        </>
+      )}
+      {held.length > 0 && (
+        <>
+          <defs>
+            <pattern
+              id="chart-on-hold"
+              width={6}
+              height={6}
+              patternUnits="userSpaceOnUse"
+              patternTransform="rotate(45)"
+            >
+              <line x1={0} y1={0} x2={0} y2={6} className="chart-on-hold-line" />
+              <line x1={0} y1={0} x2={6} y2={0} className="chart-on-hold-line" />
+            </pattern>
+          </defs>
+          {held.map((region, at) => (
+            <g key={at} className="chart-on-hold">
+              <path d={region} className="chart-on-hold-wash" />
+              <path d={region} fill="url(#chart-on-hold)" />
+            </g>
           ))}
         </>
       )}

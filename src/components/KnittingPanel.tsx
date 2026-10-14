@@ -145,8 +145,10 @@ const HoldStep: React.FC<{ count: number; piece: string }> = ({ count, piece }) 
     <StepHeading symbol={<HoldSwatch />}>Put {count} stitches on hold</StepHeading>
     <span className="quiet">
       Slip the next {count} stitches onto waste yarn for the {piece.toLowerCase()},
-      and leave them there until the body is done. Then cast on the underarm
-      in their place, pulling the yarn snug across the gap.
+      and leave them there until you begin it. Then cast on the underarm in
+      their place, pulling the yarn snug across the gap. On the chart they are
+      crosshatched while they wait, and so is everything to be knitted from
+      them.
     </span>
   </div>
 );
@@ -161,7 +163,8 @@ const ResumeStep: React.FC<{ count: number; piece: string }> = ({ count, piece }
     <span className="quiet">
       Put the {count} held stitches back on your needles. Join new yarn at the
       middle of the underarm: the round starts there, picking up stitches out
-      of the edge the body cast on.
+      of the edge the body cast on. On the chart the crosshatch comes off the{" "}
+      {piece.toLowerCase()}: it is on your needles again.
     </span>
   </div>
 );

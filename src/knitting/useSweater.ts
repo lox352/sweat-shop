@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { SweaterPattern } from "../data/sweaters/types";
 import { buildSweater } from "./engine";
 import { indexRounds } from "./progress";
+import { holdRegions } from "./holds";
 
 /**
  * A sweater's stitches and rounds, for a size.
@@ -37,7 +38,8 @@ export const useSweater = (pattern: SweaterPattern, sizeId?: string) => {
     [built, pattern.pieces],
   );
   const yoke = useMemo(() => yokeRounds(built), [built]);
-  return { ...built, index, yoke };
+  const holds = useMemo(() => holdRegions(built.stitches, built.holds), [built]);
+  return { ...built, index, yoke, holdRegions: holds };
 };
 
 /**

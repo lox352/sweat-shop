@@ -280,7 +280,7 @@ const ProjectView: React.FC<{
 }) => {
   const sweater = sweaterById(sweaterId)!;
   const size = sweater.sizes.find((s) => s.id === project.sizeId) ?? sweater.sizes[0];
-  const { stitches, rounds, roundLabels, roundKinds, roundPieces, index, yoke } = useSweater(sweater, size.id);
+  const { stitches, rounds, roundLabels, roundKinds, roundPieces, index, yoke, holdRegions } = useSweater(sweater, size.id);
 
   const colourway = sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0];
   const palette = useMemo(() => paletteOf(colourway, project.shades), [colourway, project.shades]);
@@ -350,6 +350,7 @@ const ProjectView: React.FC<{
             pieces={sweater.pieces}
             kinds={roundKinds}
             roundPieces={roundPieces}
+            holdRegions={holdRegions}
             overlay={(layout, cell) => (
               <>
                 {layer === "pace" && <PaceCells time={detail} layout={layout} cell={cell} />}
@@ -397,6 +398,7 @@ const ProjectView: React.FC<{
             pieces={sweater.pieces}
             kinds={roundKinds}
             roundPieces={roundPieces}
+            holdRegions={holdRegions}
           />
           <ul className="chart-key">
             {sweater.slots.map((slot) => (

@@ -293,6 +293,8 @@ test("the dividing round puts each sleeve on hold, casts on its underarm, and go
   await expect(position(page)).toContainText("Body, round 1, stitch 1.");
   await expect(page.getByRole("img", { name: /You are on Body · dividing round/ })).toBeVisible();
   await expect(page.locator(".chart-hold")).toHaveCount(2);
+  const onHold = page.locator(".chart-on-hold");
+  await expect(onHold).toHaveCount(0);
 
   // Across the back to the right sleeve, which goes on hold.
   await page.getByRole("button", { name: /^Knit 68 in / }).click();
@@ -300,6 +302,8 @@ test("the dividing round puts each sleeve on hold, casts on its underarm, and go
   await expect(page.locator(".knitting-panel")).toContainText("right sleeve");
   await expect(page.getByRole("button", { name: "End of round", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Held: carry on" }).click();
+  // Crosshatched once on hold, with the whole sleeve to be knitted from them.
+  await expect(onHold).toHaveCount(1);
 
   // Its underarm, cast on in its place, step by step - with the yarn at the needle, not a long tail.
   const hint = page.getByRole("list", { name: "Stitches in this round" });
@@ -312,8 +316,10 @@ test("the dividing round puts each sleeve on hold, casts on its underarm, and go
   await expect(page.locator(".knitting-panel")).toContainText("left sleeve");
   // Undo takes back the step, and only the step.
   await page.getByRole("button", { name: "Held: carry on" }).click();
+  await expect(onHold).toHaveCount(2);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".knitting-panel")).toContainText("Put 80 stitches on hold");
+  await expect(onHold).toHaveCount(1);
   await page.getByRole("button", { name: "Held: carry on" }).click();
   await page.getByRole("button", { name: /^Cast on 12 in / }).click();
   await page.getByRole("button", { name: "End of round", exact: true }).click();
@@ -343,7 +349,11 @@ test("a sleeve begins from its held stitches, picked up round from its underarm"
   await knittedTo(page, bodyDone);
   await expect(page.locator(".knitting-panel")).toContainText("Begin the left sleeve");
   await expect(page.locator(".knitting-panel")).toContainText("Put the 80 held stitches back on your needles");
+  // Both sleeves are on hold until each is taken up; the right waits for the left.
+  const onHold = page.locator(".chart-on-hold");
+  await expect(onHold).toHaveCount(2);
   await page.getByRole("button", { name: "On the needles: carry on" }).click();
+  await expect(onHold).toHaveCount(1);
   await expect(position(page)).toContainText("Left sleeve, round 1, stitch 1.");
   await page.getByRole("button", { name: /^Pick up and knit 6 in / }).click();
   await page.getByRole("button", { name: /^Knit 80 in / }).click();

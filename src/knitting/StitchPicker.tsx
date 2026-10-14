@@ -5,7 +5,7 @@ import { cellAt, chartSize } from "./draw-chart";
 import { progressBefore } from "./jump";
 import Button from "../components/ui/Button";
 import { KeyEntry } from "./stitch-key";
-import { HatchSwatch, Swatch, hatchSaying } from "./ChartHelp";
+import { HatchSwatch, OnHoldSwatch, Swatch, hatchSaying } from "./ChartHelp";
 
 /** How wide the bubble is, so it can be kept on the chart. */
 const bubbleWidth = 208;
@@ -39,9 +39,11 @@ const StitchPicker: React.FC<{
   names?: string[];
   /** Whether the stitch is hatched: worked with the other side towards you. */
   otherFace?: boolean;
+  /** Where the stitch is on hold, the piece it waits for: "Left sleeve". */
+  onHold?: string;
   /** Anything more to say about the stitch, below what it is. */
   note?: React.ReactNode;
-}> = ({ id, stitches, rounds, layout, cell, progress, onJump, onClose, entry, yarn, labels, names, otherFace, note }) => {
+}> = ({ id, stitches, rounds, layout, cell, progress, onJump, onClose, entry, yarn, labels, names, otherFace, onHold, note }) => {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -59,7 +61,7 @@ const StitchPicker: React.FC<{
   const explains = entry !== undefined && entry.id !== "k1";
   const needles = stitches[id]?.needles;
   const joinsAfter = stitches[id + 1]?.type === "join";
-  const bubble = explains || otherFace ? explainingWidth : bubbleWidth;
+  const bubble = explains || otherFace || onHold ? explainingWidth : bubbleWidth;
   const left = Math.min(
     Math.max(x + cell / 2 - bubble / 2, 4),
     Math.max(width - bubble - 4, 4),
@@ -132,6 +134,15 @@ const StitchPicker: React.FC<{
             <HatchSwatch />
             <p>
               <strong>Hatched.</strong> {hatchSaying}
+            </p>
+          </div>
+        )}
+        {onHold && (
+          <div className="stitch-picker-what stitch-picker-face">
+            <OnHoldSwatch />
+            <p>
+              <strong>On hold</strong> for the {onHold.toLowerCase()}: on waste yarn, or to be knitted from
+              stitches that are, and nothing here is knitted until the {onHold.toLowerCase()} is begun.
             </p>
           </div>
         )}

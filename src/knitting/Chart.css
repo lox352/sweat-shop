@@ -345,6 +345,27 @@
   opacity: 0.2;
 }
 
+/*
+ * Stitches on hold, and everything to be knitted from them: a pale wash, to
+ * set them back from the knitting in hand, and a crosshatch over it - two
+ * ways, where the other side's hatch is one - so the two never read alike.
+ */
+.chart-on-hold-wash {
+  fill: var(--paper);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.chart-on-hold {
+  pointer-events: none;
+}
+
+.chart-on-hold-line {
+  stroke: var(--ink);
+  stroke-width: 1.2;
+  opacity: 0.28;
+}
+
 .key-join {
   fill: none;
   stroke: var(--ink);

@@ -7,6 +7,7 @@ import { cellAt, chartSize, drawChart, drawProgress, leftMargin } from "./draw-c
 import ChartSvg from "./ChartSvg";
 import { StitchLegend, TextRound } from "./ChartHelp";
 import { faceAfter, holdsIn, joinIn, needleChangesIn, otherFaceRows, turnsIn } from "./chart-marks";
+import { type HoldRegion, onHoldAt } from "./holds";
 import StitchPicker from "./StitchPicker";
 import { keyEntryAt } from "./stitch-key";
 import { stitchAtPoint } from "./jump";
@@ -103,6 +104,8 @@ interface ChartProps {
   roundPieces?: string[];
   /** What each round is called in the knitting: "Body, round 23". */
   names?: string[];
+  /** The knitting's held regions, to mark as on hold while they are. See holds.ts. */
+  holdRegions?: HoldRegion[];
 }
 
 /**
@@ -137,6 +140,7 @@ const Chart: React.FC<ChartProps> = ({
   kinds,
   roundPieces,
   names,
+  holdRegions,
 }) => {
   const [picked, setPicked] = useState<number>();
   const makeOneLean = stitchNotes?.m1?.lean;
@@ -210,6 +214,17 @@ const Chart: React.FC<ChartProps> = ({
    * stitch there was worked as the opposite of what it shows.
    */
   const hatch = useMemo(() => otherFaceRows(laid.roundRows, kinds ?? [], face), [laid, kinds, face]);
+  /*
+   * The regions on hold where the knitting has got to: from the step that
+   * held each to the step that takes it up again. Kept the same object
+   * between those steps, so the chart is not redrawn on every stitch.
+   */
+  const heldNow = (holdRegions ? onHoldAt(holdRegions, progress) : []).map((region) => region.heldAt).join(",");
+  const onHold = useMemo(() => {
+    const now = new Set(heldNow.split(",").filter(Boolean).map(Number));
+    return (holdRegions ?? []).filter((region) => now.has(region.heldAt));
+  }, [holdRegions, heldNow]);
+  const onHoldSets = useMemo(() => onHold.map((region) => region.region), [onHold]);
   const needles = useMemo(() => needleChangesIn(stitches, rounds, names), [stitches, rounds, names]);
   // Each drawn across its own piece, between the rows either side of it.
   const needleRules = useMemo(
@@ -523,6 +538,7 @@ const Chart: React.FC<ChartProps> = ({
               holds={holds}
               turns={turns}
               hatch={hatch}
+              onHold={onHoldSets}
               face={face}
               makeOneLean={makeOneLean}
             />
@@ -545,8 +561,12 @@ const Chart: React.FC<ChartProps> = ({
               names={names}
               yarn={stitches[picked] && yarnFor(palette, stitches[picked].slot)}
               otherFace={(() => {
-                const round = layout.cells.get(picked)?.round;
-                return round !== undefined && hatch.some(([from, to]) => round >= from && round <= to);
+                const row = layout.cells.get(picked)?.row;
+                return row !== undefined && hatch.some(([from, to]) => row >= from && row <= to);
+              })()}
+              onHold={(() => {
+                const region = onHold.find((one) => one.region.has(picked));
+                return region && (pieces?.find((piece) => piece.id === region.holder)?.label ?? region.holder);
               })()}
               id={picked}
               stitches={stitches}

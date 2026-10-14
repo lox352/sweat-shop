@@ -1,4 +1,4 @@
-import Needles, { RoundKind } from "./needles";
+import Needles, { type Held, RoundKind } from "./needles";
 import { adjacentStitchDistance, verticalStitchDistance } from "../constants";
 import { Stitch } from "../types/Stitch";
 import { StitchType } from "../types/StitchType";
@@ -31,6 +31,8 @@ export interface SweaterStitches {
   roundPieces: string[];
   /** Whether each is a round or a short row, and from which side: see Needles.row. */
   roundKinds: RoundKind[];
+  /** Every run of stitches put on hold, and when it is taken up again: see Needles.Held. */
+  holds: Held[];
   /** The rounds after which the needles are changed, 1-based. */
   needleChanges: number[];
   /** The counts the design names; see Size.checks. */
@@ -417,12 +419,12 @@ export const buildSweater = (
     for (const spec of section.rounds) apply(spec, section.label);
   }
 
-  const { stitches, rounds, roundLabels, roundPieces, roundKinds } = needles.finish();
+  const { stitches, rounds, roundLabels, roundPieces, roundKinds, holds } = needles.finish();
   // Every stitch on the needles it is worked on, the steps saying when that changes.
   let on: number | undefined = startingNeedles;
   for (const stitch of stitches) {
     if (stitch.type === "needles") on = stitch.needles;
     else if (on !== undefined) stitch.needles = on;
   }
-  return { stitches, rounds, roundLabels, roundPieces, roundKinds, needleChanges, checks, roundHeight };
+  return { stitches, rounds, roundLabels, roundPieces, roundKinds, holds, needleChanges, checks, roundHeight };
 };

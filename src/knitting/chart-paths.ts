@@ -383,6 +383,31 @@ export const progressPath = (
 };
 
 /**
+ * Some stitches of the chart, as a rectangle per unbroken run of them along
+ * each row: a region of the knitting to wash or hatch over, such as stitches
+ * on hold and everything to be knitted from them.
+ */
+export const regionPath = (layout: ChartLayout, ids: Iterable<number>, cell: number): string => {
+  const rows = new Map<number, Cell[]>();
+  for (const id of ids) {
+    const at = layout.cells.get(id);
+    if (!at) continue;
+    const row = rows.get(at.row);
+    if (row) row.push(at);
+    else rows.set(at.row, [at]);
+  }
+  const parts: string[] = [];
+  rows.forEach((cells, row) => {
+    const y = (layout.rows - row) * cell;
+    for (const run of runsOf(cells)) {
+      const { left, right } = extent(layout, run, cell);
+      parts.push(rect(left, y, right - left, cell));
+    }
+  });
+  return parts.join("");
+};
+
+/**
  * Which rows get a number down the right-hand edge - each numbered as the
  * round it is of its piece; see ChartLayout.numbers.
  *

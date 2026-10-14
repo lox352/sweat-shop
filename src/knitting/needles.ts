@@ -32,6 +32,20 @@ import { StitchType, consumption } from "../types/StitchType";
 /** A round, or a short row worked from one side or the other. */
 export type RoundKind = "round" | "right" | "wrong";
 
+/**
+ * Stitches put on hold: a run of the round they were held from, in order,
+ * waiting on waste yarn under a holder's name - the step that put them there,
+ * and the step that takes them up again, once there is one. Consecutive held
+ * stitches are one region of the knitting, which could be taken up again at
+ * any time: what is on hold is decided by those two steps alone.
+ */
+export interface Held {
+  holder: string;
+  stitches: number[];
+  heldAt: number;
+  resumedAt?: number;
+}
+
 export default class Needles {
   readonly stitches: Stitch[] = [];
   /** Stitch ids in each round, in the order they are worked. */
@@ -44,6 +58,8 @@ export default class Needles {
    * knitted on the right side or purled back on the wrong.
    */
   readonly roundKinds: RoundKind[] = [];
+  /** Every run of stitches put on hold, in the order they were held. */
+  readonly holds: Held[] = [];
 
   /** The stitches on the needles, from the beginning of the round. */
   private live: number[] = [];
@@ -232,10 +248,12 @@ export default class Needles {
    */
   hold(name: string, count: number): this {
     if (this.holders.has(name)) throw new Error(`there is already a holder called ${name}`);
-    this.holders.set(name, this.take(count));
+    const held = this.take(count);
+    this.holders.set(name, held);
     const step = this.step("hold");
     step.holder = name;
     step.count = count;
+    this.holds.push({ holder: name, stitches: [...held], heldAt: step.id });
     return this;
   }
 
@@ -267,6 +285,8 @@ export default class Needles {
     const step = this.step("resume");
     step.holder = name;
     step.count = held.length;
+    const record = this.holds.find((one) => one.holder === name && one.resumedAt === undefined);
+    if (record) record.resumedAt = step.id;
     return this;
   }
 
@@ -357,6 +377,7 @@ export default class Needles {
       roundLabels: this.labels,
       roundPieces: this.roundPieces,
       roundKinds: this.roundKinds,
+      holds: this.holds,
     };
   }
 }

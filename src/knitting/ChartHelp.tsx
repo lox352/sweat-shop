@@ -79,6 +79,19 @@ export const HatchSwatch: React.FC = () => (
   </svg>
 );
 
+/** The crosshatch the chart draws over what is on hold, on its wash. */
+export const OnHoldSwatch: React.FC = () => (
+  <svg className="key-swatch" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+    <rect width="24" height="24" className="key-hatch-ground" />
+    {[-12, -6, 0, 6, 12, 18].map((at) => (
+      <g key={at}>
+        <line x1={at} y1={24} x2={at + 24} y2={0} className="chart-on-hold-line" />
+        <line x1={at} y1={0} x2={at + 24} y2={24} className="chart-on-hold-line" />
+      </g>
+    ))}
+  </svg>
+);
+
 /** What the hatch on the chart means. */
 export const hatchSaying =
   "Worked with the other side of the sweater towards you, on the far side of " +
@@ -230,6 +243,20 @@ export function KeyList({ entries, current, needles, holds, turns }: {
             <strong>Put stitches on hold</strong>
             <p>
               <HoldsText holds={holds} />
+            </p>
+          </div>
+        </li>
+      )}
+      {holds && holds.length > 0 && (
+        <li className="stitch-key-on-hold">
+          <OnHoldSwatch />
+          <div>
+            <strong>On hold</strong>
+            <p>
+              Crosshatched: stitches waiting on waste yarn, and every stitch to
+              be knitted from them, up through the piece they are for. None of it
+              is knitted while it is on hold, and the crosshatch goes when the
+              stitches are taken up again to begin that piece.
             </p>
           </div>
         </li>
