@@ -1,4 +1,5 @@
-import { Stitch, isFabric, isStep, workedAs } from "../types/Stitch";
+import { Stitch, isFabric, isStep } from "../types/Stitch";
+import { workedAs } from "./sides";
 import { StitchType } from "../types/StitchType";
 import type { Piece } from "../data/sweaters/types";
 import type { RoundKind } from "./needles";

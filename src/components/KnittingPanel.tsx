@@ -185,10 +185,10 @@ const TurnStep: React.FC<{ side: "right" | "wrong" }> = ({ side }) => (
         ? "Bring the yarn to the front between the needles and purl on from the next stitch: on this side, knits become purls."
         : "Knit on from the next stitch."}{" "}
       When a row or round reaches the double stitch, work its two legs
-      together as one. The chart turns over to match, and{" "}
+      together as one.{" "}
       {side === "wrong"
-        ? "what was knitted from the right side is shown hatched."
-        : "what was purled from the wrong side is shown hatched."}
+        ? "The chart turns over to match, every stitch shown as it looks from the wrong side - knits as purls, purls as knits - and what was knitted from the right side hatched."
+        : "The chart turns back over, every stitch shown as it looks from the right side again, and what was purled from the wrong side hatched."}
     </span>
   </div>
 );

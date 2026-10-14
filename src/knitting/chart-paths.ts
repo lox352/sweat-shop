@@ -1,7 +1,7 @@
 import { Stitch } from "../types/Stitch";
 import { Cell, ChartLayout } from "./layout";
 import { Palette, inkOn, yarnFor } from "./palette";
-import { markAt } from "./chart-marks";
+import { type Face, markAt } from "./chart-marks";
 
 /**
  * The chart as paths.
@@ -264,12 +264,14 @@ export const markPaths = (
   palette: Palette,
   cell: number,
   makeOneLean?: "left" | "right",
+  /** The side of the sweater shown, which decides what each stitch is. */
+  face: Face = "right",
 ): { ink: string; strokes: string; dots: string }[] => {
   const groups = new Map<string, { strokes: string[]; dots: string[] }>();
   const byId = new Map(stitches.map((stitch) => [stitch.id, stitch]));
 
   for (const stitch of stitches) {
-    const mark = markAt(stitch, byId, layout, makeOneLean);
+    const mark = markAt(stitch, byId, layout, makeOneLean, face);
     if (!mark) continue;
     const at = layout.cells.get(stitch.id);
     if (!at) continue;

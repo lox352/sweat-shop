@@ -6,7 +6,7 @@ import { useSweater } from "../knitting/useSweater";
 import { colourwayLabel, paletteOf, yarnFor } from "../knitting/palette";
 import { totals, positionOf, currentRun, whereYouAre, type PieceSpan } from "../knitting/progress";
 import { keyEntryAt } from "../knitting/stitch-key";
-import { holdsIn, needleChangesIn, turnsIn } from "../knitting/chart-marks";
+import { faceAfter, holdsIn, needleChangesIn, turnsIn } from "../knitting/chart-marks";
 import { metresBySlot } from "../knitting/yardage";
 import {
   Project as SavedProject,
@@ -363,6 +363,12 @@ const ProjectView: React.FC<{
     if (!knitting) setKeyOpen(false);
   }, [knitting]);
   const run = currentRun(stitches, project.progress, index);
+  // Which side is towards you, for the key to read the chart's symbols from: see Chart.
+  const turnIds = useMemo(
+    () => stitches.filter((stitch) => stitch.type === "turn").map((stitch) => stitch.id),
+    [stitches],
+  );
+  const face = faceAfter(turnIds, project.progress);
   const currentStitch = run ? keyEntryAt(stitches, run.startId, sweater.stitchNotes)?.id : undefined;
 
   const title = project.name ?? sweater.name;
@@ -495,6 +501,7 @@ const ProjectView: React.FC<{
             needles={needleChangesIn(stitches, pieceRounds)}
             holds={holdsIn(stitches, pieceRounds, sweater.pieces)}
             turns={turnsIn(stitches, pieceRounds)}
+            face={face}
             onClose={closeKey}
           />
         )}

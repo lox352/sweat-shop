@@ -1,14 +1,14 @@
 import React, { useMemo } from "react";
 import { Stitch, joinsCastOn } from "../types/Stitch";
-import { StitchType } from "../types/StitchType";
 import { Mark, forkMark, makeOneMark, markFor } from "../helpers/stitch-marks";
+import type { ChartStitch, Face } from "./sides";
 import { Palette, yarnFor } from "./palette";
 import { indexRounds, roundParts, runInstruction } from "./progress";
 import { KeyEntry, stitchKey } from "./stitch-key";
 import type { Hold, NeedleChange, Turn } from "./chart-marks";
 import type { StitchKeyId, StitchNote } from "../data/sweaters/types";
 
-const Cell: React.FC<{ type?: StitchType; mark?: Mark; x: number }> = ({ type, mark = type && markFor(type), x }) => {
+const Cell: React.FC<{ type?: ChartStitch; mark?: Mark; x: number }> = ({ type, mark = type && markFor(type), x }) => {
   return (
     <g transform={`translate(${x} 0)`}>
       <rect width="1" height="1" className="key-cell" />
@@ -34,10 +34,10 @@ const JoinSwatch: React.FC = () => (
   </svg>
 );
 
-/** A KFB is drawn as the pair of cells it makes: the stitch, and the new one to its left. */
+/** A KFB is drawn as the pair of cells it makes: the stitch, and the new one to its left. A PFB likewise. */
 export const Swatch: React.FC<{ entry: KeyEntry }> = ({ entry }) => {
   if (entry.id === "join") return <JoinSwatch />;
-  const pair = entry.id === "kfb";
+  const pair = entry.id === "kfb" || entry.id === "pfb";
   return (
     <svg
       className="key-swatch"
@@ -49,10 +49,10 @@ export const Swatch: React.FC<{ entry: KeyEntry }> = ({ entry }) => {
       {pair ? (
         <>
           <Cell x={0} />
-          <Cell x={1} mark={forkMark(0.5, [0.5, -0.5])} />
+          <Cell x={1} mark={forkMark(0.5, [0.5, -0.5], entry.id === "pfb")} />
         </>
-      ) : entry.id === "m1" ? (
-        <Cell x={0} mark={makeOneMark(entry.lean)} />
+      ) : entry.id === "m1" || entry.id === "m1p" ? (
+        <Cell x={0} mark={makeOneMark(entry.lean, entry.id === "m1p")} />
       ) : (
         <Cell type={entry.type} x={0} />
       )}
@@ -80,9 +80,9 @@ export const HatchSwatch: React.FC = () => (
 /** What the hatch on the chart means. */
 export const hatchSaying =
   "Worked with the other side of the sweater towards you, on the far side of " +
-  "a turn from where you are now. The chart shows it from the side you are " +
-  "working on, so it is mirrored, and a knit there is a purl from here, and a " +
-  "purl a knit.";
+  "a turn from where you are now. The chart shows every stitch as it looks " +
+  "from the side you are on, so each stitch there was worked as its opposite: " +
+  "what shows here as a knit was purled, and what shows as a purl was knitted.";
 
 /** Stitches put on hold: a bar with an arrow down it, as the chart draws it. */
 export const HoldSwatch: React.FC = () => (
@@ -140,14 +140,16 @@ function HoldsText({ holds }: { holds: Hold[] }) {
  *
  * Only the stitches the design uses, in the words it uses; see stitch-key.ts.
  */
-export function StitchLegend({ stitches, notes, needles, holds, turns }: {
+export function StitchLegend({ stitches, notes, needles, holds, turns, face = "right" }: {
   stitches: Stitch[];
   notes?: Partial<Record<StitchKeyId, StitchNote>>;
   needles?: NeedleChange[];
   holds?: Hold[];
   turns?: Turn[];
+  /** The side the chart shows, which decides what its symbols are. */
+  face?: Face;
 }) {
-  const entries = useMemo(() => stitchKey(stitches, notes), [stitches, notes]);
+  const entries = useMemo(() => stitchKey(stitches, notes, face), [stitches, notes, face]);
   return (
     <details className="chart-help">
       <summary>Stitch-symbol key</summary>
@@ -216,10 +218,13 @@ export function KeyList({ entries, current, needles, holds, turns }: {
               each turn is a double stitch - slipped, with the yarn pulled up
               over the needle so its two legs sit on it - and is worked as one
               when a row or round comes back to it. A row back is worked from
-              the wrong side, where knits become purls, so it is purled, and
-              drawn as purls. The chart turns over with the work: it always
-              shows the side towards you, and hatches what was worked from
-              the other.
+              the wrong side, where knits become purls, so it is purled. The
+              chart turns over with the work and shows every stitch as it looks
+              from the side towards you: from the right side the rows back are
+              knits, as the rest of the fabric is, and from the wrong side every
+              knit is a purl and every purl a knit - a k2tog a p2tog, a make-one
+              a make-one purlwise. What was worked from the other side is
+              hatched.
             </p>
           </div>
         </li>

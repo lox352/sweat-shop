@@ -1,7 +1,7 @@
 import { Stitch } from "../types/Stitch";
 import { ChartLayout } from "./layout";
 import { Palette, inkOn, yarnFor } from "./palette";
-import { markAt } from "./chart-marks";
+import { type Face, markAt } from "./chart-marks";
 
 /**
  * Drawing the chart onto a canvas: the renderer kept beside the vector one,
@@ -102,6 +102,7 @@ export const drawChart = (
   ink = "#a29a91",
   makeOneLean?: "left" | "right",
   needleChanges: number[] = [],
+  face: Face = "right",
 ) => {
   const needlesAt = new Set(needleChanges);
   const { width, height } = chartSize(layout, cell);
@@ -185,7 +186,7 @@ export const drawChart = (
       ctx.stroke();
     }
 
-    const mark = markAt(stitch, byId, layout, makeOneLean);
+    const mark = markAt(stitch, byId, layout, makeOneLean, face);
     if (!mark) continue;
     const ink = inkOn(yarn.hex);
     if (mark.dot) {

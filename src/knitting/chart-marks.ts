@@ -1,17 +1,21 @@
-import { Stitch, isStep, workedAs } from "../types/Stitch";
+import { Stitch, isStep } from "../types/Stitch";
 import { ChartLayout, isSecondLoop } from "./layout";
 import type { RoundKind } from "./needles";
 import { Mark, forkMark, makeOneMark, markFor } from "../helpers/stitch-marks";
+import { type Face, seenFrom } from "./sides";
+
+export type { Face };
 
 /**
  * The mark a stitch carries on the chart, which can depend on its neighbours.
  *
- * Nearly always the stitch's own, as it is worked: a short row purled back
- * from the wrong side is drawn as the purls it is - see workedAs. The
- * exception is a KFB: one instruction that makes two stitches, so it is drawn
- * as one mark across both cells - a fork from the stitch below to each of
- * them - and the new stitch carries nothing of its own, being made rather
- * than worked.
+ * Nearly always the stitch's own, as it looks from the side the chart shows:
+ * from the right side, what it is there - a short row purled back from the
+ * wrong side is knits - and from the wrong side, its pair from behind, every
+ * knit a purl and every purl a knit; see sides.ts. The exception is a KFB:
+ * one instruction that makes two stitches, so it is drawn as one mark across
+ * both cells - a fork from the stitch below to each of them - and the new
+ * stitch carries nothing of its own, being made rather than worked.
  */
 export const markAt = (
   stitch: Stitch,
@@ -19,10 +23,13 @@ export const markAt = (
   layout: ChartLayout,
   /** Which way this pattern's make-ones lean, if it says. */
   makeOneLean?: "left" | "right",
+  /** The side of the sweater the chart shows. */
+  face: Face = "right",
 ): Mark | undefined => {
   if (isSecondLoop(stitch, byId)) return undefined;
-  if (stitch.type === "m1") return makeOneMark(makeOneLean);
-  if (stitch.type !== "kfb") return markFor(workedAs(stitch));
+  const shown = seenFrom(stitch, face);
+  if (shown === "m1" || shown === "m1p") return makeOneMark(makeOneLean, shown === "m1p");
+  if (shown !== "kfb" && shown !== "pfb") return markFor(shown);
 
   const at = layout.cells.get(stitch.id);
   const made = byId.get(stitch.id + 1);
@@ -31,7 +38,7 @@ export const markAt = (
   // Column 1 is at the right, so a higher column is further left.
   const centre = (column: number) => 0.5 + at.column - column;
   const parentAt = layout.cells.get(stitch.links[0]);
-  return forkMark(centre(parentAt?.column ?? at.column), [0.5, centre(madeAt.column)]);
+  return forkMark(centre(parentAt?.column ?? at.column), [0.5, centre(madeAt.column)], shown === "pfb");
 };
 
 /** Where the needles change: after which round, and to what size. */
@@ -139,9 +146,6 @@ export const turnsIn = (stitches: Stitch[], rounds: number[][]): Turn[] => {
   }
   return out;
 };
-
-/** A side of the sweater: the side it is worn with out, or its reverse. */
-export type Face = "right" | "wrong";
 
 /**
  * Which side of the sweater is towards you once the knitting is worked as far

@@ -13,9 +13,9 @@ import React, { useEffect } from "react";
 import type { Stitch } from "../types/Stitch";
 import type { ChartLayout } from "../knitting/layout";
 import { cellAt } from "../knitting/draw-chart";
-import { stitchKey } from "../knitting/stitch-key";
+import { type KeyId, stitchKey } from "../knitting/stitch-key";
 import { Swatch, NeedlesSwatch } from "../knitting/ChartHelp";
-import type { SweaterPattern, StitchKeyId } from "../data/sweaters/types";
+import type { SweaterPattern } from "../data/sweaters/types";
 import type { TimeDetail } from "../knitting/timing/detail";
 import type { Column, TimeSummary } from "../knitting/timing/model";
 import { duration, range } from "../knitting/timing/format";
@@ -210,7 +210,7 @@ export const StatsPanel: React.FC<{
   </section>
 );
 
-const opOf: Partial<Record<StitchKeyId, Column>> = {
+const opOf: Partial<Record<KeyId, Column>> = {
   castOn: "castOn",
   k1: "knit",
   p1: "purl",

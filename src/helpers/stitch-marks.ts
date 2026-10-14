@@ -1,4 +1,5 @@
 import { StitchType } from "../types/StitchType";
+import type { ChartStitch } from "../knitting/sides";
 
 /**
  * The marks a chart prints in a cell, as geometry rather than as a picture.
@@ -29,7 +30,7 @@ export interface Mark {
   dot?: { x: number; y: number; r: number };
 }
 
-const marks: Partial<Record<StitchType, Mark>> = {
+const marks: Partial<Record<ChartStitch, Mark>> = {
   p1: { dot: { x: mid, y: mid, r: 0.14 } },
   // A twisted stitch: the two legs crossed.
   k1tbl: {
@@ -148,27 +149,51 @@ marks.bindOff = {
   ],
 };
 
-export const markFor = (type: StitchType): Mark | undefined => marks[type];
+/*
+ * The stitches as they are from the other side of the fabric - see
+ * knitting/sides.ts. Each is drawn as its pair, with a purl's dot wherever its
+ * strokes leave the cell clear, as a chart key draws a p2tog: a k2tog's stroke
+ * with a dot beside it. A knit's pair is the purl's dot alone, and a purl's
+ * the plain cell of a knit.
+ */
+const dotted = (mark: Mark | undefined, x: number, y: number): Mark => ({
+  ...mark,
+  dot: { x, y, r: 0.09 },
+});
+marks.p1tbl = dotted(marks.k1tbl, mid, 0.86);
+marks.p2tog = dotted(marks.k2tog, 0.72, 0.72);
+marks.ssp = dotted(marks.ssk, 0.28, 0.72);
+marks.s2pp = dotted(marks.s2kp, 0.8, 0.3);
+marks.p2sps = dotted(marks.sk2p, mid, 0.68);
+marks.pickUpPurl = dotted(marks.pickUp, 0.76, 0.74);
+marks.bindOffPurl = dotted(marks.bindOff, mid, 0.74);
+
+export const markFor = (type: ChartStitch): Mark | undefined => marks[type];
 
 /**
  * A make-one whose pattern says which way it leans: the same strand along the
  * foot of the cell, with the new stitch lifted out of it leaning that way.
+ * Purled, from the other side of the fabric, it has a purl's dot on the side
+ * it leans away from.
  */
-export const makeOneMark = (lean?: "left" | "right"): Mark | undefined =>
-  lean === undefined
-    ? marks.m1
-    : {
-        strokes: [
-          [
-            [near, far],
-            [far, far],
+export const makeOneMark = (lean?: "left" | "right", purled = false): Mark | undefined => {
+  const mark: Mark | undefined =
+    lean === undefined
+      ? marks.m1
+      : {
+          strokes: [
+            [
+              [near, far],
+              [far, far],
+            ],
+            [
+              [mid, far],
+              [lean === "left" ? near : far, near],
+            ],
           ],
-          [
-            [mid, far],
-            [lean === "left" ? near : far, near],
-          ],
-        ],
-      };
+        };
+  return purled ? dotted(mark, lean === "right" ? 0.26 : 0.74, 0.42) : mark;
+};
 
 /**
  * One stitch becoming two, drawn across both: a V opening from over the
@@ -182,12 +207,16 @@ export const makeOneMark = (lean?: "left" | "right"): Mark | undefined =>
  * when the new one is made beside it, as a KFB's is, so one arm stands
  * straight up; or between the two when neither keeps the column.
  */
-export const forkMark = (from: number, to: number[]): Mark => ({
-  strokes: to.map((x) => [
-    [from, far],
-    [x, near],
-  ]),
-});
+export const forkMark = (from: number, to: number[], purled = false): Mark => {
+  const mark: Mark = {
+    strokes: to.map((x) => [
+      [from, far],
+      [x, near],
+    ]),
+  };
+  // Purled - a PFB - with a purl's dot in its own cell, away from the stitch it makes.
+  return purled ? dotted(mark, to.some((x) => x < 0) ? 0.82 : 0.18, 0.56) : mark;
+};
 
 export const markLabels: Partial<Record<StitchType, string>> = {
   p1: "purl",

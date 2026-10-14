@@ -194,9 +194,11 @@ const Chart: React.FC<ChartProps> = ({
   const face = faceAfter(turnIds, progress);
   const layout = useMemo(() => (face === "wrong" ? mirrorLayout(laid) : laid), [laid, face]);
   /*
-   * The rounds worked with the other side towards you, hatched: each stitch
-   * there is drawn as it was worked, which from where you are is the other
-   * way round - a knit there is a purl from here, and a purl a knit.
+   * And every stitch is drawn as it looks from the side shown: from the right
+   * side, as it is there, the rows purled back from the wrong side knits like
+   * the rest; from the wrong side, as its pair from behind - see sides.ts. The
+   * rounds worked with the other side towards you are hatched, because each
+   * stitch there was worked as the opposite of what it shows.
    */
   const hatch = useMemo(
     () => otherFaceRounds(kinds ?? [], rounds.length, face),
@@ -253,10 +255,11 @@ const Chart: React.FC<ChartProps> = ({
       token("--ink-faint", "#a29a91"),
       makeOneLean,
       needleRounds,
+      face,
     );
     // Size is derived from the same values this already depends on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawn, layout, palette, width, height, ratio, drawWith, makeOneLean, needleRounds]);
+  }, [drawn, layout, palette, width, height, ratio, drawWith, makeOneLean, needleRounds, face]);
 
   /*
    * And the two things that change as you knit, on a sheet of their own over
@@ -484,7 +487,8 @@ const Chart: React.FC<ChartProps> = ({
               ? ` You are on ${labels[focusRound - 1]}.`
               : "") +
             (face === "wrong"
-              ? " The work is turned, with its wrong side towards you, and the chart is turned over to match."
+              ? " The work is turned, with its wrong side towards you, and the chart is turned over to match," +
+                " every stitch as it looks from that side."
               : "")
           }
         >
@@ -506,6 +510,7 @@ const Chart: React.FC<ChartProps> = ({
               holds={holds}
               turns={turns}
               hatch={hatch}
+              face={face}
               makeOneLean={makeOneLean}
             />
           ) : (
@@ -522,7 +527,7 @@ const Chart: React.FC<ChartProps> = ({
           {picked !== undefined && (
             <StitchPicker
               note={pickerNote?.(picked)}
-              entry={keyEntryAt(stitches, picked, stitchNotes)}
+              entry={keyEntryAt(stitches, picked, stitchNotes, face)}
               labels={labels}
               yarn={stitches[picked] && yarnFor(palette, stitches[picked].slot)}
               otherFace={(() => {
@@ -541,7 +546,7 @@ const Chart: React.FC<ChartProps> = ({
           )}
         </div>
       </div>
-      <StitchLegend stitches={stitches} notes={stitchNotes} needles={needles} holds={holds} turns={turns} />
+      <StitchLegend stitches={stitches} notes={stitchNotes} needles={needles} holds={holds} turns={turns} face={face} />
       {writtenRounds && <details className="chart-help" onToggle={e => setShowText(e.currentTarget.open)}>
         <summary>Text round instructions</summary>
         <label>Read round <select value={follow && focusRound ? focusRound : textRound} disabled={follow && !!focusRound} onChange={e => setTextRound(Number(e.target.value))}>
@@ -557,7 +562,8 @@ const Chart: React.FC<ChartProps> = ({
         column of the knitting: a make-one begins a new one, with nothing
         below it, and a decrease ends one.
         {turns.length > 0 &&
-          " The chart shows the side you are working on, and turns over with the work at a short row."}
+          " The chart shows the side you are working on, every stitch as it looks from there, and turns over" +
+            " with the work at a short row."}
       </p>
     </div>
   );

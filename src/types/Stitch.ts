@@ -53,23 +53,12 @@ export interface Stitch {
   /**
    * Worked from the wrong side, on a short row knitted back the other way.
    * Its type is what it looks like from the right side - a stitch purled from
-   * the wrong side is a knit - which is what the sweater on screen draws.
-   * The chart and the knitting panel show it as it is worked: see workedAs.
+   * the wrong side is a knit - which is what the sweater on screen draws, and
+   * the chart from the right side. What to do is the stitch from the side it
+   * is worked from: see knitting/sides.ts.
    */
   wrongSide?: boolean;
 }
-
-/**
- * A stitch as it is worked, from the side it is worked from.
- *
- * On the reverse of the fabric knits become purls, and purls knits: a short
- * row worked back from the wrong side makes knits on the right side by
- * purling them. So that is what the chart draws in such a row, and what the
- * knitting panel says to do - see Chart, which turns over to show that side
- * while you are on it.
- */
-export const workedAs = (stitch: Pick<Stitch, "type" | "wrongSide">): StitchType =>
-  !stitch.wrongSide ? stitch.type : stitch.type === "k1" ? "p1" : stitch.type === "p1" ? "k1" : stitch.type;
 
 /**
  * Whether a stitch is a step: part of the order of work, but no fabric.

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from "react";
-import type { Hold, NeedleChange, Turn } from "../knitting/chart-marks";
+import type { Face, Hold, NeedleChange, Turn } from "../knitting/chart-marks";
 import { Stitch } from "../types/Stitch";
 import { Palette } from "../knitting/palette";
 import { stitchKey } from "../knitting/stitch-key";
@@ -8,7 +8,10 @@ import type { StitchKeyId, StitchNote } from "../data/sweaters/types";
 
 type Notes = Partial<Record<StitchKeyId, StitchNote>>;
 
-/** The colours and every stitch in this sweater: the whole key. */
+/**
+ * The colours and every stitch in this sweater: the whole key, for the
+ * symbols as the chart shows them from the side towards you.
+ */
 const FullKey: React.FC<{
   stitches: Stitch[];
   palette: Palette;
@@ -17,12 +20,13 @@ const FullKey: React.FC<{
   needles?: NeedleChange[];
   holds?: Hold[];
   turns?: Turn[];
-}> = ({ stitches, palette, notes, current, needles, holds, turns }) => {
+  face?: Face;
+}> = ({ stitches, palette, notes, current, needles, holds, turns, face = "right" }) => {
   // The stitch in hand first, where it is seen without scrolling.
   const entries = useMemo(() => {
-    const all = stitchKey(stitches, notes);
+    const all = stitchKey(stitches, notes, face);
     return [...all.filter((e) => e.id === current), ...all.filter((e) => e.id !== current)];
-  }, [stitches, notes, current]);
+  }, [stitches, notes, current, face]);
   const yarns = Object.entries(palette).filter(
     ([, yarn], i, all) => all.findIndex(([, other]) => other.name === yarn.name && other.hex === yarn.hex) === i,
   );
@@ -55,8 +59,10 @@ export const KeySheet: React.FC<{
   needles?: NeedleChange[];
   holds?: Hold[];
   turns?: Turn[];
+  /** The side of the sweater towards the knitter, which the chart shows. */
+  face?: Face;
   onClose: () => void;
-}> = ({ stitches, palette, notes, current, needles, holds, turns, onClose }) => {
+}> = ({ stitches, palette, notes, current, needles, holds, turns, face, onClose }) => {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -81,6 +87,7 @@ export const KeySheet: React.FC<{
           needles={needles}
           holds={holds}
           turns={turns}
+          face={face}
         />
       </div>
     </div>

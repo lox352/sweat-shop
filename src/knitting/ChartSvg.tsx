@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { Stitch } from "../types/Stitch";
 import { ChartLayout } from "./layout";
 import { joinArrowLength } from "./draw-chart";
-import type { Hold, Join, Turn } from "./chart-marks";
+import type { Face, Hold, Join, Turn } from "./chart-marks";
 import { Palette, yarnFor } from "./palette";
 import {
   cellAt,
@@ -36,6 +36,8 @@ interface ChartSvgProps {
    * side you are on: hatched over.
    */
   hatch?: [number, number][];
+  /** The side of the sweater shown: every stitch is drawn as it looks from there. */
+  face?: Face;
   /** Which way this pattern's make-ones lean, if it says. */
   makeOneLean?: "left" | "right";
 }
@@ -63,14 +65,15 @@ const Knitting: React.FC<{
   cell: number;
   grid: Grid;
   makeOneLean?: "left" | "right";
-}> = React.memo(({ stitches, layout, palette, cell, grid, makeOneLean }) => {
+  face: Face;
+}> = React.memo(({ stitches, layout, palette, cell, grid, makeOneLean, face }) => {
   const fills = useMemo(
     () => fillPaths(stitches, layout, cell),
     [stitches, layout, cell],
   );
   const marks = useMemo(
-    () => markPaths(stitches, layout, palette, cell, makeOneLean),
-    [stitches, layout, palette, cell, makeOneLean],
+    () => markPaths(stitches, layout, palette, cell, makeOneLean, face),
+    [stitches, layout, palette, cell, makeOneLean, face],
   );
 
   return (
@@ -114,6 +117,7 @@ const ChartSvg: React.FC<ChartSvgProps> = ({
   holds,
   turns,
   hatch = [],
+  face = "right",
   makeOneLean,
 }) => {
   const { width, height } = chartSize(layout, cell);
@@ -152,6 +156,7 @@ const ChartSvg: React.FC<ChartSvgProps> = ({
         cell={cell}
         grid={grid}
         makeOneLean={makeOneLean}
+        face={face}
       />
       {yarnLabels && <YarnLabels stitches={stitches} layout={layout} cell={cell} labels={yarnLabels} />}
       {veil && <path d={veil} className="chart-done" />}
