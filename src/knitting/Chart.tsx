@@ -227,10 +227,10 @@ const Chart: React.FC<ChartProps> = ({
   }, [holdRegions, heldNow]);
   const onHoldSets = useMemo(() => onHold.map((region) => region.region), [onHold]);
   const needles = useMemo(() => needleChangesIn(stitches, rounds, names), [stitches, rounds, names]);
-  // Each drawn across its own piece, between the rows either side of it.
+  // Each drawn across its own piece, between the rows either side of it; held stitches taken up onto other needles are not.
   const needleRules = useMemo(
     () =>
-      needles.map((change) => ({
+      needles.filter((change) => !change.takeUp).map((change) => ({
         after: laid.roundRows[change.after - 1] ?? change.after,
         piece: laid.cells.get(rounds[change.after - 1]?.[0] ?? -1)?.piece ?? "",
       })),

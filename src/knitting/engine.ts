@@ -341,7 +341,13 @@ export const buildSweater = (
         const reversed = [...edge].reverse();
         const head = reversed.slice(0, spec.after);
         const tail = reversed.slice(spec.after);
-        needles.resume(spec.held);
+        /*
+         * Onto the main needles, whatever the last piece ended on: the body
+         * ends in its hem rib, on the rib's, and a sleeve is not ribbed until
+         * its cuff.
+         */
+        onNeedles = needleFor("main");
+        needles.resume(spec.held, onNeedles);
         const { width, rise } = fabricOf(pattern, roundHeight, spec.fabric);
         needles.startRound(`${section} · pick-up round`, width, rise);
         tail.forEach((from) => needles.knit("pickUp", spec.slot, from));
@@ -428,10 +434,14 @@ export const buildSweater = (
   }
 
   const { stitches, rounds, roundLabels, roundPieces, roundKinds, holds } = needles.finish();
-  // Every stitch on the needles it is worked on, the steps saying when that changes.
+  /*
+   * Every stitch on the needles it is worked on, the steps saying when that
+   * changes: a change of needles, or held stitches taken up onto needles of
+   * their own to begin a piece.
+   */
   let on: number | undefined = startingNeedles;
   for (const stitch of stitches) {
-    if (stitch.type === "needles") on = stitch.needles;
+    if (stitch.type === "needles" || (stitch.type === "resume" && stitch.needles !== undefined)) on = stitch.needles;
     else if (on !== undefined) stitch.needles = on;
   }
   return { stitches, rounds, roundLabels, roundPieces, roundKinds, holds, needleChanges, checks, roundHeight };

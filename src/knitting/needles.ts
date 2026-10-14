@@ -279,11 +279,12 @@ export default class Needles {
 
   /**
    * Take a holder's stitches back onto the needles, to begin a piece with
-   * them: a step. The yarn is new - it is joined at the underarm, not carried
+   * them: a step, which says which needles they go onto where `millimetres`
+   * is given. The yarn is new - it is joined at the underarm, not carried
    * on from wherever the last piece ended - so the first stitch made has
    * nothing before it.
    */
-  resume(name: string): this {
+  resume(name: string, millimetres?: number): this {
     const held = this.holders.get(name);
     if (!held) throw new Error(`nothing is held under ${name}`);
     if (this.live.length > 0) throw new Error(`${name}: the needles still have stitches on them`);
@@ -293,6 +294,7 @@ export default class Needles {
     const step = this.step("resume");
     step.holder = name;
     step.count = held.length;
+    if (millimetres !== undefined) step.needles = millimetres;
     const record = this.holds.find((one) => one.holder === name && one.resumedAt === undefined);
     if (record) record.resumedAt = step.id;
     return this;

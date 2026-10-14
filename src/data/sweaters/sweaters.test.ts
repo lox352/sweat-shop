@@ -61,6 +61,17 @@ describe.each(sweaters.map((sweater) => [sweater.id, sweater] as const))("%s", (
       expect(rowsOver(ring.length / 2)).toBe(0);
     });
 
+    it("takes each sleeve up onto the main needles, and changes to the rib's for its cuff", () => {
+      for (const id of ["sleeve-left", "sleeve-right"]) {
+        const rounds = piece(id);
+        const [first, last] = [rounds[0][0], rounds[rounds.length - 1].at(-1)!];
+        expect(built.stitches[first].needles, `${id}, its first round`).toBe(size.needlesMm);
+        expect(built.stitches[last].needles, `${id}, its bind-off`).toBe(size.ribNeedlesMm);
+        const changes = built.stitches.filter((stitch) => stitch.type === "needles" && stitch.id > first && stitch.id < last);
+        expect(changes.map((stitch) => stitch.needles), id).toEqual([size.ribNeedlesMm]);
+      }
+    });
+
     it("knits both sleeves alike, from the same number of held stitches", () => {
       const left = piece("sleeve-left").map((round) => round.length);
       const right = piece("sleeve-right").map((round) => round.length);

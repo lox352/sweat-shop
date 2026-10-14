@@ -134,6 +134,8 @@ describe("the test sweater, stitch by stitch", () => {
     expect(stitches[rounds[2][0]].needles).toBe(2.75);
     expect(stitches[rounds[3][0]].needles).toBe(3.25);
     expect(built.needleChanges).toEqual([3]);
+    // Each sleeve's held stitches are taken up onto the main needles.
+    expect(byType("resume").map((stitch) => stitch.needles)).toEqual([3.25, 3.25]);
   });
 
   it("knits the rib narrower, as its fabric says", () => {

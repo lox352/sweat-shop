@@ -120,9 +120,11 @@ export const NeedlesSwatch: React.FC = () => (
  * rounds are gathered by the size they change to.
  */
 function NeedlesText({ changes }: { changes: NeedleChange[] }) {
-  const sizes = [...new Set(changes.map((change) => change.to))];
+  const ruled = changes.filter((change) => !change.takeUp);
+  const takenUp = [...new Set(changes.filter((change) => change.takeUp).map((change) => change.to))];
+  const sizes = [...new Set(ruled.map((change) => change.to))];
   const phrases = sizes.map((size) => {
-    const at = changes.filter((change) => change.to === size);
+    const at = ruled.filter((change) => change.to === size);
     // Each piece changes for itself on the whole sweater's chart, so each is named.
     if (at.every((change) => change.where)) {
       const where = at.map((change) => change.where);
@@ -136,6 +138,8 @@ function NeedlesText({ changes }: { changes: NeedleChange[] }) {
       Where the dashed rule crosses the chart, change needles:{" "}
       {phrases.join("; ")}. Knitting stops at each for you to change, and
       tapping a stitch says which needles it is worked on.
+      {takenUp.length > 0 &&
+        ` Held stitches go back onto ${takenUp.map((size) => `${size}mm`).join(" or ")} needles when the piece they wait for is begun.`}
     </>
   );
 }

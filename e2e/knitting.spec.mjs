@@ -348,7 +348,7 @@ test("the dividing round puts each sleeve on hold, casts on its underarm, and go
 test("a sleeve begins from its held stitches, picked up round from its underarm", async ({ page }) => {
   await knittedTo(page, bodyDone);
   await expect(page.locator(".knitting-panel")).toContainText("Begin the left sleeve");
-  await expect(page.locator(".knitting-panel")).toContainText("Put the 80 held stitches back on your needles");
+  await expect(page.locator(".knitting-panel")).toContainText("Put the 80 held stitches back onto 3.25mm needles, changing from the 2.75mm ones");
   // Both sleeves are on hold until each is taken up; the right waits for the left.
   const onHold = page.locator(".chart-on-hold");
   await expect(onHold).toHaveCount(2);
