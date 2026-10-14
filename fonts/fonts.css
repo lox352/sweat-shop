@@ -1,0 +1,31 @@
+/*
+ * Source Sans 3 is the patterns' own body face; Oswald stands in for the
+ * condensed face their titles are set in. Both are SIL Open Font Licence and
+ * both are variable, so one file covers every weight the site asks for.
+ *
+ * Self-hosted, latin subset only, so the site makes no third-party requests.
+ */
+
+@font-face {
+  font-family: "Oswald";
+  font-style: normal;
+  font-weight: 200 700;
+  font-display: swap;
+  src: url("/sweat-shop/fonts/oswald-variable.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("/sweat-shop/fonts/source-sans-3-variable.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: italic;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("/sweat-shop/fonts/source-sans-3-italic.woff2") format("woff2");
+}
