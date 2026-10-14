@@ -31,6 +31,11 @@ interface ChartSvgProps {
   holds?: Hold[];
   /** Where a short row turns. */
   turns?: Turn[];
+  /**
+   * Rounds, first and last, worked with the other side towards you from the
+   * side you are on: hatched over.
+   */
+  hatch?: [number, number][];
   /** Which way this pattern's make-ones lean, if it says. */
   makeOneLean?: "left" | "right";
 }
@@ -108,6 +113,7 @@ const ChartSvg: React.FC<ChartSvgProps> = ({
   join,
   holds,
   turns,
+  hatch = [],
   makeOneLean,
 }) => {
   const { width, height } = chartSize(layout, cell);
@@ -149,6 +155,32 @@ const ChartSvg: React.FC<ChartSvgProps> = ({
       />
       {yarnLabels && <YarnLabels stitches={stitches} layout={layout} cell={cell} labels={yarnLabels} />}
       {veil && <path d={veil} className="chart-done" />}
+      {hatch.length > 0 && (
+        <>
+          <defs>
+            <pattern
+              id="chart-hatch"
+              width={6}
+              height={6}
+              patternUnits="userSpaceOnUse"
+              patternTransform="rotate(45)"
+            >
+              <line x1={0} y1={0} x2={0} y2={6} className="chart-hatch-line" />
+            </pattern>
+          </defs>
+          {hatch.map(([from, to]) => (
+            <rect
+              key={from}
+              className="chart-hatch"
+              x={0}
+              y={cellAt(layout, to, 1, cell).y}
+              width={layout.columns * cell}
+              height={(to - from + 1) * cell}
+              fill="url(#chart-hatch)"
+            />
+          ))}
+        </>
+      )}
       {join && <JoinArrows join={join} layout={layout} rounds={rounds} cell={cell} />}
       {holds && holds.length > 0 && <HoldBars holds={holds} layout={layout} cell={cell} />}
       {turns && turns.length > 0 && <TurnHooks turns={turns} layout={layout} cell={cell} />}

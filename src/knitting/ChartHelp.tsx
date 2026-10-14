@@ -67,6 +67,23 @@ export const TurnSwatch: React.FC = () => (
   </svg>
 );
 
+/** The hatch as the chart draws it over the other side's rounds. */
+export const HatchSwatch: React.FC = () => (
+  <svg className="key-swatch" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+    <rect width="24" height="24" className="key-hatch-ground" />
+    {[-12, -6, 0, 6, 12, 18].map((at) => (
+      <line key={at} x1={at} y1={24} x2={at + 24} y2={0} className="chart-hatch-line" />
+    ))}
+  </svg>
+);
+
+/** What the hatch on the chart means. */
+export const hatchSaying =
+  "Worked with the other side of the sweater towards you, on the far side of " +
+  "a turn from where you are now. The chart shows it from the side you are " +
+  "working on, so it is mirrored, and a knit there is a purl from here, and a " +
+  "purl a knit.";
+
 /** Stitches put on hold: a bar with an arrow down it, as the chart draws it. */
 export const HoldSwatch: React.FC = () => (
   <svg className="key-swatch" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
@@ -193,15 +210,26 @@ export function KeyList({ entries, current, needles, holds, turns }: {
             <strong>Turn: a short row</strong>
             <p>
               Where a hook turns back at the end of a row part way across the
-              chart, turn the work and knit back the other way: the rows
+              chart, turn the work and work back the other way: the rows
               across the back of the neck, {turns.length / 2} pairs of them,
               each reaching further than the last. The first stitch after
               each turn is a double stitch - slipped, with the yarn pulled up
               over the needle so its two legs sit on it - and is worked as one
-              when a row or round comes back to it. The rows read from the
-              right side, as all the chart does; those worked from the wrong
-              side are purled.
+              when a row or round comes back to it. A row back is worked from
+              the wrong side, where knits become purls, so it is purled, and
+              drawn as purls. The chart turns over with the work: it always
+              shows the side towards you, and hatches what was worked from
+              the other.
             </p>
+          </div>
+        </li>
+      )}
+      {turns && turns.length > 0 && (
+        <li className="stitch-key-hatch">
+          <HatchSwatch />
+          <div>
+            <strong>Hatched</strong>
+            <p>{hatchSaying}</p>
           </div>
         </li>
       )}

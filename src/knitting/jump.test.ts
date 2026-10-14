@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { buildSweater } from "./engine";
 import { progressBefore, stitchAtPoint } from "./jump";
-import { layOutBanded } from "./layout";
+import { layOut } from "./layout";
 import { cellAt } from "./draw-chart";
 import { testSweater } from "./test-sweater";
 
@@ -24,7 +24,7 @@ it("jumps within one piece's rounds to the sweater's own stitch", () => {
 
 it("finds the stitch drawn under a point on the chart", () => {
   const body = rounds.filter((_, index) => roundPieces[index] === "body");
-  const layout = layOutBanded(body);
+  const layout = layOut(stitches, body);
   const cell = 16;
   for (const id of [body[0][0], body[2][5], body.at(-1)![0]]) {
     const at = layout.cells.get(id)!;

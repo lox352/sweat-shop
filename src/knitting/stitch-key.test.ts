@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { sweaterById } from "../data/sweaters";
 import { buildSweater } from "./engine";
 import { keyEntryAt, stitchKey } from "./stitch-key";
-import { testSweater } from "./test-sweater";
+import { testSweater, testSweaterWithShortRows } from "./test-sweater";
 
 const hamefarin = sweaterById("hamefarin")!;
 const built = buildSweater(hamefarin, "m");
@@ -32,5 +32,16 @@ describe("the stitch-symbol key", () => {
     expect(keyEntryAt(stitches, hold.id)).toBeUndefined();
     const pickUp = stitches.find((stitch) => stitch.type === "pickUp")!;
     expect(keyEntryAt(stitches, pickUp.id)?.label).toBe("Pick up and knit");
+  });
+
+  it("keys a short row worked back from the wrong side as the purls it is worked as", () => {
+    const pattern = testSweaterWithShortRows();
+    // A rib of knits alone, so the only purls are the rows back.
+    pattern.charts[0].rows[0] = pattern.charts[0].rows[0].map(({ slot }) => ({ slot }));
+    const { stitches } = buildSweater(pattern, "one");
+    const back = stitches.find((stitch) => stitch.wrongSide)!;
+    expect(back.type).toBe("k1");
+    expect(keyEntryAt(stitches, back.id)?.id).toBe("p1");
+    expect(stitchKey(stitches).map((entry) => entry.id)).toContain("p1");
   });
 });

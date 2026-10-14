@@ -73,6 +73,8 @@ const unwrapped = (columns: number[], width: number): number[] => {
  * never moves.
  */
 const pick = (columns: number[], width: number, lean: Lean): number => {
+  // One for one, as most of a sweater is: nothing to choose between.
+  if (columns.length === 1) return columns[0] < 1 ? columns[0] + width : columns[0];
   const sorted = unwrapped(columns, width);
   const half = Math.floor(sorted.length / 2);
   const at =
@@ -179,58 +181,119 @@ const familiesOf = (
  * either direction, which is what makes a decrease and an increase mirror
  * images of each other on the chart rather than two separate special cases.
  */
-const place = (ids: number[], on: number, lean: Lean, column: Map<number, number>) => {
+const place = (
+  ids: number[],
+  on: number,
+  lean: Lean,
+  column: Map<number, number>,
+  /** 1 for a round worked right to left on the chart, -1 left to right. */
+  way = 1,
+) => {
   const anchor =
     lean === "right" ? 0 : lean === "left" ? ids.length - 1 : (ids.length - 1) / 2;
   ids.forEach((id, index) => {
-    column.set(id, on + index - anchor);
+    column.set(id, on + way * (index - anchor));
   });
 };
+
+/** A lean as it looks from the other face of the fabric. */
+const mirrored = (lean: Lean): Lean =>
+  lean === "right" ? "left" : lean === "left" ? "right" : "middle";
 
 const columnsOf = (ids: number[], column: Map<number, number>): number[] =>
   ids.map((id) => column.get(id)).filter((at): at is number => at !== undefined);
 
 /**
- * Lay a tube out flat as a chart, every stitch over what it was worked into.
+ * The stitches of these rounds, by id. A sweater's stitches are listed in the
+ * order they are worked, each at the place its id gives, so every stitch is
+ * found there directly, and only the piece being laid out is indexed rather
+ * than every stitch of the sweater - which, at eighty thousand, cost more than
+ * laying the piece out.
+ */
+const indexOf = (stitches: Stitch[], rounds: number[][]): Map<number, Stitch> => {
+  let all: Map<number, Stitch> | undefined;
+  const byId = new Map<number, Stitch>();
+  for (const round of rounds) {
+    for (const id of round) {
+      let stitch: Stitch | undefined = stitches[id];
+      if (stitch?.id !== id) stitch = (all ??= new Map(stitches.map((one) => [one.id, one]))).get(id);
+      if (stitch) byId.set(id, stitch);
+    }
+  }
+  return byId;
+};
+
+/**
+ * Lay a piece out flat as a chart: every stitch over the stitches it was
+ * worked into, and under the stitches worked into it.
  *
- * A plain knit inherits its column exactly, so colourwork stacks up in true
- * vertical columns; a centred double decrease sits on the middle of the three
- * it took together, and a leaning one on the stitch it leans onto. Read the
- * other way, a KFB keeps its column and the stitch it makes sits beside it,
- * and a make-one picked up between two stitches sits over the gap between
- * them. The columns a decrease gave up are left empty, which is what draws a
- * wedge of decreases as the staircase a printed chart shows.
+ * It is the hat site's layout, and what it gives a chart is that a column is
+ * a column of the knitting. Two cells one above the other are one stitch
+ * worked into the other, all the way up, so a line of the colourwork can be
+ * followed up the chart as it runs up the fabric. A plain knit inherits its
+ * column exactly; a centred double decrease sits on the middle of the three
+ * it took together, and a leaning one on the stitch it leans onto - a k2tog
+ * on the right of its two, an ssk on the left. Read the other way, a KFB
+ * keeps its column and the stitch it makes sits beside it, and a make-one
+ * picked up between two stitches sits over the gap between them.
+ *
+ * So a column begins only where a stitch is made out of nothing, and ends
+ * only where a decrease takes it in. Under a make-one the column is empty,
+ * which in a yoke is much of what lies below its widest round: the neck has
+ * a third of the stitches the yoke divides with, and its rib spans the whole
+ * chart with a gap wherever an increase is yet to come in, each band a little
+ * denser than the one below it. Over the columns a sleeve's decreases give up
+ * it is empty too: the staircase a printed sleeve chart shows either side of
+ * the underarm.
  *
  * The widest round anchors the grid, at one column per stitch, and everything
- * else is propagated away from it in both directions. It is the hat site's
- * layout, and the right one for a design whose shaping is drawn into its
- * charts. A yoke shaped in plain increase rounds between bands is not: laid
- * out this way, its top band would be scattered across the whole width of
- * its bottom one. That is what layOutBanded is for.
+ * else is propagated away from it in both directions: down the yoke from the
+ * round it divides from, up the body and the sleeves from the rounds that
+ * begin them.
+ *
+ * A short row is laid out by the same rule, part of the way across: the back
+ * of the neck, which, the round beginning at the middle of the back, is at
+ * both ends of the chart. One worked from the wrong side goes the other way
+ * across - the chart is turned over to be read along it, see mirrorLayout -
+ * and where such a row shapes, its leans are mirrored to match.
  */
-export const layOut = (stitches: Stitch[], rounds: number[][]): ChartLayout => {
-  const byId = new Map(stitches.map((stitch) => [stitch.id, stitch]));
+export const layOut = (
+  stitches: Stitch[],
+  rounds: number[][],
+  /** Whether each is a round or a short row, and from which side: see Needles.row. */
+  kinds: RoundKind[] = [],
+): ChartLayout => {
+  const byId = indexOf(stitches, rounds);
   const widest = rounds.reduce((most, round) => Math.max(most, round.length), 0);
   const anchor = rounds.findIndex((round) => round.length === widest);
   const column = new Map<number, number>();
 
-  if (anchor >= 0) rounds[anchor].forEach((id, index) => column.set(id, index + 1));
+  // Which way across the chart a round is worked: right to left, as a chart is read, but for a row worked back.
+  const way = (index: number) => (kinds[index] === "wrong" ? -1 : 1);
+  const leanIn = (family: Family, index: number) =>
+    way(index) === 1 ? leanOf(family, byId) : mirrored(leanOf(family, byId));
+
+  if (anchor >= 0) {
+    rounds[anchor].forEach((id, index) =>
+      column.set(id, way(anchor) === 1 ? index + 1 : widest - index),
+    );
+  }
 
   // Upwards from the anchor: over what it was worked into.
   for (let index = anchor + 1; index < rounds.length; index++) {
     for (const family of familiesOf(rounds[index], byId)) {
       const below = columnsOf(family.below, column);
-      const lean = leanOf(family, byId);
-      if (below.length > 0) place(family.above, pick(below, widest, lean), lean, column);
+      const lean = leanIn(family, index);
+      if (below.length > 0) place(family.above, pick(below, widest, lean), lean, column, way(index));
     }
   }
 
-  // And downwards: under whatever was worked into it.
+  // And downwards: under whatever was worked into it, in the order the round above took them.
   for (let index = anchor - 1; index >= 0; index--) {
     for (const family of familiesOf(rounds[index + 1], byId, true)) {
       const above = columnsOf(family.above, column);
-      const lean = leanOf(family, byId);
-      if (above.length > 0) place(family.below, pick(above, widest, lean), lean, column);
+      const lean = leanIn(family, index + 1);
+      if (above.length > 0) place(family.below, pick(above, widest, lean), lean, column, way(index + 1));
     }
   }
 
@@ -249,46 +312,17 @@ export const layOut = (stitches: Stitch[], rounds: number[][]): ChartLayout => {
 };
 
 /**
- * Lay a piece out as bands: every round on its own row, its stitches side by
- * side, centred on the widest round.
- *
- * A Fair Isle yoke is shaped in plain increase rounds between its bands, and
- * a band is only a band if its stitches are side by side - a peerie of six
- * stitches is a row of little diamonds, not six stitches spread across the
- * forty columns the yoke will grow to. So between shaping rounds nothing
- * moves and the columns line up exactly, a band reads as the picture it is,
- * and at each shaping round the chart simply steps out (or in) to the new
- * width, its make-ones or decreases marked in the round that makes them.
- * The whole piece comes out the shape a top-down yoke is: narrow at the neck,
- * where the knitting starts, and wide where it divides.
+ * The chart turned over, left for right: how it looks from the other face,
+ * which is the one towards you while a short row is purled back. Every stitch
+ * keeps its round and its stitch number; only which side of the chart the
+ * columns count from changes.
  */
-export const layOutBanded = (
-  rounds: number[][],
-  /**
-   * Which of the rounds are short rows, and the stitches, to place them by.
-   * A short row is only part of the way round, so it is not centred: each of
-   * its stitches stands over the stitch it was worked into, so the rows
-   * across the back of the neck stand over the back of the round below -
-   * which, the round beginning at the middle of the back, is its two ends.
-   */
-  rows?: { kinds: RoundKind[]; stitches: Stitch[] },
-): ChartLayout => {
-  const isRow = (index: number) => rows !== undefined && (rows.kinds[index] ?? "round") !== "round";
-  const widest = rounds.reduce((most, round, index) => (isRow(index) ? most : Math.max(most, round.length)), 0);
-  const cells = new Map<number, Cell>();
-  rounds.forEach((round, index) => {
-    const offset = Math.floor((widest - round.length) / 2);
-    round.forEach((id, position) => {
-      const below = isRow(index) ? cells.get(rows!.stitches[id].links[0]) : undefined;
-      cells.set(id, {
-        round: index + 1,
-        column: below ? below.column : offset + position + 1,
-        index: position + 1,
-      });
-    });
-  });
-  return { cells, rounds: rounds.length, columns: widest };
-};
+export const mirrorLayout = (layout: ChartLayout): ChartLayout => ({
+  ...layout,
+  cells: new Map(
+    [...layout.cells].map(([id, cell]) => [id, { ...cell, column: layout.columns + 1 - cell.column }]),
+  ),
+});
 
 /** The stitches to draw: not the phantom start of the cast-on, nor a step. */
 export const chartedStitches = (stitches: Stitch[]): Stitch[] =>

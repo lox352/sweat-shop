@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Stitch, isFabric, isStep } from "../types/Stitch";
-import { layOutBanded, type ChartLayout } from "./layout";
+import { layOut, mirrorLayout, type ChartLayout } from "./layout";
 import type { RoundKind } from "./needles";
 import { Palette, yarnFor } from "./palette";
 import { cellAt, chartSize, drawChart, drawProgress, leftMargin } from "./draw-chart";
 import ChartSvg from "./ChartSvg";
 import { StitchLegend, TextRound } from "./ChartHelp";
-import { holdsIn, joinIn, needleChangesIn, turnsIn } from "./chart-marks";
+import { faceAfter, holdsIn, joinIn, needleChangesIn, otherFaceRounds, turnsIn } from "./chart-marks";
 import StitchPicker from "./StitchPicker";
 import { keyEntryAt } from "./stitch-key";
 import { stitchAtPoint } from "./jump";
@@ -175,13 +175,32 @@ const Chart: React.FC<ChartProps> = ({
 
   /*
    * The rounds given are one piece's - the yoke, the body or a sleeve - laid
-   * out as bands; see layOutBanded. Their stitch ids are the sweater's own,
-   * so progress, the next stitch and a jump all mean what they mean anywhere
-   * else on the site.
+   * out every stitch over the stitch it was worked into; see layOut. Their
+   * stitch ids are the sweater's own, so progress, the next stitch and a jump
+   * all mean what they mean anywhere else on the site.
    */
-  const layout = useMemo(
-    () => layOutBanded(rounds, kinds ? { kinds, stitches } : undefined),
-    [rounds, kinds, stitches],
+  const laid = useMemo(() => layOut(stitches, rounds, kinds), [stitches, rounds, kinds]);
+  /*
+   * A chart shows the knitting from the side you are working on, as the hat
+   * site's does. A short row purled back is worked with the wrong side
+   * towards you, so while you are on one the chart turns over with you, and
+   * reads right to left along it as every row does; working the turn turns
+   * it over, and undoing the turn turns it back.
+   */
+  const turnIds = useMemo(
+    () => stitches.filter((stitch) => stitch.type === "turn").map((stitch) => stitch.id),
+    [stitches],
+  );
+  const face = faceAfter(turnIds, progress);
+  const layout = useMemo(() => (face === "wrong" ? mirrorLayout(laid) : laid), [laid, face]);
+  /*
+   * The rounds worked with the other side towards you, hatched: each stitch
+   * there is drawn as it was worked, which from where you are is the other
+   * way round - a knit there is a purl from here, and a purl a knit.
+   */
+  const hatch = useMemo(
+    () => otherFaceRounds(kinds ?? [], rounds.length, face),
+    [kinds, rounds.length, face],
   );
   const needles = useMemo(() => needleChangesIn(stitches, rounds), [stitches, rounds]);
   const needleRounds = useMemo(() => needles.map((change) => change.after), [needles]);
@@ -463,6 +482,9 @@ const Chart: React.FC<ChartProps> = ({
             `${layout.rounds} rounds.` +
             (focusRound && labels?.[focusRound - 1]
               ? ` You are on ${labels[focusRound - 1]}.`
+              : "") +
+            (face === "wrong"
+              ? " The work is turned, with its wrong side towards you, and the chart is turned over to match."
               : "")
           }
         >
@@ -483,6 +505,7 @@ const Chart: React.FC<ChartProps> = ({
               join={join}
               holds={holds}
               turns={turns}
+              hatch={hatch}
               makeOneLean={makeOneLean}
             />
           ) : (
@@ -502,6 +525,10 @@ const Chart: React.FC<ChartProps> = ({
               entry={keyEntryAt(stitches, picked, stitchNotes)}
               labels={labels}
               yarn={stitches[picked] && yarnFor(palette, stitches[picked].slot)}
+              otherFace={(() => {
+                const round = layout.cells.get(picked)?.round;
+                return round !== undefined && hatch.some(([from, to]) => round >= from && round <= to);
+              })()}
               id={picked}
               stitches={stitches}
               rounds={rounds}
@@ -525,9 +552,12 @@ const Chart: React.FC<ChartProps> = ({
       <p className="chart-caption">
         {layout.columns} stitches at its widest, {layout.rounds} rounds. Read
         from the bottom right, working right to left; scroll sideways to see a
-        whole round, and pinch to zoom.{onJump && " Tap a stitch to carry on from there."} Where
-        a round steps out wider than the one below it, its make-ones are
-        marked in it; where it steps in, its decreases.
+        whole round, and pinch to zoom.{onJump && " Tap a stitch to carry on from there."} Every
+        stitch stands over the stitch it was knitted into, so a column is a
+        column of the knitting: a make-one begins a new one, with nothing
+        below it, and a decrease ends one.
+        {turns.length > 0 &&
+          " The chart shows the side you are working on, and turns over with the work at a short row."}
       </p>
     </div>
   );

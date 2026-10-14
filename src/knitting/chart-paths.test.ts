@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "./engine";
-import { layOutBanded } from "./layout";
+import { layOut } from "./layout";
 import { gridPaths, numberedRounds, progressPath } from "./chart-paths";
 import { needleChangesIn } from "./chart-marks";
 import { testSweater } from "./test-sweater";
@@ -8,7 +8,7 @@ import { testSweater } from "./test-sweater";
 const cell = 13;
 const { stitches, rounds, roundPieces } = buildSweater(testSweater, "one");
 const yoke = rounds.filter((_, index) => roundPieces[index] === "yoke");
-const layout = layOutBanded(yoke);
+const layout = layOut(stitches, yoke);
 
 describe("the change of needles on the chart", () => {
   const changes = needleChangesIn(stitches, yoke).map((change) => change.after);
@@ -38,10 +38,13 @@ describe("the change of needles on the chart", () => {
 });
 
 describe("the knitting done so far", () => {
-  it("veils a round at a time, up to the last stitch worked", () => {
+  it("veils a round at a time, up to the last stitch worked, a rectangle to each unbroken run", () => {
     expect(progressPath(layout, yoke, 0, cell)).toBe("");
-    // The whole cast-on and half the first rib round: two rectangles.
+    // Under the yoke's make-ones the neck's stitches stand apart: the cast-on and half the first rib round, a rectangle each.
     const halfway = yoke[1][11];
-    expect(progressPath(layout, yoke, halfway, cell).match(/M/g)).toHaveLength(2);
+    expect(progressPath(layout, yoke, halfway, cell).match(/M/g)).toHaveLength(24 + 12);
+    // And the round that fills the gaps in, side by side, is one.
+    const increased = yoke[3].at(-1)!;
+    expect(progressPath(layout, yoke, increased, cell).match(/M/g)).toHaveLength(24 * 3 + 1);
   });
 });

@@ -116,7 +116,7 @@ describe("short rows", () => {
     expect(endOfRound(row(1)[0] - 1, rowsIndex, built.stitches)).toBe(last(row(1)));
   });
 
-  it("purls back from the wrong side, which the chart shows as knits", () => {
+  it("purls back from the wrong side, where knits become purls", () => {
     const run = currentRun(built.stitches, row(2)[0] - 1, rowsIndex)!;
     expect(runInstruction(run)).toBe("Purl 7");
     const position = positionOf(built.stitches, row(2)[0] - 1, rowsIndex);

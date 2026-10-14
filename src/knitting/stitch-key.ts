@@ -1,4 +1,4 @@
-import { Stitch, isStep, joinsCastOn } from "../types/Stitch";
+import { Stitch, isStep, joinsCastOn, workedAs } from "../types/Stitch";
 import { StitchType } from "../types/StitchType";
 import type { StitchKeyId, StitchNote } from "../data/sweaters/types";
 
@@ -7,8 +7,9 @@ import type { StitchKeyId, StitchNote } from "../data/sweaters/types";
  *
  * Built from the knitting rather than from a fixed list, so a design is only
  * ever told about the stitches it has, and in the terms that fit it: a KFB
- * is one entry for both of the loops it makes, and "make one" is only
- * listed where a make-one is picked up on its own between two stitches.
+ * is one entry for both of the loops it makes, "make one" is only listed
+ * where a make-one is picked up on its own between two stitches, and a short
+ * row purled back from the wrong side is purls - see workedAs.
  */
 export interface KeyEntry {
   id: StitchKeyId;
@@ -157,7 +158,7 @@ export const stitchKey = (
     if (stitch.type === "join" && joinAt < 0) joinAt = index;
     if (stitch.id <= 0 || (isStep(stitch) && stitch.type !== "join")) return;
     if (stitch.type === "m1" && pairedWithKfb(stitches, index)) return;
-    used.add(stitch.type as StitchKeyId);
+    used.add(workedAs(stitch) as StitchKeyId);
   });
   return order
     .filter((id) => used.has(id))
@@ -206,7 +207,7 @@ export const keyEntryAt = (
   if (!stitch || (isStep(stitch) && stitch.type !== "join")) {
     return undefined;
   }
-  const type: StitchKeyId = pairedWithKfb(stitches, id) ? "kfb" : (stitch.type as StitchKeyId);
+  const type: StitchKeyId = pairedWithKfb(stitches, id) ? "kfb" : (workedAs(stitch) as StitchKeyId);
   const note = notes[type];
   const how = type === "join" ? joinHow(joinsCastOn(stitches, id)) : standard[type].how;
   return {
