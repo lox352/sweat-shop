@@ -248,12 +248,20 @@ export const buildSweater = (
       case "rounds": {
         const sequence = spec.sequence ?? ["k"];
         const asStitch: Record<string, StitchType> = { k: "k1", p: "p1", k1tbl: "k1tbl" };
+        /*
+         * Called what they are, and not numbered: the knitting numbers every
+         * round of a piece already, and a count of these alone would only be
+         * a second number for the same round. See progress.roundNames.
+         */
+        const what = sequence.every((one) => one === "k")
+          ? "plain round"
+          : `${sequence.map((one) => asStitch[one]).join(", ")} round`;
         for (let pass = 0; pass < spec.count; pass++) {
           const work = Array.from({ length: needles.count }, (_, i) => ({
             type: asStitch[sequence[i % sequence.length]],
             slot: spec.slot,
           }));
-          round(`${section} · round ${pass + 1}`, work, spec.fabric);
+          round(`${section} · ${what}`, work, spec.fabric);
         }
         break;
       }

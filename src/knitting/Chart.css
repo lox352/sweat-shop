@@ -331,6 +331,11 @@
   color: var(--ink-soft);
 }
 
+/* What the round is, on a line of its own beneath its name, begun with a capital. */
+.stitch-picker-where::first-letter {
+  text-transform: uppercase;
+}
+
 /*
  * Rounds worked with the other side of the sweater towards you: a light
  * hatch, so they read as the other side of the fabric without hiding it.

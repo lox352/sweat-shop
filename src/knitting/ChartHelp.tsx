@@ -253,10 +253,11 @@ export function KeyList({ entries, current, needles, holds, turns }: {
           <div>
             <strong>On hold</strong>
             <p>
-              Crosshatched: stitches waiting on waste yarn, and every stitch to
-              be knitted from them, up through the piece they are for. None of it
-              is knitted while it is on hold, and the crosshatch goes when the
-              stitches are taken up again to begin that piece.
+              Crosshatched: stitches waiting on waste yarn, and the whole of the
+              piece to be knitted from them - a sleeve, the stitches it picks up
+              from its underarm and all. None of it is knitted while it is on
+              hold, and the crosshatch goes when the stitches are taken up again
+              to begin that piece.
             </p>
           </div>
         </li>
@@ -299,7 +300,9 @@ export function KeyList({ entries, current, needles, holds, turns }: {
 }
 
 export function TextRound({ stitches, rounds, round, labels, names, palette, pieces = [] }: {
-  stitches: Stitch[]; rounds: number[][]; round: number; labels?: string[]; palette: Palette;
+  stitches: Stitch[]; rounds: number[][]; round: number; palette: Palette;
+  /** What each round is, beside its name: "dividing round", "OXO, row 5". */
+  labels?: string[];
   /** What each round is called in the knitting: "Body, round 23". */
   names?: string[];
   /** The sweater's pieces, to name a sleeve put on hold. */
@@ -309,7 +312,7 @@ export function TextRound({ stitches, rounds, round, labels, names, palette, pie
   const index = indexRounds(rounds, labels);
   const parts = roundParts(stitches, ids, index);
   const pieceLabel = (id?: string) => (pieces.find((piece) => piece.id === id)?.label ?? id ?? "").toLowerCase();
-  return <div><p>{names?.[round - 1] ?? `Round ${round}`}: {labels?.[round - 1]}. Read in working order.</p>
+  return <div><p>{[names?.[round - 1] ?? `Round ${round}`, labels?.[round - 1]].filter(Boolean).join(": ")}. Read in working order.</p>
     <ol>{parts.map(part => "run" in part
       ? <li key={part.run.startId}>{runInstruction(part.run)} in {yarnFor(palette, part.run.slot).name}</li>
       : part.step.type === "hold"

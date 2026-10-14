@@ -33,14 +33,18 @@ const StitchPicker: React.FC<{
   /** What the stitch is and how to work it, and the yarn it is worked in. */
   entry?: KeyEntry;
   yarn?: { name: string; hex: string };
-  /** What the pattern calls each round: "Border, row 3", "Body · plain". */
+  /** What each round is, beside its name: "dividing round", "Border, row 3". */
   labels?: string[];
   /** What each round is called in the knitting: "Body, round 23". */
   names?: string[];
   /** Whether the stitch is hatched: worked with the other side towards you. */
   otherFace?: boolean;
-  /** Where the stitch is on hold, the piece it waits for: "Left sleeve". */
-  onHold?: string;
+  /**
+   * Where the stitch is on hold, the piece it is set aside for - "Left
+   * sleeve" - and whether it is one of the stitches waiting on waste yarn,
+   * rather than one still to be knitted.
+   */
+  onHold?: { piece: string; waiting: boolean };
   /** Anything more to say about the stitch, below what it is. */
   note?: React.ReactNode;
 }> = ({ id, stitches, rounds, layout, cell, progress, onJump, onClose, entry, yarn, labels, names, otherFace, onHold, note }) => {
@@ -141,8 +145,10 @@ const StitchPicker: React.FC<{
           <div className="stitch-picker-what stitch-picker-face">
             <OnHoldSwatch />
             <p>
-              <strong>On hold</strong> for the {onHold.toLowerCase()}: on waste yarn, or to be knitted from
-              stitches that are, and nothing here is knitted until the {onHold.toLowerCase()} is begun.
+              <strong>On hold</strong>{" "}
+              {onHold.waiting
+                ? `for the ${onHold.piece.toLowerCase()}: on waste yarn until the ${onHold.piece.toLowerCase()} is begun.`
+                : `with the ${onHold.piece.toLowerCase()}: not knitted until the ${onHold.piece.toLowerCase()} is begun.`}
             </p>
           </div>
         )}

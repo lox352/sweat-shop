@@ -4,7 +4,7 @@ import { sweaterById } from "../data/sweaters";
 import { SlotId } from "../data/sweaters/types";
 import { useSweater } from "../knitting/useSweater";
 import { colourwayLabel, paletteOf, yarnFor } from "../knitting/palette";
-import { totals, positionOf, currentRun, whereYouAre, roundNames } from "../knitting/progress";
+import { totals, positionOf, currentRun, whereYouAre, roundNames, roundWhats } from "../knitting/progress";
 import { keyEntryAt } from "../knitting/stitch-key";
 import { faceAfter, holdsIn, needleChangesIn, turnsIn } from "../knitting/chart-marks";
 import { metresBySlot } from "../knitting/yardage";
@@ -280,7 +280,7 @@ const ProjectView: React.FC<{
 }) => {
   const sweater = sweaterById(sweaterId)!;
   const size = sweater.sizes.find((s) => s.id === project.sizeId) ?? sweater.sizes[0];
-  const { stitches, rounds, roundLabels, roundKinds, roundPieces, index, yoke, holdRegions } = useSweater(sweater, size.id);
+  const { stitches, rounds, roundKinds, roundPieces, index, yoke, holdRegions } = useSweater(sweater, size.id);
 
   const colourway = sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0];
   const palette = useMemo(() => paletteOf(colourway, project.shades), [colourway, project.shades]);
@@ -292,6 +292,7 @@ const ProjectView: React.FC<{
 
   // The whole sweater is one chart; each round goes by the name the knitting panel gives it.
   const names = useMemo(() => roundNames(index), [index]);
+  const whats = useMemo(() => roundWhats(index), [index]);
 
   // Explore statistics: open while the address says so, and there is time to explore.
   const [params, setParams] = useSearchParams();
@@ -344,7 +345,7 @@ const ProjectView: React.FC<{
             // Looking back: the edge of the knitting near the top, what is done below it.
             follow
             followAt={0.85}
-            labels={roundLabels}
+            labels={whats}
             names={names}
             stitchNotes={sweater.stitchNotes}
             pieces={sweater.pieces}
@@ -392,7 +393,7 @@ const ProjectView: React.FC<{
             progress={project.progress}
             follow={knitting}
             onJump={knitting ? setProgress : undefined}
-            labels={roundLabels}
+            labels={whats}
             names={names}
             stitchNotes={sweater.stitchNotes}
             pieces={sweater.pieces}

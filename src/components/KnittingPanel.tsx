@@ -147,8 +147,8 @@ const HoldStep: React.FC<{ count: number; piece: string }> = ({ count, piece }) 
       Slip the next {count} stitches onto waste yarn for the {piece.toLowerCase()},
       and leave them there until you begin it. Then cast on the underarm in
       their place, pulling the yarn snug across the gap. On the chart they are
-      crosshatched while they wait, and so is everything to be knitted from
-      them.
+      crosshatched while they wait, and so is the whole of the{" "}
+      {piece.toLowerCase()}.
     </span>
   </div>
 );

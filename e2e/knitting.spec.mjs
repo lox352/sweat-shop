@@ -291,7 +291,7 @@ test("the dividing round puts each sleeve on hold, casts on its underarm, and go
   await knittedTo(page, yokeDone);
   // The chart is the body's now, and says so.
   await expect(position(page)).toContainText("Body, round 1, stitch 1.");
-  await expect(page.getByRole("img", { name: /You are on Body · dividing round/ })).toBeVisible();
+  await expect(page.getByRole("img", { name: /You are on Body, round 1: dividing round\./ })).toBeVisible();
   await expect(page.locator(".chart-hold")).toHaveCount(2);
   const onHold = page.locator(".chart-on-hold");
   await expect(onHold).toHaveCount(0);
@@ -340,7 +340,7 @@ test("the dividing round puts each sleeve on hold, casts on its underarm, and go
   await settings.getByRole("switch", { name: "Written round instructions" }).check();
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await page.getByText("Text round instructions", { exact: true }).click();
-  await page.getByLabel("Read round").selectOption({ label: "Body, round 1 · Body · dividing round" });
+  await page.getByLabel("Read round").selectOption({ label: "Body, round 1 · dividing round" });
   await expect(page.getByText("Put the next 80 stitches on hold for the right sleeve.")).toBeVisible();
   await expect(page.getByText("Put the next 80 stitches on hold for the left sleeve.")).toBeVisible();
 });

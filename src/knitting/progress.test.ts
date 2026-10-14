@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "./engine";
 import { testSweater, testSweaterWithShortRows } from "./test-sweater";
+import hamefarin from "../data/sweaters/hamefarin";
 import {
   currentRun,
   endOfRound,
   indexRounds,
   positionOf,
+  roundNames,
   roundParts,
+  roundWhats,
   runInstruction,
   totals,
   upcomingRuns,
@@ -26,6 +29,34 @@ describe("the pieces", () => {
       { id: "sleeve-left", label: "Left sleeve", first: 12, last: 15 },
       { id: "sleeve-right", label: "Right sleeve", first: 16, last: 19 },
     ]);
+  });
+});
+
+describe("what each round is called", () => {
+  const names = roundNames(index);
+  const whats = roundWhats(index);
+
+  it("by its piece and which round of it it is, and beside that, what the pattern calls it", () => {
+    expect([names[6], whats[6]]).toEqual(["Body, round 1", "dividing round"]);
+    expect([names[7], whats[7]]).toEqual(["Body, round 2", "plain round"]);
+    expect([names[4], whats[4]]).toEqual(["Yoke, round 5", "Band, row 1"]);
+    expect([names[11], whats[11]]).toEqual(["Left sleeve, round 1", "pick-up round"]);
+    expect([names[13], whats[13]]).toEqual(["Left sleeve, round 3", "shaping round"]);
+  });
+
+  it("is never numbered a second time, against its name, in any size of Hamefarin", () => {
+    for (const size of hamefarin.sizes) {
+      const knitting = buildSweater(hamefarin, size.id);
+      const sizeIndex = indexRounds(knitting.rounds, knitting.roundLabels, knitting.roundPieces, hamefarin.pieces, knitting.roundKinds);
+      expect(roundWhats(sizeIndex).filter((what) => /\bround \d/.test(what))).toEqual([]);
+    }
+  });
+
+  it("is all in the name, for a short row", () => {
+    const built = buildSweater(testSweaterWithShortRows(), "one");
+    const rowsIndex = indexRounds(built.rounds, built.roundLabels, built.roundPieces, testSweater.pieces, built.roundKinds);
+    expect(roundNames(rowsIndex)[3]).toBe("Yoke, short row 1, right side");
+    expect(roundWhats(rowsIndex)[3]).toBe("");
   });
 });
 

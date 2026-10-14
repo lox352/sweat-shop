@@ -42,6 +42,12 @@ export type RoundKind = "round" | "right" | "wrong";
 export interface Held {
   holder: string;
   stitches: number[];
+  /**
+   * The stitches cast on in their place, where there are any: a sleeve's
+   * underarm, which the body knits on from and the sleeve picks up out of
+   * when it takes its held stitches up again.
+   */
+  edge?: number[];
   heldAt: number;
   resumedAt?: number;
 }
@@ -266,6 +272,8 @@ export default class Needles {
     const ids: number[] = [];
     for (let i = 0; i < count; i++) ids.push(this.knit("castOn", slot).id);
     this.edges.set(edge, ids);
+    const held = this.holds.find((one) => one.holder === edge && one.resumedAt === undefined);
+    if (held) held.edge = ids;
     return this;
   }
 

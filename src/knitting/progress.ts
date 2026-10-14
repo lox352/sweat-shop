@@ -198,6 +198,18 @@ export const roundNames = (index: RoundIndex): string[] =>
     return piece ? `${piece.label}, ${name}` : `Round ${round}`;
   });
 
+/**
+ * What every round is, by its place from 0, to say beside its name: what the
+ * pattern calls it, less the section the name already places it in -
+ * "dividing round", "plain round", "OXO, row 5". Nothing for a short row,
+ * whose name is already what the pattern calls it.
+ */
+export const roundWhats = (index: RoundIndex): string[] =>
+  index.rounds.map((_, at) => {
+    const label = index.labels[at] ?? "";
+    return (index.roundKinds[at] ?? "round") === "round" ? (label.split(" · ").pop() ?? label) : "";
+  });
+
 /** "Body, round 23 of 141": where you are, in the piece you are knitting. */
 export const whereYouAre = (position: Position): string =>
   position.piece

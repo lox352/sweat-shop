@@ -76,6 +76,7 @@ interface ChartProps {
   progress: number;
   /** Mark the next stitch and keep it in view. */
   follow?: boolean;
+  /** What each round is, beside its name: "dividing round", "OXO, row 5". See progress.roundWhats. */
   labels?: string[];
   /**
    * Makes the chart tappable: tap a stitch to carry on from it. Given the
@@ -511,8 +512,8 @@ const Chart: React.FC<ChartProps> = ({
           role="img"
           aria-label={
             `The chart: ${layout.columns} columns and ${layout.rows} rows.` +
-            (focusRound && labels?.[focusRound - 1]
-              ? ` You are on ${labels[focusRound - 1]}.`
+            (focusRound
+              ? ` You are on ${[names?.[focusRound - 1] ?? `round ${focusRound}`, labels?.[focusRound - 1]].filter(Boolean).join(": ")}.`
               : "") +
             (face === "wrong"
               ? " The work is turned, with its wrong side towards you, and the chart is turned over to match," +
@@ -566,7 +567,10 @@ const Chart: React.FC<ChartProps> = ({
               })()}
               onHold={(() => {
                 const region = onHold.find((one) => one.region.has(picked));
-                return region && (pieces?.find((piece) => piece.id === region.holder)?.label ?? region.holder);
+                return region && {
+                  piece: pieces?.find((piece) => piece.id === region.holder)?.label ?? region.holder,
+                  waiting: region.stitches.includes(picked),
+                };
               })()}
               id={picked}
               stitches={stitches}
@@ -584,7 +588,7 @@ const Chart: React.FC<ChartProps> = ({
       {writtenRounds && <details className="chart-help" onToggle={e => setShowText(e.currentTarget.open)}>
         <summary>Text round instructions</summary>
         <label>Read round <select value={follow && focusRound ? focusRound : textRound} disabled={follow && !!focusRound} onChange={e => setTextRound(Number(e.target.value))}>
-          {rounds.map((_, i) => <option key={i} value={i + 1}>{names?.[i] ?? i + 1} · {labels?.[i]}</option>)}
+          {rounds.map((_, i) => <option key={i} value={i + 1}>{[names?.[i] ?? `Round ${i + 1}`, labels?.[i]].filter(Boolean).join(" · ")}</option>)}
         </select></label>
         {showText && <TextRound stitches={stitches} rounds={rounds} round={follow && focusRound ? focusRound : textRound} labels={labels} names={names} palette={palette} pieces={pieces} />}
       </details>}
