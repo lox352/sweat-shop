@@ -113,6 +113,7 @@ npm run dev      # http://localhost:5173/sweat-shop/
 npm test
 npm run lint
 npm run build
+npm run budgets  # what a phone fetches, gzipped, against its budgets
 npm run test:e2e
 node scripts/grade.mjs   # regrade the sizes, to review and commit
 ```

@@ -134,7 +134,7 @@ const ResumeSwatch: React.FC = () => (
  * round, for the underarm to be cast on in their place.
  */
 const HoldStep: React.FC<{ count: number; piece: string }> = ({ count, piece }) => (
-  <div className="knitting-turn knitting-turn-open">
+  <div className="knitting-step">
     <StepHeading symbol={<HoldSwatch />}>Put {count} stitches on hold</StepHeading>
     <span className="quiet">
       Slip the next {count} stitches onto waste yarn for the {piece.toLowerCase()},
@@ -149,7 +149,7 @@ const HoldStep: React.FC<{ count: number; piece: string }> = ({ count, piece }) 
  * armhole from the middle of the underarm.
  */
 const ResumeStep: React.FC<{ count: number; piece: string }> = ({ count, piece }) => (
-  <div className="knitting-turn knitting-turn-open">
+  <div className="knitting-step">
     <StepHeading symbol={<ResumeSwatch />}>Begin the {piece.toLowerCase()}</StepHeading>
     <span className="quiet">
       Put the {count} held stitches back on your needles. Join new yarn at the
@@ -171,7 +171,7 @@ const TurnSwatch: React.FC = () => (
  * keeps the turn from leaving a hole.
  */
 const TurnStep: React.FC<{ side: "right" | "wrong" }> = ({ side }) => (
-  <div className="knitting-turn knitting-turn-open">
+  <div className="knitting-step">
     <StepHeading symbol={<TurnSwatch />}>Turn, and make a double stitch</StepHeading>
     <span className="quiet">
       Turn the work so the {side} side faces you. With the yarn at the front,
@@ -189,7 +189,7 @@ const TurnStep: React.FC<{ side: "right" | "wrong" }> = ({ side }) => (
  * gives for the size being knitted.
  */
 const NeedlesStep: React.FC<{ to: number; from?: number }> = ({ to, from }) => (
-  <div className="knitting-turn knitting-turn-open">
+  <div className="knitting-step">
     <StepHeading symbol={<NeedlesSwatch />}>Change to {to}mm needles</StepHeading>
     <span className="quiet">
       {from !== undefined && `From the ${from}mm ones, `}
@@ -204,7 +204,7 @@ const NeedlesStep: React.FC<{ to: number; from?: number }> = ({ to, from }) => (
  * off again where the two ends meet.
  */
 const JoinStep: React.FC = () => (
-  <div className="knitting-turn knitting-turn-open">
+  <div className="knitting-step">
     <StepHeading symbol={<JoinArrow />}>Join in the round</StepHeading>
     <span className="quiet">
       Cast on one more stitch. Then, without twisting the cast-on, slip it to

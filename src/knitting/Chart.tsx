@@ -41,8 +41,9 @@ const reducedMotion = () =>
  * Which renderer to draw the chart with.
  *
  * Vectors, unless "?chart=canvas" asks otherwise. The canvas one is kept so
- * the bench can hold the two against each other - `npm run bench -- --chart`
- * runs both - rather than either being replaced on an argument.
+ * the two can be held against each other on the same chart, on the same
+ * phone, rather than either being replaced on an argument. It draws the
+ * stitches and their marks, not the steps' marks - a join, a hold, a turn.
  */
 const renderer = (): "svg" | "canvas" =>
   new URLSearchParams(

@@ -1,0 +1,63 @@
+/* A size's schematic: ink lines on the page, the yoke's bands faint behind. */
+.schematic {
+  margin: 0;
+}
+
+.schematic svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 34rem;
+  overflow: visible;
+}
+
+/*
+ * In the drawing's own units, centimetres: a pixel of font size in an SVG is
+ * a unit of its viewBox. Each label has a halo of paper, so it reads over the
+ * yoke's bands and the dimension lines.
+ */
+.schematic text {
+  fill: var(--ink);
+  font-family: inherit;
+  font-size: 3.6px;
+  paint-order: stroke;
+  stroke: var(--paper-raised);
+  stroke-width: 1.1px;
+  stroke-linejoin: round;
+}
+
+@media (max-width: 40rem) {
+  .schematic text {
+    font-size: 5px;
+  }
+}
+
+.schematic-outline {
+  fill: var(--paper-raised);
+  stroke: var(--ink);
+  stroke-width: 0.45;
+  stroke-linejoin: round;
+}
+
+.schematic-band {
+  fill: none;
+  stroke: var(--ink-soft);
+  stroke-width: 0.3;
+  stroke-dasharray: 1 0.8;
+}
+
+.schematic-dimension {
+  fill: none;
+  stroke: var(--crimson);
+  stroke-width: 0.3;
+}
+
+.schematic-tick {
+  stroke: var(--crimson);
+  stroke-width: 0.5;
+}
+
+.schematic figcaption {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+}

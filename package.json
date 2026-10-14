@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "settle": "node scripts/settle.mjs",
-    "bench": "node scripts/bench.mjs"
+    "bench": "node scripts/bench.mjs",
+    "budgets": "node scripts/budgets.mjs"
   },
   "homepage": "https://lox352.github.io/sweat-shop/",
   "dependencies": {

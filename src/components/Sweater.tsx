@@ -14,6 +14,7 @@ import WoolList from "./WoolList";
 import { type Chosen } from "./YarnPicker";
 import NextStep from "./ui/NextStep";
 import ColourwayChoice from "./ColourwayChoice";
+import { Schematic } from "./Schematic";
 import "./Sweater.css";
 
 /** A size's finished measurements, as a pattern's schematic gives them. */
@@ -227,7 +228,10 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
             </button>
           ))}
         </div>
-        <Measurements size={size} />
+        <div className="size-figures">
+          <Schematic size={size} />
+          <Measurements size={size} />
+        </div>
         <p className="quiet">
           Each size is its own knitting - its own cast-on, increases and
           divide - and the chart follows the size you choose. The finished
