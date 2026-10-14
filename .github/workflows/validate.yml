@@ -27,6 +27,8 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+      - name: Budgets
+        run: npm run budgets
       - run: npx playwright install --with-deps chromium
       - name: Desktop and mobile knitting regression tests
         run: npm run test:e2e

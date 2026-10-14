@@ -6,8 +6,9 @@ import {
   currentRun,
   endOfRound,
   positionOf,
+  roundName,
   runInstruction,
-  stitchWord,
+  runWord,
   totals,
   upcomingRuns,
 } from "../knitting/progress";
@@ -133,7 +134,7 @@ const ResumeSwatch: React.FC = () => (
  * round, for the underarm to be cast on in their place.
  */
 const HoldStep: React.FC<{ count: number; piece: string }> = ({ count, piece }) => (
-  <div className="knitting-turn knitting-turn-open">
+  <div className="knitting-step">
     <StepHeading symbol={<HoldSwatch />}>Put {count} stitches on hold</StepHeading>
     <span className="quiet">
       Slip the next {count} stitches onto waste yarn for the {piece.toLowerCase()},
@@ -148,7 +149,7 @@ const HoldStep: React.FC<{ count: number; piece: string }> = ({ count, piece }) 
  * armhole from the middle of the underarm.
  */
 const ResumeStep: React.FC<{ count: number; piece: string }> = ({ count, piece }) => (
-  <div className="knitting-turn knitting-turn-open">
+  <div className="knitting-step">
     <StepHeading symbol={<ResumeSwatch />}>Begin the {piece.toLowerCase()}</StepHeading>
     <span className="quiet">
       Put the {count} held stitches back on your needles. Join new yarn at the
@@ -158,12 +159,37 @@ const ResumeStep: React.FC<{ count: number; piece: string }> = ({ count, piece }
   </div>
 );
 
+/** The work turned round, as the chart draws a short row's end. */
+const TurnSwatch: React.FC = () => (
+  <svg className="key-swatch" width="24" height="24" viewBox="0 0 1 1" aria-hidden="true">
+    <path d="M0.78 0.3H0.38A0.2 0.2 0 0 0 0.38 0.7H0.62M0.5 0.58L0.62 0.7L0.5 0.82" className="key-join" />
+  </svg>
+);
+
+/**
+ * The end of a short row: turn the work, and make the double stitch that
+ * keeps the turn from leaving a hole.
+ */
+const TurnStep: React.FC<{ side: "right" | "wrong" }> = ({ side }) => (
+  <div className="knitting-step">
+    <StepHeading symbol={<TurnSwatch />}>Turn, and make a double stitch</StepHeading>
+    <span className="quiet">
+      Turn the work so the {side} side faces you. With the yarn at the front,
+      slip the first stitch purlwise, then pull the yarn up over the needle to
+      the back, so the stitch&rsquo;s two legs sit on the needle as a double
+      stitch. {side === "wrong" ? "Purl" : "Knit"} on from the next stitch;
+      when a row or round reaches the double stitch, work its two legs
+      together as one.
+    </span>
+  </div>
+);
+
 /**
  * A change of needles: a step between rounds. The size is the one the design
  * gives for the size being knitted.
  */
 const NeedlesStep: React.FC<{ to: number; from?: number }> = ({ to, from }) => (
-  <div className="knitting-turn knitting-turn-open">
+  <div className="knitting-step">
     <StepHeading symbol={<NeedlesSwatch />}>Change to {to}mm needles</StepHeading>
     <span className="quiet">
       {from !== undefined && `From the ${from}mm ones, `}
@@ -178,7 +204,7 @@ const NeedlesStep: React.FC<{ to: number; from?: number }> = ({ to, from }) => (
  * off again where the two ends meet.
  */
 const JoinStep: React.FC = () => (
-  <div className="knitting-turn knitting-turn-open">
+  <div className="knitting-step">
     <StepHeading symbol={<JoinArrow />}>Join in the round</StepHeading>
     <span className="quiet">
       Cast on one more stitch. Then, without twisting the cast-on, slip it to
@@ -326,14 +352,26 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
 
   const pieceLabel = (id: string) => index.pieces.find((piece) => piece.id === id)?.label ?? id;
   const where = position.piece
-    ? `${position.piece.label}, round ${position.pieceRound}`
+    ? `${position.piece.label}, ${roundName(position)}`
     : `Round ${position.round}`;
+  /*
+   * On a short row, which of the run of them this is: "3 of 7 short rows"
+   * says more than which of the yoke's rounds it is.
+   */
+  const shortRows = useMemo(() => {
+    if (position.kind === "round") return undefined;
+    let [start, end] = [position.round - 1, position.round - 1];
+    while (start > 0 && (index.roundKinds[start - 1] ?? "round") !== "round") start--;
+    while (end + 1 < index.roundKinds.length && (index.roundKinds[end + 1] ?? "round") !== "round") end++;
+    return { at: position.round - start, of: end - start + 1 };
+  }, [position.kind, position.round, index.roundKinds]);
 
   if (
     position.joinNext ||
     position.needlesNext !== undefined ||
     position.holdNext ||
-    position.resumeNext
+    position.resumeNext ||
+    position.turnNext
   ) {
     return (
       <div className="knitting-panel">
@@ -356,14 +394,18 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
             ? `${where}, stitch ${position.stitchInRound}. Put ${position.holdNext.count} stitches on hold.`
             : position.resumeNext
               ? `Begin the ${pieceLabel(position.resumeNext.holder).toLowerCase()}.`
-              : position.joinNext
-                ? `${where} done. Join in the round.`
-                : `${where} done. Change to ${position.needlesNext}mm needles.`}
+              : position.turnNext
+                ? `${where} done. Turn, and make a double stitch.`
+                : position.joinNext
+                  ? `${where} done. Join in the round.`
+                  : `${where} done. Change to ${position.needlesNext}mm needles.`}
         </p>
         {position.holdNext ? (
           <HoldStep count={position.holdNext.count} piece={pieceLabel(position.holdNext.holder)} />
         ) : position.resumeNext ? (
           <ResumeStep count={position.resumeNext.count} piece={pieceLabel(position.resumeNext.holder)} />
+        ) : position.turnNext ? (
+          <TurnStep side={position.turnNext.side} />
         ) : position.joinNext ? (
           <JoinStep />
         ) : (
@@ -387,9 +429,11 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
               ? "Held: carry on"
               : position.resumeNext
                 ? "On the needles: carry on"
-                : position.joinNext
-                  ? "Joined: carry on"
-                  : "Changed: carry on"}
+                : position.turnNext
+                  ? "Turned: carry on"
+                  : position.joinNext
+                    ? "Joined: carry on"
+                    : "Changed: carry on"}
           </Button>
         </div>
       </div>
@@ -442,13 +486,22 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
         {run && ` ${runInstruction(run)} in ${yarnFor(palette, run.slot).name}.`}
       </p>
       <div className="knitting-readout">
-        <span className="knitting-figure">
-          <em>{position.pieceRound}</em>
-          <span className="quiet">
-            of {position.piece ? position.piece.last - position.piece.first + 1 : position.totalRounds} rounds
-            {position.piece && ` · ${position.piece.label}`}
+        {shortRows ? (
+          <span className="knitting-figure">
+            <em>{shortRows.at}</em>
+            <span className="quiet">
+              of {shortRows.of} short rows{position.piece && ` · ${position.piece.label}`}
+            </span>
           </span>
-        </span>
+        ) : (
+          <span className="knitting-figure">
+            <em>{position.pieceRound}</em>
+            <span className="quiet">
+              of {position.piece ? position.piece.last - position.piece.first + 1 : position.totalRounds} rounds
+              {position.piece && ` · ${position.piece.label}`}
+            </span>
+          </span>
+        )}
         <span className="knitting-figure">
           <em>{position.stitchInRound}</em>
           <span className="quiet">of {position.stitchesInRound} stitches</span>
@@ -457,7 +510,7 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
           <span className="knitting-figure knitting-run">
             <Swatch run={run} palette={palette} />
             <span className="quiet">
-              {stitchWord(run.type)} in {yarnFor(palette, run.slot).name}
+              {runWord(run)} in {yarnFor(palette, run.slot).name}
               {ahead.length > 0 && (
                 <>
                   , then{" "}
@@ -469,7 +522,7 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
                         A bare number is a knit, which is what most of a Fair
                         Isle round is. Anything else says so.
                       */}
-                      {next.type !== "k1" && ` ${stitchWord(next.type)}`}
+                      {(next.type !== "k1" || next.wrongSide) && ` ${runWord(next)}`}
                     </React.Fragment>
                   ))}
                 </>
@@ -490,7 +543,7 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
           </Button>
         )}
         <Button variant="secondary" className="knitting-round" onClick={finishRound}>
-          End of round
+          {shortRows ? "End of row" : "End of round"}
         </Button>
         <Button variant="primary" size="lg" className="knitting-go" onClick={finishRun}>
           {run

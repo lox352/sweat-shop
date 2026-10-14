@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "./engine";
-import { testSweater } from "./test-sweater";
+import { testSweater, testSweaterWithShortRows } from "./test-sweater";
 import {
   currentRun,
   endOfRound,
   indexRounds,
   positionOf,
+  roundParts,
   runInstruction,
   totals,
   upcomingRuns,
+  whereYouAre,
 } from "./progress";
 
 const { stitches, rounds, roundLabels, roundPieces } = buildSweater(testSweater, "one");
@@ -49,7 +51,7 @@ describe("what to work next", () => {
     expect(positionOf(stitches, lastOf(3), index)).toMatchObject({ round: 3, needlesNext: 3.25 });
   });
 
-  it("knits into the dividing round, then stops to put the left sleeve on hold", () => {
+  it("knits into the dividing round, then stops to put the right sleeve on hold", () => {
     const divide = rounds[6];
     expect(runInstruction(currentRun(stitches, divide[0] - 1, index)!)).toBe("Knit 8");
     const position = positionOf(stitches, divide[7], index);
@@ -58,12 +60,21 @@ describe("what to work next", () => {
       stitchInRound: 8,
       piece: { id: "body" },
       pieceRound: 1,
-      holdNext: { holder: "sleeve-left", count: 8 },
+      holdNext: { holder: "sleeve-right", count: 8 },
     });
     // The end of the round is no further than the step.
     expect(endOfRound(divide[0] - 1, index, stitches)).toBe(divide[7]);
     // And straight after the step, the underarm.
     expect(runInstruction(currentRun(stitches, divide[7] + 1, index)!)).toBe("Cast on 4");
+  });
+
+  it("writes the dividing round out whole, its sleeves going on hold in their places", () => {
+    const parts = roundParts(stitches, rounds[6], index).map((part) =>
+      "run" in part ? runInstruction(part.run) : `${part.step.type} ${part.step.holder}`,
+    );
+    expect(parts).toEqual([
+      "Knit 8", "hold sleeve-right", "Cast on 4", "Knit 16", "hold sleeve-left", "Cast on 4", "Knit 8",
+    ]);
   });
 
   it("binds off the body, then takes up the left sleeve's held stitches", () => {
@@ -89,5 +100,33 @@ describe("what to work next", () => {
     expect(totals(index, last)).toMatchObject({ worked: index.worked.length, percent: 100 });
     expect(positionOf(stitches, last, index).finished).toBe(true);
     expect(index.worked.length).toBe(rounds.flat().length);
+  });
+});
+
+describe("short rows", () => {
+  const built = buildSweater(testSweaterWithShortRows(), "one");
+  const rowsIndex = indexRounds(built.rounds, built.roundLabels, built.roundPieces, testSweater.pieces, built.roundKinds);
+  const row = (n: number) => built.rounds[2 + n];
+  const last = (ids: number[]) => ids[ids.length - 1];
+
+  it("stops at the end of each row to turn, and says which side comes next", () => {
+    const position = positionOf(built.stitches, last(row(1)), rowsIndex);
+    expect(position.turnNext).toEqual({ side: "wrong" });
+    expect(whereYouAre(position)).toBe("Yoke, short row 1, right side");
+    expect(endOfRound(row(1)[0] - 1, rowsIndex, built.stitches)).toBe(last(row(1)));
+  });
+
+  it("purls back from the wrong side, which the chart shows as knits", () => {
+    const run = currentRun(built.stitches, row(2)[0] - 1, rowsIndex)!;
+    expect(runInstruction(run)).toBe("Purl 7");
+    const position = positionOf(built.stitches, row(2)[0] - 1, rowsIndex);
+    expect(whereYouAre(position)).toBe("Yoke, short row 2, wrong side");
+    expect(position.kind).toBe("wrong");
+  });
+
+  it("knits on from the last turn to the end of the round without turning again", () => {
+    const position = positionOf(built.stitches, last(row(5)), rowsIndex);
+    expect(position.turnNext).toBeUndefined();
+    expect(runInstruction(currentRun(built.stitches, row(5)[0] - 1, rowsIndex)!)).toBe("Knit 5");
   });
 });

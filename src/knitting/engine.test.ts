@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater, expand } from "./engine";
-import { testSweater } from "./test-sweater";
+import { testSweater, testSweaterWithShortRows } from "./test-sweater";
 import { isFabric, isStep } from "../types/Stitch";
 import type { SweaterPattern } from "../data/sweaters/types";
 
@@ -54,8 +54,8 @@ describe("the test sweater, stitch by stitch", () => {
     expect(steps).toEqual([
       ["join", undefined],
       ["needles", 3.25],
-      ["hold", "sleeve-left"],
       ["hold", "sleeve-right"],
+      ["hold", "sleeve-left"],
       ["resume", "sleeve-left"],
       ["resume", "sleeve-right"],
     ]);
@@ -90,27 +90,28 @@ describe("the test sweater, stitch by stitch", () => {
     const worked = (id: number) => stitches[id].links[0];
     // Back, from the beginning of the round.
     expect(divide.slice(0, 8).map(worked)).toEqual(yoke.slice(0, 8));
-    // The left underarm: cast on, each held by nothing but the stitch before.
-    const left = divide.slice(8, 12);
-    left.forEach((id) => expect(stitches[id].type).toBe("castOn"));
-    expect(stitches[left[0]].links).toEqual([divide[7]]);
-    // The front picks up after the eight held stitches.
+    // The right underarm: cast on, each held by nothing but the stitch before.
+    const right = divide.slice(8, 12);
+    right.forEach((id) => expect(stitches[id].type).toBe("castOn"));
+    expect(stitches[right[0]].links).toEqual([divide[7]]);
+    // The front carries on after the right sleeve's eight held stitches.
     expect(divide.slice(12, 28).map(worked)).toEqual(yoke.slice(16, 32));
-    // And the back's other half after the right sleeve's.
+    // And the back's other half after the left sleeve's.
     expect(divide.slice(32).map(worked)).toEqual(yoke.slice(40));
   });
 
   it("begins each sleeve with new yarn, picking up its underarm the other way round", () => {
     const yoke = rounds[5];
     const divide = rounds[6];
+    // The left sleeve: its underarm is the second the dividing round cast on.
     const top = rounds[11];
-    const edge = divide.slice(8, 12);
+    const edge = divide.slice(28, 32);
     // The first stitch is picked up from the middle of the edge, with no yarn before it.
     expect(stitches[top[0]].type).toBe("pickUp");
     expect(stitches[top[0]].links).toEqual([]);
     expect(top.slice(0, 2).map((id) => stitches[id].from)).toEqual([edge[1], edge[0]]);
     // Then the held stitches, in the order they were held.
-    expect(top.slice(2, 10).map((id) => stitches[id].links[0])).toEqual(yoke.slice(8, 16));
+    expect(top.slice(2, 10).map((id) => stitches[id].links[0])).toEqual(yoke.slice(32, 40));
     // Then the rest of the edge, from its far end back to the middle.
     expect(top.slice(10).map((id) => stitches[id].from)).toEqual([edge[3], edge[2]]);
   });
@@ -186,5 +187,60 @@ describe("shaping rounds", () => {
     expect(
       expand([{ work: "k", times: 1 }, { repeat: [{ work: "m1" }, { work: "k", times: 2 }], untilRemaining: 1 }, { work: "k", times: 1 }], 6),
     ).toEqual(["k1", "m1", "k1", "k1", "m1", "k1", "k1", "k1"]);
+  });
+});
+
+describe("short rows across the back of the neck", () => {
+  const built = buildSweater(testSweaterWithShortRows(), "one");
+  const { stitches, rounds, roundKinds, roundLabels } = built;
+  const rows = rounds.slice(3, 8);
+  const rib = rounds[2];
+  // Where each stitch sits on the ring: by the stitch below it, all the way down to the rib.
+  const placeOf = (id: number): number => {
+    const index = rib.indexOf(id);
+    return index >= 0 ? index : placeOf(stitches[id].links[0]);
+  };
+
+  it("works two pairs of rows, each reaching further, then on to the end of the round", () => {
+    expect(rows.map((row) => row.length)).toEqual([4, 7, 9, 11, 5]);
+    expect(roundKinds.slice(3, 8)).toEqual(["right", "wrong", "right", "wrong", "right"]);
+    expect(roundLabels[3]).toBe("Yoke · short row 1, right side");
+    expect(roundLabels[7]).toBe("Yoke · short rows, to the end of the round");
+    // And the round after them is a whole one again.
+    expect(roundKinds[8]).toBe("round");
+    expect(rounds[8].length).toBe(48);
+  });
+
+  it("turns at the end of every row but the last, as a step", () => {
+    const turns = stitches.filter((stitch) => stitch.type === "turn");
+    expect(turns).toHaveLength(4);
+    rows.slice(0, 4).forEach((row, index) => expect(turns[index].id).toBe(row[row.length - 1] + 1));
+  });
+
+  it("knits each row into the stitches at its places, past the middle of the back each way", () => {
+    expect(rows.map((row) => row.map(placeOf))).toEqual([
+      [0, 1, 2, 3],
+      [2, 1, 0, 23, 22, 21, 20],
+      [21, 22, 23, 0, 1, 2, 3, 4, 5],
+      [4, 3, 2, 1, 0, 23, 22, 21, 20, 19, 18],
+      [19, 20, 21, 22, 23],
+    ]);
+    // Row 3 reaches the double stitch row 1 turned at, and works it as one.
+    const third = rows[2];
+    expect(stitches[third[6]].links[0]).toBe(rows[0][3]);
+  });
+
+  it("purls the wrong side's rows, which the right side sees as knits", () => {
+    for (const id of rows[1]) {
+      expect(stitches[id].type).toBe("k1");
+      expect(stitches[id].wrongSide).toBe(true);
+    }
+    expect(stitches[rows[2][0]].wrongSide).toBeUndefined();
+  });
+
+  it("raises the back: rows over the middle of the back, none over the front", () => {
+    const rowsOver = (place: number) => rows.filter((row) => row.some((id) => placeOf(id) === place)).length;
+    expect(rowsOver(0)).toBe(4);
+    expect(rowsOver(12)).toBe(0);
   });
 });

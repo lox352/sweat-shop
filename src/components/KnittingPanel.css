@@ -180,11 +180,12 @@
 }
 
 /*
- * A step - turning the work, joining the round, changing needles - in place
- * of the readout: what to do, and how, above the panel's usual Undo, Key and
+ * A step - joining the round, changing needles, turning at the end of a
+ * short row, putting a sleeve on hold or taking it up again - in place of
+ * the readout: what to do, and how, above the panel's usual Undo, Key and
  * button. Kept clear of the close button in the corner.
  */
-.knitting-turn {
+.knitting-step {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
@@ -207,16 +208,12 @@
   width: 48px;
 }
 
-.knitting-turn strong {
+.knitting-step strong {
   color: var(--ink);
-  font-size: 1rem;
-}
-
-.knitting-turn-open strong {
   font-size: 1.15rem;
 }
 
-.knitting-turn .quiet {
+.knitting-step .quiet {
   font-size: 0.9rem;
   line-height: 1.35;
 }

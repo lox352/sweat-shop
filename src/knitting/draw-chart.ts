@@ -5,7 +5,7 @@ import { markAt } from "./chart-marks";
 
 /**
  * Drawing the chart onto a canvas: the renderer kept beside the vector one,
- * so the bench can hold the two against each other (see Chart's renderer).
+ * for holding the two against each other (see Chart's renderer).
  *
  * A grid of divs, one per stitch, cost the hat site about six hundred
  * milliseconds a stitch on a phone at ten thousand stitches - unusable for

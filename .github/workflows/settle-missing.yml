@@ -1,0 +1,70 @@
+name: Settle missing or changed sweaters
+
+# A sweater is settled again when its knitting or the physics changes - not
+# its colours - and the answer committed. See scripts/settlement-plan.mjs.
+# Settling needs nothing but Node: no build and no browser.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/data/sweaters/**"
+      - "src/knitting/**"
+      - "src/physics/**"
+      - "src/types/**"
+      - "src/constants.ts"
+      - "scripts/settle*.mjs"
+      - ".github/workflows/settle-missing.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: settle-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check every size against the physics and the knitting
+        id: plan
+        run: |
+          if node scripts/settlement-plan.mjs --check; then
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - run: npm run settle -- --changed
+        if: steps.plan.outputs.needed == 'true'
+      - name: Verify every size
+        run: npx vitest run src/data/sweaters/settled/settled.test.ts
+      - name: Commit settled positions
+        id: commit
+        if: steps.plan.outputs.needed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/sweaters/settled/*.json scripts/settlement-manifest.json
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m "Settle the sweaters whose knitting or physics changed"
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+      - name: Deploy the refreshed sweaters
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref "$GITHUB_REF_NAME"

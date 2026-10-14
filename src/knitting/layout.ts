@@ -1,3 +1,4 @@
+import type { RoundKind } from "./needles";
 import { Stitch, isFabric } from "../types/Stitch";
 import { consumption } from "../types/StitchType";
 
@@ -261,13 +262,29 @@ export const layOut = (stitches: Stitch[], rounds: number[][]): ChartLayout => {
  * The whole piece comes out the shape a top-down yoke is: narrow at the neck,
  * where the knitting starts, and wide where it divides.
  */
-export const layOutBanded = (rounds: number[][]): ChartLayout => {
-  const widest = rounds.reduce((most, round) => Math.max(most, round.length), 0);
+export const layOutBanded = (
+  rounds: number[][],
+  /**
+   * Which of the rounds are short rows, and the stitches, to place them by.
+   * A short row is only part of the way round, so it is not centred: each of
+   * its stitches stands over the stitch it was worked into, so the rows
+   * across the back of the neck stand over the back of the round below -
+   * which, the round beginning at the middle of the back, is its two ends.
+   */
+  rows?: { kinds: RoundKind[]; stitches: Stitch[] },
+): ChartLayout => {
+  const isRow = (index: number) => rows !== undefined && (rows.kinds[index] ?? "round") !== "round";
+  const widest = rounds.reduce((most, round, index) => (isRow(index) ? most : Math.max(most, round.length)), 0);
   const cells = new Map<number, Cell>();
   rounds.forEach((round, index) => {
     const offset = Math.floor((widest - round.length) / 2);
     round.forEach((id, position) => {
-      cells.set(id, { round: index + 1, column: offset + position + 1, index: position + 1 });
+      const below = isRow(index) ? cells.get(rows!.stitches[id].links[0]) : undefined;
+      cells.set(id, {
+        round: index + 1,
+        column: below ? below.column : offset + position + 1,
+        index: position + 1,
+      });
     });
   });
   return { cells, rounds: rounds.length, columns: widest };

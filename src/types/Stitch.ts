@@ -50,6 +50,13 @@ export interface Stitch {
   /** A "hold" or "resume" step: which holder, and how many stitches. */
   holder?: string;
   count?: number;
+  /**
+   * Worked from the wrong side, on a short row knitted back the other way.
+   * Its type is what it looks like from the right side, as the chart shows
+   * it - a stitch purled from the wrong side is a knit - and the knitting
+   * panel says what to do from the side being worked.
+   */
+  wrongSide?: boolean;
 }
 
 /**

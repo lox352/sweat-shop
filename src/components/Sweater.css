@@ -4,3 +4,17 @@
 .sweater-about p:last-child {
   margin-bottom: 0;
 }
+
+/* A size's schematic beside its measurements, or above them on a phone. */
+.size-figures {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+  margin: 1.25rem 0;
+}
+
+@media (min-width: 52rem) {
+  .size-figures {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}

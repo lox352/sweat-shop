@@ -184,6 +184,28 @@
   shape-rendering: geometricPrecision;
 }
 
+/*
+ * Where a sleeve's stitches go on hold: a bar with an arrow down it, in ink
+ * on a pale line of its own like the change of needles.
+ */
+.chart-hold-ground {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  shape-rendering: geometricPrecision;
+}
+
+.chart-hold {
+  fill: none;
+  stroke: #1d1a17;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  shape-rendering: geometricPrecision;
+}
+
 .chart-mark {
   fill: none;
   stroke-width: 1.2;
@@ -283,6 +305,14 @@
   fill: none;
   stroke: var(--ink);
   stroke-width: 0.08;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.key-hold {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }

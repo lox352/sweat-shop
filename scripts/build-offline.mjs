@@ -6,10 +6,10 @@ const files = dir => readdirSync(dir, { withFileTypes: true }).flatMap(entry => 
   const path = join(dir, entry.name);
   return entry.isDirectory() ? files(path) : [path];
 });
-// Live settlement is an online developer diagnostic, never part of knitting.
-// Do not download its large physics engine just to prepare a phone for offline use.
+// Each size's settled sweater is left out: a phone needs only its knitter's
+// own size, which the service worker keeps once it has been shown.
 const assets = files("dist").filter(path => !path.endsWith("/sw.js") &&
-  !/\/ChainModel-[^/]+\.js$/.test(path)).sort();
+  !path.startsWith("dist/assets/settled/")).sort();
 const hash = createHash("sha256");
 for (const path of assets) hash.update(path).update(readFileSync(path));
 const template = readFileSync("scripts/service-worker.js", "utf8");

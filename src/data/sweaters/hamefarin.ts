@@ -123,6 +123,8 @@ const charts: Chart[] = [neckRib, peerie, border, seeds, oxo, lozenges, edgeRib]
  */
 interface Grade {
   neck: number;
+  /** The short rows across the back of the neck: see RoundSpec's shortRows. */
+  shortRows: { first: number; extend: number; pairs: number };
   /** The first increase round, straight after the rib. */
   first: number;
   /** After the increase round before each band, in order. */
@@ -162,11 +164,11 @@ const chart = (id: string, rows: number): RoundSpec => ({ type: "chart", chart: 
 /** The echo of the seeds above a hem or a cuff, with a plain round either side. */
 const echo: RoundSpec[] = [...plain(1), chart("seeds", 3), ...plain(1)];
 
-/** The rib, the bind-off, and the ribbing's needles. */
-const edge = (check?: string): RoundSpec[] => [
+/** The rib, the bind-off in the rib's own tension, and the ribbing's needles. */
+const edge = (): RoundSpec[] => [
   { type: "needles", to: "rib" },
   { type: "chart", chart: "edge-rib", rows: [1, 20] },
-  { type: "bindOff", slot: "A", ...(check ? { check } : {}) },
+  { type: "bindOff", slot: "A", fabric: "rib" },
 ];
 
 const sleeve = (piece: string, label: string, g: Grade): Section => {
@@ -216,6 +218,7 @@ const sectionsFor = (g: Grade): Section[] => [
     piece: "yoke",
     rounds: [
       { type: "needles", to: "main" },
+      { type: "shortRows", ...g.shortRows, slot: "A" },
       increase(g.neck, g.first, "first"),
       ...plain(g.plain[0]),
       increase(g.first, g.incs[0], "peerie"),
@@ -300,7 +303,7 @@ const graded: Graded[] = [
     id: "xs", label: "XS", toFitChestCm: 76,
     finished: { chestCm: 86, neckCm: 44, yokeDepthCm: 19, bodyLengthCm: 35, upperArmCm: 29, sleeveLengthCm: 43, cuffCm: 19 },
     grade: {
-      neck: 124, first: 164, incs: [222, 264, 296, 336, 360],
+      neck: 124, shortRows: { first: 20, extend: 6, pairs: 3 }, first: 164, incs: [222, 264, 296, 336, 360],
       plain: [1, 1, 0, 0, 0], pad: 0,
       back: 110, front: 110, sleeve: 70, underarm: 10,
       bodyRounds: 85,
@@ -311,7 +314,7 @@ const graded: Graded[] = [
     id: "s", label: "S", toFitChestCm: 86,
     finished: { chestCm: 96, neckCm: 45, yokeDepthCm: 20, bodyLengthCm: 36, upperArmCm: 31, sleeveLengthCm: 44, cuffCm: 19.5 },
     grade: {
-      neck: 124, first: 168, incs: [228, 276, 356, 384, 396],
+      neck: 124, shortRows: { first: 20, extend: 6, pairs: 3 }, first: 168, incs: [228, 276, 356, 384, 396],
       plain: [1, 1, 1, 1, 1], pad: 0,
       back: 124, front: 124, sleeve: 74, underarm: 10,
       bodyRounds: 88,
@@ -322,7 +325,7 @@ const graded: Graded[] = [
     id: "m", label: "M", toFitChestCm: 96,
     finished: { chestCm: 106, neckCm: 46, yokeDepthCm: 21, bodyLengthCm: 37, upperArmCm: 33, sleeveLengthCm: 45, cuffCm: 20 },
     grade: {
-      neck: 128, first: 176, incs: [240, 300, 348, 408, 432],
+      neck: 128, shortRows: { first: 20, extend: 6, pairs: 3 }, first: 176, incs: [240, 300, 348, 408, 432],
       plain: [1, 2, 2, 2, 1], pad: 0,
       back: 136, front: 136, sleeve: 80, underarm: 12,
       bodyRounds: 91,
@@ -333,7 +336,7 @@ const graded: Graded[] = [
     id: "l", label: "L", toFitChestCm: 106,
     finished: { chestCm: 116, neckCm: 47, yokeDepthCm: 22, bodyLengthCm: 38, upperArmCm: 35.5, sleeveLengthCm: 46, cuffCm: 21 },
     grade: {
-      neck: 132, first: 184, incs: [258, 324, 424, 456, 480],
+      neck: 132, shortRows: { first: 21, extend: 7, pairs: 3 }, first: 184, incs: [258, 324, 424, 456, 480],
       plain: [1, 2, 2, 2, 2], pad: 2,
       back: 150, front: 150, sleeve: 90, underarm: 12,
       bodyRounds: 95,
@@ -344,7 +347,7 @@ const graded: Graded[] = [
     id: "xl", label: "XL", toFitChestCm: 116,
     finished: { chestCm: 126, neckCm: 48, yokeDepthCm: 23, bodyLengthCm: 39, upperArmCm: 38, sleeveLengthCm: 47, cuffCm: 22 },
     grade: {
-      neck: 136, first: 188, incs: [258, 324, 428, 480, 504],
+      neck: 136, shortRows: { first: 22, extend: 7, pairs: 3 }, first: 188, incs: [258, 324, 428, 480, 504],
       plain: [1, 2, 2, 2, 2], pad: 6,
       back: 162, front: 162, sleeve: 90, underarm: 14,
       bodyRounds: 98,
@@ -355,7 +358,7 @@ const graded: Graded[] = [
     id: "2xl", label: "2XL", toFitChestCm: 126,
     finished: { chestCm: 136, neckCm: 49, yokeDepthCm: 24, bodyLengthCm: 40, upperArmCm: 41, sleeveLengthCm: 47, cuffCm: 23 },
     grade: {
-      neck: 136, first: 192, incs: [270, 336, 444, 504, 540],
+      neck: 136, shortRows: { first: 22, extend: 7, pairs: 3 }, first: 192, incs: [270, 336, 444, 504, 540],
       plain: [1, 2, 2, 2, 2], pad: 9,
       back: 174, front: 174, sleeve: 96, underarm: 16,
       bodyRounds: 101,
@@ -366,7 +369,7 @@ const graded: Graded[] = [
     id: "3xl", label: "3XL", toFitChestCm: 136,
     finished: { chestCm: 146, neckCm: 50, yokeDepthCm: 25, bodyLengthCm: 41, upperArmCm: 44, sleeveLengthCm: 48, cuffCm: 24 },
     grade: {
-      neck: 140, first: 200, incs: [282, 360, 468, 528, 588],
+      neck: 140, shortRows: { first: 22, extend: 7, pairs: 3 }, first: 200, incs: [282, 360, 468, 528, 588],
       plain: [1, 2, 2, 2, 2], pad: 12,
       back: 188, front: 188, sleeve: 106, underarm: 16,
       bodyRounds: 104,
@@ -377,7 +380,7 @@ const graded: Graded[] = [
     id: "4xl", label: "4XL", toFitChestCm: 146,
     finished: { chestCm: 156, neckCm: 51, yokeDepthCm: 26, bodyLengthCm: 42, upperArmCm: 47, sleeveLengthCm: 48, cuffCm: 25 },
     grade: {
-      neck: 144, first: 204, incs: [288, 360, 480, 528, 624],
+      neck: 144, shortRows: { first: 23, extend: 7, pairs: 3 }, first: 204, incs: [288, 360, 480, 528, 624],
       plain: [1, 2, 2, 2, 2], pad: 15,
       back: 200, front: 200, sleeve: 112, underarm: 18,
       bodyRounds: 107,

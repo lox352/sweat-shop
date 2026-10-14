@@ -14,6 +14,7 @@ import WoolList from "./WoolList";
 import { type Chosen } from "./YarnPicker";
 import NextStep from "./ui/NextStep";
 import ColourwayChoice from "./ColourwayChoice";
+import { Schematic } from "./Schematic";
 import "./Sweater.css";
 
 /** A size's finished measurements, as a pattern's schematic gives them. */
@@ -102,7 +103,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
   const [own, setOwn] = useState<Overrides>({});
   const size = sweater.sizes.find((s) => s.id === sizeId) ?? sweater.sizes[0];
   const choicesRef = useRef<HTMLElement>(null);
-  const { stitches, rounds, roundHeight, index, yoke } = useSweater(sweater, size.id);
+  const { stitches, rounds, index, yoke } = useSweater(sweater, size.id);
 
   const colourway = sweater.colourways.find((c) => c.id === colourwayId) ?? sweater.colourways[0];
   const palette = useMemo(() => paletteOf(colourway, own), [colourway, own]);
@@ -152,9 +153,6 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
           <SweaterModel
             sweaterId={sweater.id}
             sizeId={size.id}
-            stitches={stitches}
-            rounds={rounds}
-            roundHeight={roundHeight}
             palette={palette}
             progress={stitches[stitches.length - 1]?.id ?? 0}
           />
@@ -230,7 +228,10 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
             </button>
           ))}
         </div>
-        <Measurements size={size} />
+        <div className="size-figures">
+          <Schematic size={size} />
+          <Measurements size={size} />
+        </div>
         <p className="quiet">
           Each size is its own knitting - its own cast-on, increases and
           divide - and the chart follows the size you choose. The finished

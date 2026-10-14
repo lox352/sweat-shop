@@ -10,8 +10,17 @@ down in Shetland 2ply jumper weight. Its file is
 
 1. **Neck.** Cast on, join, and work twelve rounds of corrugated rib - knit
    two in a contrast, purl two in the body colour - on 2.75mm needles.
-2. **Yoke.** Change to 3.25mm needles. A first increase round straight after
-   the rib, then five bands, each preceded by a plain increase round:
+2. **Back neck.** Change to 3.25mm needles, and raise the back of the neck
+   with German short rows in the body colour, centred on the beginning of the
+   round: knit a sixth of the neck past it, turn, make a double stitch, and
+   purl back as far past it the other way; then two more pairs, each turning
+   a twentieth of the neck beyond the last, and knit on to the end of the
+   round. Six rows at the middle of the back raise it about two centimetres,
+   as a back neck needs - without them the front of the neck rides up to
+   meet the throat.
+3. **Yoke.** A first increase round, which works the last two double
+   stitches as one each as it reaches them, then five bands, each preceded by
+   a plain increase round:
 
    | band | rounds | repeat |
    | --- | --- | --- |
@@ -22,15 +31,15 @@ down in Shetland 2ply jumper weight. Its file is
    | Lozenges | 7 | 12 |
 
    then plain rounds to the depth of the yoke.
-3. **Divide.** From the middle of the back: knit half the back, put the right
+4. **Divide.** From the middle of the back: knit half the back, put the right
    sleeve's stitches on hold and cast on the underarm, knit the front, put the
    left sleeve's on hold and cast on the other underarm, knit the rest of the
    back. Knitted top down and turned the right way up, the rounds run left to
    right as you look at them, which is why the first sleeve reached is the
    wearer's right.
-4. **Body.** Plain, then the peerie seeds again above twenty rounds of
+5. **Body.** Plain, then the peerie seeds again above twenty rounds of
    corrugated rib, and bind off.
-5. **Sleeves.** Each in turn: put the held stitches back on the needles, and
+6. **Sleeves.** Each in turn: put the held stitches back on the needles, and
    with new yarn, from the middle of the underarm, pick up half the underarm,
    knit the held stitches, pick up the other half. Decrease either side of the
    underarm - k2tog leaning right, ssk leaning left - down to the cuff, work
@@ -88,6 +97,9 @@ measurements with about ten centimetres of ease at the chest - into the
 numbers its pattern prints:
 
 - the neck's cast-on, a multiple of four for the rib;
+- the back neck's short rows: three pairs, the first turning a sixth of the
+  neck past the middle of the back and each pair after it a twentieth
+  further;
 - the count after each increase round, a multiple of the next band's repeat.
   A yoke is a cone over the shoulders and a band round the chest and arms
   below them, so its circumference grows with depth for the first part of the

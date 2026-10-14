@@ -1,4 +1,4 @@
-import { Stitch } from "../types/Stitch";
+import { Stitch, isStep } from "../types/Stitch";
 import { ChartLayout, isSecondLoop } from "./layout";
 import { Mark, forkMark, makeOneMark, markFor } from "../helpers/stitch-marks";
 
@@ -73,4 +73,66 @@ export const joinIn = (stitches: Stitch[], rounds: number[][]): Join | undefined
   const next = rounds[after];
   if (after < 1 || !next) return undefined;
   return { after, last: step.id - 1, first: next[0] };
+};
+
+/**
+ * Where a piece's stitches are put on hold, part way through a round - a
+ * sleeve's, in the dividing round - and the stitches either side of the
+ * step, which the chart draws a bar between: the last worked before it, and
+ * the first after, which is the first of the underarm cast on in their place.
+ */
+export interface Hold {
+  before: number;
+  after: number;
+  holder: string;
+  count: number;
+  /** What the held stitches are for: "Right sleeve". */
+  label: string;
+}
+
+export const holdsIn = (
+  stitches: Stitch[],
+  rounds: number[][],
+  pieces: { id: string; label: string }[] = [],
+): Hold[] => {
+  const roundOf = new Map<number, number>();
+  rounds.forEach((ids, index) => ids.forEach((id) => roundOf.set(id, index)));
+  const out: Hold[] = [];
+  for (const stitch of stitches) {
+    if (stitch.type !== "hold" || !stitch.holder || stitch.count === undefined) continue;
+    let before = stitch.id - 1;
+    while (before > 0 && isStep(stitches[before])) before--;
+    let after = stitch.id + 1;
+    while (after < stitches.length && isStep(stitches[after])) after++;
+    const round = roundOf.get(before);
+    if (round === undefined || roundOf.get(after) !== round) continue;
+    const label = pieces.find((piece) => piece.id === stitch.holder)?.label ?? stitch.holder;
+    out.push({ before, after, holder: stitch.holder, count: stitch.count, label });
+  }
+  return out;
+};
+
+/**
+ * Where a short row turns: the last stitch of the row - the one the turn makes
+ * a double stitch of - and the next before it, which say which way the row
+ * was going when it turned.
+ */
+export interface Turn {
+  last: number;
+  before: number;
+}
+
+export const turnsIn = (stitches: Stitch[], rounds: number[][]): Turn[] => {
+  const roundOf = new Map<number, number>();
+  rounds.forEach((ids, index) => ids.forEach((id) => roundOf.set(id, index)));
+  const out: Turn[] = [];
+  for (const stitch of stitches) {
+    if (stitch.type !== "turn") continue;
+    const round = roundOf.get(stitch.id - 1);
+    if (round === undefined) continue;
+    const ids = rounds[round];
+    if (ids.length < 2) continue;
+    out.push({ last: ids[ids.length - 1], before: ids[ids.length - 2] });
+  }
+  return out;
 };

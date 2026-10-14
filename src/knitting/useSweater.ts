@@ -33,7 +33,7 @@ export const yokeRounds = (built: { rounds: number[][]; roundPieces: string[] })
 export const useSweater = (pattern: SweaterPattern, sizeId?: string) => {
   const built = useMemo(() => sweaterStitches(pattern, sizeId), [pattern, sizeId]);
   const index = useMemo(
-    () => indexRounds(built.rounds, built.roundLabels, built.roundPieces, pattern.pieces),
+    () => indexRounds(built.rounds, built.roundLabels, built.roundPieces, pattern.pieces, built.roundKinds),
     [built, pattern.pieces],
   );
   const yoke = useMemo(() => yokeRounds(built), [built]);

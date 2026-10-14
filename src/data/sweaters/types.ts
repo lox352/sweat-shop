@@ -244,6 +244,16 @@ export type RoundSpec = (
     }
   /** "Bind off all stitches." */
   | { type: "bindOff"; slot: string; fabric?: string }
+  /**
+   * German short rows, centred on the beginning of the round - the middle of
+   * the back - to raise the back of the neck: `pairs` pairs of rows, the
+   * first knitted `first` stitches past the beginning of the round and
+   * purled back as far past it the other way, each row after reaching
+   * `extend` stitches beyond the turn before. Then the round is knitted on
+   * from the last turn to its end, and the next round works the last two
+   * double stitches as it reaches them.
+   */
+  | { type: "shortRows"; first: number; extend: number; pairs: number; slot: string; fabric?: string }
 ) & {
   /** Record the stitch count this leaves under this name; see Size.checks. */
   check?: string;
