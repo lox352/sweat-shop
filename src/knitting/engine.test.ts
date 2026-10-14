@@ -30,6 +30,7 @@ describe("the test sweater, stitch by stitch", () => {
     expect(roundLabels[0]).toBe("Neck · cast on");
     expect(roundLabels[4]).toBe("Band, row 1");
     expect(roundLabels[6]).toBe("Body · dividing round");
+    expect(roundLabels[7]).toBe("Body · plain round");
     expect(roundLabels[11]).toBe("Left sleeve · pick-up round");
   });
 

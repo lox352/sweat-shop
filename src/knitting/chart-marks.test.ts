@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "./engine";
 import { testSweater, testSweaterWithShortRows } from "./test-sweater";
-import { faceAfter, holdsIn, markAt, otherFaceRounds, turnsIn } from "./chart-marks";
+import { type Face, faceAfter, holdsIn, markAt, otherFaceRows, turnsIn } from "./chart-marks";
 import { layOut } from "./layout";
-import { markFor } from "../helpers/stitch-marks";
+import { castOnPartWayMark, markFor } from "../helpers/stitch-marks";
 
 const { stitches, rounds, roundPieces } = buildSweater(testSweater, "one");
 const piece = (id: string) => rounds.filter((_, index) => roundPieces[index] === id);
@@ -58,28 +58,54 @@ describe("which side of the sweater is towards you", () => {
 
   it("hatches the rows purled back from the right side, and everything else from the wrong", () => {
     expect(kinds.slice(3, 8)).toEqual(["right", "wrong", "right", "wrong", "right"]);
-    expect(otherFaceRounds(kinds, kinds.length, "right")).toEqual([[5, 5], [7, 7]]);
-    expect(otherFaceRounds(kinds, kinds.length, "wrong")).toEqual([[1, 4], [6, 6], [8, kinds.length]]);
+    const rows = kinds.map((_, index) => index + 1);
+    expect(otherFaceRows(rows, kinds, "right")).toEqual([[5, 5], [7, 7]]);
+    expect(otherFaceRows(rows, kinds, "wrong")).toEqual([[1, 4], [6, 6], [8, kinds.length]]);
   });
 
   it("hatches nothing from the right side of a piece without short rows", () => {
-    expect(otherFaceRounds([], 5, "right")).toEqual([]);
-    expect(otherFaceRounds([], 5, "wrong")).toEqual([[1, 5]]);
+    expect(otherFaceRows([1, 2, 3, 4, 5], [], "right")).toEqual([]);
+    expect(otherFaceRows([1, 2, 3, 4, 5], [], "wrong")).toEqual([[1, 5]]);
   });
 });
 
-describe("a short row worked back on the chart", () => {
+describe("a short row on the chart, from either side", () => {
   const built = buildSweater(testSweaterWithShortRows(), "one");
   const indices = built.rounds.map((_, index) => index).filter((index) => built.roundPieces[index] === "yoke");
   const yoke = indices.map((index) => built.rounds[index]);
   const layout = layOut(built.stitches, yoke, indices.map((index) => built.roundKinds[index]));
   const byId = new Map(built.stitches.map((stitch) => [stitch.id, stitch]));
-  const markOf = (id: number) => markAt(built.stitches[id], byId, layout);
+  const markOf = (id: number, face: Face) => markAt(built.stitches[id], byId, layout, undefined, face);
 
-  it("is drawn as the purls it is worked as, where the right side's rows are knits", () => {
+  it("is knits from the right side, as the fabric round it is, though the rows back are purled", () => {
     const back = yoke[4];
     expect(back.every((id) => built.stitches[id].wrongSide && built.stitches[id].type === "k1")).toBe(true);
-    back.forEach((id) => expect(markOf(id)).toEqual(markFor("p1")));
-    yoke[3].forEach((id) => expect(markOf(id)).toBeUndefined());
+    [...yoke[3], ...back].forEach((id) => expect(markOf(id, "right")).toBeUndefined());
+  });
+
+  it("is purls from the wrong side, and every other stitch its pair from behind", () => {
+    [...yoke[3], ...yoke[4]].forEach((id) => expect(markOf(id, "wrong")).toEqual(markFor("p1")));
+    // The rib's purls are knits from behind, and its knits purls.
+    yoke[1].forEach((id) =>
+      expect(markOf(id, "wrong")).toEqual(built.stitches[id].type === "p1" ? undefined : markFor("p1")),
+    );
+    // A make-one is a make-one purlwise: its strokes, and a purl's dot.
+    const increase = yoke.flat().find((id) => built.stitches[id].type === "m1")!;
+    expect(markOf(increase, "wrong")?.strokes).toEqual(markOf(increase, "right")?.strokes);
+    expect(markOf(increase, "wrong")?.dot).toBeDefined();
+  });
+});
+
+describe("casting on, on the chart", () => {
+  const byId = new Map(stitches.map((stitch) => [stitch.id, stitch]));
+  const body = piece("body");
+  const layout = layOut(stitches, body);
+
+  it("marks an underarm cast on part way round apart from the neck's", () => {
+    const underarm = body[0].filter((id) => stitches[id].type === "castOn");
+    expect(underarm).toHaveLength(8);
+    underarm.forEach((id) => expect(markAt(stitches[id], byId, layout)).toEqual(castOnPartWayMark));
+    const neck = layOut(stitches, piece("yoke"));
+    expect(markAt(stitches[1], byId, neck)).toEqual(markFor("castOn"));
   });
 });

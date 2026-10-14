@@ -13,7 +13,11 @@ export function progressBefore(stitches: Stitch[], rounds: number[][], round: nu
   return id - 1;
 }
 
-/** Which stitch, if any, is drawn at a point on the chart. */
+/**
+ * Which stitch, if any, is drawn at a point on the chart: in the row under
+ * it, of whichever round is drawn there - above the divide a row holds a
+ * round of the body and one of each sleeve.
+ */
 export const stitchAtPoint = (
   layout: ChartLayout,
   rounds: number[][],
@@ -21,13 +25,16 @@ export const stitchAtPoint = (
   x: number,
   y: number,
 ): number | undefined => {
-  const round = layout.rounds - Math.floor(y / cell);
-  const ids = rounds[round - 1];
-  if (!ids) return undefined;
-  return ids.find((id) => {
-    const at = layout.cells.get(id);
-    if (!at) return false;
-    const left = cellAt(layout, at.round, at.column, cell).x;
-    return x >= left && x < left + cell;
-  });
+  const row = layout.rows - Math.floor(y / cell);
+  for (let index = 0; index < rounds.length; index++) {
+    if ((layout.roundRows[index] ?? index + 1) !== row) continue;
+    const found = rounds[index].find((id) => {
+      const at = layout.cells.get(id);
+      if (!at) return false;
+      const left = cellAt(layout, at.row, at.column, cell).x;
+      return x >= left && x < left + cell;
+    });
+    if (found !== undefined) return found;
+  }
+  return undefined;
 };

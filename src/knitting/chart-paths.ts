@@ -1,7 +1,7 @@
 import { Stitch } from "../types/Stitch";
 import { Cell, ChartLayout } from "./layout";
 import { Palette, inkOn, yarnFor } from "./palette";
-import { markAt } from "./chart-marks";
+import { type Face, markAt } from "./chart-marks";
 
 /**
  * The chart as paths.
@@ -41,13 +41,13 @@ const onGrid = (at: number) =>
 
 export const cellAt = (
   layout: ChartLayout,
-  round: number,
+  row: number,
   column: number,
   cell: number,
 ) => ({
   // The cast-on belongs at the bottom, and stitch 1 at the right.
   x: (layout.columns - column) * cell,
-  y: (layout.rounds - round) * cell,
+  y: (layout.rows - row) * cell,
 });
 
 /** Room to the right of the chart for the round numbers. */
@@ -55,7 +55,7 @@ export const gutter = (cell: number) => Math.round(cell * 2.2);
 
 export const chartSize = (layout: ChartLayout, cell: number) => ({
   width: layout.columns * cell + gutter(cell),
-  height: layout.rounds * cell,
+  height: layout.rows * cell,
 });
 
 const rect = (x: number, y: number, w: number, h: number) =>
@@ -99,13 +99,13 @@ const extent = (layout: ChartLayout, run: { column: number }[], cell: number) =>
   return { left, right };
 };
 
-/** The cells of each round, keyed by round number. */
-const byRound = (layout: ChartLayout): Map<number, Cell[]> => {
+/** The cells of each row, keyed by row. */
+const byRow = (layout: ChartLayout): Map<number, Cell[]> => {
   const rows = new Map<number, Cell[]>();
   layout.cells.forEach((at) => {
-    const row = rows.get(at.round);
+    const row = rows.get(at.row);
     if (row) row.push(at);
-    else rows.set(at.round, [at]);
+    else rows.set(at.row, [at]);
   });
   return rows;
 };
@@ -126,17 +126,17 @@ export const fillPaths = (
   for (const stitch of stitches) {
     const at = layout.cells.get(stitch.id);
     if (!at) continue;
-    const row = rows.get(at.round) ?? [];
+    const row = rows.get(at.row) ?? [];
     row.push({ column: at.column, slot: stitch.slot });
-    rows.set(at.round, row);
+    rows.set(at.row, row);
   }
 
   const paths = new Map<string, string[]>();
-  for (const [round, cells] of rows) {
+  for (const [row, cells] of rows) {
     for (const run of runsOf(cells, (a, b) => a.slot === b.slot)) {
       const { left, right } = extent(layout, run, cell);
       const parts = paths.get(run[0].slot) ?? [];
-      parts.push(rect(left, cellAt(layout, round, 1, cell).y, right - left, cell));
+      parts.push(rect(left, cellAt(layout, row, 1, cell).y, right - left, cell));
       paths.set(run[0].slot, parts);
     }
   }
@@ -144,14 +144,29 @@ export const fillPaths = (
   return [...paths].map(([slot, parts]) => ({ slot, d: parts.join("") }));
 };
 
+/** Where the needles change: the row before the change, and the piece it is in. */
+export interface NeedleRule {
+  after: number;
+  piece: string;
+}
+
 /**
- * The rules between cells, as two paths: the hairlines, and the heavier ones
- * that fall after every fifth stitch and every fifth round.
+ * The rules between cells: the hairlines, and the heavier ones that fall
+ * after every fifth stitch and every fifth round; the dashed rule where the
+ * needles change; and the rule round each piece of the sweater.
  *
  * They follow the cells rather than a lattice laid over the whole chart,
  * because a chart of a shaped tube is not a rectangle: the columns a decrease
  * gives up are left empty, and the rules stop at the edge of the fabric so
  * those gaps read as the wedges of absent stitches they are.
+ *
+ * The heavy rows are the fifth rounds of their piece, as the margin numbers
+ * them, so above the divide they count the body's rounds and the sleeves'
+ * alike. A change of needles is dashed across its own piece only: the body
+ * changes for its hem rounds before the sleeves beside it change for their
+ * cuffs. And where one piece meets another - the body beside a sleeve, either
+ * beside the yoke they were knitted out of - the rule is drawn heavier still,
+ * so the pieces read as the pieces they are.
  *
  * Collinear segments are merged, so a chart's worth of cell edges comes out as
  * a few hundred lines rather than one per cell.
@@ -159,46 +174,51 @@ export const fillPaths = (
 export const gridPaths = (
   layout: ChartLayout,
   cell: number,
-  needleChanges: number[] = [],
-): { light: string; heavy: string; needles: string } => {
-  const needlesAt = new Set(needleChanges);
-  const rows = byRound(layout);
+  needleChanges: NeedleRule[] = [],
+): { light: string; heavy: string; needles: string; pieces: string } => {
+  const rows = byRow(layout);
   const runs = new Map<number, Cell[][]>();
-  rows.forEach((cells, round) => runs.set(round, runsOf(cells)));
+  rows.forEach((cells, row) => runs.set(row, runsOf(cells)));
 
   const light: string[] = [];
   const heavy: string[] = [];
   const needles: string[] = [];
+  const pieces: string[] = [];
+
+  /** Spans of cells merged where they touch or overlap, left to right. */
+  const merged = (spans: { left: number; right: number }[]) => {
+    const out: { left: number; right: number }[] = [];
+    for (const span of [...spans].sort((a, b) => a.left - b.left)) {
+      const open = out[out.length - 1];
+      if (open && span.left <= open.right + 1e-6) open.right = Math.max(open.right, span.right);
+      else out.push({ ...span });
+    }
+    return out;
+  };
+  const spansOf = (cells: Cell[]) => runsOf(cells).map((run) => extent(layout, run, cell));
 
   /*
    * Horizontal rules: a boundary needs one wherever there is fabric on
-   * either side of it, so the spans of the two rounds it separates are
-   * merged before they are drawn.
+   * either side of it, so the spans of the two rows it separates are merged
+   * before they are drawn. Boundary r is the one above row r.
    */
-  const spans = (round: number) =>
-    (runs.get(round) ?? []).map((run) => extent(layout, run, cell));
-
-  for (let round = 0; round <= layout.rounds; round++) {
-    const all = [...spans(round), ...spans(round + 1)].sort(
-      (a, b) => a.left - b.left,
-    );
-    const y = (layout.rounds - round) * cell;
-    // A change of needles takes the boundary for itself, dashed.
-    const into = needlesAt.has(round)
-      ? needles
-      : round !== 0 && round % emphasis === 0
-        ? heavy
-        : light;
-    let open: { left: number; right: number } | null = null;
-    for (const span of all) {
-      if (open && span.left <= open.right + 1e-6) {
-        open.right = Math.max(open.right, span.right);
-        continue;
-      }
-      if (open) into.push(`M${open.left} ${y}h${open.right - open.left}`);
-      open = { ...span };
+  for (let row = 0; row <= layout.rows; row++) {
+    const y = (layout.rows - row) * cell;
+    const number = layout.numbers[row - 1];
+    const into = row !== 0 && number !== undefined && number % emphasis === 0 ? heavy : light;
+    const spans = (at: number) => (runs.get(at) ?? []).map((run) => extent(layout, run, cell));
+    for (const span of merged([...spans(row), ...spans(row + 1)])) {
+      into.push(`M${span.left} ${y}h${span.right - span.left}`);
     }
-    if (open) into.push(`M${open.left} ${y}h${open.right - open.left}`);
+  }
+
+  // A change of needles, dashed across the piece that changes, over the pale ground ChartSvg gives it.
+  for (const change of needleChanges) {
+    const y = (layout.rows - change.after) * cell;
+    const ofPiece = (row: number) => (rows.get(row) ?? []).filter((at) => at.piece === change.piece);
+    for (const span of merged([...spansOf(ofPiece(change.after)), ...spansOf(ofPiece(change.after + 1))])) {
+      needles.push(`M${span.left} ${y}h${span.right - span.left}`);
+    }
   }
 
   /*
@@ -206,48 +226,61 @@ export const gridPaths = (
    * column that runs unbroken up the chart is a single line.
    */
   const lines = new Map<string, number[]>();
-  const edge = (on: number, round: number) => {
+  const edge = (on: number, row: number) => {
     const key = `${on.toFixed(3)}|${onGrid(on) ? "h" : "l"}`;
     const at = lines.get(key);
-    if (at) at.push(round);
-    else lines.set(key, [round]);
+    if (at) at.push(row);
+    else lines.set(key, [row]);
   };
 
-  runs.forEach((rounds, round) => {
-    for (const run of rounds) {
+  runs.forEach((rowRuns, row) => {
+    for (const run of rowRuns) {
       // The edge on the stitch-1 side of the run, then one per cell going left.
-      edge(run[0].column - 1, round);
-      for (const at of run) edge(at.column, round);
+      edge(run[0].column - 1, row);
+      for (const at of run) edge(at.column, row);
     }
   });
 
-  lines.forEach((rounds, key) => {
+  lines.forEach((atRows, key) => {
     const [at, weight] = key.split("|");
     const into = weight === "h" ? heavy : light;
     const x = (layout.columns - Number(at)) * cell;
-    rounds.sort((a, b) => a - b);
-    let from = rounds[0];
-    let last = rounds[0];
+    atRows.sort((a, b) => a - b);
+    let from = atRows[0];
+    let last = atRows[0];
     const flush = () => {
-      const top = (layout.rounds - last) * cell;
+      const top = (layout.rows - last) * cell;
       into.push(`M${x} ${top}v${(last - from + 1) * cell}`);
     };
-    for (let i = 1; i < rounds.length; i++) {
-      if (rounds[i] === last + 1) {
-        last = rounds[i];
+    for (let i = 1; i < atRows.length; i++) {
+      if (atRows[i] === last + 1) {
+        last = atRows[i];
         continue;
       }
       flush();
-      from = rounds[i];
-      last = rounds[i];
+      from = atRows[i];
+      last = atRows[i];
     }
     flush();
+  });
+
+  // Where pieces meet: beside one another in a row, and one above the other at the divide.
+  const pieceAt = new Map<string, string>();
+  const key = (row: number, column: number) => `${row}|${column.toFixed(3)}`;
+  layout.cells.forEach((at) => pieceAt.set(key(at.row, at.column), at.piece));
+  layout.cells.forEach((at) => {
+    const { x, y } = cellAt(layout, at.row, at.column, cell);
+    const left = pieceAt.get(key(at.row, at.column + 1));
+    if (left !== undefined && left !== at.piece) pieces.push(`M${x} ${y}v${cell}`);
+    const above = pieceAt.get(key(at.row + 1, at.column));
+    if (above !== undefined && above !== at.piece) pieces.push(`M${x} ${y}h${cell}`);
   });
 
   return {
     light: light.join(""),
     heavy: heavy.join(""),
     needles: needles.join(""),
+    pieces: pieces.join(""),
   };
 };
 
@@ -264,16 +297,18 @@ export const markPaths = (
   palette: Palette,
   cell: number,
   makeOneLean?: "left" | "right",
+  /** The side of the sweater shown, which decides what each stitch is. */
+  face: Face = "right",
 ): { ink: string; strokes: string; dots: string }[] => {
   const groups = new Map<string, { strokes: string[]; dots: string[] }>();
   const byId = new Map(stitches.map((stitch) => [stitch.id, stitch]));
 
   for (const stitch of stitches) {
-    const mark = markAt(stitch, byId, layout, makeOneLean);
+    const mark = markAt(stitch, byId, layout, makeOneLean, face);
     if (!mark) continue;
     const at = layout.cells.get(stitch.id);
     if (!at) continue;
-    const { x, y } = cellAt(layout, at.round, at.column, cell);
+    const { x, y } = cellAt(layout, at.row, at.column, cell);
     const ink = inkOn(yarnFor(palette, stitch.slot).hex);
     const group = groups.get(ink) ?? { strokes: [], dots: [] };
 
@@ -337,7 +372,8 @@ export const progressPath = (
       .slice(0, last + 1)
       .map((id) => layout.cells.get(id))
       .filter((at): at is Cell => at !== undefined);
-    const y = (layout.rounds - (index + 1)) * cell;
+    // In the row it is drawn in: on the whole sweater's chart, beside other pieces' rounds.
+    const y = (layout.rows - (layout.roundRows[index] ?? index + 1)) * cell;
     for (const run of runsOf(worked)) {
       const { left, right } = extent(layout, run, cell);
       parts.push(rect(left, y, right - left, cell));
@@ -347,31 +383,51 @@ export const progressPath = (
 };
 
 /**
- * Which rounds get a number down the right-hand edge.
- *
- * Every fifth, the first and the last - and both rounds a change of needles
- * falls between, so the line across the chart can be named in words and
- * found by eye.
+ * Some stitches of the chart, as a rectangle per unbroken run of them along
+ * each row: a region of the knitting to wash or hatch over, such as stitches
+ * on hold and everything to be knitted from them.
  */
-export const numberedRounds = (
+export const regionPath = (layout: ChartLayout, ids: Iterable<number>, cell: number): string => {
+  const rows = new Map<number, Cell[]>();
+  for (const id of ids) {
+    const at = layout.cells.get(id);
+    if (!at) continue;
+    const row = rows.get(at.row);
+    if (row) row.push(at);
+    else rows.set(at.row, [at]);
+  }
+  const parts: string[] = [];
+  rows.forEach((cells, row) => {
+    const y = (layout.rows - row) * cell;
+    for (const run of runsOf(cells)) {
+      const { left, right } = extent(layout, run, cell);
+      parts.push(rect(left, y, right - left, cell));
+    }
+  });
+  return parts.join("");
+};
+
+/**
+ * Which rows get a number down the right-hand edge - each numbered as the
+ * round it is of its piece; see ChartLayout.numbers.
+ *
+ * Every fifth, each piece's first and the chart's last - and both rows a
+ * change of needles falls between, so the line across the chart can be named
+ * in words and found by eye.
+ */
+export const numberedRows = (
   layout: ChartLayout,
-  needleChanges: number[] = [],
+  needleChanges: NeedleRule[] = [],
 ): number[] => {
   const named = new Set<number>();
-  needleChanges.forEach((round) => {
-    named.add(round);
-    named.add(round + 1);
+  needleChanges.forEach((change) => {
+    named.add(change.after);
+    named.add(change.after + 1);
   });
   const out: number[] = [];
-  for (let round = 1; round <= layout.rounds; round++) {
-    if (
-      round % emphasis === 0 ||
-      round === 1 ||
-      round === layout.rounds ||
-      named.has(round)
-    ) {
-      out.push(round);
-    }
+  for (let row = 1; row <= layout.rows; row++) {
+    const number = layout.numbers[row - 1] ?? row;
+    if (number % emphasis === 0 || number === 1 || row === layout.rows || named.has(row)) out.push(row);
   }
   return out;
 };

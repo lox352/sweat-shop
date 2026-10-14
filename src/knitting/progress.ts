@@ -1,4 +1,5 @@
-import { Stitch, isFabric, isStep, workedAs } from "../types/Stitch";
+import { Stitch, isFabric, isStep } from "../types/Stitch";
+import { workedAs } from "./sides";
 import { StitchType } from "../types/StitchType";
 import type { Piece } from "../data/sweaters/types";
 import type { RoundKind } from "./needles";
@@ -181,6 +182,33 @@ export const roundName = (position: Position): string => {
   }
   return `round ${position.pieceRound}`;
 };
+
+/**
+ * What every round is called in the knitting, by its place from 0: "Yoke,
+ * short row 2, wrong side", "Body, round 23" - as the knitting panel names
+ * the round in hand, for a chart of the whole sweater to name any of them.
+ */
+export const roundNames = (index: RoundIndex): string[] =>
+  index.rounds.map((_, at) => {
+    const round = at + 1;
+    const piece = index.pieces.find((span) => round >= span.first && round <= span.last);
+    const label = index.labels[at];
+    const kind = index.roundKinds[at] ?? "round";
+    const name = roundName({ kind, label, pieceRound: piece ? round - piece.first + 1 : round } as Position);
+    return piece ? `${piece.label}, ${name}` : `Round ${round}`;
+  });
+
+/**
+ * What every round is, by its place from 0, to say beside its name: what the
+ * pattern calls it, less the section the name already places it in -
+ * "dividing round", "plain round", "OXO, row 5". Nothing for a short row,
+ * whose name is already what the pattern calls it.
+ */
+export const roundWhats = (index: RoundIndex): string[] =>
+  index.rounds.map((_, at) => {
+    const label = index.labels[at] ?? "";
+    return (index.roundKinds[at] ?? "round") === "round" ? (label.split(" · ").pop() ?? label) : "";
+  });
 
 /** "Body, round 23 of 141": where you are, in the piece you are knitting. */
 export const whereYouAre = (position: Position): string =>

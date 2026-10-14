@@ -13,9 +13,9 @@ import React, { useEffect } from "react";
 import type { Stitch } from "../types/Stitch";
 import type { ChartLayout } from "../knitting/layout";
 import { cellAt } from "../knitting/draw-chart";
-import { stitchKey } from "../knitting/stitch-key";
+import { type KeyId, stitchKey } from "../knitting/stitch-key";
 import { Swatch, NeedlesSwatch } from "../knitting/ChartHelp";
-import type { SweaterPattern, StitchKeyId } from "../data/sweaters/types";
+import type { SweaterPattern } from "../data/sweaters/types";
 import type { TimeDetail } from "../knitting/timing/detail";
 import type { Column, TimeSummary } from "../knitting/timing/model";
 import { duration, range } from "../knitting/timing/format";
@@ -43,7 +43,7 @@ export const PaceCells: React.FC<{ time: TimeDetail; layout: ChartLayout; cell: 
   layout.cells.forEach((at, id) => {
     const s = time.smooth[id];
     if (!Number.isFinite(s)) return;
-    const { x, y } = cellAt(layout, at.round, at.column, cell);
+    const { x, y } = cellAt(layout, at.row, at.column, cell);
     rects.push(
       <rect
         key={id}
@@ -68,16 +68,19 @@ export const PaceCells: React.FC<{ time: TimeDetail; layout: ChartLayout; cell: 
 export const RoundStrips: React.FC<{ time: TimeDetail; layout: ChartLayout; cell: number }> = ({ time, layout, cell }) => {
   let right = 0;
   layout.cells.forEach((at) => {
-    right = Math.max(right, cellAt(layout, at.round, at.column, cell).x + cell);
+    right = Math.max(right, cellAt(layout, at.row, at.column, cell).x + cell);
   });
   const width = Math.max(3, Math.round(cell * 0.28));
   return (
     <g>
       {time.perRound.map((r, i) => {
         if (r.timed < r.stitches / 2) return null;
-        const { y } = cellAt(layout, i + 1, 1, cell);
+        // Above the divide a row holds a round of each piece: their strips stand side by side.
+        const row = layout.roundRows[i] ?? i + 1;
+        const beside = layout.roundRows.slice(0, i).filter((other) => other === row).length;
+        const { y } = cellAt(layout, row, 1, cell);
         const fill = paceColours[paceStep(r.seconds / r.timed / time.usual)];
-        return <rect key={i} x={right + 1} y={y} width={width} height={cell} fill={fill} />;
+        return <rect key={i} x={right + 1 + beside * (width + 1)} y={y} width={width} height={cell} fill={fill} />;
       })}
     </g>
   );
@@ -89,7 +92,7 @@ export const SittingCells: React.FC<{ time: TimeDetail; layout: ChartLayout; cel
   layout.cells.forEach((at, id) => {
     const n = time.sittingOf[id];
     if (n < 0) return;
-    const { x, y } = cellAt(layout, at.round, at.column, cell);
+    const { x, y } = cellAt(layout, at.row, at.column, cell);
     rects.push(
       <rect key={id} x={x} y={y} width={cell} height={cell} fill={sittingColours[n % sittingColours.length]} opacity={0.88} />,
     );
@@ -210,8 +213,9 @@ export const StatsPanel: React.FC<{
   </section>
 );
 
-const opOf: Partial<Record<StitchKeyId, Column>> = {
+const opOf: Partial<Record<KeyId, Column>> = {
   castOn: "castOn",
+  castOnUnderarm: "castOn",
   k1: "knit",
   p1: "purl",
   k1tbl: "tbl",

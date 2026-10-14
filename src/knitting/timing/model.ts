@@ -18,7 +18,8 @@
  *     priced at those costs, which knows a crown of decreases or a stretch of
  *     two-colour rounds for what it is.
  */
-import { Stitch, isFabric, isStep, workedAs } from "../../types/Stitch";
+import { Stitch, isFabric, isStep } from "../../types/Stitch";
+import { workedAs } from "../sides";
 import type { Action } from "./log";
 
 export const operations = [

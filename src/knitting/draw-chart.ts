@@ -1,7 +1,8 @@
 import { Stitch } from "../types/Stitch";
 import { ChartLayout } from "./layout";
 import { Palette, inkOn, yarnFor } from "./palette";
-import { markAt } from "./chart-marks";
+import { type Face, markAt } from "./chart-marks";
+import type { NeedleRule } from "./chart-paths";
 
 /**
  * Drawing the chart onto a canvas: the renderer kept beside the vector one,
@@ -26,13 +27,13 @@ const gridNeedles = "#1d1a17";
 /** Where a cell's top left corner is, in pixels. */
 export const cellAt = (
   layout: ChartLayout,
-  round: number,
+  row: number,
   column: number,
   cell: number,
 ) => ({
   // The cast-on belongs at the bottom, and stitch 1 at the right.
   x: (layout.columns - column) * cell,
-  y: (layout.rounds - round) * cell,
+  y: (layout.rows - row) * cell,
 });
 
 /** Room to the right of the chart for the round numbers. */
@@ -48,40 +49,35 @@ export const leftMargin = (cell: number) => Math.ceil(cell * 0.5);
 
 export const chartSize = (layout: ChartLayout, cell: number) => ({
   width: layout.columns * cell + gutter(cell),
-  height: layout.rounds * cell,
+  height: layout.rows * cell,
 });
 
 /**
- * The round numbers down the right-hand edge.
+ * The round numbers down the right-hand edge: each row numbered as the round
+ * it is of its piece.
  *
- * Every fifth round, plus the first and the last, which are the two a knitter
- * looks for: where to start and how far there is to go.
+ * Every fifth, plus each piece's first and the chart's last, which are the
+ * ones a knitter looks for: where to start and how far there is to go.
  */
 const drawRoundNumbers = (
   ctx: CanvasRenderingContext2D,
   layout: ChartLayout,
   cell: number,
   ink: string,
-  needleChanges: number[] = [],
+  needleChanges: NeedleRule[] = [],
 ) => {
-  const named = new Set(needleChanges.flatMap((round) => [round, round + 1]));
+  const named = new Set(needleChanges.flatMap((change) => [change.after, change.after + 1]));
   ctx.save();
   ctx.fillStyle = ink;
   ctx.font = `${Math.round(cell * 0.72)}px ui-monospace, "Source Sans 3", system-ui, sans-serif`;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
   const x = layout.columns * cell + Math.round(cell * 0.45);
-  for (let round = 1; round <= layout.rounds; round++) {
-    if (
-      round % emphasis !== 0 &&
-      round !== 1 &&
-      round !== layout.rounds &&
-      !named.has(round)
-    ) {
-      continue;
-    }
-    const { y } = cellAt(layout, round, 1, cell);
-    ctx.fillText(String(round), x, y + cell / 2);
+  for (let row = 1; row <= layout.rows; row++) {
+    const number = layout.numbers[row - 1] ?? row;
+    if (number % emphasis !== 0 && number !== 1 && row !== layout.rows && !named.has(row)) continue;
+    const { y } = cellAt(layout, row, 1, cell);
+    ctx.fillText(String(number), x, y + cell / 2);
   }
   ctx.restore();
 };
@@ -101,9 +97,11 @@ export const drawChart = (
   cell: number,
   ink = "#a29a91",
   makeOneLean?: "left" | "right",
-  needleChanges: number[] = [],
+  needleChanges: NeedleRule[] = [],
+  face: Face = "right",
 ) => {
-  const needlesAt = new Set(needleChanges);
+  // A cell draws its bottom edge, which is the boundary above the row below it.
+  const needlesAt = new Set(needleChanges.map((change) => `${change.after + 1}|${change.piece}`));
   const { width, height } = chartSize(layout, cell);
   ctx.clearRect(0, 0, width, height);
 
@@ -112,9 +110,9 @@ export const drawChart = (
    * a decrease sits between the stitches it took together, so "is there a
    * neighbour here" is a lookup with a tolerance rather than an exact one.
    */
-  const key = (round: number, column: number) => `${round},${column.toFixed(3)}`;
+  const key = (row: number, column: number) => `${row},${column.toFixed(3)}`;
   const filled = new Set<string>();
-  layout.cells.forEach((at) => filled.add(key(at.round, at.column)));
+  layout.cells.forEach((at) => filled.add(key(at.row, at.column)));
 
   const byId = new Map(stitches.map((stitch) => [stitch.id, stitch]));
   ctx.lineWidth = 1;
@@ -124,7 +122,7 @@ export const drawChart = (
   for (const stitch of stitches) {
     const at = layout.cells.get(stitch.id);
     if (!at) continue;
-    const { x, y } = cellAt(layout, at.round, at.column, cell);
+    const { x, y } = cellAt(layout, at.row, at.column, cell);
     const yarn = yarnFor(palette, stitch.slot);
 
     ctx.fillStyle = yarn.hex;
@@ -139,9 +137,9 @@ export const drawChart = (
     const majorCol =
       Math.abs(at.column - Math.round(at.column)) < 1e-6 &&
       Math.round(at.column) % emphasis === 0;
-    const majorRow = at.round !== 1 && (at.round - 1) % emphasis === 0;
-    // A cell draws its bottom edge, so round r's is the boundary below it.
-    const needlesRow = needlesAt.has(at.round - 1);
+    const below = layout.numbers[at.row - 2];
+    const majorRow = below !== undefined && below % emphasis === 0;
+    const needlesRow = needlesAt.has(`${at.row}|${at.piece}`);
     ctx.beginPath();
     ctx.strokeStyle = majorCol ? gridStrong : grid;
     ctx.moveTo(x + 0.5, y);
@@ -172,20 +170,20 @@ export const drawChart = (
     ctx.lineWidth = 1;
 
     ctx.strokeStyle = grid;
-    if (!filled.has(key(at.round + 1, at.column))) {
+    if (!filled.has(key(at.row + 1, at.column))) {
       ctx.beginPath();
       ctx.moveTo(x, y + 0.5);
       ctx.lineTo(x + cell, y + 0.5);
       ctx.stroke();
     }
-    if (!filled.has(key(at.round, at.column + 1))) {
+    if (!filled.has(key(at.row, at.column + 1))) {
       ctx.beginPath();
       ctx.moveTo(x + cell - 0.5, y);
       ctx.lineTo(x + cell - 0.5, y + cell);
       ctx.stroke();
     }
 
-    const mark = markAt(stitch, byId, layout, makeOneLean);
+    const mark = markAt(stitch, byId, layout, makeOneLean, face);
     if (!mark) continue;
     const ink = inkOn(yarn.hex);
     if (mark.dot) {
@@ -230,10 +228,11 @@ export const workedSpans = (
   layout: ChartLayout,
   rounds: number[][],
   progress: number,
-): { round: number; from: number; to: number }[] => {
-  const spans: { round: number; from: number; to: number }[] = [];
+): { row: number; from: number; to: number }[] => {
+  const spans: { row: number; from: number; to: number }[] = [];
   for (let index = 0; index < rounds.length; index++) {
     const ids = rounds[index];
+    const row = layout.roundRows[index] ?? index + 1;
     if (ids.length === 0 || ids[0] > progress) break;
     let last = ids.length - 1;
     while (last >= 0 && ids[last] > progress) last--;
@@ -253,12 +252,12 @@ export const workedSpans = (
         to = column;
         continue;
       }
-      spans.push({ round: index + 1, from, to });
+      spans.push({ row, from, to });
       from = column;
       to = column;
     }
     if (from !== undefined && to !== undefined) {
-      spans.push({ round: index + 1, from, to });
+      spans.push({ row, from, to });
     }
   }
   return spans;
@@ -279,8 +278,8 @@ export const drawProgress = (
   ctx.fillStyle = paper;
   ctx.globalAlpha = 0.62;
   for (const span of workedSpans(layout, rounds, progress)) {
-    const start = cellAt(layout, span.round, span.to, cell);
-    const end = cellAt(layout, span.round, span.from, cell);
+    const start = cellAt(layout, span.row, span.to, cell);
+    const end = cellAt(layout, span.row, span.from, cell);
     ctx.fillRect(start.x, start.y, end.x - start.x + cell, cell);
   }
   ctx.restore();
@@ -288,7 +287,7 @@ export const drawProgress = (
   if (nextStitchId === undefined) return;
   const at = layout.cells.get(nextStitchId);
   if (!at) return;
-  const { x, y } = cellAt(layout, at.round, at.column, cell);
+  const { x, y } = cellAt(layout, at.row, at.column, cell);
   ctx.save();
   ctx.strokeStyle = accent;
   ctx.lineWidth = 2;

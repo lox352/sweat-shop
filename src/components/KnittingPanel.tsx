@@ -15,7 +15,7 @@ import {
 import { Palette, inkOn, yarnFor } from "../knitting/palette";
 import Button from "./ui/Button";
 import { KeyEntry, keyEntryAt, stitchKey } from "../knitting/stitch-key";
-import { NeedlesSwatch, Swatch as StitchSwatch } from "../knitting/ChartHelp";
+import { HowTo, NeedlesSwatch, Swatch as StitchSwatch } from "../knitting/ChartHelp";
 import type { StitchKeyId, StitchNote } from "../data/sweaters/types";
 import "./KnittingPanel.css";
 
@@ -54,20 +54,27 @@ const roundEntries = (
   return [...seen.values()].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
 };
 
-/** How to work this round's special stitches, the one in hand marked. */
+/**
+ * How to work this round's special stitches, the one in hand marked - and,
+ * for the one in hand, step by step where it has steps: casting on, at the
+ * neck or an underarm, when the stitches to cast on are next.
+ */
 const StitchHint: React.FC<{ entries: KeyEntry[]; current?: string }> = ({ entries, current }) => (
   <ul className="knitting-hint" aria-label="Stitches in this round">
     {entries.map((entry) => (
       <li key={entry.id} className={entry.id === current ? "knitting-hint-now" : undefined}>
         <StitchSwatch entry={entry} />
-        <p>
-          <strong>
-            {entry.label}
-            {entry.abbreviation && <span className="stitch-abbr"> {entry.abbreviation}</span>}
-          </strong>{" "}
-          {entry.how}
-          {entry.note && <span className="stitch-note"> {entry.note}</span>}
-        </p>
+        <div>
+          <p>
+            <strong>
+              {entry.label}
+              {entry.abbreviation && <span className="stitch-abbr"> {entry.abbreviation}</span>}
+            </strong>{" "}
+            {entry.how}
+            {entry.note && <span className="stitch-note"> {entry.note}</span>}
+          </p>
+          {entry.id === current && <HowTo entry={entry} />}
+        </div>
       </li>
     ))}
   </ul>
@@ -138,8 +145,10 @@ const HoldStep: React.FC<{ count: number; piece: string }> = ({ count, piece }) 
     <StepHeading symbol={<HoldSwatch />}>Put {count} stitches on hold</StepHeading>
     <span className="quiet">
       Slip the next {count} stitches onto waste yarn for the {piece.toLowerCase()},
-      and leave them there until the body is done. Then cast on the underarm
-      in their place, pulling the yarn snug across the gap.
+      and leave them there until you begin it. Then cast on the underarm in
+      their place, pulling the yarn snug across the gap. On the chart they are
+      crosshatched while they wait, and so is the whole of the{" "}
+      {piece.toLowerCase()}.
     </span>
   </div>
 );
@@ -154,7 +163,8 @@ const ResumeStep: React.FC<{ count: number; piece: string }> = ({ count, piece }
     <span className="quiet">
       Put the {count} held stitches back on your needles. Join new yarn at the
       middle of the underarm: the round starts there, picking up stitches out
-      of the edge the body cast on.
+      of the edge the body cast on. On the chart the crosshatch comes off the{" "}
+      {piece.toLowerCase()}: it is on your needles again.
     </span>
   </div>
 );
@@ -185,10 +195,10 @@ const TurnStep: React.FC<{ side: "right" | "wrong" }> = ({ side }) => (
         ? "Bring the yarn to the front between the needles and purl on from the next stitch: on this side, knits become purls."
         : "Knit on from the next stitch."}{" "}
       When a row or round reaches the double stitch, work its two legs
-      together as one. The chart turns over to match, and{" "}
+      together as one.{" "}
       {side === "wrong"
-        ? "what was knitted from the right side is shown hatched."
-        : "what was purled from the wrong side is shown hatched."}
+        ? "The chart turns over to match, every stitch shown as it looks from the wrong side - knits as purls, purls as knits - and what was knitted from the right side hatched."
+        : "The chart turns back over, every stitch shown as it looks from the right side again, and what was purled from the wrong side hatched."}
     </span>
   </div>
 );

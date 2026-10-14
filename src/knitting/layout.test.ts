@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater, type SweaterStitches } from "./engine";
-import { layOut, mirrorLayout } from "./layout";
+import { layOut, layOutSweater, mirrorLayout } from "./layout";
 import { testSweater, testSweaterWithShortRows } from "./test-sweater";
 import { indexRounds } from "./progress";
 import { consumption } from "../types/StitchType";
@@ -29,7 +29,7 @@ describe("a piece laid out by what each stitch was worked into", () => {
 
   it("is as wide as its widest round, and a row a round", () => {
     expect(layout.columns).toBe(48);
-    expect(layout.rounds).toBe(6);
+    expect(layout.rows).toBe(6);
   });
 
   it("stands every stitch over the stitch it was worked into, so a column is a column of the knitting", () => {
@@ -50,8 +50,8 @@ describe("a piece laid out by what each stitch was worked into", () => {
   });
 
   it("numbers rounds within the piece, and stitches within their round", () => {
-    expect(layout.cells.get(yoke[0][0])).toEqual({ round: 1, column: 1, index: 1 });
-    expect(layout.cells.get(yoke[0][1])).toEqual({ round: 1, column: 3, index: 2 });
+    expect(layout.cells.get(yoke[0][0])).toEqual({ row: 1, round: 1, column: 1, index: 1, piece: "yoke" });
+    expect(layout.cells.get(yoke[0][1])).toEqual({ row: 1, round: 1, column: 3, index: 2, piece: "yoke" });
   });
 
   it("lays out a sleeve from its own pick-up round, its decreases leaving their columns empty above", () => {
@@ -89,7 +89,7 @@ describe("short rows on the chart", () => {
 
   it("takes up no width of its own, a row of the chart each", () => {
     expect(layout.columns).toBe(48);
-    expect(layout.rounds).toBe(yoke.length);
+    expect(layout.rows).toBe(yoke.length);
   });
 
   it("works the rows back the other way across the chart, round the back of the neck", () => {
@@ -112,11 +112,57 @@ describe("the chart turned over", () => {
       expect(there).toEqual({ ...here, column: layout.columns + 1 - here.column });
     }
     expect(over.columns).toBe(layout.columns);
-    expect(over.rounds).toBe(layout.rounds);
+    expect(over.rows).toBe(layout.rows);
   });
 
   it("comes back as it was when turned again", () => {
     expect(mirrorLayout(over)).toEqual(layout);
+  });
+});
+
+describe("the whole sweater on one chart", () => {
+  const layout = layOutSweater(built.stitches, built.rounds, built.roundKinds, built.roundPieces);
+  const columnsOf = (piece: string, k: number) => {
+    const span = index.pieces.find((one) => one.id === piece)!;
+    return built.rounds[span.first - 1 + k].map((id) => layout.cells.get(id)!.column);
+  };
+  const run = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
+
+  it("lets in a column for every stitch the body casts on and each sleeve picks up", () => {
+    // The yoke's 48, the body's 4 cast on at each underarm, and each sleeve's 2 picked up either side.
+    expect(layout.columns).toBe(48 + 2 * 4 + 2 * (2 + 2));
+  });
+
+  it("stands the body over the back and front it was knitted from, its underarms after each sleeve", () => {
+    expect(columnsOf("body", 0)).toEqual([...run(1, 8), ...run(21, 24), ...run(25, 40), ...run(53, 56), ...run(57, 64)]);
+  });
+
+  it("stands each sleeve over its held stitches, between the stitches it picks up", () => {
+    expect(columnsOf("sleeve-right", 0)).toEqual([9, 10, ...run(11, 18), 19, 20]);
+    expect(columnsOf("sleeve-left", 0)).toEqual([41, 42, ...run(43, 50), 51, 52]);
+  });
+
+  it("leaves the columns let in empty all the way down the yoke", () => {
+    expect(columnsOf("yoke", 5)).toEqual([...run(1, 8), ...run(11, 18), ...run(25, 40), ...run(43, 50), ...run(57, 64)]);
+  });
+
+  it("gives each piece's rounds above the divide the same rows, numbered as their own rounds", () => {
+    const rowOf = (piece: string, k: number) => {
+      const span = index.pieces.find((one) => one.id === piece)!;
+      return layout.roundRows[span.first - 1 + k];
+    };
+    for (const piece of ["body", "sleeve-left", "sleeve-right"]) {
+      expect(rowOf(piece, 0)).toBe(7);
+      expect(rowOf(piece, 3)).toBe(10);
+    }
+    expect(layout.rows).toBe(6 + 5);
+    expect(layout.numbers).toEqual([1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5]);
+  });
+
+  it("keeps every stitch over the stitch it was worked into, no two in one place", () => {
+    expect(offTheirStitch(built, built.rounds, layout)).toEqual([]);
+    const places = [...layout.cells.values()].map((at) => `${at.row}|${at.column}`);
+    expect(new Set(places).size).toBe(places.length);
   });
 });
 
@@ -137,6 +183,23 @@ describe("Hamefarin on the chart", () => {
           if (columns.some((column) => column < 1 || column > laid.columns)) wrong.push(`${where}, round ${at + 1}: off the chart`);
         });
       }
+    }
+    expect(wrong).toEqual([]);
+  }, 60_000);
+
+  it("lays every size out whole, with nothing in another stitch's place", () => {
+    const wrong: string[] = [];
+    for (const size of hamefarin.sizes) {
+      const knitting = buildSweater(hamefarin, size.id);
+      const laid = layOutSweater(knitting.stitches, knitting.rounds, knitting.roundKinds, knitting.roundPieces);
+      if (offTheirStitch(knitting, knitting.rounds, laid).length > 0) wrong.push(`${size.id}: off the stitch below`);
+      const places = new Set<string>();
+      laid.cells.forEach((at) => {
+        const place = `${at.row}|${at.column}`;
+        if (places.has(place)) wrong.push(`${size.id}: row ${at.row} column ${at.column} twice`);
+        places.add(place);
+        if (at.column < 1 || at.column > laid.columns) wrong.push(`${size.id}: off the chart`);
+      });
     }
     expect(wrong).toEqual([]);
   }, 60_000);

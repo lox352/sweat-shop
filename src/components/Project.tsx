@@ -4,9 +4,9 @@ import { sweaterById } from "../data/sweaters";
 import { SlotId } from "../data/sweaters/types";
 import { useSweater } from "../knitting/useSweater";
 import { colourwayLabel, paletteOf, yarnFor } from "../knitting/palette";
-import { totals, positionOf, currentRun, whereYouAre, type PieceSpan } from "../knitting/progress";
+import { totals, positionOf, currentRun, whereYouAre, roundNames, roundWhats } from "../knitting/progress";
 import { keyEntryAt } from "../knitting/stitch-key";
-import { holdsIn, needleChangesIn, turnsIn } from "../knitting/chart-marks";
+import { faceAfter, holdsIn, needleChangesIn, turnsIn } from "../knitting/chart-marks";
 import { metresBySlot } from "../knitting/yardage";
 import {
   Project as SavedProject,
@@ -40,41 +40,6 @@ const statsParam = "stats";
 /** "Under 1%", "3%": how far through, never rounded up to done. */
 const percentKnitted = (worked: number, percent: number) =>
   `${worked > 0 && percent < 1 ? "Under 1" : Math.floor(percent)}%`;
-
-/**
- * The pieces of the sweater as tabs over its chart: the yoke, the body and
- * each sleeve, each its own chart, with the one being knitted marked.
- */
-const PieceTabs: React.FC<{
-  pieces: PieceSpan[];
-  shown: string;
-  current?: string;
-  progress: number;
-  rounds: number[][];
-  onShow: (piece: string) => void;
-}> = ({ pieces, shown, current, progress, rounds, onShow }) => (
-  <div className="piece-tabs" role="tablist" aria-label="Pieces">
-    {pieces.map((piece) => {
-      const last = rounds[piece.last - 1];
-      const done = last !== undefined && last[last.length - 1] <= progress;
-      return (
-        <button
-          key={piece.id}
-          type="button"
-          role="tab"
-          aria-selected={piece.id === shown}
-          className={`piece-tab${piece.id === shown ? " is-shown" : ""}`}
-          onClick={() => onShow(piece.id)}
-        >
-          {piece.label}
-          <span className="quiet">
-            {piece.id === current ? "knitting" : done ? "knitted" : `${piece.last - piece.first + 1} rounds`}
-          </span>
-        </button>
-      );
-    })}
-  </div>
-);
 
 /**
  * The end of the chart page while you are not knitting: how far you have
@@ -315,7 +280,7 @@ const ProjectView: React.FC<{
 }) => {
   const sweater = sweaterById(sweaterId)!;
   const size = sweater.sizes.find((s) => s.id === project.sizeId) ?? sweater.sizes[0];
-  const { stitches, rounds, roundLabels, roundKinds, index, yoke } = useSweater(sweater, size.id);
+  const { stitches, rounds, roundKinds, roundPieces, index, yoke, holdRegions } = useSweater(sweater, size.id);
 
   const colourway = sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0];
   const palette = useMemo(() => paletteOf(colourway, project.shades), [colourway, project.shades]);
@@ -325,22 +290,14 @@ const ProjectView: React.FC<{
   const position = positionOf(stitches, project.progress, index);
   const time = useKnittingTime(project.id, stitches, project.progress);
 
-  /*
-   * Which piece's chart is showing: the one being knitted, unless another
-   * has been chosen to look at. While knitting it is always the one in hand,
-   * and it moves on by itself as one piece ends and the next begins.
-   */
-  const current = position.piece ?? index.pieces[0];
-  const [chosenPiece, setChosenPiece] = useState<string>();
-  const piece = (!knitting && index.pieces.find((one) => one.id === chosenPiece)) || current;
-  const pieceRounds = useMemo(() => rounds.slice(piece.first - 1, piece.last), [rounds, piece]);
-  const pieceLabels = useMemo(() => roundLabels.slice(piece.first - 1, piece.last), [roundLabels, piece]);
-  const pieceKinds = useMemo(() => roundKinds.slice(piece.first - 1, piece.last), [roundKinds, piece]);
+  // The whole sweater is one chart; each round goes by the name the knitting panel gives it.
+  const names = useMemo(() => roundNames(index), [index]);
+  const whats = useMemo(() => roundWhats(index), [index]);
 
   // Explore statistics: open while the address says so, and there is time to explore.
   const [params, setParams] = useSearchParams();
   const exploring = view === "chart" && !knitting && params.get(statsParam) === "1" && time !== undefined;
-  const detail = useTimeDetail(exploring ? project.id : undefined, stitches, pieceRounds);
+  const detail = useTimeDetail(exploring ? project.id : undefined, stitches, rounds);
   const [layer, setLayer] = useState<Layer>("pace");
   const [speedsOpen, setSpeedsOpen] = useState(false);
   const closeSpeeds = useCallback(() => setSpeedsOpen(false), []);
@@ -363,42 +320,38 @@ const ProjectView: React.FC<{
     if (!knitting) setKeyOpen(false);
   }, [knitting]);
   const run = currentRun(stitches, project.progress, index);
+  // Which side is towards you, for the key to read the chart's symbols from: see Chart.
+  const turnIds = useMemo(
+    () => stitches.filter((stitch) => stitch.type === "turn").map((stitch) => stitch.id),
+    [stitches],
+  );
+  const face = faceAfter(turnIds, project.progress);
   const currentStitch = run ? keyEntryAt(stitches, run.startId, sweater.stitchNotes)?.id : undefined;
 
   const title = project.name ?? sweater.name;
   const eyebrow = `${sweater.name} · ${size.label} · ${colourwayLabel(colourway, project.shades)}`;
   const knitLabel = counts.worked > 0 ? "Keep knitting" : "Start knitting";
 
-  const tabs = (
-    <PieceTabs
-      pieces={index.pieces}
-      shown={piece.id}
-      current={position.finished ? undefined : current.id}
-      progress={project.progress}
-      rounds={rounds}
-      onShow={setChosenPiece}
-    />
-  );
-
   if (exploring && detail && time) {
     return (
       <PageLayout title={title} eyebrow={eyebrow} showTitle={false} className="knit-screen">
         <section className="section chart-page">
-          {tabs}
           <Chart
-            key={piece.id}
             contained
             stitches={stitches}
-            rounds={pieceRounds}
+            rounds={rounds}
             palette={palette}
             progress={project.progress}
             // Looking back: the edge of the knitting near the top, what is done below it.
             follow
             followAt={0.85}
-            labels={pieceLabels}
+            labels={whats}
+            names={names}
             stitchNotes={sweater.stitchNotes}
             pieces={sweater.pieces}
-            kinds={pieceKinds}
+            kinds={roundKinds}
+            roundPieces={roundPieces}
+            holdRegions={holdRegions}
             overlay={(layout, cell) => (
               <>
                 {layer === "pace" && <PaceCells time={detail} layout={layout} cell={cell} />}
@@ -406,10 +359,7 @@ const ProjectView: React.FC<{
                 <RoundStrips time={detail} layout={layout} cell={cell} />
               </>
             )}
-            pickerNote={(id) => {
-              const at = pieceRounds.findIndex((ids) => ids.includes(id));
-              return <StitchTime time={detail} id={id} round={at < 0 ? undefined : at + 1} />;
-            }}
+            pickerNote={(id) => <StitchTime time={detail} id={id} round={index.roundOf.get(id)} />}
           />
         </section>
         <StatsPanel
@@ -435,20 +385,21 @@ const ProjectView: React.FC<{
         className={knitting ? "knit-screen" : undefined}
       >
         <section className="section chart-page">
-          {!knitting && tabs}
           <Chart
-            key={piece.id}
             contained
             stitches={stitches}
-            rounds={pieceRounds}
+            rounds={rounds}
             palette={palette}
             progress={project.progress}
             follow={knitting}
             onJump={knitting ? setProgress : undefined}
-            labels={pieceLabels}
+            labels={whats}
+            names={names}
             stitchNotes={sweater.stitchNotes}
             pieces={sweater.pieces}
-            kinds={pieceKinds}
+            kinds={roundKinds}
+            roundPieces={roundPieces}
+            holdRegions={holdRegions}
           />
           <ul className="chart-key">
             {sweater.slots.map((slot) => (
@@ -492,9 +443,10 @@ const ProjectView: React.FC<{
             palette={palette}
             notes={sweater.stitchNotes}
             current={currentStitch}
-            needles={needleChangesIn(stitches, pieceRounds)}
-            holds={holdsIn(stitches, pieceRounds, sweater.pieces)}
-            turns={turnsIn(stitches, pieceRounds)}
+            needles={needleChangesIn(stitches, rounds, names)}
+            holds={holdsIn(stitches, rounds, sweater.pieces)}
+            turns={turnsIn(stitches, rounds)}
+            face={face}
             onClose={closeKey}
           />
         )}
