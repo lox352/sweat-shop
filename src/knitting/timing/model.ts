@@ -18,7 +18,7 @@
  *     priced at those costs, which knows a crown of decreases or a stretch of
  *     two-colour rounds for what it is.
  */
-import { Stitch, isFabric, isStep } from "../../types/Stitch";
+import { Stitch, isFabric, isStep, workedAs } from "../../types/Stitch";
 import type { Action } from "./log";
 
 export const operations = [
@@ -73,10 +73,10 @@ export const typical: Costs = {
 };
 
 const baseOf = (stitch: Stitch): Operation | undefined => {
-  switch (stitch.type) {
+  // As it was worked: a knit on a row worked from the wrong side was purled.
+  switch (workedAs(stitch)) {
     case "castOn": return "castOn";
-    // Stored as the right side sees it: a knit on a row worked from the wrong side was purled.
-    case "k1": return stitch.wrongSide ? "purl" : "knit";
+    case "k1": return "knit";
     case "p1": return "purl";
     case "k1tbl": return "tbl";
     case "k2tog": case "ssk": return "decrease";

@@ -301,6 +301,20 @@
   color: var(--ink-soft);
 }
 
+/*
+ * Rounds worked with the other side of the sweater towards you: a light
+ * hatch, so they read as the other side of the fabric without hiding it.
+ */
+.chart-hatch {
+  pointer-events: none;
+}
+
+.chart-hatch-line {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  opacity: 0.2;
+}
+
 .key-join {
   fill: none;
   stroke: var(--ink);
@@ -321,6 +335,18 @@
   stroke: var(--ink);
   stroke-width: 2;
   stroke-dasharray: 4 3;
+}
+
+.key-hatch-ground {
+  fill: var(--paper);
+  stroke: var(--ink-faint);
+  stroke-width: 1;
+}
+
+.stitch-picker-face p {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.35;
 }
 
 /* Anything drawn over the chart, such as a heat map: seen, never tapped. */

@@ -1,4 +1,4 @@
-import { Stitch, isFabric, isStep } from "../types/Stitch";
+import { Stitch, isFabric, isStep, workedAs } from "../types/Stitch";
 import { StitchType } from "../types/StitchType";
 import type { Piece } from "../data/sweaters/types";
 import type { RoundKind } from "./needles";
@@ -234,21 +234,13 @@ const words: Record<StitchType, { said: string; after?: string; perStitch: boole
 export const stitchWord = (type: StitchType): string =>
   [words[type].said, words[type].after].filter(Boolean).join(" ");
 
-/**
- * What to work, from the side being worked. A stitch is stored as it looks
- * from the right side, so on a row purled back from the wrong side a knit is
- * worked as a purl, and a purl as a knit.
- */
-const fromItsSide = (type: StitchType, wrongSide?: boolean): StitchType =>
-  !wrongSide ? type : type === "k1" ? "p1" : type === "p1" ? "k1" : type;
-
-/** A run's stitch, in words, from the side it is worked from. */
+/** A run's stitch, in words, from the side it is worked from: see workedAs. */
 export const runWord = (run: Pick<Run, "type" | "wrongSide">): string =>
-  stitchWord(fromItsSide(run.type, run.wrongSide));
+  stitchWord(workedAs(run));
 
 /** The instruction a run is: "Knit 6", "Purl 2", "K2tog x 3". */
 export const runInstruction = (run: Run): string => {
-  const { said, after, perStitch } = words[fromItsSide(run.type, run.wrongSide)];
+  const { said, after, perStitch } = words[workedAs(run)];
   const phrase = perStitch
     ? [said, run.length, after].filter(Boolean).join(" ")
     : run.length === 1

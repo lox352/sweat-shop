@@ -8,7 +8,10 @@ knit it.
 
 - **A chart that knows where you are**, one piece at a time - the yoke, the
   body, then each sleeve - with every stitch of every round, the one you are
-  on marked and the chart following you.
+  on marked and the chart following you. As on the hat site, every stitch
+  stands over the stitch it was knitted into, so a column of the chart is a
+  column of the knitting, and the chart turns over with the work when a
+  short row is purled back from the wrong side.
 - **The sweater in three dimensions**, with the wool filling in as you work.
 - **Colourways as costumes.** A design is drawn once in yarn slots, and a
   colourway says which real shade goes in each - so any yarn can be swapped

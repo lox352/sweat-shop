@@ -62,6 +62,8 @@ async function tapBeside(page, across) {
  */
 const yokeDone = 21146;
 const bodyDone = 56077;
+/** The first stitch of the yoke's last round, its 75th, of 432 stitches. */
+const yokeLastRound = 20715;
 
 test("the design and its projects work without WebGL, and nothing fetches the solver", async ({ page }) => {
   await page.addInitScript(() => {
@@ -246,15 +248,26 @@ test("short rows raise the back of the neck, each turned as a step of its own", 
   await expect(page.locator(".knitting-panel")).toContainText("Turn, and make a double stitch");
   await expect(page.getByRole("button", { name: /^End of (round|row)$/ })).toHaveCount(0);
   await expect(page.locator(".chart-join")).not.toHaveCount(0);
+  // The rows to be purled back are hatched: from the right side, a purl there is a knit.
+  const chart = page.getByRole("img", { name: /^The chart:/ });
+  await expect(chart).not.toHaveAccessibleName(/wrong side towards you/);
+  await expect(page.locator(".chart-hatch")).toHaveCount(3);
   await page.getByRole("button", { name: "Turned: carry on" }).click();
   await expect(position(page)).toContainText("Yoke, short row 2, wrong side, stitch 1. Purl 39 in");
-  // Undo takes the turn back.
+  // And with the work turned, the chart is too: the wrong side towards you, purls in the row back,
+  // and the knitting from the right side hatched on either side of it.
+  await expect(chart).toHaveAccessibleName(/wrong side towards you, and the chart is turned over/);
+  await expect(page.locator(".chart-hatch")).toHaveCount(4);
+  await expect(page.getByRole("list", { name: "Stitches in this round" })).toContainText("Purl");
+  // Undo takes the turn back, and turns the chart back with it.
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".knitting-panel")).toContainText("Turn, and make a double stitch");
+  await expect(chart).not.toHaveAccessibleName(/wrong side towards you/);
   await page.getByRole("button", { name: "Turned: carry on" }).click();
 
   await page.getByRole("button", { name: "Key", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Key" })).toContainText("Turn: a short row");
+  await expect(page.getByRole("dialog", { name: "Key" })).toContainText("Hatched");
   await page.getByRole("button", { name: "Close the key" }).click();
 
   // Five more rows, and on round to the end of the round: then whole rounds again.
@@ -399,15 +412,17 @@ test("progress survives reload and undo; a second tab stays in sync", async ({ p
 });
 
 test("tapping a stitch on the chart carries on from it, and can be undone", async ({ page }) => {
-  await start(page);
-  await workRounds(page, 3);
+  // The start of the yoke's last round, where every column has its stitch: under the
+  // yoke's make-ones the rib's stitches stand apart, with nothing between them to tap.
+  await knittedTo(page, yokeLastRound - 1);
+  await expect(position(page)).toContainText("Yoke, round 75, stitch 1.");
   const original = await position(page).textContent();
   // Three stitches on from the one about to be worked.
   await tapBeside(page, 3);
-  const picker = page.getByRole("dialog", { name: "Round 4, stitch 4" });
+  const picker = page.getByRole("dialog", { name: "Round 75, stitch 4" });
   await expect(picker).toBeVisible();
   await picker.getByRole("button", { name: "Knit up to here" }).click();
-  await expect(position(page)).toContainText("Yoke, round 4, stitch 4.");
+  await expect(position(page)).toContainText("Yoke, round 75, stitch 4.");
   await expect(picker).toBeHidden();
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(position(page)).toHaveText(original);

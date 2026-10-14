@@ -1,14 +1,17 @@
-import { Stitch, isStep } from "../types/Stitch";
+import { Stitch, isStep, workedAs } from "../types/Stitch";
 import { ChartLayout, isSecondLoop } from "./layout";
+import type { RoundKind } from "./needles";
 import { Mark, forkMark, makeOneMark, markFor } from "../helpers/stitch-marks";
 
 /**
  * The mark a stitch carries on the chart, which can depend on its neighbours.
  *
- * Nearly always the stitch's own. The exception is a KFB: one instruction
- * that makes two stitches, so it is drawn as one mark across both cells - a
- * fork from the stitch below to each of them - and the new stitch carries
- * nothing of its own, being made rather than worked.
+ * Nearly always the stitch's own, as it is worked: a short row purled back
+ * from the wrong side is drawn as the purls it is - see workedAs. The
+ * exception is a KFB: one instruction that makes two stitches, so it is drawn
+ * as one mark across both cells - a fork from the stitch below to each of
+ * them - and the new stitch carries nothing of its own, being made rather
+ * than worked.
  */
 export const markAt = (
   stitch: Stitch,
@@ -19,7 +22,7 @@ export const markAt = (
 ): Mark | undefined => {
   if (isSecondLoop(stitch, byId)) return undefined;
   if (stitch.type === "m1") return makeOneMark(makeOneLean);
-  if (stitch.type !== "kfb") return markFor(stitch.type);
+  if (stitch.type !== "kfb") return markFor(workedAs(stitch));
 
   const at = layout.cells.get(stitch.id);
   const made = byId.get(stitch.id + 1);
@@ -135,4 +138,37 @@ export const turnsIn = (stitches: Stitch[], rounds: number[][]): Turn[] => {
     out.push({ last: ids[ids.length - 1], before: ids[ids.length - 2] });
   }
   return out;
+};
+
+/** A side of the sweater: the side it is worn with out, or its reverse. */
+export type Face = "right" | "wrong";
+
+/**
+ * Which side of the sweater is towards you once the knitting is worked as far
+ * as `progress`: the right side, but for while a short row is being purled
+ * back. Every turn worked turns the work over, so it is how many of them have
+ * been worked, odd or even.
+ */
+export const faceAfter = (turnIds: number[], progress: number): Face =>
+  turnIds.filter((id) => id <= progress).length % 2 === 1 ? "wrong" : "right";
+
+/**
+ * The rounds worked with the other side towards you from `face`, in runs,
+ * first and last, numbered from 1: what the chart hatches. With the right side
+ * towards you they are the short rows purled back; with the wrong side, every
+ * other round there is.
+ */
+export const otherFaceRounds = (
+  kinds: readonly (RoundKind | undefined)[],
+  count: number,
+  face: Face,
+): [number, number][] => {
+  const runs: [number, number][] = [];
+  for (let round = 1; round <= count; round++) {
+    if ((kinds[round - 1] === "wrong" ? "wrong" : "right") === face) continue;
+    const last = runs[runs.length - 1];
+    if (last && last[1] === round - 1) last[1] = round;
+    else runs.push([round, round]);
+  }
+  return runs;
 };

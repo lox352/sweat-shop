@@ -169,6 +169,9 @@ const TurnSwatch: React.FC = () => (
 /**
  * The end of a short row: turn the work, and make the double stitch that
  * keeps the turn from leaving a hole.
+ *
+ * Working it turns the chart over too, as a turn does on the hat site: from
+ * here the other side of the sweater is towards you, and the chart shows it.
  */
 const TurnStep: React.FC<{ side: "right" | "wrong" }> = ({ side }) => (
   <div className="knitting-step">
@@ -177,9 +180,15 @@ const TurnStep: React.FC<{ side: "right" | "wrong" }> = ({ side }) => (
       Turn the work so the {side} side faces you. With the yarn at the front,
       slip the first stitch purlwise, then pull the yarn up over the needle to
       the back, so the stitch&rsquo;s two legs sit on the needle as a double
-      stitch. {side === "wrong" ? "Purl" : "Knit"} on from the next stitch;
-      when a row or round reaches the double stitch, work its two legs
-      together as one.
+      stitch.{" "}
+      {side === "wrong"
+        ? "Bring the yarn to the front between the needles and purl on from the next stitch: on this side, knits become purls."
+        : "Knit on from the next stitch."}{" "}
+      When a row or round reaches the double stitch, work its two legs
+      together as one. The chart turns over to match, and{" "}
+      {side === "wrong"
+        ? "what was knitted from the right side is shown hatched."
+        : "what was purled from the wrong side is shown hatched."}
     </span>
   </div>
 );
