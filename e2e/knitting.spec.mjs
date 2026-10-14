@@ -62,15 +62,16 @@ async function tapBeside(page, across) {
 const yokeDone = 20834;
 const bodyDone = 55765;
 
-test("the design and its projects work without WebGL, and nothing fetches physics", async ({ page }) => {
+test("the design and its projects work without WebGL, and nothing fetches the solver", async ({ page }) => {
   await page.addInitScript(() => {
     const original = HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.getContext = function (kind, ...args) {
       return kind.startsWith("webgl") ? null : original.call(this, kind, ...args);
     };
   });
+  // The settling is done offline; the site only ever fetches its answers.
   const physics = [];
-  page.context().on("request", request => { if (/\/(physics|solver|settle)/i.test(request.url())) physics.push(request.url()); });
+  page.context().on("request", request => { if (/solver/i.test(request.url())) physics.push(request.url()); });
   await page.goto("");
   const links = await page.locator(".design-card").evaluateAll(nodes => nodes.map(node => node.href));
   expect(links).toHaveLength(1);

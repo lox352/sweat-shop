@@ -38,7 +38,7 @@ export const chevronDepth = 0.35;
  * a glint. A sliver of overlap closes it, and is never seen to flicker:
  * both stitches are at their darkest there.
  */
-export const overlap = 0.06;
+export const overlap = 0.14;
 
 export const createStitchGeometry = (): THREE.BufferGeometry => {
   const geometry = new THREE.BufferGeometry();

@@ -29,6 +29,22 @@ self.addEventListener("fetch", event => {
   const home = request.mode === "navigate" &&
     (url.pathname === scope.pathname || url.pathname === `${scope.pathname}index.html`);
   const key = home ? urlFor("index.html") : url.href;
+  /*
+   * A size's settled sweater is not prepared in advance - there are eight, and
+   * a knitter needs one - so it is kept the first time it is shown, and is
+   * there offline from then on.
+   */
+  if (url.pathname.startsWith(`${scope.pathname}assets/settled/`)) {
+    event.respondWith((async () => {
+      const cache = await caches.open(cacheName);
+      const cached = await cache.match(key);
+      if (cached) return cached;
+      const response = await fetch(request);
+      if (response.ok) await cache.put(key, response.clone());
+      return response;
+    })());
+    return;
+  }
   if (!home && !urls.includes(key)) return;
   event.respondWith((async () => {
     const cached = await (await caches.open(cacheName)).match(key);

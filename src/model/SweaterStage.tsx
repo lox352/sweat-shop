@@ -17,6 +17,8 @@ export interface SweaterStageProps {
   /** Id of the last stitch worked; earlier stitches are shown in their wool. */
   progress: number;
   reducedMotion: boolean;
+  /** Where it came to rest, when that is known: see data/sweaters/settled. */
+  settled?: Float32Array;
 }
 
 /**
@@ -26,14 +28,18 @@ export interface SweaterStageProps {
  * page that never shows it, and a phone without WebGL still has every
  * instruction on the page.
  *
- * It draws the sweater blocked, as physics/pose.ts lays it out. Settling it
- * under gravity is done offline and committed, as the hat site does it, and
- * nothing here will ever import the physics that does it.
+ * It draws the sweater where it came to rest, settled under gravity offline
+ * and committed, as the hat site does it; nothing here imports the solver
+ * that did it. A size not yet settled is drawn blocked, as physics/pose.ts
+ * lays it out, which is where the settling starts from.
  */
-export default function SweaterStage({ sweaterId, sizeId, palette, progress, reducedMotion }: SweaterStageProps) {
+export default function SweaterStage({ sweaterId, sizeId, palette, progress, reducedMotion, settled }: SweaterStageProps) {
   const controls = useRef<OrbitLike | null>(null);
   const built = useMemo(() => sweaterStitches(sweaterById(sweaterId)!, sizeId), [sweaterId, sizeId]);
-  const { positions } = useMemo(() => pose(built), [built]);
+  const positions = useMemo(
+    () => (settled && settled.length === built.stitches.length * 3 ? settled : pose(built).positions),
+    [built, settled],
+  );
   // In the order StitchInstances draws them, which the colours have to match.
   const drawn = useMemo(() => built.stitches.filter(isFabric), [built]);
   const extremes = useMemo(

@@ -48,27 +48,45 @@ See `src/knitting/needles.ts` and `src/knitting/engine.ts`.
 
 ## The sweater in three dimensions
 
-The sweater on screen is blocked, with its arms held out: each stitch where
-`src/physics/pose.ts` lays it, from the knitting's own links. The body hangs
-straight down from the underarms. Each sleeve leaves the body from an
-upright armhole, bends down to the arm's angle as a sleeve does over the
-shoulder, and runs on to the cuff. The neck rib stands as a collar, and the
-yoke spreads from its foot to where the body and the sleeves begin.
+The sweater on screen has been settled under gravity, held at the neck,
+with its arms out: each piece falls the way it was knitted - the yoke and
+the body down, each sleeve down its arm - and each round is pushed out from
+its own middle, which is what holds it round. Every link between two
+stitches is a rope that can go slack but never stretch. It is the hat
+site's model, but not its engine. A hat was ten thousand rigid bodies in
+Rapier, settled in a browser; a sweater is ten times that in eight sizes.
+So `src/physics/solver.ts` is a small position-based solver in plain
+TypeScript that settles a size in Node in a minute or so, gives the same
+answer every time, and is never loaded by the site at all. Its answers are
+committed, a size to a file, in `src/data/sweaters/settled/`.
 
-The pose is also where the physics will start, so it puts every rope between
-two stitches at or under its length. Ribs and the sleeve's taper come in no
-faster than a round's height allows, and the stitches over decreases are
-evened out only part of the way. The neck stands high enough that the yoke
-reaches the tops of the sleeves. The tests hold every size of every design
-to it.
+```sh
+npm run settle                 # every size of every sweater
+npm run settle -- --changed    # only those whose knitting or physics changed
+npm run bench                  # each piece's tension and frill, size by size
+```
+
+A sweater is settled again when its knitting or the physics changes, and
+only then. Recolouring it never re-settles it: see
+`scripts/settlement-plan.mjs`. On `main`, `settle-missing.yml` does that by
+itself and commits the answer.
+
+The settling starts from `src/physics/pose.ts`, which lays the sweater out
+blocked with every rope at or under its length. The body hangs straight
+down from the underarms. Each sleeve leaves the body from an upright armhole
+and bends down to the arm's angle, as a sleeve does over the shoulder. The
+neck rib stands as a collar, and the yoke spreads from its foot to where the
+body and the sleeves begin. A size not yet settled is drawn as posed, and so
+is any size with `?settled=0` in the address.
 
 A medium is seventy-six thousand stitches and the largest a hundred and
 twenty-five thousand, which the hat site's sixty-four-triangle stitches could
-never draw on a phone. Here each stitch is a single quad, one instance of one mesh, with
-the stitch painted on by its shader: a chevron whose point dips into the
-stitch it was worked into, so each column of stitches nests together like
-knitting. See `src/model/stitch-quad.ts`. three.js and all of this load only
-when the sweater is on screen, and the instructions work without them.
+never draw on a phone. Here each stitch is a single quad, one instance of
+one mesh, with the stitch painted on by its shader: a chevron whose point
+dips into the stitch it was worked into, so each column of stitches nests
+together like knitting. See `src/model/stitch-quad.ts`. three.js and all of
+this load only when the sweater is on screen, and the instructions work
+without them.
 
 ## The designs
 
