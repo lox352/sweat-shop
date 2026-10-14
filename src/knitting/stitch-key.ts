@@ -31,7 +31,10 @@ const standard: Record<StitchKeyId, Omit<KeyEntry, "note">> = {
     type: "castOn",
     abbreviation: "CO",
     label: "Cast on",
-    how: "The chart's bottom row: cast these stitches on.",
+    how:
+      "Cast these stitches on: the neck, along the bottom of the yoke's chart, " +
+      "and each underarm, part way round the body's first round, in the place " +
+      "of a sleeve's stitches put on hold.",
   },
   join: {
     id: "join",

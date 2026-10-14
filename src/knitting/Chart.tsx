@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Stitch, isFabric } from "../types/Stitch";
+import { Stitch, isFabric, isStep } from "../types/Stitch";
 import { layOutBanded, type ChartLayout } from "./layout";
 import { Palette, yarnFor } from "./palette";
 import { cellAt, chartSize, drawChart, drawProgress, leftMargin } from "./draw-chart";
 import ChartSvg from "./ChartSvg";
 import { StitchLegend, TextRound } from "./ChartHelp";
-import { joinIn, needleChangesIn } from "./chart-marks";
+import { holdsIn, joinIn, needleChangesIn } from "./chart-marks";
 import StitchPicker from "./StitchPicker";
 import { keyEntryAt } from "./stitch-key";
 import { stitchAtPoint } from "./jump";
@@ -93,6 +93,8 @@ interface ChartProps {
   overlay?: (layout: ChartLayout, cell: number) => React.ReactNode;
   /** More to say about a tapped stitch. */
   pickerNote?: (id: number) => React.ReactNode;
+  /** The sweater's pieces, to name the sleeve whose stitches go on hold. */
+  pieces?: { id: string; label: string }[];
 }
 
 /**
@@ -123,6 +125,7 @@ const Chart: React.FC<ChartProps> = ({
   overlay,
   pickerNote,
   followAt,
+  pieces,
 }) => {
   const [picked, setPicked] = useState<number>();
   const makeOneLean = stitchNotes?.m1?.lean;
@@ -151,7 +154,17 @@ const Chart: React.FC<ChartProps> = ({
   cellNow.current = cellSize;
   const baseRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
-  const nextId = follow ? progress + 1 : undefined;
+  /*
+   * The stitch to be worked next. When a step comes first - a sleeve going on
+   * hold part way round, a change of needles - it is the stitch after the
+   * step: a step has no cell to mark, and the knitting goes on from there.
+   */
+  const nextId = useMemo(() => {
+    if (!follow) return undefined;
+    let id = progress + 1;
+    while (stitches[id] && isStep(stitches[id])) id++;
+    return id;
+  }, [follow, progress, stitches]);
   const preferredRenderer = useMemo(() => renderer(), []);
   const drawWith = contrast ? "svg" : preferredRenderer;
 
@@ -165,6 +178,7 @@ const Chart: React.FC<ChartProps> = ({
   const needles = useMemo(() => needleChangesIn(stitches, rounds), [stitches, rounds]);
   const needleRounds = useMemo(() => needles.map((change) => change.after), [needles]);
   const join = useMemo(() => joinIn(stitches, rounds), [stitches, rounds]);
+  const holds = useMemo(() => holdsIn(stitches, rounds, pieces), [stitches, rounds, pieces]);
   const { width, height } = chartSize(layout, cellSize);
 
   const ratio = useMemo(() => {
@@ -458,6 +472,7 @@ const Chart: React.FC<ChartProps> = ({
               cell={cellSize}
               needleChanges={needleRounds}
               join={join}
+              holds={holds}
               makeOneLean={makeOneLean}
             />
           ) : (
@@ -489,13 +504,13 @@ const Chart: React.FC<ChartProps> = ({
           )}
         </div>
       </div>
-      <StitchLegend stitches={stitches} notes={stitchNotes} needles={needles} />
+      <StitchLegend stitches={stitches} notes={stitchNotes} needles={needles} holds={holds} />
       {writtenRounds && <details className="chart-help" onToggle={e => setShowText(e.currentTarget.open)}>
         <summary>Text round instructions</summary>
         <label>Read round <select value={follow && focusRound ? focusRound : textRound} disabled={follow && !!focusRound} onChange={e => setTextRound(Number(e.target.value))}>
           {rounds.map((_, i) => <option key={i} value={i + 1}>{i + 1} · {labels?.[i]}</option>)}
         </select></label>
-        {showText && <TextRound stitches={stitches} rounds={rounds} round={follow && focusRound ? focusRound : textRound} labels={labels} palette={palette} />}
+        {showText && <TextRound stitches={stitches} rounds={rounds} round={follow && focusRound ? focusRound : textRound} labels={labels} palette={palette} pieces={pieces} />}
       </details>}
       <p className="chart-caption">
         {layout.columns} stitches at its widest, {layout.rounds} rounds. Read

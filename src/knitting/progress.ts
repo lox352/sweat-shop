@@ -272,6 +272,33 @@ export const upcomingRuns = (
   return runs;
 };
 
+/**
+ * A round written out, as a pattern writes it: its runs in working order,
+ * with any step part way through it in its place - the dividing round's
+ * sleeves going on hold between the back and the underarm.
+ */
+export type RoundPart = { run: Run } | { step: Stitch };
+
+export const roundParts = (stitches: Stitch[], ids: number[], index: RoundIndex): RoundPart[] => {
+  const parts: RoundPart[] = [];
+  const last = ids[ids.length - 1] ?? 0;
+  let at = (ids[0] ?? 1) - 1;
+  while (at < last) {
+    const next = stitches[at + 1];
+    if (!next) break;
+    if (isStep(next)) {
+      parts.push({ step: next });
+      at++;
+      continue;
+    }
+    const run = currentRun(stitches, at, index);
+    if (!run) break;
+    parts.push({ run });
+    at = run.endId;
+  }
+  return parts;
+};
+
 /** Stitches that are worked: not the phantom, and not the steps. */
 export const workable = (stitches: Stitch[]): Stitch[] => stitches.filter(isFabric);
 

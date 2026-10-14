@@ -6,7 +6,7 @@ import { useSweater } from "../knitting/useSweater";
 import { colourwayLabel, paletteOf, yarnFor } from "../knitting/palette";
 import { totals, positionOf, currentRun, whereYouAre, type PieceSpan } from "../knitting/progress";
 import { keyEntryAt } from "../knitting/stitch-key";
-import { needleChangesIn } from "../knitting/chart-marks";
+import { holdsIn, needleChangesIn } from "../knitting/chart-marks";
 import { metresBySlot } from "../knitting/yardage";
 import {
   Project as SavedProject,
@@ -396,6 +396,7 @@ const ProjectView: React.FC<{
             followAt={0.85}
             labels={pieceLabels}
             stitchNotes={sweater.stitchNotes}
+            pieces={sweater.pieces}
             overlay={(layout, cell) => (
               <>
                 {layer === "pace" && <PaceCells time={detail} layout={layout} cell={cell} />}
@@ -444,6 +445,7 @@ const ProjectView: React.FC<{
             onJump={knitting ? setProgress : undefined}
             labels={pieceLabels}
             stitchNotes={sweater.stitchNotes}
+            pieces={sweater.pieces}
           />
           <ul className="chart-key">
             {sweater.slots.map((slot) => (
@@ -488,6 +490,7 @@ const ProjectView: React.FC<{
             notes={sweater.stitchNotes}
             current={currentStitch}
             needles={needleChangesIn(stitches, pieceRounds)}
+            holds={holdsIn(stitches, pieceRounds, sweater.pieces)}
             onClose={closeKey}
           />
         )}

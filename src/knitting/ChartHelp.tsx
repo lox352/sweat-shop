@@ -3,9 +3,9 @@ import { Stitch, joinsCastOn } from "../types/Stitch";
 import { StitchType } from "../types/StitchType";
 import { Mark, forkMark, makeOneMark, markFor } from "../helpers/stitch-marks";
 import { Palette, yarnFor } from "./palette";
-import { indexRounds, runInstruction, upcomingRuns } from "./progress";
+import { indexRounds, roundParts, runInstruction } from "./progress";
 import { KeyEntry, stitchKey } from "./stitch-key";
-import type { NeedleChange } from "./chart-marks";
+import type { Hold, NeedleChange } from "./chart-marks";
 import type { StitchKeyId, StitchNote } from "../data/sweaters/types";
 
 const Cell: React.FC<{ type?: StitchType; mark?: Mark; x: number }> = ({ type, mark = type && markFor(type), x }) => {
@@ -60,6 +60,13 @@ export const Swatch: React.FC<{ entry: KeyEntry }> = ({ entry }) => {
   );
 };
 
+/** Stitches put on hold: a bar with an arrow down it, as the chart draws it. */
+export const HoldSwatch: React.FC = () => (
+  <svg className="key-swatch" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 2V21M7 16L12 21L17 16" className="key-hold" />
+  </svg>
+);
+
 /** A change of needles, dashed as the chart draws it. */
 export const NeedlesSwatch: React.FC = () => (
   <svg className="key-swatch" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
@@ -89,30 +96,49 @@ function NeedlesText({ changes }: { changes: NeedleChange[] }) {
 }
 
 /**
+ * Where the sleeves go on hold, in words: "the right sleeve's 80, then the
+ * left sleeve's 80".
+ */
+function HoldsText({ holds }: { holds: Hold[] }) {
+  const which = holds.map((hold) => `the ${hold.label.toLowerCase()}'s ${hold.count}`).join(", then ");
+  return (
+    <>
+      Where a bar with an arrow down it stands in a round, slip the next
+      stitches onto waste yarn: {which}. The stitches cast on straight after
+      each bar are that sleeve's underarm, cast on in its place, and the
+      sleeve picks them up again with its held stitches when its turn comes.
+    </>
+  );
+}
+
+/**
  * What the marks on this sweater's chart mean, and how to work each one.
  *
  * Only the stitches the design uses, in the words it uses; see stitch-key.ts.
  */
-export function StitchLegend({ stitches, notes, needles }: {
+export function StitchLegend({ stitches, notes, needles, holds }: {
   stitches: Stitch[];
   notes?: Partial<Record<StitchKeyId, StitchNote>>;
   needles?: NeedleChange[];
+  holds?: Hold[];
 }) {
   const entries = useMemo(() => stitchKey(stitches, notes), [stitches, notes]);
   return (
     <details className="chart-help">
       <summary>Stitch-symbol key</summary>
-      <KeyList entries={entries} needles={needles} />
+      <KeyList entries={entries} needles={needles} holds={holds} />
     </details>
   );
 }
 
 /** The key's entries, each with its mark and how to work it. */
-export function KeyList({ entries, current, needles }: {
+export function KeyList({ entries, current, needles, holds }: {
   entries: KeyEntry[];
   current?: string;
   /** Where the needles change, explained after the stitches. */
   needles?: NeedleChange[];
+  /** Where a sleeve's stitches go on hold, likewise. */
+  holds?: Hold[];
 }) {
   return (
     <ul className="stitch-key">
@@ -139,19 +165,36 @@ export function KeyList({ entries, current, needles }: {
           </div>
         </li>
       )}
+      {holds && holds.length > 0 && (
+        <li className="stitch-key-hold">
+          <HoldSwatch />
+          <div>
+            <strong>Put stitches on hold</strong>
+            <p>
+              <HoldsText holds={holds} />
+            </p>
+          </div>
+        </li>
+      )}
     </ul>
   );
 }
 
-export function TextRound({ stitches, rounds, round, labels, palette }: {
+export function TextRound({ stitches, rounds, round, labels, palette, pieces = [] }: {
   stitches: Stitch[]; rounds: number[][]; round: number; labels?: string[]; palette: Palette;
+  /** The sweater's pieces, to name a sleeve put on hold. */
+  pieces?: { id: string; label: string }[];
 }) {
   const ids = rounds[round - 1] ?? [];
   const index = indexRounds(rounds, labels);
-  const runs = upcomingRuns(stitches, (ids[0] ?? 1) - 1, index, ids.length)
-    .filter(run => run.startId <= (ids.at(-1) ?? 0));
+  const parts = roundParts(stitches, ids, index);
+  const pieceLabel = (id?: string) => (pieces.find((piece) => piece.id === id)?.label ?? id ?? "").toLowerCase();
   return <div><p>Round {round}: {labels?.[round - 1]}. Read in working order.</p>
-    <ol>{runs.map(run => <li key={run.startId}>{runInstruction(run)} in {yarnFor(palette, run.slot).name}</li>)}
+    <ol>{parts.map(part => "run" in part
+      ? <li key={part.run.startId}>{runInstruction(part.run)} in {yarnFor(palette, part.run.slot).name}</li>
+      : part.step.type === "hold"
+        ? <li key={part.step.id}>Put the next {part.step.count} stitches on hold for the {pieceLabel(part.step.holder)}.</li>
+        : null)}
       {stitches[(ids.at(-1) ?? 0) + 1]?.type === "join" && <li>{joinsCastOn(stitches, (ids.at(-1) ?? 0) + 1)
         ? "Cast on one more stitch and join in the round, lifting the first stitch cast on over it."
         : "Without turning, join in the round across the gap."}</li>}</ol>

@@ -6,6 +6,7 @@ import {
   endOfRound,
   indexRounds,
   positionOf,
+  roundParts,
   runInstruction,
   totals,
   upcomingRuns,
@@ -64,6 +65,15 @@ describe("what to work next", () => {
     expect(endOfRound(divide[0] - 1, index, stitches)).toBe(divide[7]);
     // And straight after the step, the underarm.
     expect(runInstruction(currentRun(stitches, divide[7] + 1, index)!)).toBe("Cast on 4");
+  });
+
+  it("writes the dividing round out whole, its sleeves going on hold in their places", () => {
+    const parts = roundParts(stitches, rounds[6], index).map((part) =>
+      "run" in part ? runInstruction(part.run) : `${part.step.type} ${part.step.holder}`,
+    );
+    expect(parts).toEqual([
+      "Knit 8", "hold sleeve-right", "Cast on 4", "Knit 16", "hold sleeve-left", "Cast on 4", "Knit 8",
+    ]);
   });
 
   it("binds off the body, then takes up the left sleeve's held stitches", () => {
