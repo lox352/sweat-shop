@@ -6,7 +6,7 @@ import { useSweater } from "../knitting/useSweater";
 import { colourwayLabel, paletteOf, yarnFor } from "../knitting/palette";
 import { totals, positionOf, currentRun, whereYouAre, type PieceSpan } from "../knitting/progress";
 import { keyEntryAt } from "../knitting/stitch-key";
-import { holdsIn, needleChangesIn } from "../knitting/chart-marks";
+import { holdsIn, needleChangesIn, turnsIn } from "../knitting/chart-marks";
 import { metresBySlot } from "../knitting/yardage";
 import {
   Project as SavedProject,
@@ -315,7 +315,7 @@ const ProjectView: React.FC<{
 }) => {
   const sweater = sweaterById(sweaterId)!;
   const size = sweater.sizes.find((s) => s.id === project.sizeId) ?? sweater.sizes[0];
-  const { stitches, rounds, roundLabels, index, yoke } = useSweater(sweater, size.id);
+  const { stitches, rounds, roundLabels, roundKinds, index, yoke } = useSweater(sweater, size.id);
 
   const colourway = sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0];
   const palette = useMemo(() => paletteOf(colourway, project.shades), [colourway, project.shades]);
@@ -335,6 +335,7 @@ const ProjectView: React.FC<{
   const piece = (!knitting && index.pieces.find((one) => one.id === chosenPiece)) || current;
   const pieceRounds = useMemo(() => rounds.slice(piece.first - 1, piece.last), [rounds, piece]);
   const pieceLabels = useMemo(() => roundLabels.slice(piece.first - 1, piece.last), [roundLabels, piece]);
+  const pieceKinds = useMemo(() => roundKinds.slice(piece.first - 1, piece.last), [roundKinds, piece]);
 
   // Explore statistics: open while the address says so, and there is time to explore.
   const [params, setParams] = useSearchParams();
@@ -397,6 +398,7 @@ const ProjectView: React.FC<{
             labels={pieceLabels}
             stitchNotes={sweater.stitchNotes}
             pieces={sweater.pieces}
+            kinds={pieceKinds}
             overlay={(layout, cell) => (
               <>
                 {layer === "pace" && <PaceCells time={detail} layout={layout} cell={cell} />}
@@ -446,6 +448,7 @@ const ProjectView: React.FC<{
             labels={pieceLabels}
             stitchNotes={sweater.stitchNotes}
             pieces={sweater.pieces}
+            kinds={pieceKinds}
           />
           <ul className="chart-key">
             {sweater.slots.map((slot) => (
@@ -491,6 +494,7 @@ const ProjectView: React.FC<{
             current={currentStitch}
             needles={needleChangesIn(stitches, pieceRounds)}
             holds={holdsIn(stitches, pieceRounds, sweater.pieces)}
+            turns={turnsIn(stitches, pieceRounds)}
             onClose={closeKey}
           />
         )}

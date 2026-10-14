@@ -1,6 +1,7 @@
 import { Stitch, isFabric, isStep } from "../types/Stitch";
 import { StitchType } from "../types/StitchType";
 import type { Piece } from "../data/sweaters/types";
+import type { RoundKind } from "./needles";
 
 /**
  * Where you are in a sweater, and what to work next.
@@ -37,6 +38,8 @@ export interface RoundIndex {
   roundPieces: string[];
   /** The pieces, in the order they are knitted, with their rounds. */
   pieces: PieceSpan[];
+  /** Whether each is a round or a short row; see Needles.row. */
+  roundKinds: RoundKind[];
 }
 
 export const indexRounds = (
@@ -44,6 +47,7 @@ export const indexRounds = (
   labels: string[] = [],
   roundPieces: string[] = [],
   pieces: Piece[] = [],
+  roundKinds: RoundKind[] = [],
 ): RoundIndex => {
   const roundOf = new Map<number, number>();
   const worked: number[] = [];
@@ -70,6 +74,7 @@ export const indexRounds = (
     totalRounds: rounds.length,
     roundPieces,
     pieces: spans,
+    roundKinds,
   };
 };
 
@@ -103,6 +108,10 @@ export interface Position {
   holdNext?: { holder: string; count: number };
   /** Held stitches to take back up next, to begin a piece with them. */
   resumeNext?: { holder: string; count: number };
+  /** A turn next, at the end of a short row, and the side the row after it is worked from. */
+  turnNext?: { side: "right" | "wrong" };
+  /** A round, or a short row and the side it is worked from. */
+  kind: RoundKind;
   finished: boolean;
 }
 
@@ -152,14 +161,33 @@ export const positionOf = (
       next?.type === "hold" ? { holder: next.holder ?? "", count: next.count ?? 0 } : undefined,
     resumeNext:
       next?.type === "resume" ? { holder: next.holder ?? "", count: next.count ?? 0 } : undefined,
+    turnNext:
+      next?.type === "turn"
+        ? { side: index.roundKinds[round] === "wrong" ? "wrong" : "right" }
+        : undefined,
+    kind: index.roundKinds[round - 1] ?? "round",
     finished: nextStitchId === undefined,
   };
+};
+
+/**
+ * What the round in hand is called within its piece: "round 23", or, on a
+ * short row, what the pattern calls the row - "short row 3, right side".
+ */
+export const roundName = (position: Position): string => {
+  if (position.kind !== "round" && position.label) {
+    const name = position.label.split(" · ").pop() ?? position.label;
+    return name.charAt(0).toLowerCase() + name.slice(1);
+  }
+  return `round ${position.pieceRound}`;
 };
 
 /** "Body, round 23 of 141": where you are, in the piece you are knitting. */
 export const whereYouAre = (position: Position): string =>
   position.piece
-    ? `${position.piece.label}, round ${position.pieceRound} of ${position.piece.last - position.piece.first + 1}`
+    ? position.kind === "round"
+      ? `${position.piece.label}, round ${position.pieceRound} of ${position.piece.last - position.piece.first + 1}`
+      : `${position.piece.label}, ${roundName(position)}`
     : `Round ${position.round} of ${position.totalRounds}`;
 
 export interface Run {
@@ -168,6 +196,8 @@ export interface Run {
   length: number;
   startId: number;
   endId: number;
+  /** Worked from the wrong side, on a short row purled back. */
+  wrongSide?: boolean;
 }
 
 /**
@@ -197,15 +227,28 @@ const words: Record<StitchType, { said: string; after?: string; perStitch: boole
   needles: { said: "change needles", perStitch: false },
   hold: { said: "put stitches on hold", perStitch: false },
   resume: { said: "take up the held stitches", perStitch: false },
+  turn: { said: "turn and make a double stitch", perStitch: false },
 };
 
 /** "knit", "purl", "knit tbl", "k2tog". */
 export const stitchWord = (type: StitchType): string =>
   [words[type].said, words[type].after].filter(Boolean).join(" ");
 
+/**
+ * What to work, from the side being worked. A stitch is stored as it looks
+ * from the right side, so on a row purled back from the wrong side a knit is
+ * worked as a purl, and a purl as a knit.
+ */
+const fromItsSide = (type: StitchType, wrongSide?: boolean): StitchType =>
+  !wrongSide ? type : type === "k1" ? "p1" : type === "p1" ? "k1" : type;
+
+/** A run's stitch, in words, from the side it is worked from. */
+export const runWord = (run: Pick<Run, "type" | "wrongSide">): string =>
+  stitchWord(fromItsSide(run.type, run.wrongSide));
+
 /** The instruction a run is: "Knit 6", "Purl 2", "K2tog x 3". */
 export const runInstruction = (run: Run): string => {
-  const { said, after, perStitch } = words[run.type];
+  const { said, after, perStitch } = words[fromItsSide(run.type, run.wrongSide)];
   const phrase = perStitch
     ? [said, run.length, after].filter(Boolean).join(" ")
     : run.length === 1
@@ -248,11 +291,19 @@ export const currentRun = (
     if (!candidate) break;
     if (candidate.slot !== first.slot) break;
     if (candidate.type !== type) break;
+    if (Boolean(candidate.wrongSide) !== Boolean(first.wrongSide)) break;
     if (index.roundOf.get(id) !== round) break;
     endId = id;
   }
 
-  return { slot: first.slot, type, length: endId - startId + 1, startId, endId };
+  return {
+    slot: first.slot,
+    type,
+    length: endId - startId + 1,
+    startId,
+    endId,
+    ...(first.wrongSide ? { wrongSide: true } : {}),
+  };
 };
 
 export const upcomingRuns = (

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater, expand } from "./engine";
-import { testSweater } from "./test-sweater";
+import { testSweater, testSweaterWithShortRows } from "./test-sweater";
 import { isFabric, isStep } from "../types/Stitch";
 import type { SweaterPattern } from "../data/sweaters/types";
 
@@ -187,5 +187,60 @@ describe("shaping rounds", () => {
     expect(
       expand([{ work: "k", times: 1 }, { repeat: [{ work: "m1" }, { work: "k", times: 2 }], untilRemaining: 1 }, { work: "k", times: 1 }], 6),
     ).toEqual(["k1", "m1", "k1", "k1", "m1", "k1", "k1", "k1"]);
+  });
+});
+
+describe("short rows across the back of the neck", () => {
+  const built = buildSweater(testSweaterWithShortRows(), "one");
+  const { stitches, rounds, roundKinds, roundLabels } = built;
+  const rows = rounds.slice(3, 8);
+  const rib = rounds[2];
+  // Where each stitch sits on the ring: by the stitch below it, all the way down to the rib.
+  const placeOf = (id: number): number => {
+    const index = rib.indexOf(id);
+    return index >= 0 ? index : placeOf(stitches[id].links[0]);
+  };
+
+  it("works two pairs of rows, each reaching further, then on to the end of the round", () => {
+    expect(rows.map((row) => row.length)).toEqual([4, 7, 9, 11, 5]);
+    expect(roundKinds.slice(3, 8)).toEqual(["right", "wrong", "right", "wrong", "right"]);
+    expect(roundLabels[3]).toBe("Yoke · short row 1, right side");
+    expect(roundLabels[7]).toBe("Yoke · short rows, to the end of the round");
+    // And the round after them is a whole one again.
+    expect(roundKinds[8]).toBe("round");
+    expect(rounds[8].length).toBe(48);
+  });
+
+  it("turns at the end of every row but the last, as a step", () => {
+    const turns = stitches.filter((stitch) => stitch.type === "turn");
+    expect(turns).toHaveLength(4);
+    rows.slice(0, 4).forEach((row, index) => expect(turns[index].id).toBe(row[row.length - 1] + 1));
+  });
+
+  it("knits each row into the stitches at its places, past the middle of the back each way", () => {
+    expect(rows.map((row) => row.map(placeOf))).toEqual([
+      [0, 1, 2, 3],
+      [2, 1, 0, 23, 22, 21, 20],
+      [21, 22, 23, 0, 1, 2, 3, 4, 5],
+      [4, 3, 2, 1, 0, 23, 22, 21, 20, 19, 18],
+      [19, 20, 21, 22, 23],
+    ]);
+    // Row 3 reaches the double stitch row 1 turned at, and works it as one.
+    const third = rows[2];
+    expect(stitches[third[6]].links[0]).toBe(rows[0][3]);
+  });
+
+  it("purls the wrong side's rows, which the right side sees as knits", () => {
+    for (const id of rows[1]) {
+      expect(stitches[id].type).toBe("k1");
+      expect(stitches[id].wrongSide).toBe(true);
+    }
+    expect(stitches[rows[2][0]].wrongSide).toBeUndefined();
+  });
+
+  it("raises the back: rows over the middle of the back, none over the front", () => {
+    const rowsOver = (place: number) => rows.filter((row) => row.some((id) => placeOf(id) === place)).length;
+    expect(rowsOver(0)).toBe(4);
+    expect(rowsOver(12)).toBe(0);
   });
 });

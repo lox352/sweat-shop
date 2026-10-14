@@ -37,8 +37,8 @@ const describe = (project: Project) => {
   if (!sweater) return undefined;
   const size = sweater.sizes.find((s) => s.id === project.sizeId) ?? sweater.sizes[0];
   const built = sweaterStitches(sweater, size.id);
-  const { stitches, rounds, roundLabels, roundPieces } = built;
-  const index = indexRounds(rounds, roundLabels, roundPieces, sweater.pieces);
+  const { stitches, rounds, roundLabels, roundPieces, roundKinds } = built;
+  const index = indexRounds(rounds, roundLabels, roundPieces, sweater.pieces, roundKinds);
   const counts = totals(index, project.progress);
   const position = positionOf(stitches, project.progress, index);
   const colourway =

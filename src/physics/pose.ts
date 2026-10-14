@@ -38,10 +38,12 @@ import { Vec, add, cross, length, lerp, scale, sub } from "./vector";
  * - The yoke changes shape. Its neck is a circle, and its last round is the
  *   line where the body's front and back and the sleeves' tops begin. The
  *   neck rib, which keeps the cast-on count all the way down, stands as a
- *   collar; below it each round is the same fraction of the way from the
- *   collar's foot to that line, a stitch over the same fraction of each. The
- *   neck is set high enough that no stitch of the line is further from the
- *   collar than the rounds below the collar are tall.
+ *   collar; below it each stitch is as far of the way from the collar's foot
+ *   to that line as the rounds and rows between have carried it, over the
+ *   same fraction of each. Short rows across the back carry the back further
+ *   than the front, and the neck tilts up at the back to take them. The neck
+ *   is set high enough that no stitch of the line is further from the collar
+ *   than the yoke below the collar is long there.
  */
 
 export interface PoseOptions {
@@ -323,7 +325,16 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
    * arm.
    */
   const yokeRounds = roundsOf(yokeId);
-  yokeRounds.forEach((round, k) => (k === 0 ? evenly(round) : follow(round)));
+  const yokeKinds = built.roundKinds.filter((_, index) => roundPieces[index] === yokeId);
+  const isRow = (k: number) => (yokeKinds[k] ?? "round") !== "round";
+  /*
+   * A short row is part of the way round and unshaped, so each of its
+   * stitches simply stands over the stitch it was worked into.
+   */
+  const overParents = (round: number[]) => {
+    for (const id of round) turn[id] = turn[workedInto(stitches[id])[0] ?? id - 1];
+  };
+  yokeRounds.forEach((round, k) => (k === 0 ? evenly(round) : isRow(k) ? overParents(round) : follow(round)));
   const last = yokeRounds[yokeRounds.length - 1];
   const consumer = new Map<number, number>();
   for (const piece of [bodyId, ...sleeves]) {
@@ -347,7 +358,8 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
   for (let index = 1; index < last.length; index++) {
     knots.push(near(turn[last[index]], knots[index - 1] + 1 / last.length));
   }
-  const edgeAt = (fraction: number): Vec => {
+  /** Where between the knots a fraction falls: the knot before it, and how far on to the next. */
+  const between = (fraction: number): [number, number] => {
     const at = knots[0] + (((fraction - knots[0]) % 1) + 1) % 1;
     let [low, high] = [0, knots.length];
     while (high - low > 1) {
@@ -356,7 +368,10 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
       else high = middle;
     }
     const until = low + 1 < knots.length ? knots[low + 1] : knots[0] + 1;
-    const t = until > knots[low] ? (at - knots[low]) / (until - knots[low]) : 0;
+    return [low, until > knots[low] ? (at - knots[low]) / (until - knots[low]) : 0];
+  };
+  const edgeAt = (fraction: number): Vec => {
+    const [low, t] = between(fraction);
     return lerp(edgeLine[low], edgeLine[(low + 1) % edgeLine.length], t);
   };
 
@@ -365,21 +380,51 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
   const e2 = cross(down, e1);
   const neckAt = (fraction: number, y: number) => onRing([0, y, 0], neckRadius, e1, e2, fraction);
 
-  // How far, down the yoke, each round is from the neck; the last is the whole slant.
-  const slant: number[] = [0];
-  for (let k = 1; k < yokeRounds.length; k++) slant.push(slant[k - 1] + riseOf(yokeRounds[k]));
-  const reach = slant[slant.length - 1];
+  /*
+   * How far down the yoke each stitch is from the neck: a round further than
+   * the stitch it was worked into. Counted stitch by stitch rather than round
+   * by round, because short rows across the back of the neck put rows there
+   * that the front does not have - which is what they are for.
+   */
+  const slant = new Map<number, number>();
+  yokeRounds.forEach((round, k) => {
+    for (const id of round) {
+      const below = workedInto(stitches[id])[0];
+      const beside = id - 1;
+      slant.set(
+        id,
+        k === 0 ? 0 : below !== undefined ? slant.get(below)! + riseOf(round) : slant.get(beside) ?? 0,
+      );
+    }
+  });
+  const depths = last.map((id) => slant.get(id)!);
+  // The slant of the last round at a fraction of the way round.
+  const depthAt = (fraction: number) => {
+    const [low, t] = between(fraction);
+    return depths[low] + (depths[(low + 1) % depths.length] - depths[low]) * t;
+  };
   // The collar: the rounds that keep the cast-on's count, down to the first that does not.
   let collar = 0;
-  while (collar + 2 < yokeRounds.length && yokeRounds[collar + 1].length === yokeRounds[0].length) {
+  while (
+    collar + 2 < yokeRounds.length &&
+    !isRow(collar + 1) &&
+    yokeRounds[collar + 1].length === yokeRounds[0].length
+  ) {
     collar++;
   }
-  const foot = slant[collar];
-  const below = reach - foot;
+  const foot = slant.get(yokeRounds[collar][0])!;
+  /*
+   * The neck tilts: higher at the back by however much more the back's
+   * rounds and rows rise than the front's - the back of the neck raised, as
+   * short rows raise it - and smoothly between, a cosine round the neck.
+   */
+  const backward = depthAt(0) - depthAt(0.5);
+  const lift = (fraction: number) =>
+    backward > 0 ? (backward * (1 + Math.cos(2 * Math.PI * fraction))) / 2 : 0;
   /*
    * The neck's height: as high as it can be with no point of the last round
-   * further from its own point at the collar's foot than the rounds below
-   * the collar are tall. Never below the tops of the sleeves, though: an arm
+   * further from its own point at the collar's foot than the yoke below the
+   * collar is long there. Never below the tops of the sleeves, though: an arm
    * held out stands higher than the underarm, and a yoke too shallow to
    * reach over it is stretched rather than turned inside out.
    */
@@ -388,21 +433,30 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
   edgeLine.forEach((point, index) => {
     const from = neckAt(knots[index], 0);
     const across = Math.hypot(point[0] - from[0], point[2] - from[2]);
-    neckY = Math.min(neckY, point[1] + foot + Math.sqrt(Math.max(below * below - across * across, 0)));
+    const length = depths[index] - foot;
+    neckY = Math.min(
+      neckY,
+      point[1] + foot - lift(knots[index]) + Math.sqrt(Math.max(length * length - across * across, 0)),
+    );
     highest = Math.max(highest, point[1]);
   });
   neckY = Math.max(neckY, highest + roundHeight);
 
   yokeRounds.forEach((round, k) => {
     for (const id of round) {
+      const fraction = turn[id];
+      const depth = slant.get(id)!;
+      const top = neckY + lift(fraction);
       if (k <= collar) {
-        set(id, neckAt(turn[id], neckY - slant[k]));
+        set(id, neckAt(fraction, top - depth));
       } else {
-        const t = below > 0 ? (slant[k] - foot) / below : 1;
-        set(id, lerp(neckAt(turn[id], neckY - foot), edgeAt(turn[id]), t));
+        const length = depthAt(fraction) - foot;
+        const t = length > 0 ? Math.min((depth - foot) / length, 1) : 1;
+        set(id, lerp(neckAt(fraction, top - foot), edgeAt(fraction), t));
       }
     }
   });
+
   axes[yokeId] = { origin: [0, neckY, 0], direction: down };
 
   /*

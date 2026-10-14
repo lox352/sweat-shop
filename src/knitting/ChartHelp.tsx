@@ -5,7 +5,7 @@ import { Mark, forkMark, makeOneMark, markFor } from "../helpers/stitch-marks";
 import { Palette, yarnFor } from "./palette";
 import { indexRounds, roundParts, runInstruction } from "./progress";
 import { KeyEntry, stitchKey } from "./stitch-key";
-import type { Hold, NeedleChange } from "./chart-marks";
+import type { Hold, NeedleChange, Turn } from "./chart-marks";
 import type { StitchKeyId, StitchNote } from "../data/sweaters/types";
 
 const Cell: React.FC<{ type?: StitchType; mark?: Mark; x: number }> = ({ type, mark = type && markFor(type), x }) => {
@@ -59,6 +59,13 @@ export const Swatch: React.FC<{ entry: KeyEntry }> = ({ entry }) => {
     </svg>
   );
 };
+
+/** A short row's turn: a hook round and back, as the chart draws it. */
+export const TurnSwatch: React.FC = () => (
+  <svg className="key-swatch" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M6 16H17V7H6M10 3L6 7L10 11" className="key-hold" />
+  </svg>
+);
 
 /** Stitches put on hold: a bar with an arrow down it, as the chart draws it. */
 export const HoldSwatch: React.FC = () => (
@@ -116,29 +123,32 @@ function HoldsText({ holds }: { holds: Hold[] }) {
  *
  * Only the stitches the design uses, in the words it uses; see stitch-key.ts.
  */
-export function StitchLegend({ stitches, notes, needles, holds }: {
+export function StitchLegend({ stitches, notes, needles, holds, turns }: {
   stitches: Stitch[];
   notes?: Partial<Record<StitchKeyId, StitchNote>>;
   needles?: NeedleChange[];
   holds?: Hold[];
+  turns?: Turn[];
 }) {
   const entries = useMemo(() => stitchKey(stitches, notes), [stitches, notes]);
   return (
     <details className="chart-help">
       <summary>Stitch-symbol key</summary>
-      <KeyList entries={entries} needles={needles} holds={holds} />
+      <KeyList entries={entries} needles={needles} holds={holds} turns={turns} />
     </details>
   );
 }
 
 /** The key's entries, each with its mark and how to work it. */
-export function KeyList({ entries, current, needles, holds }: {
+export function KeyList({ entries, current, needles, holds, turns }: {
   entries: KeyEntry[];
   current?: string;
   /** Where the needles change, explained after the stitches. */
   needles?: NeedleChange[];
   /** Where a sleeve's stitches go on hold, likewise. */
   holds?: Hold[];
+  /** And where a short row turns. */
+  turns?: Turn[];
 }) {
   return (
     <ul className="stitch-key">
@@ -176,6 +186,25 @@ export function KeyList({ entries, current, needles, holds }: {
           </div>
         </li>
       )}
+      {turns && turns.length > 0 && (
+        <li className="stitch-key-turn">
+          <TurnSwatch />
+          <div>
+            <strong>Turn: a short row</strong>
+            <p>
+              Where a hook turns back at the end of a row part way across the
+              chart, turn the work and knit back the other way: the rows
+              across the back of the neck, {turns.length / 2} pairs of them,
+              each reaching further than the last. The first stitch after
+              each turn is a double stitch - slipped, with the yarn pulled up
+              over the needle so its two legs sit on it - and is worked as one
+              when a row or round comes back to it. The rows read from the
+              right side, as all the chart does; those worked from the wrong
+              side are purled.
+            </p>
+          </div>
+        </li>
+      )}
     </ul>
   );
 }
@@ -197,6 +226,7 @@ export function TextRound({ stitches, rounds, round, labels, palette, pieces = [
         : null)}
       {stitches[(ids.at(-1) ?? 0) + 1]?.type === "join" && <li>{joinsCastOn(stitches, (ids.at(-1) ?? 0) + 1)
         ? "Cast on one more stitch and join in the round, lifting the first stitch cast on over it."
-        : "Without turning, join in the round across the gap."}</li>}</ol>
+        : "Without turning, join in the round across the gap."}</li>}
+      {stitches[(ids.at(-1) ?? 0) + 1]?.type === "turn" && <li>Turn, and make a double stitch.</li>}</ol>
   </div>;
 }

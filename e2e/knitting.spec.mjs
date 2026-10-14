@@ -3,17 +3,18 @@ import { readFile } from "node:fs/promises";
 
 const design = "#/sweater/hamefarin";
 const position = page => page.locator(".knitting-panel [role=status]");
-const steps = /^(Joined|Changed|Held|On the needles): carry on$/;
+const steps = /^(Joined|Changed|Held|On the needles|Turned): carry on$/;
 /**
- * Work to the end of `count` rounds, taking any step on the way - joining the
- * round, changing needles, putting a sleeve on hold - as asked.
+ * Work to the end of `count` rounds - or short rows - taking any step on the
+ * way - joining the round, changing needles, turning a short row, putting a
+ * sleeve on hold - as asked.
  */
 async function workRounds(page, count) {
   for (let done = 0; done < count;) {
     const step = page.getByRole("button", { name: steps });
     if (await step.isVisible()) await step.click();
     else {
-      await page.getByRole("button", { name: "End of round", exact: true }).click();
+      await page.getByRole("button", { name: /^End of (round|row)$/ }).click();
       done++;
     }
   }
@@ -59,8 +60,8 @@ async function tapBeside(page, across) {
  * In a medium: the yoke's last stitch, the body's bind-off's, and where the
  * steps fall in the order of work. See src/knitting/engine.ts.
  */
-const yokeDone = 20834;
-const bodyDone = 55765;
+const yokeDone = 21146;
+const bodyDone = 56077;
 
 test("the design and its projects work without WebGL, and nothing fetches the solver", async ({ page }) => {
   await page.addInitScript(() => {
@@ -155,10 +156,9 @@ test("the chart is its own page, and closing the knitting keeps you on it", asyn
 
 test("knitting fills the screen, says how to work the round's stitches, and closing it leaves the chart still", async ({ page }) => {
   await start(page);
-  // The cast-on, twelve rounds of rib, then the first increase round.
-  await workRounds(page, 13);
-  await page.getByRole("button", { name: "Changed: carry on" }).click();
-  await expect(position(page)).toContainText("Yoke, round 14, stitch 1.");
+  // The cast-on, twelve rounds of rib, the short rows, then the first increase round.
+  await workRounds(page, 20);
+  await expect(position(page)).toContainText("Yoke, round 21, stitch 1.");
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1)).toBe(true);
 
   const hint = page.getByRole("list", { name: "Stitches in this round" });
@@ -172,7 +172,7 @@ test("knitting fills the screen, says how to work the round's stitches, and clos
 
   // The stitch about to be worked says what it is.
   await tapBeside(page, 0);
-  const picker = page.getByRole("dialog", { name: /^Round 14, stitch 1$/ });
+  const picker = page.getByRole("dialog", { name: /^Round 21, stitch 1$/ });
   await expect(picker).toContainText("Knit");
   await picker.getByRole("button", { name: "Close" }).click();
 
@@ -225,12 +225,41 @@ test("changing needles is a step of its own, which the chart and key mark", asyn
   await expect(page.locator(".chart-rule-needles")).toBeAttached();
 
   await page.getByRole("button", { name: "Changed: carry on" }).click();
-  await expect(position(page)).toContainText("Yoke, round 14, stitch 1.");
+  await expect(position(page)).toContainText("Yoke, short row 1, right side, stitch 1.");
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".knitting-panel")).toContainText("Change to 3.25mm needles");
 
   await page.getByRole("button", { name: "Key", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Key" })).toContainText("Change needles");
+});
+
+test("short rows raise the back of the neck, each turned as a step of its own", async ({ page }) => {
+  await start(page);
+  // The cast-on, twelve rounds of rib, and the change to the yoke's needles.
+  await workRounds(page, 13);
+  await page.getByRole("button", { name: "Changed: carry on" }).click();
+  await expect(position(page)).toContainText("Yoke, short row 1, right side, stitch 1. Knit 20 in");
+  await expect(page.locator(".knitting-panel")).toContainText("of 7 short rows · Yoke");
+  await page.getByRole("button", { name: /^Knit 20 in / }).click();
+
+  // The turn, and the row back from the wrong side.
+  await expect(page.locator(".knitting-panel")).toContainText("Turn, and make a double stitch");
+  await expect(page.getByRole("button", { name: /^End of (round|row)$/ })).toHaveCount(0);
+  await expect(page.locator(".chart-join")).not.toHaveCount(0);
+  await page.getByRole("button", { name: "Turned: carry on" }).click();
+  await expect(position(page)).toContainText("Yoke, short row 2, wrong side, stitch 1. Purl 39 in");
+  // Undo takes the turn back.
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".knitting-panel")).toContainText("Turn, and make a double stitch");
+  await page.getByRole("button", { name: "Turned: carry on" }).click();
+
+  await page.getByRole("button", { name: "Key", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Key" })).toContainText("Turn: a short row");
+  await page.getByRole("button", { name: "Close the key" }).click();
+
+  // Five more rows, and on round to the end of the round: then whole rounds again.
+  await workRounds(page, 6);
+  await expect(position(page)).toContainText("Yoke, round 21, stitch 1.");
 });
 
 test("the dividing round puts each sleeve on hold, casts on its underarm, and goes on round the body", async ({ page }) => {

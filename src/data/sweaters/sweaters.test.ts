@@ -18,6 +18,9 @@ describe.each(sweaters.map((sweater) => [sweater.id, sweater] as const))("%s", (
     const built = buildSweater(sweater, size.id);
     const piece = (id: string) =>
       built.rounds.filter((_round, index) => built.roundPieces[index] === id);
+    // Whole rounds only: a short row across the back of the neck adds nothing to the front.
+    const wholeRounds = (id: string) =>
+      built.rounds.filter((_round, index) => built.roundPieces[index] === id && built.roundKinds[index] === "round");
     const perCm = size.stitchesPer10cm / 10;
     const roundsPerCm = size.roundsPer10cm / 10;
 
@@ -39,10 +42,23 @@ describe.each(sweaters.map((sweater) => [sweater.id, sweater] as const))("%s", (
       within(size.checks["sleeve-left:top"] / perCm, finished.upperArmCm, "upper arm");
       within(size.checks["sleeve-left:cuff"] / perCm, finished.cuffCm, "cuff");
       // Depths and lengths in rounds; the cast-on is an edge, not a round's height.
-      within((piece("yoke").length - 1) / roundsPerCm, finished.yokeDepthCm, "yoke depth");
+      within((wholeRounds("yoke").length - 1) / roundsPerCm, finished.yokeDepthCm, "yoke depth, at the front");
       within(piece("body").length / roundsPerCm, finished.bodyLengthCm, "body length");
       within(piece("sleeve-left").length / roundsPerCm, finished.sleeveLengthCm, "sleeve length");
       within(piece("sleeve-right").length / roundsPerCm, finished.sleeveLengthCm, "sleeve length");
+    });
+
+    it("raises the back of the neck by about two centimetres, and the front not at all", () => {
+      // Where each short row's stitches stand: on the ring of the round before the first of them.
+      const ring = built.rounds[built.roundKinds.indexOf("right") - 1];
+      const placeOf = (id: number): number => {
+        const at = ring.indexOf(id);
+        return at >= 0 ? at : placeOf(built.stitches[id].links[0]);
+      };
+      const rows = built.rounds.filter((_round, index) => built.roundKinds[index] !== "round");
+      const rowsOver = (place: number) => rows.filter((row) => row.some((id) => placeOf(id) === place)).length;
+      expect(Math.abs(rowsOver(0) / roundsPerCm - 2)).toBeLessThanOrEqual(0.5);
+      expect(rowsOver(ring.length / 2)).toBe(0);
     });
 
     it("knits both sleeves alike, from the same number of held stitches", () => {

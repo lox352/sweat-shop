@@ -111,3 +111,28 @@ export const holdsIn = (
   }
   return out;
 };
+
+/**
+ * Where a short row turns: the last stitch of the row - the one the turn makes
+ * a double stitch of - and the next before it, which say which way the row
+ * was going when it turned.
+ */
+export interface Turn {
+  last: number;
+  before: number;
+}
+
+export const turnsIn = (stitches: Stitch[], rounds: number[][]): Turn[] => {
+  const roundOf = new Map<number, number>();
+  rounds.forEach((ids, index) => ids.forEach((id) => roundOf.set(id, index)));
+  const out: Turn[] = [];
+  for (const stitch of stitches) {
+    if (stitch.type !== "turn") continue;
+    const round = roundOf.get(stitch.id - 1);
+    if (round === undefined) continue;
+    const ids = rounds[round];
+    if (ids.length < 2) continue;
+    out.push({ last: ids[ids.length - 1], before: ids[ids.length - 2] });
+  }
+  return out;
+};

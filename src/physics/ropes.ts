@@ -17,7 +17,9 @@ import { adjacentStitchDistance } from "../constants";
  *   round apart too, the edge standing in for the round below;
  * - "before": a stitch and the one worked just before it, which the yarn runs
  *   on from - a stitch apart, including the step from one round into the
- *   next, which is only the next stitch along the helix.
+ *   next, which is only the next stitch along the helix; but across the turn
+ *   at the end of a short row, a stitch along and a round up, since the row
+ *   back is worked into the stitches beside the one it turned at.
  *
  * Each is the stitch's own width or height, so a rib knitted narrower than
  * the yoke is held narrower.
@@ -46,7 +48,8 @@ export const ropesOf = (stitches: Stitch[], roundHeight: number): Rope[] => {
     for (const id of below) if (fabric(id)) ropes.push({ a: stitch.id, b: id, length: rise, kind: "below" });
     if (hasBefore) {
       const id = links[links.length - 1];
-      if (fabric(id)) ropes.push({ a: stitch.id, b: id, length: width, kind: "before" });
+      const turned = stitches[stitch.id - 1]?.type === "turn";
+      if (fabric(id)) ropes.push({ a: stitch.id, b: id, length: turned ? Math.hypot(width, rise) : width, kind: "before" });
     }
     if (fabric(stitch.from)) ropes.push({ a: stitch.id, b: stitch.from!, length: rise, kind: "picked" });
   }

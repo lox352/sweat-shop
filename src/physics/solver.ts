@@ -98,9 +98,16 @@ export const settle = (
    * are pushed out level; a sleeve, square to the line through the middles
    * of the rounds either side.
    */
+  /*
+   * A short row is only part of the way round, across the back, and its own
+   * middle is off behind the neck; its stitches are pushed out from the
+   * middle of the last whole round before it instead.
+   */
   const roundOf = new Int32Array(count).fill(-1);
+  let whole = 0;
   rounds.forEach((round, index) => {
-    for (const id of round) roundOf[id] = index;
+    if ((built.roundKinds[index] ?? "round") === "round") whole = index;
+    for (const id of round) roundOf[id] = whole;
   });
   // The pieces that hang straight down are pushed out level; the rest, a sleeve held out, along themselves.
   const level = fall.map(([fx, , fz]) => Math.hypot(fx, fz) < 1e-6);

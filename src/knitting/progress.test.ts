@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "./engine";
-import { testSweater } from "./test-sweater";
+import { testSweater, testSweaterWithShortRows } from "./test-sweater";
 import {
   currentRun,
   endOfRound,
@@ -10,6 +10,7 @@ import {
   runInstruction,
   totals,
   upcomingRuns,
+  whereYouAre,
 } from "./progress";
 
 const { stitches, rounds, roundLabels, roundPieces } = buildSweater(testSweater, "one");
@@ -99,5 +100,33 @@ describe("what to work next", () => {
     expect(totals(index, last)).toMatchObject({ worked: index.worked.length, percent: 100 });
     expect(positionOf(stitches, last, index).finished).toBe(true);
     expect(index.worked.length).toBe(rounds.flat().length);
+  });
+});
+
+describe("short rows", () => {
+  const built = buildSweater(testSweaterWithShortRows(), "one");
+  const rowsIndex = indexRounds(built.rounds, built.roundLabels, built.roundPieces, testSweater.pieces, built.roundKinds);
+  const row = (n: number) => built.rounds[2 + n];
+  const last = (ids: number[]) => ids[ids.length - 1];
+
+  it("stops at the end of each row to turn, and says which side comes next", () => {
+    const position = positionOf(built.stitches, last(row(1)), rowsIndex);
+    expect(position.turnNext).toEqual({ side: "wrong" });
+    expect(whereYouAre(position)).toBe("Yoke, short row 1, right side");
+    expect(endOfRound(row(1)[0] - 1, rowsIndex, built.stitches)).toBe(last(row(1)));
+  });
+
+  it("purls back from the wrong side, which the chart shows as knits", () => {
+    const run = currentRun(built.stitches, row(2)[0] - 1, rowsIndex)!;
+    expect(runInstruction(run)).toBe("Purl 7");
+    const position = positionOf(built.stitches, row(2)[0] - 1, rowsIndex);
+    expect(whereYouAre(position)).toBe("Yoke, short row 2, wrong side");
+    expect(position.kind).toBe("wrong");
+  });
+
+  it("knits on from the last turn to the end of the round without turning again", () => {
+    const position = positionOf(built.stitches, last(row(5)), rowsIndex);
+    expect(position.turnNext).toBeUndefined();
+    expect(runInstruction(currentRun(built.stitches, row(5)[0] - 1, rowsIndex)!)).toBe("Knit 5");
   });
 });

@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Stitch, isFabric, isStep } from "../types/Stitch";
 import { layOutBanded, type ChartLayout } from "./layout";
+import type { RoundKind } from "./needles";
 import { Palette, yarnFor } from "./palette";
 import { cellAt, chartSize, drawChart, drawProgress, leftMargin } from "./draw-chart";
 import ChartSvg from "./ChartSvg";
 import { StitchLegend, TextRound } from "./ChartHelp";
-import { holdsIn, joinIn, needleChangesIn } from "./chart-marks";
+import { holdsIn, joinIn, needleChangesIn, turnsIn } from "./chart-marks";
 import StitchPicker from "./StitchPicker";
 import { keyEntryAt } from "./stitch-key";
 import { stitchAtPoint } from "./jump";
@@ -95,6 +96,8 @@ interface ChartProps {
   pickerNote?: (id: number) => React.ReactNode;
   /** The sweater's pieces, to name the sleeve whose stitches go on hold. */
   pieces?: { id: string; label: string }[];
+  /** Which of the rounds are short rows: see Needles.row. */
+  kinds?: RoundKind[];
 }
 
 /**
@@ -126,6 +129,7 @@ const Chart: React.FC<ChartProps> = ({
   pickerNote,
   followAt,
   pieces,
+  kinds,
 }) => {
   const [picked, setPicked] = useState<number>();
   const makeOneLean = stitchNotes?.m1?.lean;
@@ -174,11 +178,15 @@ const Chart: React.FC<ChartProps> = ({
    * so progress, the next stitch and a jump all mean what they mean anywhere
    * else on the site.
    */
-  const layout = useMemo(() => layOutBanded(rounds), [rounds]);
+  const layout = useMemo(
+    () => layOutBanded(rounds, kinds ? { kinds, stitches } : undefined),
+    [rounds, kinds, stitches],
+  );
   const needles = useMemo(() => needleChangesIn(stitches, rounds), [stitches, rounds]);
   const needleRounds = useMemo(() => needles.map((change) => change.after), [needles]);
   const join = useMemo(() => joinIn(stitches, rounds), [stitches, rounds]);
   const holds = useMemo(() => holdsIn(stitches, rounds, pieces), [stitches, rounds, pieces]);
+  const turns = useMemo(() => turnsIn(stitches, rounds), [stitches, rounds]);
   const { width, height } = chartSize(layout, cellSize);
 
   const ratio = useMemo(() => {
@@ -473,6 +481,7 @@ const Chart: React.FC<ChartProps> = ({
               needleChanges={needleRounds}
               join={join}
               holds={holds}
+              turns={turns}
               makeOneLean={makeOneLean}
             />
           ) : (
@@ -504,7 +513,7 @@ const Chart: React.FC<ChartProps> = ({
           )}
         </div>
       </div>
-      <StitchLegend stitches={stitches} notes={stitchNotes} needles={needles} holds={holds} />
+      <StitchLegend stitches={stitches} notes={stitchNotes} needles={needles} holds={holds} turns={turns} />
       {writtenRounds && <details className="chart-help" onToggle={e => setShowText(e.currentTarget.open)}>
         <summary>Text round instructions</summary>
         <label>Read round <select value={follow && focusRound ? focusRound : textRound} disabled={follow && !!focusRound} onChange={e => setTextRound(Number(e.target.value))}>

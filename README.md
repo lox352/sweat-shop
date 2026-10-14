@@ -16,9 +16,9 @@ knit it.
   and the chart and the sweater follow at once.
 - **A knitting mode** built for someone holding needles: the piece, the round,
   the stitch within it, and how many of this colour before you change. The
-  things that are not stitches - joining the round, changing needles, putting
-  the sleeves on hold, taking them up again - are steps of their own, worked
-  and undone like stitches.
+  things that are not stitches - joining the round, changing needles, turning
+  at the end of a short row, putting the sleeves on hold, taking them up
+  again - are steps of their own, worked and undone like stitches.
 - **How much wool**, worked out from the stitches of the size you choose, and
   **how long it has taken and has left**, from your own taps.
 

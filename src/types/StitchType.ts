@@ -34,6 +34,12 @@
  *
  * "resume" is putting held stitches back on the needles, to begin the piece
  * they are for: each sleeve begins with one.
+ *
+ * "turn" is turning the work part way round, to knit a short row back the
+ * other way: the back of the neck is raised with them. The first stitch
+ * after the turn is made a double stitch - slipped, and its two legs pulled
+ * up over the needle - and worked as one when a later row or round reaches
+ * it. See Needles.turn.
  */
 export type StitchType =
   | "castOn"
@@ -51,7 +57,8 @@ export type StitchType =
   | "join"
   | "needles"
   | "hold"
-  | "resume";
+  | "resume"
+  | "turn";
 
 /** How many stitches on the needle this one works. */
 export const consumption: Record<StitchType, number> = {
@@ -71,6 +78,7 @@ export const consumption: Record<StitchType, number> = {
   needles: 0,
   hold: 0,
   resume: 0,
+  turn: 0,
 };
 
 /** The step types: part of the order of work, but no fabric. */
@@ -79,4 +87,5 @@ export const stepTypes: ReadonlySet<StitchType> = new Set<StitchType>([
   "needles",
   "hold",
   "resume",
+  "turn",
 ]);

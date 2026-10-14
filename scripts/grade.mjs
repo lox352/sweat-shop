@@ -184,6 +184,14 @@ const grade = (size) => {
     ...(longer > 0 ? [{ every: every + 1, times: longer }] : []),
     { every, times: decreases - longer },
   ];
+  /*
+   * German short rows across the back of the neck, after the rib: three
+   * pairs, the first reaching a sixth of the neck past the middle of the
+   * back each way and each pair after it a twentieth further, so the last
+   * turns near the shoulders. Six rows at the middle of the back raise it
+   * about two centimetres, which is what a back neck wants.
+   */
+  const shortRows = { first: Math.round(neck * 0.16), extend: Math.round(neck * 0.05), pairs: 3 };
   return {
     id: size.id,
     label: size.label,
@@ -199,6 +207,7 @@ const grade = (size) => {
     },
     grade: {
       neck,
+      shortRows,
       first,
       incs,
       plain,
@@ -219,7 +228,8 @@ const graded = sizes.map(grade);
 for (const size of graded) {
   const g = size.grade;
   console.error(
-    `${size.label.padEnd(4)} neck ${g.neck}  incs ${g.first} ${g.incs.join(" ")}  ` +
+    `${size.label.padEnd(4)} neck ${g.neck}  short rows ${g.shortRows.first}+${g.shortRows.extend}x${g.shortRows.pairs}  ` +
+      `incs ${g.first} ${g.incs.join(" ")}  ` +
       `plain ${g.plain.join("")}+${g.pad}  divide ${g.back}/${g.sleeve}/${g.front}/${g.sleeve} ` +
       `u${g.underarm}  body ${g.back + g.front + 2 * g.underarm}  ` +
       `sleeve ${g.sleeve + g.underarm} -> ` +

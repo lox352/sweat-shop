@@ -29,6 +29,9 @@ import { StitchType, consumption } from "../types/StitchType";
  * Positions are not made here. The knitting is the same knitting however it
  * is posed, so that is physics/pose.ts's business.
  */
+/** A round, or a short row worked from one side or the other. */
+export type RoundKind = "round" | "right" | "wrong";
+
 export default class Needles {
   readonly stitches: Stitch[] = [];
   /** Stitch ids in each round, in the order they are worked. */
@@ -36,6 +39,11 @@ export default class Needles {
   readonly labels: string[] = [];
   /** The piece each round belongs to. */
   readonly roundPieces: string[] = [];
+  /**
+   * Whether each "round" is one, or a short row: part of the way round,
+   * knitted on the right side or purled back on the wrong.
+   */
+  readonly roundKinds: RoundKind[] = [];
 
   /** The stitches on the needles, from the beginning of the round. */
   private live: number[] = [];
@@ -116,6 +124,7 @@ export default class Needles {
     this.rounds.push(ids);
     this.labels.push(label);
     this.roundPieces.push(this.piece);
+    this.roundKinds.push("round");
     this.live = ids;
     this.yarn = ids[ids.length - 1];
     return this;
@@ -282,7 +291,58 @@ export default class Needles {
       this.rounds.push(this.made);
       this.labels.push(this.label);
       this.roundPieces.push(this.piece);
+      this.roundKinds.push("round");
     }
+    return this;
+  }
+
+  /**
+   * Work a short row: a stitch into each of the given places on the ring, in
+   * the order given - the way the rounds go on the right side, back the other
+   * way on the wrong. Each is worked into the stitch at its place, which it
+   * then takes the place of, so the ring always holds the newest stitch at
+   * every place, whatever row or round made it.
+   *
+   * A row from the wrong side is purled, and a purl seen from the right side
+   * is a knit; that is what is stored. See Stitch.wrongSide.
+   */
+  row(label: string, width: number, rise: number, side: "right" | "wrong", places: number[], slot: string): this {
+    if (this.working) throw new Error(`${label}: a round is still in progress`);
+    const made: number[] = [];
+    for (const place of places) {
+      const worked = this.live[place];
+      if (worked === undefined) throw new Error(`${label}: there is no stitch at ${place}`);
+      const stitch = this.push({
+        links: this.yarn === undefined ? [worked] : [worked, this.yarn],
+        type: "k1",
+        slot,
+        piece: this.piece,
+        width,
+        rise,
+        ...(side === "wrong" ? { wrongSide: true } : {}),
+      });
+      this.live[place] = stitch.id;
+      this.yarn = stitch.id;
+      made.push(stitch.id);
+    }
+    this.width = width;
+    this.rise = rise;
+    this.rounds.push(made);
+    this.labels.push(label);
+    this.roundPieces.push(this.piece);
+    this.roundKinds.push(side);
+    return this;
+  }
+
+  /**
+   * Turn the work at the end of a short row: a step. The stitch just worked
+   * is made a double stitch for the row back - slipped, with the yarn pulled
+   * up over the needle so that both its legs sit there - and is worked as
+   * one stitch when a later row or round comes to it, which is where its
+   * place on the ring already has it.
+   */
+  turn(): this {
+    this.step("turn");
     return this;
   }
 
@@ -296,6 +356,7 @@ export default class Needles {
       rounds: this.rounds,
       roundLabels: this.labels,
       roundPieces: this.roundPieces,
+      roundKinds: this.roundKinds,
     };
   }
 }

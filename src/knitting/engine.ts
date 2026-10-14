@@ -1,4 +1,4 @@
-import Needles from "./needles";
+import Needles, { RoundKind } from "./needles";
 import { adjacentStitchDistance, verticalStitchDistance } from "../constants";
 import { Stitch } from "../types/Stitch";
 import { StitchType } from "../types/StitchType";
@@ -29,6 +29,8 @@ export interface SweaterStitches {
   roundLabels: string[];
   /** The piece each round belongs to. */
   roundPieces: string[];
+  /** Whether each is a round or a short row, and from which side: see Needles.row. */
+  roundKinds: RoundKind[];
   /** The rounds after which the needles are changed, 1-based. */
   needleChanges: number[];
   /** The counts the design names; see Size.checks. */
@@ -338,6 +340,63 @@ export const buildSweater = (
         needles.endRound();
         break;
       }
+      case "shortRows": {
+        const { width, rise } = fabricOf(pattern, roundHeight, spec.fabric);
+        const count = needles.count;
+        const reach = spec.first + (spec.pairs - 1) * spec.extend;
+        if (2 * reach >= count) {
+          throw new Error(`${section}: short rows ${reach} stitches either side need more than ${count} stitches`);
+        }
+        const at = (place: number) => ((place % count) + count) % count;
+        const span = (from: number, to: number, way: 1 | -1) => {
+          const places: number[] = [];
+          for (let place = from; place !== to + way; place += way) places.push(at(place));
+          return places;
+        };
+        /*
+         * Places on the ring run from the beginning of the round, at the
+         * middle of the back: the right side's turns are past it, the wrong
+         * side's before it, counting back from the end of the round.
+         */
+        let right = -1;
+        let left = 0;
+        for (let pair = 0; pair < spec.pairs; pair++) {
+          const reachRight = spec.first - 1 + pair * spec.extend;
+          const reachLeft = -(spec.first + pair * spec.extend);
+          // Right side: from just past the last wrong-side turn - or the beginning of the round - to the next turn.
+          needles.row(
+            `${section} · short row ${pair * 2 + 1}, right side`,
+            width,
+            rise,
+            "right",
+            span(pair === 0 ? 0 : left + 1, reachRight, 1),
+            spec.slot,
+          );
+          needles.turn();
+          right = reachRight;
+          // Wrong side: back from just before that turn, past the beginning of the round, to the next.
+          needles.row(
+            `${section} · short row ${pair * 2 + 2}, wrong side`,
+            width,
+            rise,
+            "wrong",
+            span(right - 1, reachLeft, -1),
+            spec.slot,
+          );
+          needles.turn();
+          left = reachLeft;
+        }
+        // And on from the last turn to the end of the round, which the next round begins after.
+        needles.row(
+          `${section} · short rows, to the end of the round`,
+          width,
+          rise,
+          "right",
+          span(left + 1, -1, 1),
+          spec.slot,
+        );
+        break;
+      }
       case "bindOff": {
         round(
           `${section} · bind off`,
@@ -358,12 +417,12 @@ export const buildSweater = (
     for (const spec of section.rounds) apply(spec, section.label);
   }
 
-  const { stitches, rounds, roundLabels, roundPieces } = needles.finish();
+  const { stitches, rounds, roundLabels, roundPieces, roundKinds } = needles.finish();
   // Every stitch on the needles it is worked on, the steps saying when that changes.
   let on: number | undefined = startingNeedles;
   for (const stitch of stitches) {
     if (stitch.type === "needles") on = stitch.needles;
     else if (on !== undefined) stitch.needles = on;
   }
-  return { stitches, rounds, roundLabels, roundPieces, needleChanges, checks, roundHeight };
+  return { stitches, rounds, roundLabels, roundPieces, roundKinds, needleChanges, checks, roundHeight };
 };

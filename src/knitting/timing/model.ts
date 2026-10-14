@@ -38,6 +38,7 @@ export const operations = [
   "hold",
   "resume",
   "needles",
+  "turn",
 ] as const;
 export type Operation = (typeof operations)[number];
 export const columns = [...operations, "tap"] as const;
@@ -67,13 +68,15 @@ export const typical: Costs = {
   hold: 120,
   resume: 150,
   needles: 40,
+  turn: 15,
   tap: 1.5,
 };
 
 const baseOf = (stitch: Stitch): Operation | undefined => {
   switch (stitch.type) {
     case "castOn": return "castOn";
-    case "k1": return "knit";
+    // Stored as the right side sees it: a knit on a row worked from the wrong side was purled.
+    case "k1": return stitch.wrongSide ? "purl" : "knit";
     case "p1": return "purl";
     case "k1tbl": return "tbl";
     case "k2tog": case "ssk": return "decrease";
@@ -86,6 +89,7 @@ const baseOf = (stitch: Stitch): Operation | undefined => {
     case "hold": return "hold";
     case "resume": return "resume";
     case "needles": return "needles";
+    case "turn": return "turn";
     default: return undefined;
   }
 };

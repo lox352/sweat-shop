@@ -163,3 +163,21 @@ export const testSweater: SweaterPattern = {
     },
   ],
 };
+
+/**
+ * The test sweater with German short rows across the back of its neck, after
+ * the rib: two pairs, the first reaching 4 stitches past the middle of the
+ * back each way and the second 2 further, then on to the end of the round -
+ * rows of 4, 7, 9, 11 and 5 stitches.
+ */
+export const testSweaterWithShortRows = (): SweaterPattern => {
+  const pattern = structuredClone(testSweater);
+  pattern.sizes[0].sections[1].rounds.splice(1, 0, {
+    type: "shortRows",
+    first: 4,
+    extend: 2,
+    pairs: 2,
+    slot: "A",
+  });
+  return pattern;
+};

@@ -226,7 +226,7 @@ const opOf: Partial<Record<StitchKeyId, Column>> = {
 };
 
 /** How many of an operation the timed taps must cover before its cost means much. */
-const enoughOf = (column: Column) => (["join", "hold", "resume", "needles"].includes(column) ? 1 : 60);
+const enoughOf = (column: Column) => (["join", "hold", "resume", "needles", "turn"].includes(column) ? 1 : 60);
 
 interface SpeedRow {
   key: string;
@@ -254,6 +254,7 @@ const speedRows = (stitches: Stitch[], notes: SweaterPattern["stitchNotes"], tim
   if (has("hold")) rows.push({ key: "hold", swatch: <span className="stats-swatch-text">⇣</span>, label: "Putting stitches on hold", column: "hold" });
   if (has("resume")) rows.push({ key: "resume", swatch: <span className="stats-swatch-text">⇡</span>, label: "Taking held stitches up again", column: "resume" });
   if (has("needles")) rows.push({ key: "needles", swatch: <NeedlesSwatch />, label: "Changing needles", column: "needles" });
+  if (has("turn")) rows.push({ key: "turn", swatch: <span className="stats-swatch-text">↩</span>, label: "Turning a short row", column: "turn" });
   return rows;
 };
 
