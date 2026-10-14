@@ -315,7 +315,7 @@ const ProjectView: React.FC<{
 }) => {
   const sweater = sweaterById(sweaterId)!;
   const size = sweater.sizes.find((s) => s.id === project.sizeId) ?? sweater.sizes[0];
-  const { stitches, rounds, roundHeight, roundLabels, index, yoke } = useSweater(sweater, size.id);
+  const { stitches, rounds, roundLabels, index, yoke } = useSweater(sweater, size.id);
 
   const colourway = sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0];
   const palette = useMemo(() => paletteOf(colourway, project.shades), [colourway, project.shades]);
@@ -510,9 +510,6 @@ const ProjectView: React.FC<{
           <SweaterModel
             sweaterId={sweater.id}
             sizeId={size.id}
-            stitches={stitches}
-            rounds={rounds}
-            roundHeight={roundHeight}
             palette={palette}
             progress={project.progress}
           />

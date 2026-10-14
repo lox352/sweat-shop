@@ -64,9 +64,12 @@ export const corrugatedRib = (
  * make-ones spread as evenly round it as whole stitches allow.
  *
  * The stitches are shared out into as many stretches as there are
- * increases, the longer stretches interleaved among the shorter ones, and a
- * make-one closes each stretch. Runs of the same stretch are written as a
- * repeat, so the instruction reads as a pattern would print it.
+ * increases, the longer stretches interleaved among the shorter ones, with a
+ * make-one between each two. The round begins half way through the first
+ * stretch and ends with its other half, as a pattern writes it - "K8, [m1,
+ * k17] 23 times, m1, k9" - so the make-ones sit evenly either side of the
+ * beginning of the round and every stitch stays over the one it is worked
+ * into, near enough. Runs of the same stretch are written as a repeat.
  */
 export const increaseEvenly = (from: number, to: number): ShapingOp[] => {
   const increases = to - from;
@@ -81,14 +84,17 @@ export const increaseEvenly = (from: number, to: number): ShapingOp[] => {
     const longSoFar = Math.floor(((index + 1) * long) / increases) - Math.floor((index * long) / increases);
     stretches.push(short + longSoFar);
   }
-  const ops: ShapingOp[] = [];
-  for (let index = 0; index < stretches.length; ) {
+  const first = Math.ceil(stretches[0] / 2);
+  const ops: ShapingOp[] = [{ work: "k", times: first }, { work: "m1" }];
+  for (let index = 1; index < stretches.length; ) {
     let times = 1;
     while (stretches[index + times] === stretches[index]) times++;
     const one: ShapingOp[] = [{ work: "k", times: stretches[index] }, { work: "m1" }];
-    ops.push(times === 1 ? one[0] : { repeat: one, times }, ...(times === 1 ? [one[1]] : []));
+    if (times === 1) ops.push(...one);
+    else ops.push({ repeat: one, times });
     index += times;
   }
+  if (stretches[0] - first > 0) ops.push({ work: "k", times: stretches[0] - first });
   return ops;
 };
 

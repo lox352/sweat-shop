@@ -10,8 +10,9 @@ import type { Chart, Section, SweaterPattern } from "../data/sweaters/types";
  *
  *   neck     cast on 24, join, 2 rounds of k2 p2 rib
  *   yoke     [k1, m1] around -> 48; 2 rounds of a 4-stitch band
- *   divide   k8, hold 8 (left sleeve), cast on 4, k16, hold 8 (right), cast on 4, k8
- *            -> body of 40
+ *   divide   k8, hold 8 (right sleeve), cast on 4, k16, hold 8 (left), cast on 4, k8
+ *            -> body of 40. From the middle of the back the first sleeve
+ *            reached is the wearer's right: see physics/pose.
  *   body     3 rounds, bind off
  *   sleeves  pick up 2, knit 8, pick up 2 -> 12; 1 round; k1, k2tog, k to
  *            last 3, ssk, k1 -> 10; bind off
@@ -145,9 +146,9 @@ export const testSweater: SweaterPattern = {
               slot: "A",
               segments: [
                 { work: 8 },
-                { hold: "sleeve-left", count: 8, castOn: 4 },
-                { work: 16 },
                 { hold: "sleeve-right", count: 8, castOn: 4 },
+                { work: 16 },
+                { hold: "sleeve-left", count: 8, castOn: 4 },
                 { work: 8 },
               ],
               check: "body",

@@ -54,8 +54,8 @@ describe("the test sweater, stitch by stitch", () => {
     expect(steps).toEqual([
       ["join", undefined],
       ["needles", 3.25],
-      ["hold", "sleeve-left"],
       ["hold", "sleeve-right"],
+      ["hold", "sleeve-left"],
       ["resume", "sleeve-left"],
       ["resume", "sleeve-right"],
     ]);
@@ -90,27 +90,28 @@ describe("the test sweater, stitch by stitch", () => {
     const worked = (id: number) => stitches[id].links[0];
     // Back, from the beginning of the round.
     expect(divide.slice(0, 8).map(worked)).toEqual(yoke.slice(0, 8));
-    // The left underarm: cast on, each held by nothing but the stitch before.
-    const left = divide.slice(8, 12);
-    left.forEach((id) => expect(stitches[id].type).toBe("castOn"));
-    expect(stitches[left[0]].links).toEqual([divide[7]]);
-    // The front picks up after the eight held stitches.
+    // The right underarm: cast on, each held by nothing but the stitch before.
+    const right = divide.slice(8, 12);
+    right.forEach((id) => expect(stitches[id].type).toBe("castOn"));
+    expect(stitches[right[0]].links).toEqual([divide[7]]);
+    // The front carries on after the right sleeve's eight held stitches.
     expect(divide.slice(12, 28).map(worked)).toEqual(yoke.slice(16, 32));
-    // And the back's other half after the right sleeve's.
+    // And the back's other half after the left sleeve's.
     expect(divide.slice(32).map(worked)).toEqual(yoke.slice(40));
   });
 
   it("begins each sleeve with new yarn, picking up its underarm the other way round", () => {
     const yoke = rounds[5];
     const divide = rounds[6];
+    // The left sleeve: its underarm is the second the dividing round cast on.
     const top = rounds[11];
-    const edge = divide.slice(8, 12);
+    const edge = divide.slice(28, 32);
     // The first stitch is picked up from the middle of the edge, with no yarn before it.
     expect(stitches[top[0]].type).toBe("pickUp");
     expect(stitches[top[0]].links).toEqual([]);
     expect(top.slice(0, 2).map((id) => stitches[id].from)).toEqual([edge[1], edge[0]]);
     // Then the held stitches, in the order they were held.
-    expect(top.slice(2, 10).map((id) => stitches[id].links[0])).toEqual(yoke.slice(8, 16));
+    expect(top.slice(2, 10).map((id) => stitches[id].links[0])).toEqual(yoke.slice(32, 40));
     // Then the rest of the edge, from its far end back to the middle.
     expect(top.slice(10).map((id) => stitches[id].from)).toEqual([edge[3], edge[2]]);
   });

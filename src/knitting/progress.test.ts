@@ -49,7 +49,7 @@ describe("what to work next", () => {
     expect(positionOf(stitches, lastOf(3), index)).toMatchObject({ round: 3, needlesNext: 3.25 });
   });
 
-  it("knits into the dividing round, then stops to put the left sleeve on hold", () => {
+  it("knits into the dividing round, then stops to put the right sleeve on hold", () => {
     const divide = rounds[6];
     expect(runInstruction(currentRun(stitches, divide[0] - 1, index)!)).toBe("Knit 8");
     const position = positionOf(stitches, divide[7], index);
@@ -58,7 +58,7 @@ describe("what to work next", () => {
       stitchInRound: 8,
       piece: { id: "body" },
       pieceRound: 1,
-      holdNext: { holder: "sleeve-left", count: 8 },
+      holdNext: { holder: "sleeve-right", count: 8 },
     });
     // The end of the round is no further than the step.
     expect(endOfRound(divide[0] - 1, index, stitches)).toBe(divide[7]);

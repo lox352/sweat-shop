@@ -46,6 +46,30 @@ a design, size by size  ->  Needles  ->  Stitch[] + rounds, by piece
 
 See `src/knitting/needles.ts` and `src/knitting/engine.ts`.
 
+## The sweater in three dimensions
+
+The sweater on screen is blocked, with its arms held out: each stitch where
+`src/physics/pose.ts` lays it, from the knitting's own links. The body hangs
+straight down from the underarms. Each sleeve leaves the body from an
+upright armhole, bends down to the arm's angle as a sleeve does over the
+shoulder, and runs on to the cuff. The neck rib stands as a collar, and the
+yoke spreads from its foot to where the body and the sleeves begin.
+
+The pose is also where the physics will start, so it puts every rope between
+two stitches at or under its length. Ribs and the sleeve's taper come in no
+faster than a round's height allows, and the stitches over decreases are
+evened out only part of the way. The neck stands high enough that the yoke
+reaches the tops of the sleeves. The tests hold every size of every design
+to it.
+
+A medium is seventy-six thousand stitches and the largest a hundred and
+twenty-five thousand, which the hat site's sixty-four-triangle stitches could
+never draw on a phone. Here each stitch is a single quad, one instance of one mesh, with
+the stitch painted on by its shader: a chevron whose point dips into the
+stitch it was worked into, so each column of stitches nests together like
+knitting. See `src/model/stitch-quad.ts`. three.js and all of this load only
+when the sweater is on screen, and the instructions work without them.
+
 ## The designs
 
 One so far: **Hamefarin**, an original circular yoke in the Fair Isle

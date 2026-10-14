@@ -162,11 +162,11 @@ const chart = (id: string, rows: number): RoundSpec => ({ type: "chart", chart: 
 /** The echo of the seeds above a hem or a cuff, with a plain round either side. */
 const echo: RoundSpec[] = [...plain(1), chart("seeds", 3), ...plain(1)];
 
-/** The rib, the bind-off, and the ribbing's needles. */
-const edge = (check?: string): RoundSpec[] => [
+/** The rib, the bind-off in the rib's own tension, and the ribbing's needles. */
+const edge = (): RoundSpec[] => [
   { type: "needles", to: "rib" },
   { type: "chart", chart: "edge-rib", rows: [1, 20] },
-  { type: "bindOff", slot: "A", ...(check ? { check } : {}) },
+  { type: "bindOff", slot: "A", fabric: "rib" },
 ];
 
 const sleeve = (piece: string, label: string, g: Grade): Section => {

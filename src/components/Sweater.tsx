@@ -102,7 +102,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
   const [own, setOwn] = useState<Overrides>({});
   const size = sweater.sizes.find((s) => s.id === sizeId) ?? sweater.sizes[0];
   const choicesRef = useRef<HTMLElement>(null);
-  const { stitches, rounds, roundHeight, index, yoke } = useSweater(sweater, size.id);
+  const { stitches, rounds, index, yoke } = useSweater(sweater, size.id);
 
   const colourway = sweater.colourways.find((c) => c.id === colourwayId) ?? sweater.colourways[0];
   const palette = useMemo(() => paletteOf(colourway, own), [colourway, own]);
@@ -152,9 +152,6 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
           <SweaterModel
             sweaterId={sweater.id}
             sizeId={size.id}
-            stitches={stitches}
-            rounds={rounds}
-            roundHeight={roundHeight}
             palette={palette}
             progress={stitches[stitches.length - 1]?.id ?? 0}
           />
