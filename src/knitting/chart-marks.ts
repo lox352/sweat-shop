@@ -49,6 +49,12 @@ export interface NeedleChange {
   to: number;
   /** What that round is called, where the chart knows: "Body, round 97". */
   where?: string;
+  /**
+   * Not a change between two rounds but held stitches taken up onto other
+   * needles, to begin a piece - a sleeve onto the main needles after the
+   * body's hem rib. The chart draws no rule for it.
+   */
+  takeUp?: boolean;
 }
 
 /**
@@ -69,6 +75,10 @@ export const needleChangesIn = (
     last = roundOf.get(stitch.id) ?? last;
     if (stitch.type === "needles" && stitch.needles !== undefined && last > 0 && last < rounds.length) {
       out.push({ after: last, to: stitch.needles, ...(names?.[last - 1] ? { where: names[last - 1] } : {}) });
+    }
+    const before = stitches[stitch.id - 1]?.needles;
+    if (stitch.type === "resume" && stitch.needles !== undefined && before !== undefined && stitch.needles !== before) {
+      out.push({ after: last, to: stitch.needles, takeUp: true });
     }
   }
   return out;

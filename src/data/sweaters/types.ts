@@ -237,7 +237,9 @@ export type RoundSpec = (
    * The first round of a piece begun from held stitches: pick up and knit
    * `before` stitches from the edge cast on in the holder's place, knit the
    * held stitches, then pick up `after` more - starting, as a sleeve does, at
-   * the middle of the underarm.
+   * the middle of the underarm. The held stitches go onto the main needles,
+   * whatever the piece before ended on; a rib after that changes needles as
+   * a rib anywhere does.
    */
   | {
       type: "piece";

@@ -107,8 +107,8 @@ export interface Position {
   joinNext?: "castOn";
   /** Stitches to put on hold next, part way through the dividing round. */
   holdNext?: { holder: string; count: number };
-  /** Held stitches to take back up next, to begin a piece with them. */
-  resumeNext?: { holder: string; count: number };
+  /** Held stitches to take back up next, to begin a piece with them, and the needles they go onto. */
+  resumeNext?: { holder: string; count: number; needles?: number };
   /** A turn next, at the end of a short row, and the side the row after it is worked from. */
   turnNext?: { side: "right" | "wrong" };
   /** A round, or a short row and the side it is worked from. */
@@ -161,7 +161,9 @@ export const positionOf = (
     holdNext:
       next?.type === "hold" ? { holder: next.holder ?? "", count: next.count ?? 0 } : undefined,
     resumeNext:
-      next?.type === "resume" ? { holder: next.holder ?? "", count: next.count ?? 0 } : undefined,
+      next?.type === "resume"
+        ? { holder: next.holder ?? "", count: next.count ?? 0, ...(next.needles === undefined ? {} : { needles: next.needles }) }
+        : undefined,
     turnNext:
       next?.type === "turn"
         ? { side: index.roundKinds[round] === "wrong" ? "wrong" : "right" }

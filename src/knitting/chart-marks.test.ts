@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "./engine";
 import { testSweater, testSweaterWithShortRows } from "./test-sweater";
-import { type Face, faceAfter, holdsIn, markAt, otherFaceRows, turnsIn } from "./chart-marks";
+import { type Face, faceAfter, holdsIn, markAt, needleChangesIn, otherFaceRows, turnsIn } from "./chart-marks";
+import hamefarin from "../data/sweaters/hamefarin";
 import { layOut } from "./layout";
 import { castOnPartWayMark, markFor } from "../helpers/stitch-marks";
 
@@ -21,6 +22,20 @@ describe("where the sleeves go on hold", () => {
   it("is no part of a chart without the dividing round", () => {
     expect(holdsIn(stitches, piece("yoke"))).toEqual([]);
     expect(holdsIn(stitches, piece("sleeve-left"))).toEqual([]);
+  });
+});
+
+describe("where the needles change", () => {
+  it("is ruled between rounds, and noted where held stitches are taken up onto other needles", () => {
+    const knitting = buildSweater(hamefarin, "m");
+    expect(needleChangesIn(knitting.stitches, knitting.rounds).map((change) => [change.to, change.takeUp ?? false])).toEqual([
+      [3.25, false], // after the neck rib
+      [2.75, false], // for the body's hem
+      [3.25, true], // the left sleeve, taken up
+      [2.75, false], // for its cuff
+      [3.25, true], // the right sleeve
+      [2.75, false], // for its cuff
+    ]);
   });
 });
 

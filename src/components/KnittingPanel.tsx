@@ -157,14 +157,19 @@ const HoldStep: React.FC<{ count: number; piece: string }> = ({ count, piece }) 
  * Beginning a piece from held stitches: a sleeve, picked up round its
  * armhole from the middle of the underarm.
  */
-const ResumeStep: React.FC<{ count: number; piece: string }> = ({ count, piece }) => (
+const ResumeStep: React.FC<{ count: number; piece: string; to?: number; from?: number }> = ({ count, piece, to, from }) => (
   <div className="knitting-step">
     <StepHeading symbol={<ResumeSwatch />}>Begin the {piece.toLowerCase()}</StepHeading>
     <span className="quiet">
-      Put the {count} held stitches back on your needles. Join new yarn at the
-      middle of the underarm: the round starts there, picking up stitches out
-      of the edge the body cast on. On the chart the crosshatch comes off the{" "}
-      {piece.toLowerCase()}: it is on your needles again.
+      {to === undefined
+        ? `Put the ${count} held stitches back on your needles.`
+        : `Put the ${count} held stitches back onto ${to}mm needles${
+            from !== undefined && from !== to ? `, changing from the ${from}mm ones` : ""
+          }.`}{" "}
+      Join new yarn at the middle of the underarm: the round starts there,
+      picking up stitches out of the edge the body cast on. On the chart the
+      crosshatch comes off the {piece.toLowerCase()}: it is on your needles
+      again.
     </span>
   </div>
 );
@@ -422,7 +427,12 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
         {position.holdNext ? (
           <HoldStep count={position.holdNext.count} piece={pieceLabel(position.holdNext.holder)} />
         ) : position.resumeNext ? (
-          <ResumeStep count={position.resumeNext.count} piece={pieceLabel(position.resumeNext.holder)} />
+          <ResumeStep
+            count={position.resumeNext.count}
+            piece={pieceLabel(position.resumeNext.holder)}
+            to={position.resumeNext.needles}
+            from={stitches[progress]?.needles}
+          />
         ) : position.turnNext ? (
           <TurnStep side={position.turnNext.side} />
         ) : position.joinNext ? (
