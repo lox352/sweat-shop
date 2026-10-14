@@ -253,6 +253,24 @@
   margin: 0;
 }
 
+/* The cast-on in hand, step by step, in the hint's own small type. */
+.knitting-hint .stitch-steps {
+  margin: 0.3rem 0 0;
+  padding-left: 1.2rem;
+  font-size: inherit;
+}
+
+.knitting-hint .stitch-steps li {
+  display: list-item;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.knitting-hint .stitch-alternative {
+  margin-top: 0.3rem;
+}
+
 .knitting-hint .key-swatch {
   margin-top: 0.1rem;
 }

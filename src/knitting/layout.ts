@@ -3,7 +3,13 @@ import { Stitch, isFabric } from "../types/Stitch";
 import { consumption } from "../types/StitchType";
 
 export interface Cell {
-  /** 1-based, counting up from the cast-on. */
+  /** The row of the chart it is drawn in, 1-based, counting up from the cast-on. */
+  row: number;
+  /**
+   * Which of the chart's rounds it belongs to, 1-based. On a chart of one
+   * piece that is its row as well; on the whole sweater's, the body and the
+   * sleeves share the rows above the divide, each in its own columns.
+   */
   round: number;
   /**
    * Where the stitch sits across the chart, counting from the right-hand edge
@@ -16,12 +22,23 @@ export interface Cell {
   column: number;
   /** 1-based stitch number within its round, for counting and for the rules. */
   index: number;
+  /** The piece of the sweater it belongs to. */
+  piece: string;
 }
 
 export interface ChartLayout {
   cells: Map<number, Cell>;
-  rounds: number;
+  /** How many rows the chart has. */
+  rows: number;
   columns: number;
+  /** The row each round is drawn in, by its place among the chart's rounds from 0. */
+  roundRows: number[];
+  /**
+   * What each row is numbered in the margin, by row from 0: the round it is
+   * of its piece, so the body's twentieth round is 20 there as it is in the
+   * knitting panel, and so is each sleeve's beside it.
+   */
+  numbers: number[];
 }
 
 /** The stitches of the round below that this one is worked into. */
@@ -301,14 +318,157 @@ export const layOut = (
   rounds.forEach((round, index) => {
     round.forEach((id, position) => {
       cells.set(id, {
+        row: index + 1,
         round: index + 1,
         column: column.get(id) ?? position + 1,
         index: position + 1,
+        piece: byId.get(id)?.piece ?? "",
       });
     });
   });
+  const rows = rounds.map((_, index) => index + 1);
+  return { cells, rows: rounds.length, columns: widest, roundRows: rows, numbers: rows };
+};
 
-  return { cells, rounds: rounds.length, columns: widest };
+/**
+ * Lay the whole sweater out as one chart: the yoke, and above it the body and
+ * both sleeves side by side, each over the part of the yoke it was knitted
+ * out of.
+ *
+ * The yoke is laid out as a piece of its own; see layOut. Every piece after
+ * it begins from the yoke's last round - the body from its back and front,
+ * each sleeve from the stitches it held - so each of their stitches stands
+ * over the stitch it was worked into, as everywhere else, and a column is
+ * still a column of the knitting, all the way from the neck to a cuff.
+ *
+ * What none of the yoke's columns can carry is a stitch made out of nothing
+ * after it: the stitches the body casts on at each underarm, and the ones
+ * each sleeve picks up out of them. Those are given columns of their own, let
+ * in beside the stitches they are worked next to - a sleeve's picked-up
+ * stitches either side of its held ones, and the body's underarm after the
+ * sleeve whose place it takes, as the dividing round comes to them - and
+ * like a make-one's, those columns are empty all the way down the yoke.
+ *
+ * Above the divide a row holds a round of each piece: the body's twentieth
+ * round, and each sleeve's twentieth beside it. Knitting round the body
+ * leaves the sleeves' columns to one side, and knitting a sleeve goes up its
+ * own columns a row at a time; the knitting panel and the chart's mark on the
+ * next stitch follow it there.
+ */
+export const layOutSweater = (
+  stitches: Stitch[],
+  rounds: number[][],
+  /** Whether each is a round or a short row, and from which side: see Needles.row. */
+  kinds: RoundKind[] = [],
+  /** The piece each round belongs to, the pieces in the order they are knitted. */
+  roundPieces: string[] = [],
+): ChartLayout => {
+  const yokeCount = roundPieces.findIndex((piece) => piece !== roundPieces[0]);
+  if (yokeCount <= 0) return layOut(stitches, rounds, kinds);
+  const yoke = layOut(stitches, rounds.slice(0, yokeCount), kinds.slice(0, yokeCount));
+  const byId = indexOf(stitches, rounds);
+  const parentOf = (id: number) => {
+    const stitch = byId.get(id);
+    return stitch ? worksInto(stitch)[0] : undefined;
+  };
+
+  // The pieces after the yoke, each a run of rounds.
+  const pieces: { piece: string; indices: number[] }[] = [];
+  for (let index = yokeCount; index < rounds.length; index++) {
+    const last = pieces[pieces.length - 1];
+    if (last?.piece === roundPieces[index]) last.indices.push(index);
+    else pieces.push({ piece: roundPieces[index], indices: [index] });
+  }
+
+  /*
+   * Where the stitches made out of nothing go: a run of them is let in just
+   * before the next stitch of their round that has a column, or, at the end
+   * of a round, just after the last. The gap they go in is between two of
+   * the yoke's columns; in a gap that takes runs both ways, the ones after
+   * the column to its right come first.
+   */
+  const gaps = new Map<number, { after: number[][]; before: number[][] }>();
+  const letIn = (gap: number, side: "after" | "before", ids: number[]) => {
+    const at = gaps.get(gap) ?? { after: [], before: [] };
+    at[side].push(ids);
+    gaps.set(gap, at);
+  };
+  for (const { indices } of pieces) {
+    let waiting: number[] = [];
+    let previous: number | undefined;
+    for (const id of rounds[indices[0]]) {
+      const parent = parentOf(id);
+      const column = parent === undefined ? undefined : yoke.cells.get(parent)?.column;
+      if (column === undefined) {
+        waiting.push(id);
+        continue;
+      }
+      if (waiting.length > 0) letIn(Math.round(column) - 0.5, "before", waiting);
+      waiting = [];
+      previous = column;
+    }
+    if (waiting.length > 0) letIn(Math.round(previous ?? yoke.columns) + 0.5, "after", waiting);
+  }
+
+  // The yoke's columns, renumbered with the new ones in among them.
+  let columns = 0;
+  const moved = new Map<number, number>();
+  const madeAt = new Map<number, number>();
+  const fill = (gap: number) => {
+    const at = gaps.get(gap);
+    if (!at) return;
+    for (const ids of [...at.after, ...at.before]) for (const id of ids) madeAt.set(id, ++columns);
+  };
+  for (let column = 1; column <= yoke.columns; column++) {
+    fill(column - 0.5);
+    moved.set(column, ++columns);
+  }
+  fill(yoke.columns + 0.5);
+  const shift = (column: number) => {
+    const whole = Math.min(Math.max(Math.floor(column), 1), yoke.columns);
+    return (moved.get(whole) ?? whole) + (column - Math.floor(column));
+  };
+
+  const cells = new Map<number, Cell>();
+  yoke.cells.forEach((cell, id) => cells.set(id, { ...cell, column: shift(cell.column) }));
+  const roundRows = [...yoke.roundRows];
+  const numbers = [...yoke.numbers];
+  let rows = yoke.rows;
+
+  for (const { piece, indices } of pieces) {
+    const column = new Map<number, number>();
+    for (const id of rounds[indices[0]]) {
+      const parent = parentOf(id);
+      const over = parent === undefined ? undefined : cells.get(parent)?.column;
+      const at = over ?? madeAt.get(id);
+      if (at !== undefined) column.set(id, at);
+    }
+    // Up the piece, each stitch over what it was worked into.
+    for (let k = 1; k < indices.length; k++) {
+      for (const family of familiesOf(rounds[indices[k]], byId)) {
+        const below = columnsOf(family.below, column);
+        const lean = leanOf(family, byId);
+        if (below.length > 0) place(family.above, pick(below, columns, lean), lean, column);
+      }
+    }
+    indices.forEach((index, k) => {
+      const row = yoke.rows + k + 1;
+      roundRows[index] = row;
+      numbers[row - 1] = k + 1;
+      rows = Math.max(rows, row);
+      rounds[index].forEach((id, position) =>
+        cells.set(id, {
+          row,
+          round: index + 1,
+          column: column.get(id) ?? position + 1,
+          index: position + 1,
+          piece,
+        }),
+      );
+    });
+  }
+
+  return { cells, rows, columns, roundRows, numbers };
 };
 
 /**

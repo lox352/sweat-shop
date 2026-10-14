@@ -126,9 +126,14 @@ export interface Size {
   checks: Record<string, number>;
 }
 
-/** An entry in the stitch-symbol key. A KFB's second loop is part of "kfb". */
+/**
+ * An entry in the stitch-symbol key. A KFB's second loop is part of "kfb".
+ * "castOn" is the neck's, the knitting's first stitches; "castOnUnderarm" is
+ * any cast on part way round, with the yarn already at the needle.
+ */
 export type StitchKeyId =
   | "castOn"
+  | "castOnUnderarm"
   | "join"
   | "k1"
   | "p1"

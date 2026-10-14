@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sweaterById } from "../data/sweaters";
 import { buildSweater } from "./engine";
-import { keyEntryAt, stitchKey } from "./stitch-key";
+import { castOnPartWay, keyEntryAt, stitchKey } from "./stitch-key";
 import { testSweater, testSweaterWithShortRows } from "./test-sweater";
 
 const hamefarin = sweaterById("hamefarin")!;
@@ -11,7 +11,7 @@ const key = stitchKey(built.stitches, hamefarin.stitchNotes);
 describe("the stitch-symbol key", () => {
   it("lists the stitches the sweater uses, in the key's order", () => {
     expect(key.map((entry) => entry.id)).toEqual([
-      "castOn", "join", "k1", "p1", "m1", "k2tog", "ssk", "pickUp", "bindOff",
+      "castOn", "castOnUnderarm", "join", "k1", "p1", "m1", "k2tog", "ssk", "pickUp", "bindOff",
     ]);
   });
 
@@ -53,7 +53,7 @@ describe("the stitch-symbol key", () => {
   it("keys every stitch as its pair from behind, from the wrong side, in the design's words where they hold", () => {
     const wrong = stitchKey(built.stitches, hamefarin.stitchNotes, "wrong");
     expect(wrong.map((entry) => entry.id)).toEqual([
-      "castOn", "join", "k1", "p1", "m1p", "p2tog", "ssp", "pickUpPurl", "bindOffPurl",
+      "castOn", "castOnUnderarm", "join", "k1", "p1", "m1p", "p2tog", "ssp", "pickUpPurl", "bindOffPurl",
     ]);
     const m1p = wrong.find((entry) => entry.id === "m1p")!;
     expect(m1p.label).toBe("Make one purlwise");
@@ -61,5 +61,28 @@ describe("the stitch-symbol key", () => {
     expect(m1p.lean).toBe("left");
     // The design's pick-up says how to knit one up from the underarm, which a purled one is not.
     expect(wrong.find((entry) => entry.id === "pickUpPurl")?.how).not.toMatch(/underarm/);
+  });
+
+  it("casts the neck on long-tail and each underarm with the yarn at the needle, step by step", () => {
+    const neck = keyEntryAt(built.stitches, 1, hamefarin.stitchNotes)!;
+    expect(neck.id).toBe("castOn");
+    expect(neck.label).toBe("Long-tail cast-on");
+    expect(neck.steps?.length).toBeGreaterThan(3);
+    const underarm = built.stitches.find((stitch) => stitch.type === "castOn" && stitch.piece === "body")!;
+    const entry = keyEntryAt(built.stitches, underarm.id, hamefarin.stitchNotes)!;
+    expect(entry.id).toBe("castOnUnderarm");
+    expect(entry.how).toMatch(/turn the work/);
+    expect(entry.steps?.join(" ")).toMatch(/wrong side faces you/);
+    expect(entry.alternative).toMatch(/backward-loop/);
+  });
+
+  it("tells a cast-on part way round from the neck's by what comes before it", () => {
+    const at = (id: number) => built.stitches[id];
+    const neck = built.rounds[0];
+    expect(castOnPartWay(neck[0], at)).toBe(false);
+    expect(castOnPartWay(neck[neck.length - 1], at)).toBe(false);
+    const underarms = built.stitches.filter((stitch) => stitch.type === "castOn" && stitch.piece === "body");
+    expect(underarms).toHaveLength(24);
+    underarms.forEach((stitch) => expect(castOnPartWay(stitch.id, at)).toBe(true));
   });
 });

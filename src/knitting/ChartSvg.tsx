@@ -5,12 +5,13 @@ import { joinArrowLength } from "./draw-chart";
 import type { Face, Hold, Join, Turn } from "./chart-marks";
 import { Palette, yarnFor } from "./palette";
 import {
+  type NeedleRule,
   cellAt,
   chartSize,
   fillPaths,
   gridPaths,
   markPaths,
-  numberedRounds,
+  numberedRows,
   progressPath,
 } from "./chart-paths";
 
@@ -23,8 +24,8 @@ interface ChartSvgProps {
   progress: number;
   nextStitchId?: number;
   cell: number;
-  /** Rounds after which the needles are changed. */
-  needleChanges?: number[];
+  /** Where the needles are changed, and in which piece. */
+  needleChanges?: NeedleRule[];
   /** Where the knitting is joined in the round. */
   join?: Join;
   /** Where a sleeve's stitches go on hold. */
@@ -32,7 +33,7 @@ interface ChartSvgProps {
   /** Where a short row turns. */
   turns?: Turn[];
   /**
-   * Rounds, first and last, worked with the other side towards you from the
+   * Rows, first and last, worked with the other side towards you from the
    * side you are on: hatched over.
    */
   hatch?: [number, number][];
@@ -83,6 +84,7 @@ const Knitting: React.FC<{
       ))}
       <path d={grid.light} className="chart-rule" />
       <path d={grid.heavy} className="chart-rule chart-rule-heavy" />
+      {grid.pieces && <path d={grid.pieces} className="chart-rule chart-rule-piece" />}
       {marks.map(({ ink, strokes, dots }) => (
         <g key={ink} stroke={ink} fill={ink}>
           {strokes && (
@@ -136,7 +138,7 @@ const ChartSvg: React.FC<ChartSvgProps> = ({
     [layout, rounds, progress, cell],
   );
   const numbers = useMemo(
-    () => numberedRounds(layout, needleChanges),
+    () => numberedRows(layout, needleChanges),
     [layout, needleChanges],
   );
   const next = nextStitchId === undefined ? undefined : layout.cells.get(nextStitchId);
@@ -201,22 +203,22 @@ const ChartSvg: React.FC<ChartSvgProps> = ({
       {next && (
         <rect
           className="chart-next"
-          x={cellAt(layout, next.round, next.column, cell).x - 1}
-          y={cellAt(layout, next.round, next.column, cell).y - 1}
+          x={cellAt(layout, next.row, next.column, cell).x - 1}
+          y={cellAt(layout, next.row, next.column, cell).y - 1}
           width={cell + 2}
           height={cell + 2}
         />
       )}
       <g className="chart-numbers">
-        {numbers.map((round) => (
+        {numbers.map((row) => (
           <text
-            key={round}
+            key={row}
             x={layout.columns * cell + Math.round(cell * 0.45)}
-            y={cellAt(layout, round, 1, cell).y + cell / 2}
+            y={cellAt(layout, row, 1, cell).y + cell / 2}
             dominantBaseline="middle"
             style={{ fontSize: Math.max(12, cell * .55) }}
           >
-            {round}
+            {layout.numbers[row - 1] ?? row}
           </text>
         ))}
       </g>
@@ -231,7 +233,7 @@ const YarnLabels = React.memo(({ stitches, layout, cell, labels }: {
 }) => <g fill="#000" fontSize="9" aria-hidden="true">{stitches.map(stitch => {
   const at = layout.cells.get(stitch.id);
   if (!at) return null;
-  const { x, y } = cellAt(layout, at.round, at.column, cell);
+  const { x, y } = cellAt(layout, at.row, at.column, cell);
   return <text key={stitch.id} x={x + 2} y={y + 9}>{labels[stitch.slot]}</text>;
 })}</g>);
 
@@ -256,7 +258,7 @@ const JoinArrows: React.FC<{
   const way = (ids: number[] | undefined) => {
     const [a, b] = [ids?.[0], ids?.[1]].map((id) => (id === undefined ? undefined : layout.cells.get(id)));
     if (!a || !b) return -1;
-    return cellAt(layout, b.round, b.column, cell).x > cellAt(layout, a.round, a.column, cell).x ? 1 : -1;
+    return cellAt(layout, b.row, b.column, cell).x > cellAt(layout, a.row, a.column, cell).x ? 1 : -1;
   };
   const length = cell * joinArrowLength;
   const head = cell * 0.18;
@@ -264,10 +266,10 @@ const JoinArrows: React.FC<{
     const d = Math.sign(to - from);
     return `M${from} ${y}H${to}M${to - d * head} ${y - head}L${to} ${y}L${to - d * head} ${y + head}`;
   };
-  const leaving = cellAt(layout, last.round, last.column, cell);
+  const leaving = cellAt(layout, last.row, last.column, cell);
   const out = way(rounds[join.after - 1]);
   const leaveFrom = out < 0 ? leaving.x : leaving.x + cell;
-  const entering = cellAt(layout, first.round, first.column, cell);
+  const entering = cellAt(layout, first.row, first.column, cell);
   const into = way(rounds[join.after]);
   const enterAt = into < 0 ? entering.x + cell : entering.x;
   return (
@@ -285,11 +287,13 @@ const JoinArrows: React.FC<{
 
 /**
  * Where a sleeve's stitches go on hold, part way through the dividing round:
- * a step, so it has no cell of its own either. It is drawn as a bar between
- * the stitch before it and the stitch after - the first of the underarm cast
- * on in the sleeve's place - with an arrow down it, as the stitches go down
- * onto waste yarn. On a pale line of its own, like a change of needles, so
- * it shows on dark wool as on light.
+ * a step, so it has no cell of its own either. It is drawn as a bar at the
+ * end of the stitch before it, the way the round was going - where the
+ * sleeve's own columns begin, its stitches beyond the bar going down onto
+ * waste yarn, with an arrow down it to say so. The round goes on past them
+ * to the underarm cast on in their place, on the far side of the sleeve. On
+ * a pale line of its own, like a change of needles, so it shows on dark wool
+ * as on light.
  */
 const HoldBars: React.FC<{
   holds: Hold[];
@@ -301,9 +305,10 @@ const HoldBars: React.FC<{
     const before = layout.cells.get(hold.before);
     const after = layout.cells.get(hold.after);
     if (!before || !after) return [];
-    const a = cellAt(layout, before.round, before.column, cell);
-    const b = cellAt(layout, after.round, after.column, cell);
-    const x = (a.x + b.x) / 2 + cell / 2;
+    const a = cellAt(layout, before.row, before.column, cell);
+    const b = cellAt(layout, after.row, after.column, cell);
+    // At the end of the stitch before, on the side the round goes on to.
+    const x = b.x < a.x ? a.x : a.x + cell;
     const [top, bottom] = [a.y - cell * 0.3, a.y + cell * 0.88];
     return [{
       hold,
@@ -340,8 +345,8 @@ const TurnHooks: React.FC<{
     const last = layout.cells.get(turn.last);
     const before = layout.cells.get(turn.before);
     if (!last || !before) return [];
-    const at = cellAt(layout, last.round, last.column, cell);
-    const from = cellAt(layout, before.round, before.column, cell);
+    const at = cellAt(layout, last.row, last.column, cell);
+    const from = cellAt(layout, before.row, before.column, cell);
     // Which way the row was going across the chart when it turned.
     const way = at.x < from.x ? -1 : 1;
     const edge = way < 0 ? at.x : at.x + cell;

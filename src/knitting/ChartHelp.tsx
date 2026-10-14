@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Stitch, joinsCastOn } from "../types/Stitch";
-import { Mark, forkMark, makeOneMark, markFor } from "../helpers/stitch-marks";
+import { Mark, castOnPartWayMark, forkMark, makeOneMark, markFor } from "../helpers/stitch-marks";
 import type { ChartStitch, Face } from "./sides";
 import { Palette, yarnFor } from "./palette";
 import { indexRounds, roundParts, runInstruction } from "./progress";
@@ -53,6 +53,8 @@ export const Swatch: React.FC<{ entry: KeyEntry }> = ({ entry }) => {
         </>
       ) : entry.id === "m1" || entry.id === "m1p" ? (
         <Cell x={0} mark={makeOneMark(entry.lean, entry.id === "m1p")} />
+      ) : entry.id === "castOnUnderarm" ? (
+        <Cell x={0} mark={castOnPartWayMark} />
       ) : (
         <Cell type={entry.type} x={0} />
       )}
@@ -107,7 +109,13 @@ export const NeedlesSwatch: React.FC = () => (
 function NeedlesText({ changes }: { changes: NeedleChange[] }) {
   const sizes = [...new Set(changes.map((change) => change.to))];
   const phrases = sizes.map((size) => {
-    const after = changes.filter((change) => change.to === size).map((change) => change.after);
+    const at = changes.filter((change) => change.to === size);
+    // Each piece changes for itself on the whole sweater's chart, so each is named.
+    if (at.every((change) => change.where)) {
+      const where = at.map((change) => change.where);
+      return `to ${size}mm after ${[where.slice(0, -1).join(", "), where.at(-1)].filter(Boolean).join(" and ")}`;
+    }
+    const after = at.map((change) => change.after);
     return `to ${size}mm after ${after.length === 1 ? "round" : "rounds"} ${after.join(", ")}`;
   });
   return (
@@ -158,6 +166,26 @@ export function StitchLegend({ stitches, notes, needles, holds, turns, face = "r
   );
 }
 
+/**
+ * A stitch's instructions step by step, where it has them - a cast-on - and
+ * another way to work it, where there is one.
+ */
+export function HowTo({ entry }: { entry: KeyEntry }) {
+  if (!entry.steps && !entry.alternative) return null;
+  return (
+    <>
+      {entry.steps && (
+        <ol className="stitch-steps">
+          {entry.steps.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+      )}
+      {entry.alternative && <p className="stitch-alternative">{entry.alternative}</p>}
+    </>
+  );
+}
+
 /** The key's entries, each with its mark and how to work it. */
 export function KeyList({ entries, current, needles, holds, turns }: {
   entries: KeyEntry[];
@@ -179,6 +207,7 @@ export function KeyList({ entries, current, needles, holds, turns }: {
             {entry.abbreviation && <span className="stitch-abbr"> {entry.abbreviation}</span>}
             {entry.id === current && <span className="stitch-key-here"> · you are here</span>}
             <p>{entry.how}</p>
+            <HowTo entry={entry} />
             {entry.note && <p className="stitch-note">{entry.note}</p>}
           </div>
         </li>
@@ -242,8 +271,10 @@ export function KeyList({ entries, current, needles, holds, turns }: {
   );
 }
 
-export function TextRound({ stitches, rounds, round, labels, palette, pieces = [] }: {
+export function TextRound({ stitches, rounds, round, labels, names, palette, pieces = [] }: {
   stitches: Stitch[]; rounds: number[][]; round: number; labels?: string[]; palette: Palette;
+  /** What each round is called in the knitting: "Body, round 23". */
+  names?: string[];
   /** The sweater's pieces, to name a sleeve put on hold. */
   pieces?: { id: string; label: string }[];
 }) {
@@ -251,7 +282,7 @@ export function TextRound({ stitches, rounds, round, labels, palette, pieces = [
   const index = indexRounds(rounds, labels);
   const parts = roundParts(stitches, ids, index);
   const pieceLabel = (id?: string) => (pieces.find((piece) => piece.id === id)?.label ?? id ?? "").toLowerCase();
-  return <div><p>Round {round}: {labels?.[round - 1]}. Read in working order.</p>
+  return <div><p>{names?.[round - 1] ?? `Round ${round}`}: {labels?.[round - 1]}. Read in working order.</p>
     <ol>{parts.map(part => "run" in part
       ? <li key={part.run.startId}>{runInstruction(part.run)} in {yarnFor(palette, part.run.slot).name}</li>
       : part.step.type === "hold"

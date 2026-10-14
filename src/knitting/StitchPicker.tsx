@@ -35,11 +35,13 @@ const StitchPicker: React.FC<{
   yarn?: { name: string; hex: string };
   /** What the pattern calls each round: "Border, row 3", "Body · plain". */
   labels?: string[];
+  /** What each round is called in the knitting: "Body, round 23". */
+  names?: string[];
   /** Whether the stitch is hatched: worked with the other side towards you. */
   otherFace?: boolean;
   /** Anything more to say about the stitch, below what it is. */
   note?: React.ReactNode;
-}> = ({ id, stitches, rounds, layout, cell, progress, onJump, onClose, entry, yarn, labels, otherFace, note }) => {
+}> = ({ id, stitches, rounds, layout, cell, progress, onJump, onClose, entry, yarn, labels, names, otherFace, note }) => {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -51,7 +53,8 @@ const StitchPicker: React.FC<{
   const at = layout.cells.get(id);
   if (!at) return null;
   const target = progressBefore(stitches, rounds, at.round, at.index);
-  const { x, y } = cellAt(layout, at.round, at.column, cell);
+  const { x, y } = cellAt(layout, at.row, at.column, cell);
+  const where = `${names?.[at.round - 1] ?? `Round ${at.round}`}, stitch ${at.index}`;
   const { width } = chartSize(layout, cell);
   const explains = entry !== undefined && entry.id !== "k1";
   const needles = stitches[id]?.needles;
@@ -75,18 +78,18 @@ const StitchPicker: React.FC<{
       <div
         className={`stitch-picker${below ? " stitch-picker-below" : ""}`}
         role="dialog"
-        aria-label={`Round ${at.round}, stitch ${at.index}`}
+        aria-label={where}
         style={{
           left,
           width: bubble,
           top: below ? y + cell + 8 : undefined,
-          bottom: below ? undefined : layout.rounds * cell - y + 8,
+          bottom: below ? undefined : layout.rows * cell - y + 8,
         }}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="stitch-picker-head">
           <span>
-            Round {at.round}, stitch {at.index}
+            {where}
             {labels?.[at.round - 1] && (
               <span className="stitch-picker-where">{labels[at.round - 1]}</span>
             )}

@@ -63,6 +63,26 @@
 .stitch-key .stitch-note {
   font-style: italic;
 }
+
+/* A stitch worked step by step - a cast-on - and another way to work it. */
+.stitch-steps {
+  margin: 0.35rem 0 0;
+  padding-left: 1.3rem;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  max-width: 60ch;
+}
+
+.stitch-steps li {
+  display: list-item;
+  padding: 0;
+  margin: 0.15rem 0 0;
+  border: 0;
+}
+
+.stitch-alternative {
+  font-style: italic;
+}
 .chart-help select { max-width: 100%; }
 .chart-yarn-numbers { display: flex; flex-wrap: wrap; gap: .4rem 1.5rem; }
 
@@ -166,6 +186,16 @@
 
 .chart-rule-heavy {
   stroke: rgb(0 0 0 / 0.7);
+}
+
+/*
+ * Where one piece of the sweater meets another: the body beside a sleeve,
+ * and both above the yoke they were knitted out of. Heavier than any
+ * counting line, in ink, so the pieces read as pieces.
+ */
+.chart-rule-piece {
+  stroke: #1d1a17;
+  stroke-width: 2.5;
 }
 
 /*

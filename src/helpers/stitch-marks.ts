@@ -120,6 +120,21 @@ marks.castOn = {
   ],
 };
 
+/**
+ * Casting on part way round, at an underarm, with the yarn already at the
+ * needle: the cast-on's loop, hanging from a bar - the needle it is knitted
+ * onto - so it reads apart from the neck's long-tail cast-on.
+ */
+export const castOnPartWayMark: Mark = {
+  strokes: [
+    ...(marks.castOn?.strokes ?? []),
+    [
+      [near, 0.3],
+      [far, 0.3],
+    ],
+  ],
+};
+
 /*
  * Picking up a stitch from an edge: the stitch drawn up out of the foot of
  * the cell, with the loop it makes at the top.

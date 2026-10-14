@@ -6,13 +6,18 @@ knit it.
 
 ## What it does
 
-- **A chart that knows where you are**, one piece at a time - the yoke, the
-  body, then each sleeve - with every stitch of every round, the one you are
-  on marked and the chart following you. As on the hat site, every stitch
-  stands over the stitch it was knitted into, so a column of the chart is a
-  column of the knitting, and the chart turns over with the work when a
-  short row is purled back from the wrong side, every stitch shown as it
-  looks from there: knits as purls, purls as knits, a k2tog as a p2tog.
+- **A chart that knows where you are**: the whole sweater on one chart, the
+  yoke and above it the body and both sleeves side by side, with every stitch
+  of every round, the one you are on marked and the chart following you -
+  past the sleeves as you go round the body, and up a sleeve a row at a time.
+  As on the hat site, every stitch stands over the stitch it was knitted
+  into, so a column of the chart is a column of the knitting, and the chart
+  turns over with the work when a short row is purled back from the wrong
+  side, every stitch shown as it looks from there: knits as purls, purls as
+  knits, a k2tog as a p2tog.
+- **Casting on, explained where it happens**: a long-tail cast-on at the neck,
+  and at each underarm, part way round with only the yarn at the needle, a
+  knitted cast-on worked with the work turned, step by step.
 - **The sweater in three dimensions**, with the wool filling in as you work.
 - **Colourways as costumes.** A design is drawn once in yarn slots, and a
   colourway says which real shade goes in each - so any yarn can be swapped

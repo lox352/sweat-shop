@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "./engine";
 import { testSweater, testSweaterWithShortRows } from "./test-sweater";
-import { type Face, faceAfter, holdsIn, markAt, otherFaceRounds, turnsIn } from "./chart-marks";
+import { type Face, faceAfter, holdsIn, markAt, otherFaceRows, turnsIn } from "./chart-marks";
 import { layOut } from "./layout";
-import { markFor } from "../helpers/stitch-marks";
+import { castOnPartWayMark, markFor } from "../helpers/stitch-marks";
 
 const { stitches, rounds, roundPieces } = buildSweater(testSweater, "one");
 const piece = (id: string) => rounds.filter((_, index) => roundPieces[index] === id);
@@ -58,13 +58,14 @@ describe("which side of the sweater is towards you", () => {
 
   it("hatches the rows purled back from the right side, and everything else from the wrong", () => {
     expect(kinds.slice(3, 8)).toEqual(["right", "wrong", "right", "wrong", "right"]);
-    expect(otherFaceRounds(kinds, kinds.length, "right")).toEqual([[5, 5], [7, 7]]);
-    expect(otherFaceRounds(kinds, kinds.length, "wrong")).toEqual([[1, 4], [6, 6], [8, kinds.length]]);
+    const rows = kinds.map((_, index) => index + 1);
+    expect(otherFaceRows(rows, kinds, "right")).toEqual([[5, 5], [7, 7]]);
+    expect(otherFaceRows(rows, kinds, "wrong")).toEqual([[1, 4], [6, 6], [8, kinds.length]]);
   });
 
   it("hatches nothing from the right side of a piece without short rows", () => {
-    expect(otherFaceRounds([], 5, "right")).toEqual([]);
-    expect(otherFaceRounds([], 5, "wrong")).toEqual([[1, 5]]);
+    expect(otherFaceRows([1, 2, 3, 4, 5], [], "right")).toEqual([]);
+    expect(otherFaceRows([1, 2, 3, 4, 5], [], "wrong")).toEqual([[1, 5]]);
   });
 });
 
@@ -92,5 +93,19 @@ describe("a short row on the chart, from either side", () => {
     const increase = yoke.flat().find((id) => built.stitches[id].type === "m1")!;
     expect(markOf(increase, "wrong")?.strokes).toEqual(markOf(increase, "right")?.strokes);
     expect(markOf(increase, "wrong")?.dot).toBeDefined();
+  });
+});
+
+describe("casting on, on the chart", () => {
+  const byId = new Map(stitches.map((stitch) => [stitch.id, stitch]));
+  const body = piece("body");
+  const layout = layOut(stitches, body);
+
+  it("marks an underarm cast on part way round apart from the neck's", () => {
+    const underarm = body[0].filter((id) => stitches[id].type === "castOn");
+    expect(underarm).toHaveLength(8);
+    underarm.forEach((id) => expect(markAt(stitches[id], byId, layout)).toEqual(castOnPartWayMark));
+    const neck = layOut(stitches, piece("yoke"));
+    expect(markAt(stitches[1], byId, neck)).toEqual(markFor("castOn"));
   });
 });

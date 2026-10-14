@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "./engine";
 import { layOut } from "./layout";
-import { gridPaths, numberedRounds, progressPath } from "./chart-paths";
+import { gridPaths, numberedRows, progressPath } from "./chart-paths";
 import { needleChangesIn } from "./chart-marks";
 import { testSweater } from "./test-sweater";
 
@@ -11,14 +11,14 @@ const yoke = rounds.filter((_, index) => roundPieces[index] === "yoke");
 const layout = layOut(stitches, yoke);
 
 describe("the change of needles on the chart", () => {
-  const changes = needleChangesIn(stitches, yoke).map((change) => change.after);
+  const changes = needleChangesIn(stitches, yoke).map((change) => ({ after: change.after, piece: "yoke" }));
 
   it("falls between the rib and the yoke", () => {
-    expect(changes).toEqual([3]);
+    expect(changes.map((change) => change.after)).toEqual([3]);
   });
 
-  it("takes that boundary out of the counting lines, dashed", () => {
-    const y = (layout.rounds - 3) * cell;
+  it("is dashed across that boundary", () => {
+    const y = (layout.rows - 3) * cell;
     const marked = gridPaths(layout, cell, changes);
     expect(marked.needles).not.toBe("");
     marked.needles
@@ -30,7 +30,7 @@ describe("the change of needles on the chart", () => {
   });
 
   it("numbers both rounds it falls between, so it can be named", () => {
-    const numbers = numberedRounds(layout, changes);
+    const numbers = numberedRows(layout, changes);
     expect(numbers).toContain(3);
     expect(numbers).toContain(4);
     expect(numbers).toEqual([...new Set(numbers)].sort((a, b) => a - b));

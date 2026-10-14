@@ -15,7 +15,7 @@ import {
 import { Palette, inkOn, yarnFor } from "../knitting/palette";
 import Button from "./ui/Button";
 import { KeyEntry, keyEntryAt, stitchKey } from "../knitting/stitch-key";
-import { NeedlesSwatch, Swatch as StitchSwatch } from "../knitting/ChartHelp";
+import { HowTo, NeedlesSwatch, Swatch as StitchSwatch } from "../knitting/ChartHelp";
 import type { StitchKeyId, StitchNote } from "../data/sweaters/types";
 import "./KnittingPanel.css";
 
@@ -54,20 +54,27 @@ const roundEntries = (
   return [...seen.values()].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
 };
 
-/** How to work this round's special stitches, the one in hand marked. */
+/**
+ * How to work this round's special stitches, the one in hand marked - and,
+ * for the one in hand, step by step where it has steps: casting on, at the
+ * neck or an underarm, when the stitches to cast on are next.
+ */
 const StitchHint: React.FC<{ entries: KeyEntry[]; current?: string }> = ({ entries, current }) => (
   <ul className="knitting-hint" aria-label="Stitches in this round">
     {entries.map((entry) => (
       <li key={entry.id} className={entry.id === current ? "knitting-hint-now" : undefined}>
         <StitchSwatch entry={entry} />
-        <p>
-          <strong>
-            {entry.label}
-            {entry.abbreviation && <span className="stitch-abbr"> {entry.abbreviation}</span>}
-          </strong>{" "}
-          {entry.how}
-          {entry.note && <span className="stitch-note"> {entry.note}</span>}
-        </p>
+        <div>
+          <p>
+            <strong>
+              {entry.label}
+              {entry.abbreviation && <span className="stitch-abbr"> {entry.abbreviation}</span>}
+            </strong>{" "}
+            {entry.how}
+            {entry.note && <span className="stitch-note"> {entry.note}</span>}
+          </p>
+          {entry.id === current && <HowTo entry={entry} />}
+        </div>
       </li>
     ))}
   </ul>

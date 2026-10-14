@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Stitch, isFabric, isStep } from "../types/Stitch";
-import { layOut, mirrorLayout, type ChartLayout } from "./layout";
+import { layOutSweater, mirrorLayout, type ChartLayout } from "./layout";
 import type { RoundKind } from "./needles";
 import { Palette, yarnFor } from "./palette";
 import { cellAt, chartSize, drawChart, drawProgress, leftMargin } from "./draw-chart";
 import ChartSvg from "./ChartSvg";
 import { StitchLegend, TextRound } from "./ChartHelp";
-import { faceAfter, holdsIn, joinIn, needleChangesIn, otherFaceRounds, turnsIn } from "./chart-marks";
+import { faceAfter, holdsIn, joinIn, needleChangesIn, otherFaceRows, turnsIn } from "./chart-marks";
 import StitchPicker from "./StitchPicker";
 import { keyEntryAt } from "./stitch-key";
 import { stitchAtPoint } from "./jump";
@@ -99,6 +99,10 @@ interface ChartProps {
   pieces?: { id: string; label: string }[];
   /** Which of the rounds are short rows: see Needles.row. */
   kinds?: RoundKind[];
+  /** The piece each round belongs to, for laying the whole sweater out as one chart. */
+  roundPieces?: string[];
+  /** What each round is called in the knitting: "Body, round 23". */
+  names?: string[];
 }
 
 /**
@@ -131,6 +135,8 @@ const Chart: React.FC<ChartProps> = ({
   followAt,
   pieces,
   kinds,
+  roundPieces,
+  names,
 }) => {
   const [picked, setPicked] = useState<number>();
   const makeOneLean = stitchNotes?.m1?.lean;
@@ -174,12 +180,15 @@ const Chart: React.FC<ChartProps> = ({
   const drawWith = contrast ? "svg" : preferredRenderer;
 
   /*
-   * The rounds given are one piece's - the yoke, the body or a sleeve - laid
-   * out every stitch over the stitch it was worked into; see layOut. Their
-   * stitch ids are the sweater's own, so progress, the next stitch and a jump
-   * all mean what they mean anywhere else on the site.
+   * The whole sweater, every stitch over the stitch it was worked into: the
+   * yoke, and the body and the sleeves side by side above it; see
+   * layOutSweater. The stitch ids are the sweater's own, so progress, the
+   * next stitch and a jump all mean what they mean anywhere else on the site.
    */
-  const laid = useMemo(() => layOut(stitches, rounds, kinds), [stitches, rounds, kinds]);
+  const laid = useMemo(
+    () => layOutSweater(stitches, rounds, kinds, roundPieces),
+    [stitches, rounds, kinds, roundPieces],
+  );
   /*
    * A chart shows the knitting from the side you are working on, as the hat
    * site's does. A short row purled back is worked with the wrong side
@@ -200,12 +209,17 @@ const Chart: React.FC<ChartProps> = ({
    * rounds worked with the other side towards you are hatched, because each
    * stitch there was worked as the opposite of what it shows.
    */
-  const hatch = useMemo(
-    () => otherFaceRounds(kinds ?? [], rounds.length, face),
-    [kinds, rounds.length, face],
+  const hatch = useMemo(() => otherFaceRows(laid.roundRows, kinds ?? [], face), [laid, kinds, face]);
+  const needles = useMemo(() => needleChangesIn(stitches, rounds, names), [stitches, rounds, names]);
+  // Each drawn across its own piece, between the rows either side of it.
+  const needleRules = useMemo(
+    () =>
+      needles.map((change) => ({
+        after: laid.roundRows[change.after - 1] ?? change.after,
+        piece: laid.cells.get(rounds[change.after - 1]?.[0] ?? -1)?.piece ?? "",
+      })),
+    [needles, laid, rounds],
   );
-  const needles = useMemo(() => needleChangesIn(stitches, rounds), [stitches, rounds]);
-  const needleRounds = useMemo(() => needles.map((change) => change.after), [needles]);
   const join = useMemo(() => joinIn(stitches, rounds), [stitches, rounds]);
   const holds = useMemo(() => holdsIn(stitches, rounds, pieces), [stitches, rounds, pieces]);
   const turns = useMemo(() => turnsIn(stitches, rounds), [stitches, rounds]);
@@ -254,12 +268,12 @@ const Chart: React.FC<ChartProps> = ({
       cellSize,
       token("--ink-faint", "#a29a91"),
       makeOneLean,
-      needleRounds,
+      needleRules,
       face,
     );
     // Size is derived from the same values this already depends on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawn, layout, palette, width, height, ratio, drawWith, makeOneLean, needleRounds, face]);
+  }, [drawn, layout, palette, width, height, ratio, drawWith, makeOneLean, needleRules, face]);
 
   /*
    * And the two things that change as you knit, on a sheet of their own over
@@ -317,7 +331,7 @@ const Chart: React.FC<ChartProps> = ({
       const scroller = scrollRef.current;
       if (!scroller || !at) return;
       const cell = cellNow.current;
-      const { x, y } = cellAt(layout, at.round, at.column, cell);
+      const { x, y } = cellAt(layout, at.row, at.column, cell);
       scroller.scrollTo({
         left: Math.max(x - scroller.clientWidth / 2 + cell / 2, 0),
         top: contained
@@ -422,7 +436,7 @@ const Chart: React.FC<ChartProps> = ({
     const sheets = scrollRef.current?.querySelector(".chart-sheets");
     if (!sheets || focusRound === undefined) return;
     const cellSize = cellNow.current;
-    const { y } = cellAt(layout, focusRound, 1, cellSize);
+    const { y } = cellAt(layout, layout.roundRows[focusRound - 1] ?? focusRound, 1, cellSize);
     /*
      * The panel is stuck to the bottom of the screen while you work, so the
      * part of the page you can see ends at its top edge. Its height, not
@@ -439,7 +453,7 @@ const Chart: React.FC<ChartProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusRound]);
 
-  if (layout.rounds === 0) return <p>This pattern has no stitches to chart.</p>;
+  if (layout.rows === 0) return <p>This pattern has no stitches to chart.</p>;
 
   return (
     <div className="chart-frame">
@@ -481,8 +495,7 @@ const Chart: React.FC<ChartProps> = ({
           }
           role="img"
           aria-label={
-            `The chart: ${layout.columns} stitches at its widest and ` +
-            `${layout.rounds} rounds.` +
+            `The chart: ${layout.columns} columns and ${layout.rows} rows.` +
             (focusRound && labels?.[focusRound - 1]
               ? ` You are on ${labels[focusRound - 1]}.`
               : "") +
@@ -505,7 +518,7 @@ const Chart: React.FC<ChartProps> = ({
               progress={progress}
               nextStitchId={nextId}
               cell={cellSize}
-              needleChanges={needleRounds}
+              needleChanges={needleRules}
               join={join}
               holds={holds}
               turns={turns}
@@ -529,6 +542,7 @@ const Chart: React.FC<ChartProps> = ({
               note={pickerNote?.(picked)}
               entry={keyEntryAt(stitches, picked, stitchNotes, face)}
               labels={labels}
+              names={names}
               yarn={stitches[picked] && yarnFor(palette, stitches[picked].slot)}
               otherFace={(() => {
                 const round = layout.cells.get(picked)?.round;
@@ -550,17 +564,22 @@ const Chart: React.FC<ChartProps> = ({
       {writtenRounds && <details className="chart-help" onToggle={e => setShowText(e.currentTarget.open)}>
         <summary>Text round instructions</summary>
         <label>Read round <select value={follow && focusRound ? focusRound : textRound} disabled={follow && !!focusRound} onChange={e => setTextRound(Number(e.target.value))}>
-          {rounds.map((_, i) => <option key={i} value={i + 1}>{i + 1} · {labels?.[i]}</option>)}
+          {rounds.map((_, i) => <option key={i} value={i + 1}>{names?.[i] ?? i + 1} · {labels?.[i]}</option>)}
         </select></label>
-        {showText && <TextRound stitches={stitches} rounds={rounds} round={follow && focusRound ? focusRound : textRound} labels={labels} palette={palette} pieces={pieces} />}
+        {showText && <TextRound stitches={stitches} rounds={rounds} round={follow && focusRound ? focusRound : textRound} labels={labels} names={names} palette={palette} pieces={pieces} />}
       </details>}
       <p className="chart-caption">
-        {layout.columns} stitches at its widest, {layout.rounds} rounds. Read
-        from the bottom right, working right to left; scroll sideways to see a
-        whole round, and pinch to zoom.{onJump && " Tap a stitch to carry on from there."} Every
+        The whole sweater, {layout.columns} columns across and {layout.rows} rows: the
+        yoke from the neck up, then the body and both sleeves side by side above
+        it. Read from the bottom right, working right to left; scroll sideways to
+        see a whole round, and pinch to zoom.{onJump && " Tap a stitch to carry on from there."} Every
         stitch stands over the stitch it was knitted into, so a column is a
-        column of the knitting: a make-one begins a new one, with nothing
-        below it, and a decrease ends one.
+        column of the knitting: a make-one begins a new one, with nothing below
+        it, as do the stitches cast on at the underarms and picked up for the
+        sleeves, and a decrease ends one. Above the divide each row holds a round
+        of the body and one of each sleeve, numbered as their own rounds: going
+        round the body you pass over the sleeves' columns, and a sleeve goes up
+        its own columns a row at a time.
         {turns.length > 0 &&
           " The chart shows the side you are working on, every stitch as it looks from there, and turns over" +
             " with the work at a short row."}

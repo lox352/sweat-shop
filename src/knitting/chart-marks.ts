@@ -1,7 +1,8 @@
 import { Stitch, isStep } from "../types/Stitch";
 import { ChartLayout, isSecondLoop } from "./layout";
 import type { RoundKind } from "./needles";
-import { Mark, forkMark, makeOneMark, markFor } from "../helpers/stitch-marks";
+import { Mark, castOnPartWayMark, forkMark, makeOneMark, markFor } from "../helpers/stitch-marks";
+import { castOnPartWay } from "./stitch-key";
 import { type Face, seenFrom } from "./sides";
 
 export type { Face };
@@ -28,6 +29,7 @@ export const markAt = (
 ): Mark | undefined => {
   if (isSecondLoop(stitch, byId)) return undefined;
   const shown = seenFrom(stitch, face);
+  if (shown === "castOn" && castOnPartWay(stitch.id, (id) => byId.get(id))) return castOnPartWayMark;
   if (shown === "m1" || shown === "m1p") return makeOneMark(makeOneLean, shown === "m1p");
   if (shown !== "kfb" && shown !== "pfb") return markFor(shown);
 
@@ -45,13 +47,20 @@ export const markAt = (
 export interface NeedleChange {
   after: number;
   to: number;
+  /** What that round is called, where the chart knows: "Body, round 97". */
+  where?: string;
 }
 
 /**
  * The needle changes among these rounds, each placed after the last round
  * worked before it. Only those with fabric on both sides are drawn.
  */
-export const needleChangesIn = (stitches: Stitch[], rounds: number[][]): NeedleChange[] => {
+export const needleChangesIn = (
+  stitches: Stitch[],
+  rounds: number[][],
+  /** What each round is called. */
+  names?: string[],
+): NeedleChange[] => {
   const roundOf = new Map<number, number>();
   rounds.forEach((ids, index) => ids.forEach((id) => roundOf.set(id, index + 1)));
   const out: NeedleChange[] = [];
@@ -59,7 +68,7 @@ export const needleChangesIn = (stitches: Stitch[], rounds: number[][]): NeedleC
   for (const stitch of stitches) {
     last = roundOf.get(stitch.id) ?? last;
     if (stitch.type === "needles" && stitch.needles !== undefined && last > 0 && last < rounds.length) {
-      out.push({ after: last, to: stitch.needles });
+      out.push({ after: last, to: stitch.needles, ...(names?.[last - 1] ? { where: names[last - 1] } : {}) });
     }
   }
   return out;
@@ -157,22 +166,26 @@ export const faceAfter = (turnIds: number[], progress: number): Face =>
   turnIds.filter((id) => id <= progress).length % 2 === 1 ? "wrong" : "right";
 
 /**
- * The rounds worked with the other side towards you from `face`, in runs,
+ * The rows worked with the other side towards you from `face`, in runs,
  * first and last, numbered from 1: what the chart hatches. With the right side
  * towards you they are the short rows purled back; with the wrong side, every
- * other round there is.
+ * other row there is.
  */
-export const otherFaceRounds = (
+export const otherFaceRows = (
+  /** Each round's row; see ChartLayout.roundRows. */
+  roundRows: readonly number[],
   kinds: readonly (RoundKind | undefined)[],
-  count: number,
   face: Face,
 ): [number, number][] => {
+  const rows = new Set<number>();
+  roundRows.forEach((row, index) => {
+    if ((kinds[index] === "wrong" ? "wrong" : "right") !== face) rows.add(row);
+  });
   const runs: [number, number][] = [];
-  for (let round = 1; round <= count; round++) {
-    if ((kinds[round - 1] === "wrong" ? "wrong" : "right") === face) continue;
+  for (const row of [...rows].sort((a, b) => a - b)) {
     const last = runs[runs.length - 1];
-    if (last && last[1] === round - 1) last[1] = round;
-    else runs.push([round, round]);
+    if (last && last[1] === row - 1) last[1] = row;
+    else runs.push([row, row]);
   }
   return runs;
 };
