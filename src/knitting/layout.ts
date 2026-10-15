@@ -32,15 +32,30 @@ export interface ChartLayout {
   /** How many rows the chart has. */
   rows: number;
   columns: number;
-  /** The row each round is drawn in, by its place among the chart's rounds from 0. */
+  /** The row each round is drawn in, by its place among the chart's rounds from 0: see chartRows. */
   roundRows: number[];
-  /**
-   * What each row is numbered in the margin, by row from 0: the round it is
-   * of its piece, so the body's twentieth round is 20 there as it is in the
-   * knitting panel, and so is each sleeve's beside it.
-   */
-  numbers: number[];
 }
+
+/**
+ * The row of the chart each round is drawn in, by its place among the
+ * rounds from 0 - and what the knitting calls it, so that the chart's margin
+ * and the knitting panel say the same.
+ *
+ * The yoke's rounds stand one above another from the neck. Every piece after
+ * it begins from the yoke's last round, so its rounds go in the rows above
+ * that: the body's and each sleeve's side by side, the first of each in the
+ * row after the yoke's last. A pattern that counts the body's rounds from 1
+ * again, and the sleeves', is only renaming them; counted on from the neck,
+ * a round's number is where it is.
+ */
+export const chartRows = (roundPieces: string[]): number[] => {
+  const yokeCount = roundPieces.findIndex((piece) => piece !== roundPieces[0]);
+  let row = 0;
+  return roundPieces.map((piece, index) => {
+    row = yokeCount > 0 && index >= yokeCount && piece !== roundPieces[index - 1] ? yokeCount + 1 : row + 1;
+    return row;
+  });
+};
 
 /** The stitches of the round below that this one is worked into. */
 const worksInto = (stitch: Stitch): number[] =>
@@ -337,7 +352,7 @@ export const layOut = (
     });
   });
   const rows = rounds.map((_, index) => index + 1);
-  return { cells, rows: rounds.length, columns: widest, roundRows: rows, numbers: rows };
+  return { cells, rows: rounds.length, columns: widest, roundRows: rows };
 };
 
 /**
@@ -360,7 +375,8 @@ export const layOut = (
  * like a make-one's, those columns are empty all the way down the yoke.
  *
  * Above the divide a row holds a round of each piece: the body's twentieth
- * round, and each sleeve's twentieth beside it. Knitting round the body
+ * round, and each sleeve's twentieth beside it, which is why the knitting
+ * numbers a round by its row; see chartRows. Knitting round the body
  * leaves the sleeves' columns to one side, and knitting a sleeve goes up its
  * own columns a row at a time; the knitting panel and the chart's mark on the
  * next stitch follow it there.
@@ -441,8 +457,8 @@ export const layOutSweater = (
 
   const cells = new Map<number, Cell>();
   yoke.cells.forEach((cell, id) => cells.set(id, { ...cell, column: shift(cell.column) }));
+  const rowOf = chartRows(roundPieces);
   const roundRows = [...yoke.roundRows];
-  const numbers = [...yoke.numbers];
   let rows = yoke.rows;
 
   for (const { piece, indices } of pieces) {
@@ -461,10 +477,9 @@ export const layOutSweater = (
         if (below.length > 0) place(family.above, pick(below, columns, lean), lean, column);
       }
     }
-    indices.forEach((index, k) => {
-      const row = yoke.rows + k + 1;
+    indices.forEach((index) => {
+      const row = rowOf[index];
       roundRows[index] = row;
-      numbers[row - 1] = k + 1;
       rows = Math.max(rows, row);
       rounds[index].forEach((id, position) =>
         cells.set(id, {
@@ -478,7 +493,7 @@ export const layOutSweater = (
     });
   }
 
-  return { cells, rows, columns, roundRows, numbers };
+  return { cells, rows, columns, roundRows };
 };
 
 /**

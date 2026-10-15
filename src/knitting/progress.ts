@@ -3,6 +3,7 @@ import { workedAs } from "./sides";
 import { StitchType, makesTwo } from "../types/StitchType";
 import type { Piece } from "../data/sweaters/types";
 import type { RoundKind } from "./needles";
+import { chartRows } from "./layout";
 
 /**
  * Where you are in a sweater, and what to work next.
@@ -14,14 +15,18 @@ import type { RoundKind } from "./needles";
  *
  * The rounds come from the design rather than being recovered from the stitch
  * graph, so the round a knitter is told they are on is the round the pattern
- * means - counted within its piece, because "body, round 23" is what anyone
- * knitting a body wants to hear, not "round 104".
+ * means. Each is numbered by its row of the chart, counted on from the neck:
+ * a pattern that counts the body's rounds from 1 again is only renaming them,
+ * and "body, round 104" is in the margin beside the round it names. See
+ * chartRows.
  */
 
 /** A piece, and the rounds it takes up, 1-based and inclusive. */
 export interface PieceSpan extends Piece {
   first: number;
   last: number;
+  /** The number of its last round: see RoundIndex.rows. */
+  lastRow: number;
 }
 
 export interface RoundIndex {
@@ -41,6 +46,8 @@ export interface RoundIndex {
   pieces: PieceSpan[];
   /** Whether each is a round or a short row; see Needles.row. */
   roundKinds: RoundKind[];
+  /** What each round is numbered, by its place from 0: its row of the chart. */
+  rows: number[];
 }
 
 export const indexRounds = (
@@ -58,13 +65,17 @@ export const indexRounds = (
       worked.push(id);
     }),
   );
+  const pieceRows = chartRows(roundPieces);
+  const rows = rounds.map((_, index) => pieceRows[index] ?? index + 1);
   const spans: PieceSpan[] = [];
   roundPieces.forEach((id, index) => {
     const span = spans.find((candidate) => candidate.id === id);
-    if (span) span.last = index + 1;
-    else {
+    if (span) {
+      span.last = index + 1;
+      span.lastRow = rows[index];
+    } else {
       const piece = pieces.find((candidate) => candidate.id === id);
-      spans.push({ id, label: piece?.label ?? id, first: index + 1, last: index + 1 });
+      spans.push({ id, label: piece?.label ?? id, first: index + 1, last: index + 1, lastRow: rows[index] });
     }
   });
   return {
@@ -76,6 +87,7 @@ export const indexRounds = (
     roundPieces,
     pieces: spans,
     roundKinds,
+    rows,
   };
 };
 
@@ -97,9 +109,10 @@ export interface Position {
   label?: string;
   stitchInRound: number;
   stitchesInRound: number;
-  /** The piece the round belongs to, and which of its rounds this is. */
+  /** The piece the round belongs to. */
   piece?: PieceSpan;
-  pieceRound: number;
+  /** What the round is numbered: its row of the chart, counted on from the neck. */
+  row: number;
   nextStitchId?: number;
   /** The needle size to change to, where that is the next thing to do. */
   needlesNext?: number;
@@ -154,7 +167,7 @@ export const positionOf = (
       next?.type === "resume" ? 0 : stepNext ? at + 1 : Math.max(at + 1, 1),
     stitchesInRound: ids.length,
     piece,
-    pieceRound: piece ? round - piece.first + 1 : round,
+    row: index.rows[round - 1] ?? round,
     nextStitchId,
     needlesNext: next?.type === "needles" ? next.needles : undefined,
     joinNext: next?.type === "join" ? "castOn" : undefined,
@@ -176,15 +189,15 @@ export const positionOf = (
 };
 
 /**
- * What the round in hand is called within its piece: "round 23", or, on a
- * short row, what the pattern calls the row - "short row 3, right side".
+ * What the round in hand is called: "round 23", by its row of the chart, or,
+ * on a short row, what the pattern calls the row - "short row 3, right side".
  */
-export const roundName = (position: Position): string => {
+export const roundName = (position: Pick<Position, "kind" | "label" | "row">): string => {
   if (position.kind !== "round" && position.label) {
     const name = position.label.split(" · ").pop() ?? position.label;
     return name.charAt(0).toLowerCase() + name.slice(1);
   }
-  return `round ${position.pieceRound}`;
+  return `round ${position.row}`;
 };
 
 /**
@@ -198,7 +211,7 @@ export const roundNames = (index: RoundIndex): string[] =>
     const piece = index.pieces.find((span) => round >= span.first && round <= span.last);
     const label = index.labels[at];
     const kind = index.roundKinds[at] ?? "round";
-    const name = roundName({ kind, label, pieceRound: piece ? round - piece.first + 1 : round } as Position);
+    const name = roundName({ kind, label, row: index.rows[at] });
     return piece ? `${piece.label}, ${name}` : `Round ${round}`;
   });
 
@@ -214,11 +227,11 @@ export const roundWhats = (index: RoundIndex): string[] =>
     return (index.roundKinds[at] ?? "round") === "round" ? (label.split(" · ").pop() ?? label) : "";
   });
 
-/** "Body, round 23 of 141": where you are, in the piece you are knitting. */
+/** "Body, round 119 of 237": where you are, in the piece you are knitting, and the round it ends with. */
 export const whereYouAre = (position: Position): string =>
   position.piece
     ? position.kind === "round"
-      ? `${position.piece.label}, round ${position.pieceRound} of ${position.piece.last - position.piece.first + 1}`
+      ? `${position.piece.label}, round ${position.row} of ${position.piece.lastRow}`
       : `${position.piece.label}, ${roundName(position)}`
     : `Round ${position.round} of ${position.totalRounds}`;
 

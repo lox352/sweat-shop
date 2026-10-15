@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater, type SweaterStitches } from "./engine";
-import { layOut, layOutSweater, mirrorLayout } from "./layout";
+import { chartRows, layOut, layOutSweater, mirrorLayout } from "./layout";
 import { testBandedSweater, testSweater, testSweaterWithShortRows } from "./test-sweater";
 import { indexRounds } from "./progress";
 import { consumption, makesTwo } from "../types/StitchType";
@@ -154,7 +154,7 @@ describe("the whole sweater on one chart", () => {
     expect(columnsOf("yoke", 5)).toEqual([...run(1, 8), ...run(11, 18), ...run(25, 40), ...run(43, 50), ...run(57, 64)]);
   });
 
-  it("gives each piece's rounds above the divide the same rows, numbered as their own rounds", () => {
+  it("gives each piece's rounds above the divide the same rows, counted on from the yoke's", () => {
     const rowOf = (piece: string, k: number) => {
       const span = index.pieces.find((one) => one.id === piece)!;
       return layout.roundRows[span.first - 1 + k];
@@ -164,7 +164,8 @@ describe("the whole sweater on one chart", () => {
       expect(rowOf(piece, 3)).toBe(10);
     }
     expect(layout.rows).toBe(6 + 5);
-    expect(layout.numbers).toEqual([1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5]);
+    expect(layout.roundRows).toEqual(chartRows(built.roundPieces));
+    expect(chartRows(built.roundPieces)).toEqual([...run(1, 11), ...run(7, 10), ...run(7, 10)]);
   });
 
   it("keeps every stitch over the stitch it was worked into, no two in one place", () => {
@@ -220,7 +221,7 @@ describe.each(sweaters.map((sweater) => [sweater.name, sweater] as const))("%s o
   }, 180_000);
 });
 
-describe("a yoke of bands, raglan increases and a round moved at the divide, on the chart", () => {
+describe("a yoke of bands and raglan increases, on the chart", () => {
   const knitting = buildSweater(testBandedSweater, "one");
   const laid = layOutSweater(knitting.stitches, knitting.rounds, knitting.roundKinds, knitting.roundPieces);
 
@@ -264,15 +265,6 @@ describe("a yoke of bands, raglan increases and a round moved at the divide, on 
       expect(column(id)).toBe(column(knitting.stitches[id].links[0]));
       expect(column(id + 1)).toBeLessThan(column(id));
     }
-  });
-
-  it("gives the part of a round its own row, under the round that works into it and the round before", () => {
-    const at = knitting.roundLabels.indexOf("Body · on to the new beginning of the round");
-    const part = knitting.rounds[at].map((id) => laid.cells.get(id)!.row);
-    const before = laid.cells.get(knitting.rounds[at - 1][0])!.row;
-    const after = laid.cells.get(knitting.rounds[at + 1][0])!.row;
-    expect(new Set(part)).toEqual(new Set([before + 1]));
-    expect(after).toBe(before + 2);
   });
 });
 

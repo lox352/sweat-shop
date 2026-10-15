@@ -285,8 +285,9 @@ export const buildSweater = (
         const asStitch: Record<string, StitchType> = { k: "k1", p: "p1", k1tbl: "k1tbl" };
         /*
          * Called what they are, and not numbered: the knitting numbers every
-         * round of a piece already, and a count of these alone would only be
-         * a second number for the same round. See progress.roundNames.
+         * round already, by its row of the chart, and a count of these alone
+         * would only be a second number for the same round. See
+         * progress.roundNames.
          */
         const what = sequence.every((one) => one === "k")
           ? "plain round"
@@ -349,8 +350,6 @@ export const buildSweater = (
         needles.startRound(`${section} · dividing round`, width, rise);
         // A cast-on closed up to the stitches after it passes its last over the first of them.
         let closing = false;
-        // The stitch the round will begin after, once the dividing round is done.
-        let beginAfter: number | undefined;
         for (const segment of spec.segments) {
           if ("work" in segment) {
             for (let i = 0; i < segment.work; i++) needles.knit(closing && i === 0 ? "sl1po" : "k1", spec.slot);
@@ -360,26 +359,10 @@ export const buildSweater = (
             needles.hold(segment.hold, segment.count, segment.wrap);
             needles.castOnHere(segment.castOn, spec.slot, segment.hold, segment.close === "slipPassOver");
             closing = segment.close === "slipPassOver";
-            if (segment.newRound !== undefined) {
-              const edge = needles.edge(segment.hold);
-              if (segment.newRound < 1 || segment.newRound > edge.length) {
-                throw new Error(`${section}: no stitch ${segment.newRound} of ${edge.length} cast on to begin the round after`);
-              }
-              beginAfter = edge[segment.newRound - 1];
-            }
           }
         }
         if (closing) throw new Error(`${section}: a cast-on is closed up to nothing`);
         needles.endRound();
-        if (beginAfter !== undefined) {
-          needles.beginRoundAt(
-            needles.placeOf(beginAfter) + 1,
-            `${section} · on to the new beginning of the round`,
-            width,
-            rise,
-            spec.slot,
-          );
-        }
         break;
       }
       case "piece": {

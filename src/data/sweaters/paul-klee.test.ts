@@ -64,19 +64,18 @@ describe.each(paulKlee.sizes.map((size, at) => [size.label, size, at] as const))
     within((size.checks["sleeve-left:cuff"] * rib) / perCm, finished.cuffCm, "cuff", 3);
   });
 
-  it("divides at the underarms, casting on with one passed over, and moves the round to the middle of the right underarm", () => {
+  it("divides at the underarms, casting on with one passed over, and goes on round from the middle of the back", () => {
     const divide = labelled(/^Body · dividing round$/)[0];
     const castOn = divide.filter((id) => stitches[id].type === "castOn");
     expect(divide.filter((id) => stitches[id].type === "sl1po")).toHaveLength(2);
     // Each underarm casts on one more than stays, the last passed over the stitch after it.
     const right = built.holds.find((held) => held.holder === "sleeve-right")!.edge!;
     expect(right).toHaveLength(castOn.length / 2 - 1);
-    // The round now begins half way along the right underarm's: the part round ends there, and the next begins after it.
-    const partAt = roundLabels.indexOf("Body · on to the new beginning of the round");
-    const part = rounds[partAt];
-    expect(roundKinds[partAt]).toBe("part");
-    expect(stitches[part[part.length - 1]].links[0]).toBe(right[right.length / 2 - 1]);
-    expect(stitches[rounds[partAt + 1][0]].links[0]).toBe(right[right.length / 2]);
+    // The pattern moves the beginning of the round to the right underarm, which only renames it: it stays where it was.
+    expect(roundLabels.some((label) => /beginning of the round/.test(label))).toBe(false);
+    const next = rounds[roundLabels.indexOf("Body · dividing round") + 1];
+    expect(stitches[next[0]].links[0]).toBe(divide[0]);
+    expect(stitches[next[next.length - 1]].links[0]).toBe(divide[divide.length - 1]);
   });
 
   it("works each sleeve as many rounds as the pattern says, picking up one more than its underarm has at each corner", () => {

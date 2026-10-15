@@ -161,9 +161,6 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
   const overParents = (round: number[]) => {
     for (const id of round) turn[id] = turn[workedInto(stitches[id])[0] ?? id - 1];
   };
-  /** Whether a round is part of one, knitted on without turning: see Needles.beginRoundAt. */
-  const kindOf = new Map<number[], string>(rounds.map((round, index) => [round, built.roundKinds[index] ?? "round"]));
-  const isPart = (round: number[]) => kindOf.get(round) === "part";
 
   /**
    * A round whose stitches were worked into the round before it: each starts
@@ -222,8 +219,7 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
    * next without a jog.
    */
   const radiiOf = (tubeRounds: number[][]) => {
-    // Part of a round is no ring of its own: it stands on the ring before it.
-    const radii = tubeRounds.map((round, k) => radiusOf(k > 0 && isPart(round) ? tubeRounds[k - 1] : round));
+    const radii = tubeRounds.map(radiusOf);
     const rises = tubeRounds.map(riseOf);
     for (let k = radii.length - 2; k >= 0; k--) {
       radii[k] = Math.min(radii[k], radii[k + 1] + taper * rises[k + 1]);
@@ -252,23 +248,6 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
   ) => {
     let along = 0;
     tubeRounds.forEach((round, k) => {
-      /*
-       * Part of a round, knitted on to move the beginning of the round: each
-       * stitch over the one it was worked into, and the helix carried on
-       * round as far as it goes - so the round after it, which begins where
-       * it ends, starts that much further along, a round below what it works.
-       */
-      if (k > 0 && isPart(round)) {
-        overParents(round);
-        const whole = tubeRounds[k - 1].length;
-        const step = riseOf(round);
-        round.forEach((id, index) => {
-          const { centre, e1, e2 } = frameAt(along + (step * index) / whole);
-          set(id, onRing(centre, radii[k], e1, e2, turn[id]));
-        });
-        along += (step * round.length) / whole;
-        return;
-      }
       if (k === 0) evenly(round);
       else follow(round);
       /*

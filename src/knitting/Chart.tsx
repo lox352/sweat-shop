@@ -601,7 +601,7 @@ const Chart: React.FC<ChartProps> = ({
         column of the knitting: a make-one begins a new one, with nothing below
         it, as do the stitches cast on at the underarms and picked up for the
         sleeves, and a decrease ends one. Above the divide each row holds a round
-        of the body and one of each sleeve, numbered as their own rounds: going
+        of the body and one of each sleeve, all numbered on from the yoke's: going
         round the body you pass over the sleeves' columns, and a sleeve goes up
         its own columns a row at a time.
         {turns.length > 0 &&

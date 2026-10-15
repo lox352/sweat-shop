@@ -79,7 +79,7 @@ const ProjectCard: React.FC<{
   );
   const status = done
     ? `Finished · ${counts.total.toLocaleString()} stitches`
-    : `${position.piece ? `${position.piece.label}, round ${position.pieceRound} · ` : ""}` +
+    : `${position.piece ? `${position.piece.label}, round ${position.row} · ` : ""}` +
       `started ${formatDate(project.startedAt)}`;
 
   /*

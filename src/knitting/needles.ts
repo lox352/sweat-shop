@@ -29,12 +29,8 @@ import { StitchType, boundOff, consumption, makesTwo } from "../types/StitchType
  * Positions are not made here. The knitting is the same knitting however it
  * is posed, so that is physics/pose.ts's business.
  */
-/**
- * A round, or a short row worked from one side or the other, or part of a
- * round knitted on without turning, to move the beginning of the round: see
- * Needles.beginRoundAt.
- */
-export type RoundKind = "round" | "right" | "wrong" | "part";
+/** A round, or a short row worked from one side or the other. */
+export type RoundKind = "round" | "right" | "wrong";
 
 /**
  * Stitches put on hold: a run of the round they were held from, in order,
@@ -289,29 +285,6 @@ export default class Needles {
     this.edges.set(edge, ids);
     const held = this.holds.find((one) => one.holder === edge && one.resumedAt === undefined);
     if (held) held.edge = ids;
-    return this;
-  }
-
-  /** Where a stitch is on the needles, from the beginning of the round. */
-  placeOf(id: number): number {
-    const place = this.live.indexOf(id);
-    if (place < 0) throw new Error(`stitch ${id} is not on the needles`);
-    return place;
-  }
-
-  /**
-   * Move the beginning of the round on to `place`: knit on from the
-   * beginning of the round as far as it - part of a round, without turning -
-   * and begin every round after there. The body of a sweater divided at the
-   * back may be knitted on round to the middle of an underarm, where the
-   * pattern puts its new end-of-round marker.
-   */
-  beginRoundAt(place: number, label: string, width: number, rise: number, slot: string): this {
-    if (this.working) throw new Error(`${label}: a round is still in progress`);
-    if (place <= 0 || place >= this.live.length) throw new Error(`${label}: no place ${place} to begin the round at`);
-    this.row(label, width, rise, "right", Array.from({ length: place }, (_, i) => i), slot);
-    this.roundKinds[this.roundKinds.length - 1] = "part";
-    this.live = [...this.live.slice(place), ...this.live.slice(0, place)];
     return this;
   }
 

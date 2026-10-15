@@ -206,10 +206,9 @@ const blocks = (a: string, b: string, increases?: "both"): ChartCell[] => {
  *            increasing in every block -> 40; band 2, 2 rounds of blocks
  *            main needles: a plain round; a raglan round, kbf and kfb
  *            either side of four lines -> 48; a plain round
- *   divide   k6, wrap and hold 10 (right sleeve), cast on 3 with the new
- *            beginning after the first and close up, k16, wrap and hold 10
- *            (left), cast on 3 and close up, k6 -> body of 32; then on 7
- *            stitches to the new beginning of the round
+ *   divide   k6, wrap and hold 10 (right sleeve), cast on 3 and close up,
+ *            k16, wrap and hold 10 (left), cast on 3 and close up, k6 ->
+ *            body of 32
  *   body     a round, then on the rib's needles a round of k1 p1, and bound
  *            off in pattern
  *   sleeves  pick up 2, knit 10, pick up 2 -> 14, from an edge of 2; a
@@ -321,7 +320,7 @@ export const testBandedSweater: SweaterPattern = {
               slot: "MC",
               segments: [
                 { work: 6 },
-                { hold: "sleeve-right", count: 10, castOn: 2, wrap: true, close: "slipPassOver", newRound: 1 },
+                { hold: "sleeve-right", count: 10, castOn: 2, wrap: true, close: "slipPassOver" },
                 { work: 16 },
                 { hold: "sleeve-left", count: 10, castOn: 2, wrap: true, close: "slipPassOver" },
                 { work: 6 },

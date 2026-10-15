@@ -229,13 +229,6 @@ export type DivideSegment =
        * slipped stitch is the first of the next stretch's.
        */
       close?: "slipPassOver";
-      /**
-       * Begin the round here from now on: after this many of the stitches
-       * cast on, where the pattern places the new end-of-round marker. The
-       * body is knitted on round from the old beginning to the new before
-       * its next round begins.
-       */
-      newRound?: number;
     };
 
 export type RoundSpec = (

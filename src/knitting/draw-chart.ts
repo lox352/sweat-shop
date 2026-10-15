@@ -2,7 +2,7 @@ import { Stitch } from "../types/Stitch";
 import { ChartLayout } from "./layout";
 import { Palette, inkOn, yarnFor } from "./palette";
 import { type Face, markAt } from "./chart-marks";
-import type { NeedleRule } from "./chart-paths";
+import { type NeedleRule, numberedRows } from "./chart-paths";
 
 /**
  * Drawing the chart onto a canvas: the renderer kept beside the vector one,
@@ -53,8 +53,8 @@ export const chartSize = (layout: ChartLayout, cell: number) => ({
 });
 
 /**
- * The round numbers down the right-hand edge: each row numbered as the round
- * it is of its piece.
+ * The round numbers down the right-hand edge: each row its own number, which
+ * is what the knitting calls its rounds; see chartRows.
  *
  * Every fifth, plus each piece's first and the chart's last, which are the
  * ones a knitter looks for: where to start and how far there is to go.
@@ -66,18 +66,15 @@ const drawRoundNumbers = (
   ink: string,
   needleChanges: NeedleRule[] = [],
 ) => {
-  const named = new Set(needleChanges.flatMap((change) => [change.after, change.after + 1]));
   ctx.save();
   ctx.fillStyle = ink;
   ctx.font = `${Math.round(cell * 0.72)}px ui-monospace, "Source Sans 3", system-ui, sans-serif`;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
   const x = layout.columns * cell + Math.round(cell * 0.45);
-  for (let row = 1; row <= layout.rows; row++) {
-    const number = layout.numbers[row - 1] ?? row;
-    if (number % emphasis !== 0 && number !== 1 && row !== layout.rows && !named.has(row)) continue;
+  for (const row of numberedRows(layout, needleChanges)) {
     const { y } = cellAt(layout, row, 1, cell);
-    ctx.fillText(String(number), x, y + cell / 2);
+    ctx.fillText(String(row), x, y + cell / 2);
   }
   ctx.restore();
 };
@@ -137,8 +134,7 @@ export const drawChart = (
     const majorCol =
       Math.abs(at.column - Math.round(at.column)) < 1e-6 &&
       Math.round(at.column) % emphasis === 0;
-    const below = layout.numbers[at.row - 2];
-    const majorRow = below !== undefined && below % emphasis === 0;
+    const majorRow = at.row > 1 && (at.row - 1) % emphasis === 0;
     const needlesRow = needlesAt.has(`${at.row}|${at.piece}`);
     ctx.beginPath();
     ctx.strokeStyle = majorCol ? gridStrong : grid;
