@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo } from "react";
 import { Stitch } from "../types/Stitch";
+import { makesTwo } from "../types/StitchType";
 import {
   Run,
   RoundIndex,
@@ -140,10 +141,13 @@ const ResumeSwatch: React.FC = () => (
  * Dividing the yoke: a sleeve's stitches set aside, part way through the
  * round, for the underarm to be cast on in their place.
  */
-const HoldStep: React.FC<{ count: number; piece: string }> = ({ count, piece }) => (
+const HoldStep: React.FC<{ count: number; piece: string; wrap?: boolean }> = ({ count, piece, wrap }) => (
   <div className="knitting-step">
     <StepHeading symbol={<HoldSwatch />}>Put {count} stitches on hold</StepHeading>
     <span className="quiet">
+      {wrap &&
+        "First wrap the next stitch, so the corner is left with no hole: bring the yarn to the front, " +
+          "slip the stitch purlwise, take the yarn to the back and slip the stitch back to the left needle. "}
       Slip the next {count} stitches onto waste yarn for the {piece.toLowerCase()},
       and leave them there until you begin it. Then cast on the underarm in
       their place, pulling the yarn snug across the gap. On the chart they are
@@ -225,16 +229,17 @@ const NeedlesStep: React.FC<{ to: number; from?: number }> = ({ to, from }) => (
 
 /**
  * Joining the cast-on into a round: one stitch more is cast on and lifted
- * off again where the two ends meet.
+ * off again where the two ends meet - or however the design says to join it.
  */
-const JoinStep: React.FC = () => (
+const JoinStep: React.FC<{ how?: string }> = ({ how }) => (
   <div className="knitting-step">
     <StepHeading symbol={<JoinArrow />}>Join in the round</StepHeading>
     <span className="quiet">
-      Cast on one more stitch. Then, without twisting the cast-on, slip it to
-      the left needle, lift the first stitch cast on over it and off, and slip
-      it back to the right needle. Place a marker for the start of the round:
-      the middle of the back.
+      {how ??
+        "Cast on one more stitch. Then, without twisting the cast-on, slip it to " +
+          "the left needle, lift the first stitch cast on over it and off, and slip " +
+          "it back to the right needle."}{" "}
+      Place a marker for the start of the round: the middle of the back.
     </span>
   </div>
 );
@@ -304,14 +309,14 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
     (delta: number) => {
       if (delta > 0) {
         const next = currentRun(stitches, progress, index);
-        if (next?.type === "kfb" && next.startId === progress + 1) {
+        if (next && makesTwo(next.type) && next.startId === progress + 1 && next.endId === progress + 2) {
           setProgress(next.endId);
           return;
         }
       } else if (delta < 0) {
         const current = stitches[progress];
         const previous = stitches[progress - 1];
-        if (current?.type === "m1" && previous?.type === "kfb") {
+        if (current?.type === "m1" && makesTwo(previous?.type)) {
           setProgress(progress - 2);
           return;
         }
@@ -383,10 +388,12 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
    * says more than which of the yoke's rounds it is.
    */
   const shortRows = useMemo(() => {
-    if (position.kind === "round") return undefined;
+    // Part of a round knitted on to move its beginning is no short row: nothing turns.
+    const turning = (kind?: string) => kind === "right" || kind === "wrong";
+    if (!turning(position.kind)) return undefined;
     let [start, end] = [position.round - 1, position.round - 1];
-    while (start > 0 && (index.roundKinds[start - 1] ?? "round") !== "round") start--;
-    while (end + 1 < index.roundKinds.length && (index.roundKinds[end + 1] ?? "round") !== "round") end++;
+    while (start > 0 && turning(index.roundKinds[start - 1])) start--;
+    while (end + 1 < index.roundKinds.length && turning(index.roundKinds[end + 1])) end++;
     return { at: position.round - start, of: end - start + 1 };
   }, [position.kind, position.round, index.roundKinds]);
 
@@ -425,7 +432,11 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
                   : `${where} done. Change to ${position.needlesNext}mm needles.`}
         </p>
         {position.holdNext ? (
-          <HoldStep count={position.holdNext.count} piece={pieceLabel(position.holdNext.holder)} />
+          <HoldStep
+            count={position.holdNext.count}
+            piece={pieceLabel(position.holdNext.holder)}
+            wrap={position.holdNext.wrap}
+          />
         ) : position.resumeNext ? (
           <ResumeStep
             count={position.resumeNext.count}
@@ -436,7 +447,7 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
         ) : position.turnNext ? (
           <TurnStep side={position.turnNext.side} />
         ) : position.joinNext ? (
-          <JoinStep />
+          <JoinStep how={notes?.join?.how} />
         ) : (
           <NeedlesStep to={position.needlesNext ?? 0} from={stitches[progress]?.needles} />
         )}

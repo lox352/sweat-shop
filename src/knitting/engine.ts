@@ -68,6 +68,8 @@ const stitchFor = (cell: ChartCell): StitchType => {
       return "sk2p";
     case "m1":
       return "m1";
+    case "kfb":
+      return "kfb";
     default:
       return "k1";
   }
@@ -87,7 +89,7 @@ const cost = (op: ShapingOp): number => {
     return "times" in op ? each * op.times : each;
   }
   if (op.work === "m1") return 0;
-  if (op.work === "kfb") return 1;
+  if (op.work === "kfb" || op.work === "kbf" || op.work === "pfb") return 1;
   if (op.work === "k2tog" || op.work === "ssk") return 2;
   if (op.work === "s2kp" || op.work === "sk2p") return 3;
   return op.times;
@@ -121,12 +123,13 @@ export const expand = (ops: ShapingOp[], available: number): StitchType[] => {
       out.push("m1");
       return;
     }
-    if (op.work === "kfb") {
+    if (op.work === "kfb" || op.work === "kbf") {
       // One instruction, two loops: the second follows as the paired make-one.
-      out.push("kfb", "m1");
+      out.push(op.work, "m1");
       used += 1;
       return;
     }
+    if (op.work === "pfb") throw new Error("a PFB is worked from the wrong side, in a short row");
     if (op.work === "k2tog" || op.work === "ssk" || op.work === "s2kp" || op.work === "sk2p") {
       out.push(op.work);
       used += cost(op);
@@ -143,6 +146,34 @@ export const expand = (ops: ShapingOp[], available: number): StitchType[] => {
       `a shaping round works ${used} stitches, but the needle has ${available}`,
     );
   }
+  return out;
+};
+
+/**
+ * A short row's shaping as the stitches it works, one to a place: a knit, or
+ * an increase that makes two loops of it. Written as the pattern works it -
+ * "k" and "kfb" from the right side, "p" and "pfb" from the wrong - and
+ * checked to be worked from the side the row is.
+ */
+export const rowWork = (ops: ShapingOp[], places: number, side: "right" | "wrong"): ("k1" | "kfb")[] => {
+  const [plain, increase] = side === "wrong" ? ["p", "pfb"] : ["k", "kfb"];
+  const out: ("k1" | "kfb")[] = [];
+  const one = (op: ShapingOp) => {
+    if ("repeat" in op) {
+      const each = cost(op);
+      const times = "times" in op ? op.times : each > 0 ? Math.floor((places - out.length - op.untilRemaining) / each) : 0;
+      for (let i = 0; i < times; i++) op.repeat.forEach(one);
+      return;
+    }
+    if (op.work === increase) {
+      out.push("kfb");
+      return;
+    }
+    if (op.work !== plain || !("times" in op)) throw new Error(`a short row from the ${side} side cannot ${op.work}`);
+    for (let i = 0; i < op.times; i++) out.push("k1");
+  };
+  ops.forEach(one);
+  if (out.length !== places) throw new Error(`a short row's shaping works ${out.length} stitches, but it has ${places}`);
   return out;
 };
 
@@ -205,8 +236,12 @@ export const buildSweater = (
    * ribbing, and the knitting starts on the ribbing's: the neck is ribbed.
    * A change after that is a step of its own, where the pattern says.
    */
-  const needleFor = (which: "rib" | "main") =>
-    which === "rib" ? (size.ribNeedlesMm ?? size.needlesMm) : size.needlesMm;
+  const needleFor = (which: "rib" | "main" | "colour") =>
+    which === "rib"
+      ? (size.ribNeedlesMm ?? size.needlesMm)
+      : which === "colour"
+        ? (size.colourNeedlesMm ?? size.needlesMm)
+        : size.needlesMm;
   const startingNeedles = needleFor("rib");
   let onNeedles = startingNeedles;
   const needleChanges: number[] = [];
@@ -312,20 +347,44 @@ export const buildSweater = (
       case "divide": {
         const { width, rise } = fabricOf(pattern, roundHeight, spec.fabric);
         needles.startRound(`${section} · dividing round`, width, rise);
+        // A cast-on closed up to the stitches after it passes its last over the first of them.
+        let closing = false;
+        // The stitch the round will begin after, once the dividing round is done.
+        let beginAfter: number | undefined;
         for (const segment of spec.segments) {
           if ("work" in segment) {
-            for (let i = 0; i < segment.work; i++) needles.knit("k1", spec.slot);
+            for (let i = 0; i < segment.work; i++) needles.knit(closing && i === 0 ? "sl1po" : "k1", spec.slot);
+            closing = false;
           } else {
-            needles.hold(segment.hold, segment.count);
-            needles.castOnHere(segment.castOn, spec.slot, segment.hold);
+            if (closing) throw new Error(`${section}: a cast-on is closed up to nothing`);
+            needles.hold(segment.hold, segment.count, segment.wrap);
+            needles.castOnHere(segment.castOn, spec.slot, segment.hold, segment.close === "slipPassOver");
+            closing = segment.close === "slipPassOver";
+            if (segment.newRound !== undefined) {
+              const edge = needles.edge(segment.hold);
+              if (segment.newRound < 1 || segment.newRound > edge.length) {
+                throw new Error(`${section}: no stitch ${segment.newRound} of ${edge.length} cast on to begin the round after`);
+              }
+              beginAfter = edge[segment.newRound - 1];
+            }
           }
         }
+        if (closing) throw new Error(`${section}: a cast-on is closed up to nothing`);
         needles.endRound();
+        if (beginAfter !== undefined) {
+          needles.beginRoundAt(
+            needles.placeOf(beginAfter) + 1,
+            `${section} · on to the new beginning of the round`,
+            width,
+            rise,
+            spec.slot,
+          );
+        }
         break;
       }
       case "piece": {
         const edge = needles.edge(spec.held);
-        if (spec.before + spec.after !== edge.length) {
+        if (spec.before + spec.after < edge.length) {
           throw new Error(
             `${section}: picks up ${spec.before} + ${spec.after} stitches from an ` +
               `edge of ${edge.length}`,
@@ -337,10 +396,22 @@ export const buildSweater = (
          * same edge seen from the other side. Beginning at its middle, the
          * round picks up back to its start, knits the held stitches, then
          * picks up from its far end back to the middle again.
+         *
+         * Each half gives its share of the stitches, and where a half is
+         * asked for more than it has, the rest come up out of its corner -
+         * the gap between the cast-on and the held stitches, which a
+         * pattern picks up from to close it.
          */
         const reversed = [...edge].reverse();
-        const head = reversed.slice(0, spec.after);
-        const tail = reversed.slice(spec.after);
+        const far = Math.round((edge.length * spec.after) / (spec.before + spec.after));
+        const spread = (part: number[], count: number, corner: "first" | "last"): number[] => {
+          if (part.length === 0) throw new Error(`${section}: half of the edge has no stitches to pick up from`);
+          const extra = Array<number>(count - part.length).fill(corner === "first" ? part[0] : part[part.length - 1]);
+          return corner === "first" ? [...extra, ...part] : [...part, ...extra];
+        };
+        // From the far end, at its corner, back to the middle; and from the middle out to the start's corner.
+        const head = spread(reversed.slice(0, far), spec.after, "first");
+        const tail = spread(reversed.slice(far), spec.before, "last");
         /*
          * Onto the main needles, whatever the last piece ended on: the body
          * ends in its hem rib, on the rib's, and a sleeve is not ribbed until
@@ -358,27 +429,35 @@ export const buildSweater = (
       }
       case "shortRows": {
         const { width, rise } = fabricOf(pattern, roundHeight, spec.fabric);
-        const count = needles.count;
-        const reach = spec.first + (spec.pairs - 1) * spec.extend;
-        if (2 * reach >= count) {
-          throw new Error(`${section}: short rows ${reach} stitches either side need more than ${count} stitches`);
+        // How far each pair reaches past the beginning of the round: the last further, where the pattern stretches it.
+        const reaches: number[] = [];
+        for (let pair = 0; pair < spec.pairs; pair++) {
+          const extend = pair === spec.pairs - 1 && spec.extendLast !== undefined ? spec.extendLast : spec.extend;
+          reaches.push(pair === 0 ? spec.first : reaches[pair - 1] + extend);
         }
-        const at = (place: number) => ((place % count) + count) % count;
-        const span = (from: number, to: number, way: 1 | -1) => {
-          const places: number[] = [];
-          for (let place = from; place !== to + way; place += way) places.push(at(place));
-          return places;
-        };
+        const reach = reaches[reaches.length - 1];
+        if (2 * reach >= needles.count) {
+          throw new Error(`${section}: short rows ${reach} stitches either side need more than ${needles.count} stitches`);
+        }
         /*
          * Places on the ring run from the beginning of the round, at the
          * middle of the back: the right side's turns are past it, the wrong
-         * side's before it, counting back from the end of the round.
+         * side's before it, counting back from the end of the round. Each
+         * row counts them on the needles as they are when it is worked, so a
+         * place counted back from the end is the same stitch after a row
+         * before it has increased.
          */
+        const span = (from: number, to: number, way: 1 | -1) => {
+          const count = needles.count;
+          const places: number[] = [];
+          for (let place = from; place !== to + way; place += way) places.push(((place % count) + count) % count);
+          return places;
+        };
         let right = -1;
         let left = 0;
         for (let pair = 0; pair < spec.pairs; pair++) {
-          const reachRight = spec.first - 1 + pair * spec.extend;
-          const reachLeft = -(spec.first + pair * spec.extend);
+          const reachRight = reaches[pair] - 1;
+          const reachLeft = -reaches[pair];
           // Right side: from just past the last wrong-side turn - or the beginning of the round - to the next turn.
           needles.row(
             `${section} · short row ${pair * 2 + 1}, right side`,
@@ -391,6 +470,8 @@ export const buildSweater = (
           needles.turn();
           right = reachRight;
           // Wrong side: back from just before that turn, past the beginning of the round, to the next.
+          // The last of them increases on its way back to the beginning of the round, where the pattern says.
+          const shaping = pair === spec.pairs - 1 ? spec.shaping?.wrong : undefined;
           needles.row(
             `${section} · short row ${pair * 2 + 2}, wrong side`,
             width,
@@ -398,25 +479,33 @@ export const buildSweater = (
             "wrong",
             span(right - 1, reachLeft, -1),
             spec.slot,
+            shaping ? rowWork(shaping, right, "wrong") : [],
           );
           needles.turn();
           left = reachLeft;
         }
         // And on from the last turn to the end of the round, which the next round begins after.
+        const last = span(left + 1, -1, 1);
         needles.row(
           `${section} · short rows, to the end of the round`,
           width,
           rise,
           "right",
-          span(left + 1, -1, 1),
+          last,
           spec.slot,
+          spec.shaping?.right ? rowWork(spec.shaping.right, last.length, "right") : [],
         );
         break;
       }
       case "bindOff": {
+        // Knitwise, or in pattern: a rib's purls bound off purlwise.
+        const sequence = spec.sequence ?? ["k"];
         round(
           `${section} · bind off`,
-          Array.from({ length: needles.count }, () => ({ type: "bindOff" as const, slot: spec.slot })),
+          Array.from({ length: needles.count }, (_, i) => ({
+            type: sequence[i % sequence.length] === "p" ? ("bindOffPurl" as const) : ("bindOff" as const),
+            slot: spec.slot,
+          })),
           spec.fabric,
         );
         break;

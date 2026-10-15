@@ -30,7 +30,8 @@ export type Face = "right" | "wrong";
  *   bind off            bind off purlwise
  *
  * A cast-on is a cast-on from either side, and a step - joining the round,
- * a turn - is the same step.
+ * a turn - is the same step. A purlwise bind-off is one of the sweater's own
+ * as well, where a rib is bound off in pattern.
  */
 export type ReverseStitch =
   | "p1tbl"
@@ -40,8 +41,7 @@ export type ReverseStitch =
   | "p2sps"
   | "m1p"
   | "pfb"
-  | "pickUpPurl"
-  | "bindOffPurl";
+  | "pickUpPurl";
 
 /** Any stitch a chart can show: one of the sweater's, or one of them from behind. */
 export type ChartStitch = StitchType | ReverseStitch;
@@ -68,11 +68,19 @@ export const reverseOf = (stitch: ChartStitch): ChartStitch => pairOf.get(stitch
  * knitting panel says to do, and what it is timed as.
  *
  * A short row worked back from the wrong side is stored as what it makes on
- * the right side, knits; worked, from the wrong side, it is purls. Its rows
- * hold nothing but knits, so a knit and a purl are all this has to turn.
+ * the right side, knits; worked, from the wrong side, it is purls, and the
+ * increase a short row may make, a KFB from the right side, is a PFB.
  */
-export const workedAs = (stitch: Pick<Stitch, "type" | "wrongSide">): StitchType =>
-  !stitch.wrongSide ? stitch.type : stitch.type === "k1" ? "p1" : stitch.type === "p1" ? "k1" : stitch.type;
+export const workedAs = (stitch: Pick<Stitch, "type" | "wrongSide">): StitchType | "pfb" =>
+  !stitch.wrongSide
+    ? stitch.type
+    : stitch.type === "k1"
+      ? "p1"
+      : stitch.type === "p1"
+        ? "k1"
+        : stitch.type === "kfb"
+          ? "pfb"
+          : stitch.type;
 
 /**
  * What the chart shows a stitch as, seen from one side of the sweater.

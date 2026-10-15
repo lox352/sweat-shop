@@ -1,5 +1,6 @@
 import type { RoundKind } from "./needles";
 import { Stitch, isFabric } from "../types/Stitch";
+import { makesTwo } from "../types/StitchType";
 import { consumption } from "../types/StitchType";
 
 export interface Cell {
@@ -120,11 +121,11 @@ interface Family {
 }
 
 /**
- * Whether a make-one is the second loop of the KFB worked just before it,
- * rather than a stitch picked up on its own between two others.
+ * Whether a make-one is the second loop of the KFB or KBF worked just before
+ * it, rather than a stitch picked up on its own between two others.
  */
 export const isSecondLoop = (stitch: Stitch, byId: Map<number, Stitch>): boolean =>
-  stitch.type === "m1" && byId.get(stitch.id - 1)?.type === "kfb";
+  stitch.type === "m1" && makesTwo(byId.get(stitch.id - 1)?.type);
 
 /**
  * How a family lines up with the round below.
@@ -136,7 +137,7 @@ export const isSecondLoop = (stitch: Stitch, byId: Map<number, Stitch>): boolean
  */
 const leanOf = (family: Family, byId: Map<number, Stitch>): Lean => {
   if (family.above.length > 1) {
-    return family.above.some((id) => byId.get(id)?.type === "kfb")
+    return family.above.some((id) => makesTwo(byId.get(id)?.type))
       ? "right"
       : "middle";
   }

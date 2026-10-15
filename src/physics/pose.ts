@@ -138,6 +138,17 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
     (stitch.links.length > consumption[stitch.type] ? stitch.links.slice(0, -1) : stitch.links)
       .filter((id) => isFabric(stitches[id]));
 
+  /*
+   * A short row is part of the way round and unshaped, so each of its
+   * stitches simply stands over the stitch it was worked into.
+   */
+  const overParents = (round: number[]) => {
+    for (const id of round) turn[id] = turn[workedInto(stitches[id])[0] ?? id - 1];
+  };
+  /** Whether a round is part of one, knitted on without turning: see Needles.beginRoundAt. */
+  const kindOf = new Map<number[], string>(rounds.map((round, index) => [round, built.roundKinds[index] ?? "round"]));
+  const isPart = (round: number[]) => kindOf.get(round) === "part";
+
   /**
    * A round whose stitches were worked into the round before it: each starts
    * over the middle of what it was worked into, and a make-one, worked into
@@ -195,7 +206,8 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
    * next without a jog.
    */
   const radiiOf = (tubeRounds: number[][]) => {
-    const radii = tubeRounds.map(radiusOf);
+    // Part of a round is no ring of its own: it stands on the ring before it.
+    const radii = tubeRounds.map((round, k) => radiusOf(k > 0 && isPart(round) ? tubeRounds[k - 1] : round));
     const rises = tubeRounds.map(riseOf);
     for (let k = radii.length - 2; k >= 0; k--) {
       radii[k] = Math.min(radii[k], radii[k + 1] + taper * rises[k + 1]);
@@ -224,6 +236,17 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
   ) => {
     let along = 0;
     tubeRounds.forEach((round, k) => {
+      /*
+       * Part of a round, knitted on to move the beginning of the round: each
+       * stitch over the one it was worked into, half a step on, so the round
+       * after it reaches both it and the round before it.
+       */
+      if (k > 0 && isPart(round)) {
+        overParents(round);
+        const { centre, e1, e2 } = frameAt(Math.max(along - riseOf(round) / 2, 0));
+        round.forEach((id) => set(id, onRing(centre, radii[k], e1, e2, turn[id])));
+        return;
+      }
       if (k === 0) evenly(round);
       else follow(round);
       /*
@@ -327,13 +350,6 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
   const yokeRounds = roundsOf(yokeId);
   const yokeKinds = built.roundKinds.filter((_, index) => roundPieces[index] === yokeId);
   const isRow = (k: number) => (yokeKinds[k] ?? "round") !== "round";
-  /*
-   * A short row is part of the way round and unshaped, so each of its
-   * stitches simply stands over the stitch it was worked into.
-   */
-  const overParents = (round: number[]) => {
-    for (const id of round) turn[id] = turn[workedInto(stitches[id])[0] ?? id - 1];
-  };
   yokeRounds.forEach((round, k) => (k === 0 ? evenly(round) : isRow(k) ? overParents(round) : follow(round)));
   const last = yokeRounds[yokeRounds.length - 1];
   const consumer = new Map<number, number>();

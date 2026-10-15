@@ -13,6 +13,17 @@
  *
  * "bindOff" works a stitch and passes the one before it over, so that nothing
  * is left on the needle: the hem and the cuffs end in a round of them.
+ * "bindOffPurl" purls the stitch instead of knitting it: a rib bound off "in
+ * pattern" binds its purls off purlwise.
+ *
+ * "kfb" knits into the front of a stitch and then its back, making two loops
+ * of one; "kbf" knits it and then lifts the leg of the stitch below, its
+ * mirror, which a raglan line puts on its other side. Either way the second
+ * loop is stored as the "m1" straight after it, held by the same stitch.
+ *
+ * "sl1po" slips a stitch and lifts the stitch just cast on over it: how a
+ * cast-on part way round is closed up to the stitches after it, the last
+ * stitch cast on passed over the first of them so no gap is left.
  *
  * k2tog and ssk both take two stitches down to one and lean opposite ways - a
  * k2tog to the right, an ssk to the left - which is why a sleeve decreases
@@ -48,12 +59,15 @@ export type StitchType =
   | "k1tbl"
   | "m1"
   | "kfb"
+  | "kbf"
   | "k2tog"
   | "ssk"
   | "s2kp"
   | "sk2p"
+  | "sl1po"
   | "pickUp"
   | "bindOff"
+  | "bindOffPurl"
   | "join"
   | "needles"
   | "hold"
@@ -68,12 +82,15 @@ export const consumption: Record<StitchType, number> = {
   k1tbl: 1,
   m1: 0,
   kfb: 1,
+  kbf: 1,
   k2tog: 2,
   ssk: 2,
   s2kp: 3,
   sk2p: 3,
+  sl1po: 1,
   pickUp: 0,
   bindOff: 1,
+  bindOffPurl: 1,
   join: 0,
   needles: 0,
   hold: 0,
@@ -89,3 +106,9 @@ export const stepTypes: ReadonlySet<StitchType> = new Set<StitchType>([
   "resume",
   "turn",
 ]);
+
+/** Whether a stitch makes two loops of one, its second the make-one straight after it: a KFB or a KBF. */
+export const makesTwo = (type: StitchType | undefined): boolean => type === "kfb" || type === "kbf";
+
+/** Whether a stitch is bound off, leaving nothing on the needle. */
+export const boundOff = (type: StitchType | undefined): boolean => type === "bindOff" || type === "bindOffPurl";

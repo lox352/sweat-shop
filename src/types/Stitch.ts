@@ -50,6 +50,8 @@ export interface Stitch {
   /** A "hold" or "resume" step: which holder, and how many stitches. */
   holder?: string;
   count?: number;
+  /** A "hold" step that wraps the first stitch held before it goes, to leave no hole. */
+  wrap?: boolean;
   /**
    * Worked from the wrong side, on a short row knitted back the other way.
    * Its type is what it looks like from the right side - a stitch purled from

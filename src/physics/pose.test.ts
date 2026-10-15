@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "../knitting/engine";
-import { testSweater } from "../knitting/test-sweater";
+import { testBandedSweater, testSweater } from "../knitting/test-sweater";
 import { sweaterById } from "../data/sweaters";
 import { distance, pose } from "./pose";
 import { ropesOf } from "./ropes";
@@ -34,6 +34,7 @@ describe.each(sizes)("the pose of Hamefarin in size %s", (_, built) => {
 
 const cases = [
   ["the test sweater", buildSweater(testSweater, "one")],
+  ["the banded test sweater", buildSweater(testBandedSweater, "one")],
   ["Hamefarin, size M", sizeCalled("M")],
   ["Hamefarin, size 4XL", sizeCalled("4XL")],
 ] as const;

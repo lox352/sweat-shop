@@ -175,13 +175,13 @@ describe("what the engine will not knit", () => {
     );
   });
 
-  it("refuses to pick up more than the edge has", () => {
+  it("refuses to pick up fewer than the edge has, leaving some of it out", () => {
     expect(
       withSections((pattern) => {
         const round = pattern.sizes[0].sections[3].rounds[0];
-        if (round.type === "piece") round.after = 3;
+        if (round.type === "piece") round.after = 1;
       }),
-    ).toThrow(/picks up 2 \+ 3 stitches from an edge of 4/);
+    ).toThrow(/picks up 2 \+ 1 stitches from an edge of 4/);
   });
 });
 

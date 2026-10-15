@@ -71,7 +71,8 @@ describe("the symbols for the other side", () => {
   it("draws each as its pair's symbol and a purl's dot, clear of its strokes and inside its cell", () => {
     for (const type of sweaterStitches) {
       const pair = reverseOf(type);
-      if (pair === type || type === "k1" || type === "p1" || type === "m1" || type === "kfb") continue;
+      // A purl and a purlwise bind-off are the dotted half of their pairs already.
+      if (pair === type || type === "k1" || type === "p1" || type === "m1" || type === "kfb" || type === "bindOffPurl") continue;
       const [own, other] = [markFor(type)!, markFor(pair)!];
       expect(other.strokes, pair).toEqual(own.strokes);
       expect(other.dot, pair).toBeDefined();
