@@ -185,12 +185,16 @@ export function StitchLegend({ stitches, notes, needles, holds, turns, face = "r
 
 /**
  * A stitch's instructions step by step, where it has them - a cast-on - and
- * another way to work it, where there is one.
+ * another way to work it, where there is one: folded away until asked for,
+ * so that the chart above the knitting panel keeps its room.
  */
 export function HowTo({ entry }: { entry: KeyEntry }) {
   if (!entry.steps && !entry.alternative) return null;
   return (
-    <>
+    <details className="stitch-how-to">
+      <summary>
+        <span>{entry.steps ? "Step by step" : "Another way"}</span>
+      </summary>
       {entry.steps && (
         <ol className="stitch-steps">
           {entry.steps.map((step) => (
@@ -199,7 +203,7 @@ export function HowTo({ entry }: { entry: KeyEntry }) {
         </ol>
       )}
       {entry.alternative && <p className="stitch-alternative">{entry.alternative}</p>}
-    </>
+    </details>
   );
 }
 

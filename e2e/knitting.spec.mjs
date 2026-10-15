@@ -224,7 +224,10 @@ test("the cast-on is cast on, then joined in the round as a step of its own", as
   // The neck is cast on long-tail, and the panel says how, step by step.
   const hint = page.getByRole("list", { name: "Stitches in this round" });
   await expect(hint).toContainText("Long-tail cast-on");
-  await expect(hint).toContainText("Measure the tail");
+  // Its steps are folded away until asked for, so the chart keeps its room.
+  await expect(hint.getByText("Measure the tail", { exact: false })).toBeHidden();
+  await hint.getByText("Step by step", { exact: true }).click();
+  await expect(hint.getByText("Measure the tail", { exact: false })).toBeVisible();
   await page.getByRole("button", { name: "End of round", exact: true }).click();
   await expect(page.locator(".knitting-panel")).toContainText("Join in the round");
   await page.getByRole("button", { name: "Joined: carry on" }).click();
@@ -319,7 +322,8 @@ test("the dividing round puts each sleeve on hold, casts on its underarm, and go
   // Its underarm, cast on in its place, step by step - with the yarn at the needle, not a long tail.
   const hint = page.getByRole("list", { name: "Stitches in this round" });
   await expect(hint).toContainText("Knitted cast-on, at the underarm");
-  await expect(hint).toContainText("turn the work so the wrong side faces you");
+  await hint.getByText("Step by step", { exact: true }).click();
+  await expect(hint.getByText("turn the work so the wrong side faces you", { exact: false })).toBeVisible();
   await expect(hint).toContainText("backward-loop cast-on");
   // Then the front, then the left sleeve.
   await page.getByRole("button", { name: /^Cast on 12 in / }).click();
