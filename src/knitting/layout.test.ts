@@ -3,7 +3,8 @@ import { buildSweater, type SweaterStitches } from "./engine";
 import { layOut, layOutSweater, mirrorLayout } from "./layout";
 import { testBandedSweater, testSweater, testSweaterWithShortRows } from "./test-sweater";
 import { indexRounds } from "./progress";
-import { consumption } from "../types/StitchType";
+import { consumption, makesTwo } from "../types/StitchType";
+import type { Stitch } from "../types/Stitch";
 import { sweaters } from "../data/sweaters";
 
 const built = buildSweater(testSweater, "one");
@@ -19,8 +20,13 @@ const offTheirStitch = (knitting: SweaterStitches, rounds: number[][], layout: R
     const stitch = knitting.stitches[id];
     if (consumption[stitch.type] !== 1) return false;
     const below = layout.cells.get(stitch.links[0]);
-    // A KFB's mirror, a KBF makes its new stitch on its right: its column is its second loop's, the stitch after it.
-    const standing = stitch.type === "kbf" ? id + 1 : id;
+    /*
+     * A KFB's mirror, a KBF makes its new stitch on its right, so of its two
+     * loops the left-hand one stands over the stitch below: worked from the
+     * right side its second, the stitch after it, and on a PFB purled back,
+     * which is stored as the KBF it looks like, its first.
+     */
+    const standing = stitch.type === "kbf" && !stitch.wrongSide ? id + 1 : id;
     return below !== undefined && below.column !== layout.cells.get(standing)!.column;
   });
 
@@ -195,6 +201,13 @@ describe.each(sweaters.map((sweater) => [sweater.name, sweater] as const))("%s o
       const knitting = buildSweater(design, size.id);
       const laid = layOutSweater(knitting.stitches, knitting.rounds, knitting.roundKinds, knitting.roundPieces);
       if (offTheirStitch(knitting, knitting.rounds, laid).length > 0) wrong.push(`${size.id}: off the stitch below`);
+      // An increase's second loop past its first, the way its row runs: leftwards, or rightwards for a row worked back.
+      for (const id of knitting.rounds.flat()) {
+        const stitch = knitting.stitches[id];
+        if (!makesTwo(stitch.type)) continue;
+        const [first, second] = [laid.cells.get(id)!.column, laid.cells.get(id + 1)!.column];
+        if (Math.sign(second - first) !== (stitch.wrongSide ? -1 : 1)) wrong.push(`${size.id}: stitch ${id}'s second loop on the wrong side of it`);
+      }
       const places = new Set<string>();
       laid.cells.forEach((at) => {
         const place = `${at.row}|${at.column}`;
@@ -241,6 +254,18 @@ describe("a yoke of bands, raglan increases and a round moved at the divide, on 
     expect(pairs).toBe(8);
   });
 
+  it("lays a PFB purled back across a short row out as the KBF it looks like from the right side", () => {
+    const at = knitting.roundLabels.indexOf("Yoke · short row 4, wrong side");
+    const increases = knitting.rounds[at].filter((id) => knitting.stitches[id].type === "kbf");
+    expect(increases).toHaveLength(1);
+    for (const id of increases) {
+      const column = (one: number) => laid.cells.get(one)!.column;
+      // Its first loop over the stitch below, and its second, worked after it from the wrong side, to its right.
+      expect(column(id)).toBe(column(knitting.stitches[id].links[0]));
+      expect(column(id + 1)).toBeLessThan(column(id));
+    }
+  });
+
   it("gives the part of a round its own row, under the round that works into it and the round before", () => {
     const at = knitting.roundLabels.indexOf("Body · on to the new beginning of the round");
     const part = knitting.rounds[at].map((id) => laid.cells.get(id)!.row);
@@ -248,5 +273,30 @@ describe("a yoke of bands, raglan increases and a round moved at the divide, on 
     const after = laid.cells.get(knitting.rounds[at + 1][0])!.row;
     expect(new Set(part)).toEqual(new Set([before + 1]));
     expect(after).toBe(before + 2);
+  });
+});
+
+describe("an increase on a row worked back, either side of the widest round", () => {
+  const stitch = (id: number, type: Stitch["type"], links: number[], wrongSide = false): Stitch => ({
+    id, type, links, slot: "MC", piece: "yoke", ...(wrongSide ? { wrongSide: true } : {}),
+  });
+  // A PFB, stored as the KBF it is from the right side, and its second loop, both worked into stitch 1.
+  const pfb = (id: number) => [stitch(id, "kbf", [1], true), stitch(id + 1, "m1", [1], true)];
+
+  it("stands its first loop over the stitch below and its second to its right, laid out up from the widest round", () => {
+    const stitches = [0, 1, 2, 3, 4, 5].map((id) => stitch(id, "castOn", [])).concat([stitch(6, "k1", [2], true), ...pfb(7)]);
+    const laid = layOut(stitches, [[0, 1, 2, 3, 4, 5], [6, 7, 8]], ["round", "wrong"]);
+    const column = (id: number) => laid.cells.get(id)!.column;
+    expect(column(7)).toBe(column(1));
+    expect(column(8)).toBe(column(7) - 1);
+    expect(column(6)).toBe(column(7) + 1);
+  });
+
+  it("and the same laid out down from it", () => {
+    const stitches = [0, 1, 2].map((id) => stitch(id, "castOn", [])).concat([stitch(3, "k1", [2], true), ...pfb(4), stitch(6, "k1", [0], true)]);
+    const laid = layOut(stitches, [[0, 1, 2], [3, 4, 5, 6]], ["round", "wrong"]);
+    const column = (id: number) => laid.cells.get(id)!.column;
+    expect(column(4)).toBe(column(1));
+    expect(column(5)).toBe(column(4) - 1);
   });
 });

@@ -36,12 +36,14 @@ const JoinSwatch: React.FC = () => (
 
 /**
  * A KFB is drawn as the pair of cells it makes: the stitch, and the new one
- * to its left. A PFB likewise, and a KBF as their mirror: the stitch on the
- * left, and the new one to its right.
+ * to its left. A PFB likewise, and a KBF and a PBF as their mirrors: the
+ * stitch on the left, and the new one to its right. Each is drawn as the
+ * chart draws it, from the cell of its first loop.
  */
 export const Swatch: React.FC<{ entry: KeyEntry }> = ({ entry }) => {
   if (entry.id === "join") return <JoinSwatch />;
-  const pair = entry.id === "kfb" || entry.id === "pfb" || entry.id === "kbf";
+  const pair = entry.id === "kfb" || entry.id === "pfb" || entry.id === "kbf" || entry.id === "pbf";
+  const purled = entry.id === "pfb" || entry.id === "pbf";
   return (
     <svg
       className="key-swatch"
@@ -51,10 +53,18 @@ export const Swatch: React.FC<{ entry: KeyEntry }> = ({ entry }) => {
       aria-hidden="true"
     >
       {pair ? (
-        <>
-          <Cell x={0} />
-          <Cell x={1} mark={forkMark(entry.id === "kbf" ? -0.5 : 0.5, [0.5, -0.5], entry.id === "pfb", entry.id === "kbf")} />
-        </>
+        entry.id === "pbf" ? (
+          // A KFB turned over: its first loop over the stitch below, now on the left.
+          <>
+            <Cell x={0} mark={forkMark(0.5, [0.5, 1.5], true, true)} />
+            <Cell x={1} />
+          </>
+        ) : (
+          <>
+            <Cell x={0} />
+            <Cell x={1} mark={forkMark(entry.id === "kbf" ? -0.5 : 0.5, [0.5, -0.5], purled, entry.id === "kbf")} />
+          </>
+        )
       ) : entry.id === "m1" || entry.id === "m1p" ? (
         <Cell x={0} mark={makeOneMark(entry.lean, entry.id === "m1p")} />
       ) : entry.id === "castOnUnderarm" ? (

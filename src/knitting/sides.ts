@@ -25,9 +25,15 @@ export type Face = "right" | "wrong";
  *                       Hand); an sssp is close
  *   make one            make one purlwise, with the same lean from the right
  *                       side (Purl Soho's m1L purlwise, Brianak Designs)
- *   kfb                 pfb
+ *   kfb                 pbf: purl into the back of the stitch, then its front
+ *   kbf                 pfb
  *   pick up and knit    pick up and purl
  *   bind off            bind off purlwise
+ *
+ * A KFB puts its new stitch on its left as it is worked, and so does a PFB:
+ * the second loop goes on the needle past the first. Turned over, that is on
+ * the right, so a KFB from behind is not a PFB but its mirror, a PBF, and a
+ * PFB from behind looks like a KBF, whose new stitch is on its right.
  *
  * A cast-on is a cast-on from either side, and a step - joining the round,
  * a turn - is the same step. A purlwise bind-off is one of the sweater's own
@@ -41,6 +47,7 @@ export type ReverseStitch =
   | "p2sps"
   | "m1p"
   | "pfb"
+  | "pbf"
   | "pickUpPurl";
 
 /** Any stitch a chart can show: one of the sweater's, or one of them from behind. */
@@ -54,7 +61,8 @@ const pairs: [ChartStitch, ChartStitch][] = [
   ["s2kp", "s2pp"],
   ["sk2p", "p2sps"],
   ["m1", "m1p"],
-  ["kfb", "pfb"],
+  ["kfb", "pbf"],
+  ["kbf", "pfb"],
   ["pickUp", "pickUpPurl"],
   ["bindOff", "bindOffPurl"],
 ];
@@ -69,7 +77,7 @@ export const reverseOf = (stitch: ChartStitch): ChartStitch => pairOf.get(stitch
  *
  * A short row worked back from the wrong side is stored as what it makes on
  * the right side, knits; worked, from the wrong side, it is purls, and the
- * increase a short row may make, a KFB from the right side, is a PFB.
+ * increase a short row may make, a KBF from the right side, is a PFB.
  */
 export const workedAs = (stitch: Pick<Stitch, "type" | "wrongSide">): StitchType | "pfb" =>
   !stitch.wrongSide
@@ -78,7 +86,7 @@ export const workedAs = (stitch: Pick<Stitch, "type" | "wrongSide">): StitchType
       ? "p1"
       : stitch.type === "p1"
         ? "k1"
-        : stitch.type === "kfb"
+        : stitch.type === "kbf"
           ? "pfb"
           : stitch.type;
 

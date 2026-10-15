@@ -16,7 +16,8 @@ export type { Face };
  * knit a purl and every purl a knit; see sides.ts. The exception is a KFB:
  * one instruction that makes two stitches, so it is drawn as one mark across
  * both cells - a fork from the stitch below to each of them - and the new
- * stitch carries nothing of its own, being made rather than worked.
+ * stitch carries nothing of its own, being made rather than worked. So are a
+ * KBF, and a PFB and a PBF, the two from behind; see forkMark.
  */
 export const markAt = (
   stitch: Stitch,
@@ -31,7 +32,7 @@ export const markAt = (
   const shown = seenFrom(stitch, face);
   if (shown === "castOn" && castOnPartWay(stitch.id, (id) => byId.get(id))) return castOnPartWayMark;
   if (shown === "m1" || shown === "m1p") return makeOneMark(makeOneLean, shown === "m1p");
-  if (shown !== "kfb" && shown !== "pfb" && shown !== "kbf") return markFor(shown);
+  if (shown !== "kfb" && shown !== "pfb" && shown !== "kbf" && shown !== "pbf") return markFor(shown);
 
   const at = layout.cells.get(stitch.id);
   const made = byId.get(stitch.id + 1);
@@ -40,7 +41,9 @@ export const markAt = (
   // Column 1 is at the right, so a higher column is further left.
   const centre = (column: number) => 0.5 + at.column - column;
   const parentAt = layout.cells.get(stitch.links[0]);
-  return forkMark(centre(parentAt?.column ?? at.column), [0.5, centre(madeAt.column)], shown === "pfb", shown === "kbf");
+  const purled = shown === "pfb" || shown === "pbf";
+  const onItsRight = shown === "kbf" || shown === "pbf";
+  return forkMark(centre(parentAt?.column ?? at.column), [0.5, centre(madeAt.column)], purled, onItsRight);
 };
 
 /** Where the needles change: after which round, and to what size. */

@@ -135,10 +135,15 @@ export const isSecondLoop = (stitch: Stitch, byId: Map<number, Stitch>): boolean
  * its stitch over the one it was worked into and puts the new one beside it,
  * to its left; a KBF is its mirror, the new one to its right, so the two
  * either side of a raglan line make their new stitches away from it. Of a
- * KBF's two loops the second stands over the stitch below and the first,
- * worked first, to the right of it. Anything else that makes two of one - a
- * make-one only ever joins a family when there is nowhere else to put it -
+ * KBF's two loops the left-hand one stands over the stitch below: worked from
+ * the right side its second, with the first, worked first, to the right of it;
+ * a PFB purled back from the wrong side, which looks like a KBF from the right
+ * side and is stored as one, its first. Anything else that makes two of one -
+ * a make-one only ever joins a family when there is nowhere else to put it -
  * straddles it.
+ *
+ * Every stitch is stored as it looks from the right side, as the chart is
+ * laid out, so this is the lean on the chart whichever side it was worked from.
  */
 const leanOf = (family: Family, byId: Map<number, Stitch>): Lean => {
   if (family.above.length > 1) {
@@ -203,6 +208,10 @@ const familiesOf = (
  * over it with the new stitch in the gap beside. It is the same rule read in
  * either direction, which is what makes a decrease and an increase mirror
  * images of each other on the chart rather than two separate special cases.
+ *
+ * Which of them stands on the column is a matter of where they are on the
+ * chart, as it is for pick: the right-hand one for "right". A row worked back
+ * from the wrong side runs left to right, so there that is the last one worked.
  */
 const place = (
   ids: number[],
@@ -212,16 +221,12 @@ const place = (
   /** 1 for a round worked right to left on the chart, -1 left to right. */
   way = 1,
 ) => {
-  const anchor =
-    lean === "right" ? 0 : lean === "left" ? ids.length - 1 : (ids.length - 1) / 2;
+  const right = way === 1 ? 0 : ids.length - 1;
+  const anchor = lean === "right" ? right : lean === "left" ? ids.length - 1 - right : (ids.length - 1) / 2;
   ids.forEach((id, index) => {
     column.set(id, on + way * (index - anchor));
   });
 };
-
-/** A lean as it looks from the other face of the fabric. */
-const mirrored = (lean: Lean): Lean =>
-  lean === "right" ? "left" : lean === "left" ? "right" : "middle";
 
 const columnsOf = (ids: number[], column: Map<number, number>): number[] =>
   ids.map((id) => column.get(id)).filter((at): at is number => at !== undefined);
@@ -278,7 +283,8 @@ const indexOf = (stitches: Stitch[], rounds: number[][]): Map<number, Stitch> =>
  * of the neck, which, the round beginning at the middle of the back, is at
  * both ends of the chart. One worked from the wrong side goes the other way
  * across - the chart is turned over to be read along it, see mirrorLayout -
- * and where such a row shapes, its leans are mirrored to match.
+ * and where such a row shapes, what it makes is laid out as it looks from the
+ * right side, as everything else is: a PFB purled back is a KBF there.
  */
 export const layOut = (
   stitches: Stitch[],
@@ -293,8 +299,6 @@ export const layOut = (
 
   // Which way across the chart a round is worked: right to left, as a chart is read, but for a row worked back.
   const way = (index: number) => (kinds[index] === "wrong" ? -1 : 1);
-  const leanIn = (family: Family, index: number) =>
-    way(index) === 1 ? leanOf(family, byId) : mirrored(leanOf(family, byId));
 
   if (anchor >= 0) {
     rounds[anchor].forEach((id, index) =>
@@ -306,7 +310,7 @@ export const layOut = (
   for (let index = anchor + 1; index < rounds.length; index++) {
     for (const family of familiesOf(rounds[index], byId)) {
       const below = columnsOf(family.below, column);
-      const lean = leanIn(family, index);
+      const lean = leanOf(family, byId);
       if (below.length > 0) place(family.above, pick(below, widest, lean), lean, column, way(index));
     }
   }
@@ -315,7 +319,7 @@ export const layOut = (
   for (let index = anchor - 1; index >= 0; index--) {
     for (const family of familiesOf(rounds[index + 1], byId, true)) {
       const above = columnsOf(family.above, column);
-      const lean = leanIn(family, index + 1);
+      const lean = leanOf(family, byId);
       if (above.length > 0) place(family.below, pick(above, widest, lean), lean, column, way(index + 1));
     }
   }

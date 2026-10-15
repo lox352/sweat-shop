@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "./engine";
-import { testSweater, testSweaterWithShortRows } from "./test-sweater";
+import { testBandedSweater, testSweater, testSweaterWithShortRows } from "./test-sweater";
 import { type Face, faceAfter, holdsIn, markAt, needleChangesIn, otherFaceRows, turnsIn } from "./chart-marks";
 import hamefarin from "../data/sweaters/hamefarin";
-import { layOut } from "./layout";
+import { layOut, layOutSweater, mirrorLayout } from "./layout";
 import { castOnPartWayMark, markFor } from "../helpers/stitch-marks";
 
 const { stitches, rounds, roundPieces } = buildSweater(testSweater, "one");
@@ -122,5 +122,46 @@ describe("casting on, on the chart", () => {
     underarm.forEach((id) => expect(markAt(stitches[id], byId, layout)).toEqual(castOnPartWayMark));
     const neck = layOut(stitches, piece("yoke"));
     expect(markAt(stitches[1], byId, neck)).toEqual(markFor("castOn"));
+  });
+});
+
+describe("an increase on the chart, from either side", () => {
+  const built = buildSweater(testBandedSweater, "one");
+  const layout = layOutSweater(built.stitches, built.rounds, built.roundKinds, built.roundPieces);
+  const over = mirrorLayout(layout);
+  const byId = new Map(built.stitches.map((stitch) => [stitch.id, stitch]));
+  const first = (label: string, type: string) =>
+    built.rounds[built.roundLabels.indexOf(label)].find((id) => built.stitches[id].type === type)!;
+  /** What a fork says: which way its new stitch is, and whether it is purled or stands on a foot. */
+  const forkOf = (id: number, face: Face) => {
+    const mark = markAt(built.stitches[id], byId, face === "right" ? layout : over, undefined, face)!;
+    const strokes = mark.strokes ?? [];
+    const from = strokes[0][0][0];
+    // The arms rise from the stitch below; the one that does not stand straight up goes to the stitch made.
+    const made = strokes.filter(([a, b]) => a[1] !== b[1]).map(([, b]) => b[0]).find((x) => x !== from)!;
+    const opens = made > from ? "right" : "left";
+    // A purl's dot beside the arm that stands up, away from the stitch made.
+    if (mark.dot) expect(Math.sign(mark.dot.x - from)).toBe(opens === "right" ? -1 : 1);
+    return { opens, purled: mark.dot !== undefined, foot: strokes.some(([a, b]) => a[1] === b[1]) };
+  };
+  const kfb = { opens: "left", purled: false, foot: false };
+  const kbf = { opens: "right", purled: false, foot: true };
+  const pfb = { opens: "left", purled: true, foot: false };
+  const pbf = { opens: "right", purled: true, foot: true };
+
+  it("draws a PFB purled back as a KBF from the right side, and as a PFB, its new stitch on its left, from the wrong", () => {
+    const purled = first("Yoke · short row 4, wrong side", "kbf");
+    expect(forkOf(purled, "right")).toEqual(kbf);
+    expect(forkOf(purled, "wrong")).toEqual(pfb);
+  });
+
+  it("draws a KFB from the wrong side as a PBF, and a KBF as a PFB, so a fork opening right always stands on a foot", () => {
+    const knitted = first("Yoke · short rows, to the end of the round", "kfb");
+    expect(forkOf(knitted, "right")).toEqual(kfb);
+    expect(forkOf(knitted, "wrong")).toEqual(pbf);
+    const raglan = built.rounds[built.roundLabels.lastIndexOf("Yoke · shaping round")];
+    const lifted = raglan.find((id) => built.stitches[id].type === "kbf")!;
+    expect(forkOf(lifted, "right")).toEqual(kbf);
+    expect(forkOf(lifted, "wrong")).toEqual(pfb);
   });
 });
