@@ -3,6 +3,7 @@ import { consumption } from "../types/StitchType";
 import { adjacentStitchDistance } from "../constants";
 import type { SweaterStitches } from "../knitting/engine";
 import { Vec, add, cross, length, lerp, scale, sub } from "./vector";
+import { ropesOf } from "./ropes";
 
 /**
  * The sweater laid out in space before anything settles it: blocked, with
@@ -44,6 +45,14 @@ import { Vec, add, cross, length, lerp, scale, sub } from "./vector";
  *   than the front, and the neck tilts up at the back to take them. The neck
  *   is set high enough that no stitch of the line is further from the collar
  *   than the yoke below the collar is long there.
+ *
+ * What none of that can reach is pulled in afterwards; see `tighten`. A
+ * raglan puts all its increases at four lines, and no smooth yoke round the
+ * neck gives them room: spread its stitches evenly and those beside the
+ * lines slide sideways off what they were worked into, a stitch every other
+ * round; keep each over what it was worked into and the rounds part at the
+ * lines. And an underarm long enough runs straight under a round armhole,
+ * further from its middle and its ends than a round's height.
  */
 
 export interface PoseOptions {
@@ -96,6 +105,13 @@ const smoothing = 3;
  * the underarm would be a pivot that every round of the bend shares.
  */
 const bendRadius = 1.5;
+
+/**
+ * How many passes over the ropes `tighten` may take at most, and how nearly
+ * at its length the longest rope must be for it to stop sooner.
+ */
+const passes = 50;
+const nearEnough = 1.1;
 
 /** Where a stitch a fraction `at` of the way round a ring sits: see the note above. */
 const onRing = (centre: Vec, radius: number, e1: Vec, e2: Vec, at: number): Vec => {
@@ -238,13 +254,19 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
     tubeRounds.forEach((round, k) => {
       /*
        * Part of a round, knitted on to move the beginning of the round: each
-       * stitch over the one it was worked into, half a step on, so the round
-       * after it reaches both it and the round before it.
+       * stitch over the one it was worked into, and the helix carried on
+       * round as far as it goes - so the round after it, which begins where
+       * it ends, starts that much further along, a round below what it works.
        */
       if (k > 0 && isPart(round)) {
         overParents(round);
-        const { centre, e1, e2 } = frameAt(Math.max(along - riseOf(round) / 2, 0));
-        round.forEach((id) => set(id, onRing(centre, radii[k], e1, e2, turn[id])));
+        const whole = tubeRounds[k - 1].length;
+        const step = riseOf(round);
+        round.forEach((id, index) => {
+          const { centre, e1, e2 } = frameAt(along + (step * index) / whole);
+          set(id, onRing(centre, radii[k], e1, e2, turn[id]));
+        });
+        along += (step * round.length) / whole;
         return;
       }
       if (k === 0) evenly(round);
@@ -475,6 +497,8 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
 
   axes[yokeId] = { origin: [0, neckY, 0], direction: down };
 
+  tighten(positions, built, yokeRounds[0]);
+
   /*
    * The phantom stitch 0 with the first stitch cast on, and every step where
    * the stitch before it is: they are no fabric and never drawn, but each
@@ -485,6 +509,49 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
     else if (isStep(stitch)) set(stitch.id, get(stitch.id - 1));
   }
   return { positions, axes };
+};
+
+/**
+ * Pulls in every rope the pose left longer than it may be, as the solver
+ * does: one at a time, in the order the stitches were knitted, each end
+ * towards the other by half of what it is over - all of it towards whichever
+ * end is the neck's cast-on, which stays where it is, as the solver holds it.
+ * Pulling one in can stretch the next, so it passes over them all again,
+ * until a pass finds none more than `nearEnough` of its length or `passes`
+ * have gone by. A rope only ever comes in, and only where it is too long, so
+ * whatever the construction got right it leaves alone.
+ */
+const tighten = (positions: Float32Array, built: SweaterStitches, held: number[]) => {
+  const fixed = new Set(held);
+  const ropes = ropesOf(built.stitches, built.roundHeight).filter((rope) => !(fixed.has(rope.a) && fixed.has(rope.b)));
+  // Plain numbers for the inner loop, as the solver keeps them: where each end's three numbers start, and its share.
+  const ropeA = Int32Array.from(ropes.map((rope) => rope.a * 3));
+  const ropeB = Int32Array.from(ropes.map((rope) => rope.b * 3));
+  const ropeLength = Float64Array.from(ropes.map((rope) => rope.length));
+  const shareA = Float64Array.from(ropes.map((rope) => (fixed.has(rope.a) ? 0 : fixed.has(rope.b) ? 1 : 0.5)));
+  const shareB = Float64Array.from(ropes.map((rope) => (fixed.has(rope.b) ? 0 : fixed.has(rope.a) ? 1 : 0.5)));
+  const x = Float64Array.from(positions);
+  for (let pass = 0; pass < passes; pass++) {
+    let longest = 0;
+    for (let k = 0; k < ropeA.length; k++) {
+      const [a, b] = [ropeA[k], ropeB[k]];
+      const dx = x[a] - x[b];
+      const dy = x[a + 1] - x[b + 1];
+      const dz = x[a + 2] - x[b + 2];
+      const apart = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      longest = Math.max(longest, apart / ropeLength[k]);
+      if (apart <= ropeLength[k]) continue;
+      const over = (apart - ropeLength[k]) / apart;
+      x[a] -= dx * over * shareA[k];
+      x[a + 1] -= dy * over * shareA[k];
+      x[a + 2] -= dz * over * shareA[k];
+      x[b] += dx * over * shareB[k];
+      x[b + 1] += dy * over * shareB[k];
+      x[b + 2] += dz * over * shareB[k];
+    }
+    if (longest <= nearEnough) break;
+  }
+  positions.set(x);
 };
 
 /** The positions as points, for anything that wants them one at a time. */

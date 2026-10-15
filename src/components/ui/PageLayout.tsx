@@ -48,9 +48,9 @@ const PageLayout: React.FC<PageLayoutProps> = ({
     <footer className="colophon screen-only">
       <OfflineStatus />
       <p>
-        Original designs, in the Fair Isle tradition Shetland knitters have
-        worked in for a century: peerie patterns, borders and OXOs, never more
-        than two colours in a round. The wool is theirs too - every shade here
+        Yokes knitted from the neck down, never more than two colours in a
+        round, as Shetland knitters have worked them for a century; each
+        design says whose it is. The wool is Shetland's too - every shade here
         is one the Shetland spinners sell.
       </p>
       <p className="quiet">

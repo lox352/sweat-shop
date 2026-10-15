@@ -1,21 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "../knitting/engine";
 import { testBandedSweater, testSweater } from "../knitting/test-sweater";
-import { sweaterById } from "../data/sweaters";
+import { sweaterById, sweaters } from "../data/sweaters";
 import { distance, pose } from "./pose";
 import { ropesOf } from "./ropes";
 
 const hamefarin = sweaterById("hamefarin")!;
 const sizes = hamefarin.sizes.map((size) => [size.label, buildSweater(hamefarin, size.id)] as const);
 const sizeCalled = (label: string) => sizes.find(([candidate]) => candidate === label)![1];
+const everySize = sweaters.flatMap((sweater) =>
+  sweater.sizes.map((size) => [`${sweater.name} in size ${size.label}`, buildSweater(sweater, size.id)] as const),
+);
 
 /*
- * Every size of the design starts within reach of its ropes. The test
+ * Every size of every design starts within reach of its ropes. The test
  * sweater is left out of that: it is drawn to be counted by hand, not worn,
  * and its yoke of three rounds below the rib is far too shallow to reach
  * from its neck to its body, which no real yoke is.
  */
-describe.each(sizes)("the pose of Hamefarin in size %s", (_, built) => {
+describe.each(everySize)("the pose of %s", (_, built) => {
   it("starts with the ropes at or near their length, so the physics has nothing to tear", () => {
     const { positions } = pose(built);
     const ropes = ropesOf(built.stitches, built.roundHeight);
@@ -26,9 +29,9 @@ describe.each(sizes)("the pose of Hamefarin in size %s", (_, built) => {
       if (stretch > 1.2) over++;
       most = Math.max(most, stretch);
     }
-    expect(over / ropes.length).toBeLessThan(0.01);
-    // And nothing pulled out to absurd lengths anywhere.
-    expect(most).toBeLessThan(3);
+    expect(over / ropes.length).toBeLessThan(0.001);
+    // And nothing pulled out far anywhere.
+    expect(most).toBeLessThan(1.5);
   });
 });
 

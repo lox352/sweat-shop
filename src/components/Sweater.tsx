@@ -5,7 +5,7 @@ import { SlotId, Size } from "../data/sweaters/types";
 import { defaultSize, useSweater } from "../knitting/useSweater";
 import { ballsOf, paletteOf, type Overrides } from "../knitting/palette";
 import { totals } from "../knitting/progress";
-import { metresBySlot } from "../knitting/yardage";
+import { metresFor } from "../knitting/yardage";
 import { chartPath, startProject } from "../helpers/projects";
 import PageLayout from "./ui/PageLayout";
 import Button from "./ui/Button";
@@ -107,7 +107,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
 
   const colourway = sweater.colourways.find((c) => c.id === colourwayId) ?? sweater.colourways[0];
   const palette = useMemo(() => paletteOf(colourway, own), [colourway, own]);
-  const metres = useMemo(() => metresBySlot(stitches, rounds), [stitches, rounds]);
+  const metres = useMemo(() => metresFor(size, stitches, rounds), [size, stitches, rounds]);
   const counts = totals(index, 0);
   const anyApproximate = ballsOf(colourway, metres, own).some((ball) => ball.yarn.approximate);
 
@@ -186,6 +186,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
         <WoolList
           colourway={colourway}
           metres={metres}
+          stated={size.yardage !== undefined}
           overrides={own}
           onChange={choose}
           body={body}
@@ -224,7 +225,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
               onClick={() => setSizeId(option.id)}
             >
               <strong>{option.label}</strong>
-              <span className="quiet">to fit {option.toFitChestCm}cm</span>
+              <span className="quiet">{option.fits ?? `to fit ${option.toFitChestCm}cm`}</span>
             </button>
           ))}
         </div>

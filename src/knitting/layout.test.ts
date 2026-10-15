@@ -4,7 +4,7 @@ import { layOut, layOutSweater, mirrorLayout } from "./layout";
 import { testBandedSweater, testSweater, testSweaterWithShortRows } from "./test-sweater";
 import { indexRounds } from "./progress";
 import { consumption } from "../types/StitchType";
-import hamefarin from "../data/sweaters/hamefarin";
+import { sweaters } from "../data/sweaters";
 
 const built = buildSweater(testSweater, "one");
 const index = indexRounds(built.rounds, built.roundLabels, built.roundPieces, testSweater.pieces);
@@ -166,12 +166,12 @@ describe("the whole sweater on one chart", () => {
   });
 });
 
-describe("Hamefarin on the chart", () => {
+describe.each(sweaters.map((sweater) => [sweater.name, sweater] as const))("%s on the chart", (_, design) => {
   it("has a column for every stitch of every piece in every size, none sharing one", () => {
     const wrong: string[] = [];
-    for (const size of hamefarin.sizes) {
-      const knitting = buildSweater(hamefarin, size.id);
-      for (const piece of hamefarin.pieces) {
+    for (const size of design.sizes) {
+      const knitting = buildSweater(design, size.id);
+      for (const piece of design.pieces) {
         const indices = knitting.rounds.map((_, i) => i).filter((i) => knitting.roundPieces[i] === piece.id);
         const rounds = indices.map((i) => knitting.rounds[i]);
         const laid = layOut(knitting.stitches, rounds, indices.map((i) => knitting.roundKinds[i]));
@@ -185,12 +185,12 @@ describe("Hamefarin on the chart", () => {
       }
     }
     expect(wrong).toEqual([]);
-  }, 60_000);
+  }, 180_000);
 
   it("lays every size out whole, with nothing in another stitch's place", () => {
     const wrong: string[] = [];
-    for (const size of hamefarin.sizes) {
-      const knitting = buildSweater(hamefarin, size.id);
+    for (const size of design.sizes) {
+      const knitting = buildSweater(design, size.id);
       const laid = layOutSweater(knitting.stitches, knitting.rounds, knitting.roundKinds, knitting.roundPieces);
       if (offTheirStitch(knitting, knitting.rounds, laid).length > 0) wrong.push(`${size.id}: off the stitch below`);
       const places = new Set<string>();
@@ -202,7 +202,7 @@ describe("Hamefarin on the chart", () => {
       });
     }
     expect(wrong).toEqual([]);
-  }, 60_000);
+  }, 180_000);
 });
 
 describe("a yoke of bands, raglan increases and a round moved at the divide, on the chart", () => {

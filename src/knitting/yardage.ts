@@ -1,4 +1,5 @@
 import { Stitch, isFabric } from "../types/Stitch";
+import type { Size } from "../data/sweaters/types";
 
 /**
  * How much of each yarn a sweater takes, estimated from its stitches.
@@ -37,3 +38,7 @@ export const metresBySlot = (stitches: Stitch[], rounds: number[][]): Record<str
 /** Balls of a given length, rounded up. */
 export const ballsFor = (metres: number, ballMetres: number): number =>
   Math.max(1, Math.ceil(metres / ballMetres));
+
+/** Metres of each slot for a size: the pattern's own, where it states them, or estimated from the stitches. */
+export const metresFor = (size: Pick<Size, "yardage">, stitches: Stitch[], rounds: number[][]): Record<string, number> =>
+  size.yardage ?? metresBySlot(stitches, rounds);

@@ -15,9 +15,9 @@ knit it.
   turns over with the work when a short row is purled back from the wrong
   side, every stitch shown as it looks from there: knits as purls, purls as
   knits, a k2tog as a p2tog.
-- **Casting on, explained where it happens**: a long-tail cast-on at the neck,
-  and at each underarm, part way round with only the yarn at the needle, a
-  knitted cast-on worked with the work turned, step by step.
+- **Casting on, explained where it happens**: at the neck, and at each
+  underarm, part way round with only the yarn at the needle and the work
+  turned, step by step, in whichever cast-on the design asks for.
 - **The sweater in three dimensions**, with the wool filling in as you work.
 - **Colourways as costumes.** A design is drawn once in yarn slots, and a
   colourway says which real shade goes in each - so any yarn can be swapped
@@ -28,7 +28,8 @@ knit it.
   things that are not stitches - joining the round, changing needles, turning
   at the end of a short row, putting the sleeves on hold, taking them up
   again - are steps of their own, worked and undone like stitches.
-- **How much wool**, worked out from the stitches of the size you choose, and
+- **How much wool**: the pattern's own metres for the size you choose, where
+  it gives them, and otherwise worked out from that size's stitches; and
   **how long it has taken and has left**, from your own taps.
 
 ## Where it came from
@@ -63,7 +64,7 @@ the body down, each sleeve down its arm - and each round is pushed out from
 its own middle, which is what holds it round. Every link between two
 stitches is a rope that can go slack but never stretch. It is the hat
 site's model, but not its engine. A hat was ten thousand rigid bodies in
-Rapier, settled in a browser; a sweater is ten times that in eight sizes.
+Rapier, settled in a browser; a sweater is ten times that, in every size.
 So `src/physics/solver.ts` is a small position-based solver in plain
 TypeScript that settles a size in Node in a minute or so, gives the same
 answer every time, and is never loaded by the site at all. Its answers are
@@ -85,11 +86,14 @@ blocked with every rope at or under its length. The body hangs straight
 down from the underarms. Each sleeve leaves the body from an upright armhole
 and bends down to the arm's angle, as a sleeve does over the shoulder. The
 neck rib stands as a collar, and the yoke spreads from its foot to where the
-body and the sleeves begin. A size not yet settled is drawn as posed, and so
-is any size with `?settled=0` in the address.
+body and the sleeves begin. What that leaves too long - a raglan puts all its
+increases at four lines, which no smooth yoke has room for - is pulled in by
+passing over the ropes a few times, as the solver does. A size not yet
+settled is drawn as posed, and so is any size with `?settled=0` in the
+address.
 
-A medium is seventy-six thousand stitches and the largest a hundred and
-twenty-five thousand, which the hat site's sixty-four-triangle stitches could
+Hamefarin's medium is seventy-six thousand stitches and its largest a
+hundred and twenty-five thousand, which the hat site's sixty-four-triangle stitches could
 never draw on a phone. Here each stitch is a single quad, one instance of
 one mesh, with the stitch painted on by its shader: a chevron whose point
 dips into the stitch it was worked into, so each column of stitches nests
@@ -111,8 +115,9 @@ Adding a design is one file and one line:
 2. Add it to the list in `src/data/sweaters/index.ts`.
 
 The tests then knit every size of it through and check that it states its
-counts truthfully, knits up to its measurements, and keeps the rules of Fair
-Isle: two colours a round and no float longer than seven stitches.
+counts truthfully and keeps the rules of Fair Isle: two colours a round and
+no float longer than seven stitches. A design's own test file holds it to
+whatever else it promises - its measurements, or what its pattern says.
 
 ## Running it
 

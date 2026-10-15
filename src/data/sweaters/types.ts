@@ -116,6 +116,8 @@ export interface Size {
   label: string;
   /** The chest it is made to fit, before the ease. */
   toFitChestCm: number;
+  /** Who it fits, where the pattern says so in other words than a chest: "2-3 years". */
+  fits?: string;
   finished: Measurements;
   /** Over the stocking stitch and colourwork, after blocking. */
   stitchesPer10cm: number;
@@ -125,6 +127,12 @@ export interface Size {
   ribNeedlesMm?: number;
   /** Larger needles for the colourwork, where the design loosens it. */
   colourNeedlesMm?: number;
+  /**
+   * Metres of each yarn, where the pattern states them: a bought pattern's
+   * own shopping list, which is better than any estimate. Left out, they
+   * are worked out from the stitches; see knitting/yardage.
+   */
+  yardage?: Record<SlotId, number>;
   /** The whole knitting, for this size, as the pattern writes it. */
   sections: Section[];
   /**
