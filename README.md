@@ -146,6 +146,13 @@ Pushing to `main` builds, tests and publishes the built site to the
 Pages itself, so the first time round that is one manual step: **Settings →
 Pages → Source: "Deploy from a branch" → `gh-pages` / `(root)`**.
 
+The site is kept out of search engines, as the hat site is: every page
+carries a `noindex, nofollow` robots tag, which `src/search.test.ts` holds it
+to. The `robots.txt` beside it says the same, but crawlers read robots.txt
+only at the root of a host, so the tags are what count. The repository
+itself is public, though, and GitHub's own search and the search engines can
+find what is in it.
+
 The site is built with `base: "/sweat-shop/"`, for a project page at
 `lox352.github.io/sweat-shop/`. Serving it from a domain of its own means
 changing that to `"/"` along with the favicon and font links in `index.html`,
