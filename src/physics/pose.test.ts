@@ -11,6 +11,7 @@ const sizeCalled = (label: string) => sizes.find(([candidate]) => candidate === 
 const everySize = sweaters.flatMap((sweater) =>
   sweater.sizes.map((size) => [`${sweater.name} in size ${size.label}`, buildSweater(sweater, size.id)] as const),
 );
+const paulKlee = sweaterById("paul-klee")!;
 
 /*
  * Every size of every design starts within reach of its ropes. The test
@@ -40,6 +41,9 @@ const cases = [
   ["the banded test sweater", buildSweater(testBandedSweater, "one")],
   ["Hamefarin, size M", sizeCalled("M")],
   ["Hamefarin, size 4XL", sizeCalled("4XL")],
+  ["Paul Klee, size Kids 1", buildSweater(paulKlee, "k1")],
+  ["Paul Klee, size M1", buildSweater(paulKlee, "m1")],
+  ["Paul Klee, size 6XL", buildSweater(paulKlee, "6xl")],
 ] as const;
 
 describe.each(cases)("the pose of %s", (_, built) => {
