@@ -160,9 +160,9 @@ export interface NeedleRule {
  * gives up are left empty, and the rules stop at the edge of the fabric so
  * those gaps read as the wedges of absent stitches they are.
  *
- * The heavy rows are the fifth rounds of their piece, as the margin numbers
- * them, so above the divide they count the body's rounds and the sleeves'
- * alike. A change of needles is dashed across its own piece only: the body
+ * The heavy rows are every fifth, as the margin numbers them: every fifth
+ * round counted on from the neck, the body's and the sleeves' alike above the
+ * divide. A change of needles is dashed across its own piece only: the body
  * changes for its hem rounds before the sleeves beside it change for their
  * cuffs. And where one piece meets another - the body beside a sleeve, either
  * beside the yoke they were knitted out of - the rule is drawn heavier still,
@@ -204,8 +204,7 @@ export const gridPaths = (
    */
   for (let row = 0; row <= layout.rows; row++) {
     const y = (layout.rows - row) * cell;
-    const number = layout.numbers[row - 1];
-    const into = row !== 0 && number !== undefined && number % emphasis === 0 ? heavy : light;
+    const into = row !== 0 && row % emphasis === 0 ? heavy : light;
     const spans = (at: number) => (runs.get(at) ?? []).map((run) => extent(layout, run, cell));
     for (const span of merged([...spans(row), ...spans(row + 1)])) {
       into.push(`M${span.left} ${y}h${span.right - span.left}`);
@@ -408,8 +407,8 @@ export const regionPath = (layout: ChartLayout, ids: Iterable<number>, cell: num
 };
 
 /**
- * Which rows get a number down the right-hand edge - each numbered as the
- * round it is of its piece; see ChartLayout.numbers.
+ * Which rows get a number down the right-hand edge, the row's own number,
+ * which is what the knitting calls its rounds; see chartRows.
  *
  * Every fifth, each piece's first and the chart's last - and both rows a
  * change of needles falls between, so the line across the chart can be named
@@ -424,10 +423,13 @@ export const numberedRows = (
     named.add(change.after);
     named.add(change.after + 1);
   });
+  // Each piece's first row: the neck's, and the one the body and the sleeves all begin in.
+  const first = new Map<string, number>();
+  layout.cells.forEach((at) => first.set(at.piece, Math.min(at.row, first.get(at.piece) ?? at.row)));
+  first.forEach((row) => named.add(row));
   const out: number[] = [];
   for (let row = 1; row <= layout.rows; row++) {
-    const number = layout.numbers[row - 1] ?? row;
-    if (number % emphasis === 0 || number === 1 || row === layout.rows || named.has(row)) out.push(row);
+    if (row % emphasis === 0 || row === 1 || row === layout.rows || named.has(row)) out.push(row);
   }
   return out;
 };

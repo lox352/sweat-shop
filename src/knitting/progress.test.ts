@@ -22,12 +22,12 @@ const firstOf = (round: number) => rounds[round - 1][0];
 const lastOf = (round: number) => rounds[round - 1][rounds[round - 1].length - 1];
 
 describe("the pieces", () => {
-  it("knows which rounds each piece takes up, and calls it by its name", () => {
+  it("knows which rounds each piece takes up, which row of the chart it ends in, and calls it by its name", () => {
     expect(index.pieces).toEqual([
-      { id: "yoke", label: "Yoke", first: 1, last: 6 },
-      { id: "body", label: "Body", first: 7, last: 11 },
-      { id: "sleeve-left", label: "Left sleeve", first: 12, last: 15 },
-      { id: "sleeve-right", label: "Right sleeve", first: 16, last: 19 },
+      { id: "yoke", label: "Yoke", first: 1, last: 6, lastRow: 6 },
+      { id: "body", label: "Body", first: 7, last: 11, lastRow: 11 },
+      { id: "sleeve-left", label: "Left sleeve", first: 12, last: 15, lastRow: 10 },
+      { id: "sleeve-right", label: "Right sleeve", first: 16, last: 19, lastRow: 10 },
     ]);
   });
 });
@@ -36,12 +36,13 @@ describe("what each round is called", () => {
   const names = roundNames(index);
   const whats = roundWhats(index);
 
-  it("by its piece and which round of it it is, and beside that, what the pattern calls it", () => {
-    expect([names[6], whats[6]]).toEqual(["Body, round 1", "dividing round"]);
-    expect([names[7], whats[7]]).toEqual(["Body, round 2", "plain round"]);
+  it("by its piece and its row of the chart, counted on from the neck, and beside that, what the pattern calls it", () => {
+    // The yoke is six rounds; the body and each sleeve carry on from its last, side by side.
+    expect([names[6], whats[6]]).toEqual(["Body, round 7", "dividing round"]);
+    expect([names[7], whats[7]]).toEqual(["Body, round 8", "plain round"]);
     expect([names[4], whats[4]]).toEqual(["Yoke, round 5", "Band, row 1"]);
-    expect([names[11], whats[11]]).toEqual(["Left sleeve, round 1", "pick-up round"]);
-    expect([names[13], whats[13]]).toEqual(["Left sleeve, round 3", "shaping round"]);
+    expect([names[11], whats[11]]).toEqual(["Left sleeve, round 7", "pick-up round"]);
+    expect([names[13], whats[13]]).toEqual(["Left sleeve, round 9", "shaping round"]);
   });
 
   it("is never numbered a second time, against its name, in any size of Hamefarin", () => {
@@ -89,8 +90,8 @@ describe("what to work next", () => {
     expect(position).toMatchObject({
       round: 7,
       stitchInRound: 8,
-      piece: { id: "body" },
-      pieceRound: 1,
+      piece: { id: "body", lastRow: 11 },
+      row: 7,
       holdNext: { holder: "sleeve-right", count: 8 },
     });
     // The end of the round is no further than the step.
@@ -114,7 +115,7 @@ describe("what to work next", () => {
       round: 12,
       stitchInRound: 0,
       piece: { id: "sleeve-left", label: "Left sleeve" },
-      pieceRound: 1,
+      row: 7,
       resumeNext: { holder: "sleeve-left", count: 8 },
     });
   });

@@ -535,9 +535,9 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
           </span>
         ) : (
           <span className="knitting-figure">
-            <em>{position.pieceRound}</em>
+            <em>{position.row}</em>
             <span className="quiet">
-              of {position.piece ? position.piece.last - position.piece.first + 1 : position.totalRounds} rounds
+              of {position.piece ? position.piece.lastRow : position.totalRounds} rounds
               {position.piece && ` · ${position.piece.label}`}
             </span>
           </span>

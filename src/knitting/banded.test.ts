@@ -61,9 +61,8 @@ describe("a yoke of two-colour bands, increased in its bands and along raglan li
   });
 });
 
-describe("a body divided with the round moved to the underarm", () => {
+describe("a body divided at the underarms", () => {
   const divide = round("Body · dividing round");
-  const part = round("Body · on to the new beginning of the round");
 
   it("wraps the first stitch of each sleeve before it goes on hold", () => {
     const holds = stitches.filter((stitch) => stitch.type === "hold");
@@ -82,16 +81,17 @@ describe("a body divided with the round moved to the underarm", () => {
     expect(keyEntryAt(stitches, divide[9])?.id).toBe("sl1po");
   });
 
-  it("knits on to the new beginning of the round, part of a round, and begins every round after there", () => {
-    expect(part).toHaveLength(7);
-    expect(roundKinds[roundLabels.indexOf("Body · on to the new beginning of the round")]).toBe("part");
-    expect(names[roundLabels.indexOf("Body · on to the new beginning of the round")]).toBe(
-      "Body, on to the new beginning of the round",
-    );
-    // The next round begins after the first stitch cast on at the right underarm.
+  it("numbers its rounds and the sleeves' on from the yoke's, by their rows of the chart", () => {
+    const yoke = built.roundPieces.filter((piece) => piece === "yoke").length;
+    expect(names[roundLabels.indexOf("Body · dividing round")]).toBe(`Body, round ${yoke + 1}`);
+    expect(names[built.roundPieces.indexOf("sleeve-left")]).toBe(`Left sleeve, round ${yoke + 1}`);
+  });
+
+  it("goes on round from where the yoke's rounds began, the beginning of the round never moved", () => {
     const next = round("Body · plain round");
-    expect(stitches[next[0]].links[0]).toBe(divide[7]);
-    expect(stitches[next[next.length - 1]].links[0]).toBe(part[part.length - 1]);
+    expect(stitches[next[0]].links[0]).toBe(divide[0]);
+    expect(stitches[next[next.length - 1]].links[0]).toBe(divide[divide.length - 1]);
+    expect(roundLabels.some((label) => label.includes("beginning of the round"))).toBe(false);
   });
 
   it("binds the rib off in pattern", () => {

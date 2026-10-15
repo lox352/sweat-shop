@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "./engine";
-import { layOut } from "./layout";
+import { layOut, layOutSweater } from "./layout";
 import { gridPaths, numberedRows, progressPath } from "./chart-paths";
 import { needleChangesIn } from "./chart-marks";
 import { testSweater } from "./test-sweater";
@@ -34,6 +34,15 @@ describe("the change of needles on the chart", () => {
     expect(numbers).toContain(3);
     expect(numbers).toContain(4);
     expect(numbers).toEqual([...new Set(numbers)].sort((a, b) => a - b));
+  });
+});
+
+describe("the round numbers down the edge", () => {
+  it("number the row every piece after the yoke begins in, the yoke's last plus one, as well as every fifth", () => {
+    const built = buildSweater(testSweater, "one");
+    const whole = layOutSweater(built.stitches, built.rounds, built.roundKinds, built.roundPieces);
+    // A yoke of six rounds, the body's five above it and the sleeves' four beside them.
+    expect(numberedRows(whole)).toEqual([1, 5, 7, 10, 11]);
   });
 });
 

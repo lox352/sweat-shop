@@ -73,8 +73,8 @@ const yokeLastRound = 20715;
  * its hem's rib; and the last before the rib is bound off.
  */
 const kleeBeforeHold = 20349;
-const kleeBeforeRib = 36170;
-const kleeBeforeBindOff = 43486;
+const kleeBeforeRib = 36111;
+const kleeBeforeBindOff = 43427;
 
 test("the design and its projects work without WebGL, and nothing fetches the solver", async ({ page }) => {
   await page.addInitScript(() => {
@@ -303,9 +303,9 @@ test("short rows raise the back of the neck, each turned as a step of its own", 
 
 test("the dividing round puts each sleeve on hold, casts on its underarm, and goes on round the body", async ({ page }) => {
   await knittedTo(page, yokeDone);
-  // The chart is the body's now, and says so.
-  await expect(position(page)).toContainText("Body, round 1, stitch 1.");
-  await expect(page.getByRole("img", { name: /You are on Body, round 1: dividing round\./ })).toBeVisible();
+  // The chart is the body's now, and says so. Its rounds are counted on from the yoke's 75.
+  await expect(position(page)).toContainText("Body, round 76, stitch 1.");
+  await expect(page.getByRole("img", { name: /You are on Body, round 76: dividing round\./ })).toBeVisible();
   await expect(page.locator(".chart-hold")).toHaveCount(2);
   const onHold = page.locator(".chart-on-hold");
   await expect(onHold).toHaveCount(0);
@@ -338,7 +338,7 @@ test("the dividing round puts each sleeve on hold, casts on its underarm, and go
   await page.getByRole("button", { name: "Held: carry on" }).click();
   await page.getByRole("button", { name: /^Cast on 12 in / }).click();
   await page.getByRole("button", { name: "End of round", exact: true }).click();
-  await expect(position(page)).toContainText("Body, round 2, stitch 1.");
+  await expect(position(page)).toContainText("Body, round 77, stitch 1.");
 
   await page.getByRole("button", { name: "Key", exact: true }).click();
   const key = page.getByRole("dialog", { name: "Key" });
@@ -355,7 +355,7 @@ test("the dividing round puts each sleeve on hold, casts on its underarm, and go
   await settings.getByRole("switch", { name: "Written round instructions" }).check();
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await page.getByText("Text round instructions", { exact: true }).click();
-  await page.getByLabel("Read round").selectOption({ label: "Body, round 1 · dividing round" });
+  await page.getByLabel("Read round").selectOption({ label: "Body, round 76 · dividing round" });
   await expect(page.getByText("Put the next 80 stitches on hold for the right sleeve.")).toBeVisible();
   await expect(page.getByText("Put the next 80 stitches on hold for the left sleeve.")).toBeVisible();
 });
@@ -369,14 +369,14 @@ test("a sleeve begins from its held stitches, picked up round from its underarm"
   await expect(onHold).toHaveCount(2);
   await page.getByRole("button", { name: "On the needles: carry on" }).click();
   await expect(onHold).toHaveCount(1);
-  await expect(position(page)).toContainText("Left sleeve, round 1, stitch 1.");
+  await expect(position(page)).toContainText("Left sleeve, round 76, stitch 1.");
   await page.getByRole("button", { name: /^Pick up and knit 6 in / }).click();
   await page.getByRole("button", { name: /^Knit 80 in / }).click();
   await page.getByRole("button", { name: /^Pick up and knit 6 in / }).click();
-  await expect(position(page)).toContainText("Left sleeve, round 2, stitch 1.");
+  await expect(position(page)).toContainText("Left sleeve, round 77, stitch 1.");
   // On the one chart, the stitch to be worked next is the sleeve's, named as the sleeve's round.
   await tapBeside(page, 0);
-  await expect(page.getByRole("dialog", { name: /^Left sleeve, round 2, stitch 1$/ })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: /^Left sleeve, round 77, stitch 1$/ })).toBeVisible();
 });
 
 test("a bought design comes in every size it is written for, by its own wool, every colour of it yours to change", async ({ page }) => {
@@ -408,15 +408,15 @@ test("a bought design comes in every size it is written for, by its own wool, ev
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 });
 
-test("a raglan divides as its pattern says: a wrap at each corner, one cast on more than stays, and the round moved on", async ({ page }) => {
+test("a raglan divides as its pattern says: a wrap at each corner, one cast on more than stays, and on round from the back", async ({ page }) => {
   await knittedTo(page, kleeBeforeHold, klee);
-  await expect(position(page)).toContainText("Body, round 1, stitch 55. Put 78 stitches on hold.");
+  await expect(position(page)).toContainText("Body, round 107, stitch 55. Put 78 stitches on hold.");
   await expect(page.locator(".knitting-panel")).toContainText("First wrap the next stitch");
   await page.getByRole("button", { name: "Held: carry on" }).click();
-  // The underarm is cable cast on, the new end of the round half way along it, and closed up by the stitch after.
+  // The underarm is cable cast on, and closed up by the stitch after.
   const hint = page.getByRole("list", { name: "Stitches in this round" });
   await expect(hint).toContainText("Cable cast-on, at the underarm");
-  await expect(hint).toContainText("new end-of-round marker half way along");
+  await expect(hint).not.toContainText("end-of-round marker");
   await page.getByRole("button", { name: /^Cast on 9 in / }).click();
   await page.getByRole("button", { name: /^Slip 1 and pass the cast-on over in / }).click();
   await page.getByRole("button", { name: /^Knit 109 in / }).click();
@@ -424,10 +424,8 @@ test("a raglan divides as its pattern says: a wrap at each corner, one cast on m
   await page.getByRole("button", { name: /^Cast on 9 in / }).click();
   await page.getByRole("button", { name: /^Slip 1 and pass the cast-on over in / }).click();
   await page.getByRole("button", { name: /^Knit 54 in / }).click();
-  // Then on, part of a round, to the middle of the right underarm, where the body's rounds now begin.
-  await expect(position(page)).toContainText("Body, on to the new beginning of the round, stitch 1. Knit 59 in");
-  await page.getByRole("button", { name: /^Knit 59 in / }).click();
-  await expect(position(page)).toContainText("Body, round 3, stitch 1. Knit 236 in");
+  // The pattern moves the beginning of the round to the right underarm; here it stays at the middle of the back.
+  await expect(position(page)).toContainText("Body, round 108, stitch 1. Knit 236 in");
 });
 
 test("a rib is worked as its pattern words it, and bound off in pattern", async ({ page }) => {

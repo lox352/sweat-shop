@@ -20,9 +20,16 @@ import { underarmDecrease } from "./writing";
  * Below the colourwork the yoke goes on in the main colour and turns into a
  * raglan: four lines of increases, a KBF before each marker and a KFB after
  * it. At the divide each sleeve's first stitch is wrapped before the sleeve
- * goes on hold, the underarm is cable cast on and closed up to the next
- * stitch with the last of it passed over, and the round moves from the
- * middle of the back to the middle of the right underarm.
+ * goes on hold, and the underarm is cable cast on and closed up to the next
+ * stitch with the last of it passed over.
+ *
+ * Two things the pattern does only rename where it is, and are left out
+ * here: it moves the beginning of the round from the middle of the back to
+ * the middle of the right underarm at the divide, and it counts the body's
+ * and the sleeves' rounds from 1 again. The body's rounds begin at the middle
+ * of the back, as the yoke's do, and every round is counted on from the neck.
+ * The one difference that makes to the knitting is that the hem's rib and
+ * bind-off start at the middle of the back, half a round sooner.
  *
  * Slots: MC is the main colour - the neck, the raglan, the body and the
  * sleeves. "1A" and "1B" are the first band's colours A and B, "2A" and
@@ -119,9 +126,13 @@ interface Grade {
   raglan: [back: number, sleeve: number, front: number];
   /** Raglan increase rounds in all, a plain round between each two. */
   increases: number;
-  /** Cast on at each underarm before the new end-of-round marker, and after it - one of which is passed over. */
+  /**
+   * Cast on at each underarm, in the pattern's two counts: before the middle,
+   * where it would move the end of the round, and after. One more is cast on
+   * than stays; a sleeve picks up the second count either side.
+   */
   underarm: [before: number, after: number];
-  /** Plain rounds of the body, from the new beginning of the round. */
+  /** Plain rounds of the body. */
   body: number;
   /** Rounds of k1, p1 rib at the hem, after its two knit rounds. */
   hem: number;
@@ -337,7 +348,7 @@ const sectionsFor = (g: Grade, at: number): Section[] => {
           slot: "MC",
           segments: [
             { work: back + g.increases },
-            { hold: "sleeve-right", count: held, castOn: before + after - 1, wrap: true, close: "slipPassOver", newRound: before },
+            { hold: "sleeve-right", count: held, castOn: before + after - 1, wrap: true, close: "slipPassOver" },
             { work: front + 2 * g.increases },
             { hold: "sleeve-left", count: held, castOn: before + after - 1, wrap: true, close: "slipPassOver" },
             { work: back + g.increases },
@@ -513,13 +524,11 @@ const paulKlee: SweaterPattern = {
       label: "Cable cast-on, at the underarm",
       how:
         "With the sleeve's stitches on hold, turn the work and cable cast on " +
-        "the underarm, with the new end-of-round marker half way along the " +
-        "stitches that will stay cast on at the right underarm; then turn back. " +
-        "One more is cast on than stays: the stitch after them closes it up.",
+        "the underarm; then turn back. One more is cast on than stays: the " +
+        "stitch after them closes it up.",
       steps: [
         "Turn the work, so the wrong side faces you.",
         "Cable cast on: put the right needle between the first two stitches on the left needle, draw a loop through and put it on the left needle. Repeat for each stitch.",
-        "At the right underarm, place the marker for the new end of the round half way, as the chart's round begins there.",
         "Turn the work back, right side facing: the next stitch slips, and the last stitch cast on is passed over it.",
       ],
     },

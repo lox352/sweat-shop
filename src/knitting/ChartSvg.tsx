@@ -253,7 +253,7 @@ const ChartSvg: React.FC<ChartSvgProps> = ({
             dominantBaseline="middle"
             style={{ fontSize: Math.max(12, cell * .55) }}
           >
-            {layout.numbers[row - 1] ?? row}
+            {row}
           </text>
         ))}
       </g>
