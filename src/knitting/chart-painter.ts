@@ -336,10 +336,27 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
   });
   fillRects(pieceLines, colours.piece);
 
-  /* The marks, a path for each ink, each on a halo so it reads on any yarn. */
+  /*
+   * The marks, a path for each ink, each on a halo so it reads on any yarn.
+   * A fork can reach several columns from its own stitch, so the stitches
+   * either side of the region are looked at as far as any fork reaches, for
+   * forks alone.
+   */
   const centre = (c: number) => left[c] + width[c] / 2;
   const inks = new Map<string, { strokes: number[][]; dots: number[] }>();
-  visit((k, row) => {
+  const reach = scene.forkReach * cell;
+  const marked = (each: (k: number, row: number) => void) => {
+    for (let row = firstRow; row <= lastRow; row++) {
+      const [begin, end] = spanOf(row);
+      const [wideBegin, wideEnd] = reach > cell ? within(scene, state, row, from - reach, to + reach) : [begin, end];
+      for (let k = wideBegin; k < wideEnd; k++) {
+        if (width[index.column[k]] <= 0) continue;
+        if ((k < begin || k >= end) && !scene.forkAt[k]) continue;
+        each(k, row);
+      }
+    }
+  };
+  marked((k, row) => {
     const c = index.column[k];
     if (width[c] < cell * markable) return;
     const id = index.id[k];

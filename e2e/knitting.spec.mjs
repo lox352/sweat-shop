@@ -242,7 +242,7 @@ test("changing needles is a step of its own, which the chart and key mark", asyn
   await workRounds(page, 13);
   await expect(page.locator(".knitting-panel")).toContainText("Change to 3.25mm needles");
   await expect(page.getByRole("button", { name: "End of round", exact: true })).toHaveCount(0);
-  await expect(page.locator(".chart-rule-needles")).toBeAttached();
+  await expect(page.locator("[data-note=needles]")).not.toHaveCount(0);
 
   await page.getByRole("button", { name: "Changed: carry on" }).click();
   await expect(position(page)).toContainText("Yoke, short row 1, right side, stitch 1.");
@@ -265,17 +265,17 @@ test("short rows raise the back of the neck, each turned as a step of its own", 
   // The turn, and the row back from the wrong side.
   await expect(page.locator(".knitting-panel")).toContainText("Turn, and make a double stitch");
   await expect(page.getByRole("button", { name: /^End of (round|row)$/ })).toHaveCount(0);
-  await expect(page.locator(".chart-join")).not.toHaveCount(0);
+  await expect(page.locator("[data-note=turn]")).not.toHaveCount(0);
   // The rows to be purled back are hatched: from the right side they show as the knits they make.
   const chart = page.getByRole("img", { name: /^The chart:/ });
   await expect(chart).not.toHaveAccessibleName(/wrong side towards you/);
-  await expect(page.locator(".chart-hatch")).toHaveCount(3);
+  await expect(page.locator("[data-note=hatch]")).toHaveCount(3);
   await page.getByRole("button", { name: "Turned: carry on" }).click();
   await expect(position(page)).toContainText("Yoke, short row 2, wrong side, stitch 1. Purl 39 in");
   // And with the work turned, the chart is too: the wrong side towards you, every stitch as it looks
   // from there - the row back purls - and the knitting from the right side hatched on either side of it.
   await expect(chart).toHaveAccessibleName(/wrong side towards you, and the chart is turned over/);
-  await expect(page.locator(".chart-hatch")).toHaveCount(4);
+  await expect(page.locator("[data-note=hatch]")).toHaveCount(4);
   await expect(page.getByRole("list", { name: "Stitches in this round" })).toContainText("Purl");
   // Undo takes the turn back, and turns the chart back with it.
   await page.getByRole("button", { name: "Undo", exact: true }).click();
@@ -306,8 +306,8 @@ test("the dividing round puts each sleeve on hold, casts on its underarm, and go
   // The chart is the body's now, and says so. Its rounds are counted on from the yoke's 75.
   await expect(position(page)).toContainText("Body, round 76, stitch 1.");
   await expect(page.getByRole("img", { name: /You are on Body, round 76: dividing round\./ })).toBeVisible();
-  await expect(page.locator(".chart-hold")).toHaveCount(2);
-  const onHold = page.locator(".chart-on-hold");
+  await expect(page.locator("[data-note=hold]")).toHaveCount(2);
+  const onHold = page.locator("[data-note=on-hold]");
   await expect(onHold).toHaveCount(0);
 
   // Across the back to the right sleeve, which goes on hold.
@@ -365,7 +365,7 @@ test("a sleeve begins from its held stitches, picked up round from its underarm"
   await expect(page.locator(".knitting-panel")).toContainText("Begin the left sleeve");
   await expect(page.locator(".knitting-panel")).toContainText("Put the 80 held stitches back onto 3.25mm needles, changing from the 2.75mm ones");
   // Both sleeves are on hold until each is taken up; the right waits for the left.
-  const onHold = page.locator(".chart-on-hold");
+  const onHold = page.locator("[data-note=on-hold]");
   await expect(onHold).toHaveCount(2);
   await page.getByRole("button", { name: "On the needles: carry on" }).click();
   await expect(onHold).toHaveCount(1);

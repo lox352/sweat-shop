@@ -5,6 +5,10 @@ import type { RoundKind } from "./needles";
 import { Palette, yarnFor } from "./palette";
 import { cellAt, chartSize, drawChart, drawProgress, leftMargin } from "./draw-chart";
 import ChartSvg from "./ChartSvg";
+import ChartTiles from "./ChartTiles";
+import ChartNotes from "./ChartNotes";
+import { sceneOf } from "./chart-scene";
+import { defaultColours } from "./chart-painter";
 import { StitchLegend, TextRound } from "./ChartHelp";
 import { faceAfter, holdsIn, joinIn, needleChangesIn, otherFaceRows, turnsIn } from "./chart-marks";
 import { type HoldRegion, onHoldAt } from "./holds";
@@ -41,17 +45,29 @@ const reducedMotion = () =>
 /**
  * Which renderer to draw the chart with.
  *
- * Vectors, unless "?chart=canvas" asks otherwise. The canvas one is kept so
- * the two can be held against each other on the same chart, on the same
- * phone, rather than either being replaced on an argument. It draws the
- * stitches and their marks, not the steps' marks - a join, a hold, a turn.
+ * Vectors, unless asked otherwise. "?chart=tiles" draws it on canvas tiles
+ * instead, a piece at a time as it scrolls into view - see TileView - and
+ * is remembered in this browser until "?chart=svg" asks for the vectors
+ * again, so the two can be held against each other on the same chart, on
+ * the same phone, while you knit. "?chart=canvas" is the older canvas one,
+ * which draws the stitches and their marks but not the steps' marks.
  */
-const renderer = (): "svg" | "canvas" =>
-  new URLSearchParams(
+type Renderer = "svg" | "canvas" | "tiles";
+const rendererKey = "chart";
+const renderer = (): Renderer => {
+  const asked = new URLSearchParams(
     typeof window === "undefined" ? "" : (window.location.hash.split("?")[1] ?? ""),
-  ).get("chart") === "canvas"
-    ? "canvas"
-    : "svg";
+  ).get("chart");
+  if (asked === "canvas") return "canvas";
+  let kept: string | null = asked;
+  try {
+    if (asked === "tiles" || asked === "svg") localStorage.setItem(rendererKey, asked);
+    else kept = localStorage.getItem(rendererKey);
+  } catch {
+    // Without storage the choice lasts only as long as the address asks for it.
+  }
+  return kept === "tiles" ? "tiles" : "svg";
+};
 
 /**
  * A colour from the stylesheet, so the canvas is painted in the same palette
@@ -182,7 +198,8 @@ const Chart: React.FC<ChartProps> = ({
     return id;
   }, [follow, progress, stitches]);
   const preferredRenderer = useMemo(() => renderer(), []);
-  const drawWith = contrast ? "svg" : preferredRenderer;
+  // The older canvas cannot number the yarns for high contrast; the vectors and the tiles both can.
+  const drawWith = contrast && preferredRenderer === "canvas" ? "svg" : preferredRenderer;
 
   /*
    * The whole sweater, every stitch over the stitch it was worked into: the
@@ -250,6 +267,24 @@ const Chart: React.FC<ChartProps> = ({
   const drawn = useMemo(
     () => rounds.flat().map((id) => stitches[id]).filter(isFabric),
     [stitches, rounds],
+  );
+  const scene = useMemo(
+    () =>
+      drawWith === "tiles"
+        ? sceneOf(layout, stitches, rounds, { needleRules, join, holds, turns, face, makeOneLean })
+        : undefined,
+    [drawWith, layout, stitches, rounds, needleRules, join, holds, turns, face, makeOneLean],
+  );
+  const colours = useMemo(
+    () => ({
+      ...defaultColours,
+      ground: token("--paper-raised", defaultColours.ground),
+      paper: token("--paper", defaultColours.paper),
+      ink: token("--ink", defaultColours.ink),
+      faint: token("--ink-faint", defaultColours.faint),
+      font: token("--body", defaultColours.font),
+    }),
+    [],
   );
 
   /**
@@ -492,6 +527,17 @@ const Chart: React.FC<ChartProps> = ({
           zoomAt(cellSize + step, view.left + view.width / 2, (top + bottom) / 2);
         }}
       >
+        <ChartNotes
+          layout={layout}
+          join={join}
+          turns={turns}
+          holds={holds}
+          needles={needles.filter((change) => !change.takeUp)}
+          onHold={onHold}
+          hatch={hatch}
+          names={names}
+          pieces={pieces}
+        />
         <div
           ref={sheetRef}
           className="chart-sheets chart-pickable"
@@ -521,7 +567,20 @@ const Chart: React.FC<ChartProps> = ({
               : "")
           }
         >
-          {drawWith === "svg" ? (
+          {drawWith === "tiles" && scene ? (
+            <ChartTiles
+              scene={scene}
+              cell={cellSize}
+              palette={shownPalette}
+              yarnLabels={contrast ? yarnLabels : undefined}
+              progress={progress}
+              hatch={hatch}
+              onHold={onHoldSets}
+              colours={colours}
+              margin={leftMargin(cellSize)}
+              nextStitchId={nextId}
+            />
+          ) : drawWith === "svg" ? (
             <ChartSvg
               // Drawn afresh at each size rather than redrawn in place, so a
               // zoom never leaves the browser anything stale to repaint.

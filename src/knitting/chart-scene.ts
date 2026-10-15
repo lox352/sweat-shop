@@ -31,6 +31,10 @@ export interface ChartScene {
   pieces: string[];
   /** The rows numbered down the edge. */
   numbered: number[];
+  /** 1 for each stitch in the index whose mark is a fork across two loops, by its place there. */
+  forkAt: Uint8Array;
+  /** The furthest a fork reaches from its own column, to the stitch below or its second loop, in columns. */
+  forkReach: number;
   /** For each round, by its place from 0, how many rounds before it share its row: side by side above the divide. */
   beside: Int32Array;
   needleRules: NeedleRule[];
@@ -82,7 +86,17 @@ export const sceneOf = (
   const pieceIndex = new Map<string, number>();
   const slotAt = new Uint16Array(index.id.length);
   const pieceAt = new Uint8Array(index.id.length);
+  const forkAt = new Uint8Array(index.id.length);
+  let forkReach = 0;
   index.id.forEach((id, k) => {
+    const type = stitches[id]?.type;
+    // A KFB or a KBF, and so a PBF or a PFB from behind: each a fork, from whichever side.
+    if (type === "kfb" || type === "kbf") {
+      forkAt[k] = 1;
+      for (const other of [stitches[id].links[0], id + 1]) {
+        if (rowOf[other]) forkReach = Math.max(forkReach, Math.abs(columnOf[other] - columnOf[id]));
+      }
+    }
     const slot = stitches[id]?.slot ?? "";
     if (!slotIndex.has(slot)) {
       slotIndex.set(slot, slots.length);
@@ -151,6 +165,8 @@ export const sceneOf = (
     pieceAt,
     pieces,
     numbered: numberedRows(layout, needleRules),
+    forkAt,
+    forkReach,
     beside,
     needleRules,
     join,
