@@ -223,6 +223,20 @@ describe("a fork across an increase's two loops, its columns closed up", () => {
     );
   });
 
+  it("draws a fork in a region its arm reaches into, though the stitch it is drawn from is several columns off", () => {
+    const fork = built.stitches.find(
+      (stitch) => stitch.type === "kfb" && scene.rowOf[stitch.id] && Math.abs(scene.columnOf[stitch.id + 1] - scene.columnOf[stitch.id]) >= 3,
+    )!;
+    const state = stateFor(layout.columns);
+    const made = scene.columnOf[fork.id + 1];
+    const y = (layout.rows - scene.rowOf[fork.id]) * cell;
+    const paint = recorder();
+    // Just the second loop's cell, its first loop's well outside it.
+    paintRegion(paint.ctx, { x: state.left[made], y, width: cell, height: cell }, scene, state);
+    const arms = paint.strokes.filter((one) => one.width === 1.2).flatMap((one) => one.points);
+    expect(arms.some((run) => Math.abs(run[run.length - 2] - (state.left[made] + cell / 2)) < 1e-6)).toBe(true);
+  });
+
   it("paints the steps where their stitches are: the join, the holds and the turns", () => {
     const paint = recorder();
     const whole = { x: 0, y: 0, width: layout.columns * cell + 40, height: layout.rows * cell };

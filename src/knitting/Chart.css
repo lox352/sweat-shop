@@ -115,6 +115,8 @@
 .chart-yarn-numbers { display: flex; flex-wrap: wrap; gap: .4rem 1.5rem; }
 
 .chart-scroll {
+  /* What the tiles in view are is measured from here. */
+  position: relative;
   overflow-x: auto;
   overflow-y: hidden;
   /* Let a horizontal drag scroll the chart without stealing page scrolling. */
@@ -180,15 +182,41 @@
   color: var(--ink-soft);
 }
 
-.chart-sheets canvas {
+.chart-sheets > canvas {
   display: block;
   /* Cells are flat colour, so never let a browser blur them when scaling. */
   image-rendering: pixelated;
 }
 
-.chart-sheets canvas + canvas {
+.chart-sheets > canvas + canvas {
   position: absolute;
   inset: 0;
+}
+
+/*
+ * The chart on canvas tiles: each tile placed where its square of the chart
+ * is, and any that hang past the chart's edge cut off, so they never make
+ * the box scroll further than the chart goes.
+ */
+.chart-tiles {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.chart-tiles canvas {
+  position: absolute;
+  display: block;
+}
+
+/* The stitch to be worked next, outlined over the tiles. */
+div.chart-next {
+  position: absolute;
+  outline: 2px solid var(--crimson);
+  outline-offset: -1px;
+  pointer-events: none;
 }
 
 .chart-svg {
