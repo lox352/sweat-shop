@@ -234,8 +234,18 @@ const standard: Record<KeyId, Omit<KeyEntry, "note">> = {
     label: "Purl front and back",
     how:
       "Purl into the stitch but leave it on the left needle, then purl into " +
-      "the back of the same stitch and slip it off. One stitch becomes two: " +
-      "from the other side, a KFB.",
+      "the back of the same stitch and slip it off. One stitch becomes two, " +
+      "the new one to its left as a KFB's is: from the other side, a KBF.",
+  },
+  pbf: {
+    id: "pbf",
+    type: "pbf",
+    abbreviation: "PBF",
+    label: "Purl back and front",
+    how:
+      "Purl into the back of the stitch but leave it on the left needle, then " +
+      "purl into its front and slip it off. One stitch becomes two, the new " +
+      "one to its right: from the other side, a KFB.",
   },
   m1p: {
     id: "m1p",
@@ -306,7 +316,7 @@ const standard: Record<KeyId, Omit<KeyEntry, "note">> = {
 };
 
 const order: KeyId[] = [
-  "castOn", "castOnUnderarm", "join", "k1", "p1", "k1tbl", "p1tbl", "kfb", "pfb", "kbf", "m1", "m1p", "k2tog", "p2tog",
+  "castOn", "castOnUnderarm", "join", "k1", "p1", "k1tbl", "p1tbl", "kfb", "pbf", "kbf", "pfb", "m1", "m1p", "k2tog", "p2tog",
   "ssk", "ssp", "s2kp", "s2pp", "sk2p", "p2sps", "sl1po", "pickUp", "pickUpPurl", "bindOff", "bindOffPurl",
 ];
 
@@ -378,6 +388,7 @@ const reverseIds: Record<ReverseStitch, true> = {
   p2sps: true,
   m1p: true,
   pfb: true,
+  pbf: true,
   pickUpPurl: true,
 };
 

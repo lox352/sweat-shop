@@ -372,7 +372,9 @@ export default class Needles {
    * every place, whatever row or round made it.
    *
    * A row from the wrong side is purled, and a purl seen from the right side
-   * is a knit; that is what is stored. See Stitch.wrongSide.
+   * is a knit; that is what is stored. See Stitch.wrongSide. So is its
+   * increase: a PFB puts its new stitch on its left as it is purled, as a KFB
+   * does, which seen from the right side is on its right - a KBF.
    */
   row(
     label: string,
@@ -407,7 +409,7 @@ export default class Needles {
       if (worked === undefined) throw new Error(`${label}: there is no stitch at ${place}`);
       if (replaced.has(place)) throw new Error(`${label}: works the stitch at ${place} twice`);
       if (work[index] === "kfb") {
-        const first = make("kfb", [worked]);
+        const first = make(side === "wrong" ? "kbf" : "kfb", [worked]);
         // Its second loop, worked into the same stitch: see knit.
         const second = make("m1", [worked]);
         // From the wrong side the needle runs the other way round, so the second loop sits before the first.

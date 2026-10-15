@@ -236,7 +236,11 @@ export const makeOneMark = (lean?: "left" | "right", purled = false): Mark | und
  * stands is what says which way the increase leans: under the working stitch
  * when the new one is made beside it, as a KFB's is, so one arm stands
  * straight up; or between the two when neither keeps the column. A KBF, whose
- * second loop is lifted out of the stitch below, stands its V on a foot.
+ * second loop is lifted out of the stitch below, stands its V on a foot - and
+ * so does whatever looks like one from the side the chart shows, its new
+ * stitch on its right: a PFB purled back, seen from the right side, and a KFB
+ * seen from the wrong side, a PBF. So a V opening to the right always has a
+ * foot, and a KFB is never drawn turned round.
  */
 export const forkMark = (from: number, to: number[], purled = false, lifted = false): Mark => {
   const mark: Mark = {
@@ -255,8 +259,8 @@ export const forkMark = (from: number, to: number[], purled = false, lifted = fa
         : []),
     ],
   };
-  // Purled - a PFB - with a purl's dot in its own cell, away from the stitch it makes.
-  return purled ? dotted(mark, to.some((x) => x < 0) ? 0.82 : 0.18, 0.56) : mark;
+  // Purled - a PFB or a PBF - with a purl's dot beside the arm that stands up, away from the stitch it makes.
+  return purled ? dotted(mark, from + (to.some((x) => x < from) ? 0.32 : -0.32), 0.56) : mark;
 };
 
 export const markLabels: Partial<Record<StitchType, string>> = {

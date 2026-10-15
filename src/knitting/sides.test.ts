@@ -15,7 +15,9 @@ describe("each stitch from the other side of the fabric", () => {
       ["s2kp", "s2pp"],
       ["sk2p", "p2sps"],
       ["m1", "m1p"],
-      ["kfb", "pfb"],
+      // A KFB's new stitch is on its left as it is worked, as a PFB's is: turned over, each is the other's mirror.
+      ["kfb", "pbf"],
+      ["kbf", "pfb"],
       ["pickUp", "pickUpPurl"],
       ["bindOff", "bindOffPurl"],
     ];
@@ -50,6 +52,14 @@ describe("a stitch shown, and a stitch worked", () => {
     expect(workedAs(back)).toBe("p1");
     expect(workedAs(round)).toBe("k2tog");
   });
+
+  it("works the increase of a short row back as a PFB, and shows it as the KBF it looks like from the right side", () => {
+    const increase = { type: "kbf" as const, wrongSide: true };
+    expect(workedAs(increase)).toBe("pfb");
+    expect(seenFrom(increase, "right")).toBe("kbf");
+    expect(seenFrom(increase, "wrong")).toBe("pfb");
+    expect(workedAs({ type: "kbf" as const })).toBe("kbf");
+  });
 });
 
 /** How far a mark's dot stands clear of its strokes, less its radius. */
@@ -72,7 +82,8 @@ describe("the symbols for the other side", () => {
     for (const type of sweaterStitches) {
       const pair = reverseOf(type);
       // A purl and a purlwise bind-off are the dotted half of their pairs already.
-      if (pair === type || type === "k1" || type === "p1" || type === "m1" || type === "kfb" || type === "bindOffPurl") continue;
+      // The increases that make two of one are drawn as forks across both their cells; see the next test.
+      if (pair === type || type === "k1" || type === "p1" || type === "m1" || type === "kfb" || type === "kbf" || type === "bindOffPurl") continue;
       const [own, other] = [markFor(type)!, markFor(pair)!];
       expect(other.strokes, pair).toEqual(own.strokes);
       expect(other.dot, pair).toBeDefined();
@@ -92,7 +103,19 @@ describe("the symbols for the other side", () => {
       expect(purled.strokes).toEqual(makeOneMark(lean)!.strokes);
       expect(clearance(purled), String(lean)).toBeGreaterThan(0.05);
     }
-    // The stitch a PFB makes is to its left, or to its right on a chart turned over.
-    for (const made of [-0.5, 1.5]) expect(clearance(forkMark(0.5, [0.5, made], true))).toBeGreaterThan(0.05);
+    // The stitch a PFB makes is to its left, or to its right on a chart turned over; a PBF's the other way, on a foot.
+    for (const made of [-0.5, 1.5]) {
+      for (const foot of [false, true]) {
+        const mark = forkMark(0.5, [0.5, made], true, foot);
+        expect(clearance(mark), `${made} ${foot}`).toBeGreaterThan(0.05);
+        // Beside the arm that stands up, on the side away from the stitch made.
+        expect(Math.sign(mark.dot!.x - 0.5)).toBe(-Math.sign(made - 0.5));
+      }
+    }
+    // Drawn from the cell of the loop that does not stand over the stitch below, the same mark in the same place.
+    const there = forkMark(1.5, [0.5, 1.5], true).dot!;
+    const here = forkMark(0.5, [0.5, -0.5], true).dot!;
+    expect(there.x - 1).toBeCloseTo(here.x);
+    expect([there.y, there.r]).toEqual([here.y, here.r]);
   });
 });

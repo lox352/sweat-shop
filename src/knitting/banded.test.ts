@@ -28,7 +28,8 @@ describe("a yoke of two-colour bands, increased in its bands and along raglan li
   it("increases on the last short row back, as a PFB from the wrong side, and on the row to the end of the round", () => {
     const back = round("Yoke · short row 4, wrong side");
     const on = round("Yoke · short rows, to the end of the round");
-    expect(types(back).slice(0, 6)).toEqual(["k1", "k1", "kfb", "m1", "k1", "k1"]);
+    // Stored as it looks from the right side, where a PFB's new stitch is on its right: a KBF.
+    expect(types(back).slice(0, 6)).toEqual(["k1", "k1", "kbf", "m1", "k1", "k1"]);
     expect(workedAs(stitches[back[2]])).toBe("pfb");
     expect(runAt(back.slice(2))).toBe("PFB");
     expect(types(on)).toEqual(["k1", "k1", "kfb", "m1", "k1", "k1"]);
