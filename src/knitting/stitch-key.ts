@@ -139,7 +139,8 @@ const standard: Record<KeyId, Omit<KeyEntry, "note">> = {
     how:
       "Knit the stitch, then put the left needle into the leg of the stitch " +
       "below it from the back and knit that through the back loop. One stitch " +
-      "becomes two, a KFB's mirror; the pair is one instruction.",
+      "becomes two, the new one to its right - a KFB's mirror; the pair is one " +
+      "instruction.",
   },
   m1: {
     id: "m1",

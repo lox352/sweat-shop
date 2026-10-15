@@ -54,7 +54,8 @@ const worksInto = (stitch: Stitch): number[] =>
  * two are the leaning ones, named by where on the chart they sit, which reads
  * right to left from column 1: a right-leaning k2tog stands on the right-hand
  * (lower) of its two columns and leaves a gap on its left, and a KFB keeps
- * its own column and puts the new stitch in a gap to its left.
+ * its own column and puts the new stitch in a gap to its left - a KBF, its
+ * mirror, in a gap to its right.
  */
 export type Lean = "right" | "middle" | "left";
 
@@ -132,14 +133,18 @@ export const isSecondLoop = (stitch: Stitch, byId: Map<number, Stitch>): boolean
  *
  * Decreases by the way they lean. An increase by what made it: a KFB keeps
  * its stitch over the one it was worked into and puts the new one beside it,
- * to its left; anything else that makes two of one - a make-one only ever
- * joins a family when there is nowhere else to put it - straddles it.
+ * to its left; a KBF is its mirror, the new one to its right, so the two
+ * either side of a raglan line make their new stitches away from it. Of a
+ * KBF's two loops the second stands over the stitch below and the first,
+ * worked first, to the right of it. Anything else that makes two of one - a
+ * make-one only ever joins a family when there is nowhere else to put it -
+ * straddles it.
  */
 const leanOf = (family: Family, byId: Map<number, Stitch>): Lean => {
   if (family.above.length > 1) {
-    return family.above.some((id) => makesTwo(byId.get(id)?.type))
-      ? "right"
-      : "middle";
+    const types = family.above.map((id) => byId.get(id)?.type);
+    if (types.includes("kbf")) return "left";
+    return types.some(makesTwo) ? "right" : "middle";
   }
   switch (byId.get(family.above[0])?.type) {
     case "k2tog":
