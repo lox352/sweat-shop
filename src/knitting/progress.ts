@@ -1,6 +1,6 @@
 import { Stitch, isFabric, isStep } from "../types/Stitch";
 import { workedAs } from "./sides";
-import { StitchType } from "../types/StitchType";
+import { StitchType, makesTwo } from "../types/StitchType";
 import type { Piece } from "../data/sweaters/types";
 import type { RoundKind } from "./needles";
 
@@ -106,7 +106,7 @@ export interface Position {
   /** Whether the next thing to do is join the cast-on into a round. */
   joinNext?: "castOn";
   /** Stitches to put on hold next, part way through the dividing round. */
-  holdNext?: { holder: string; count: number };
+  holdNext?: { holder: string; count: number; wrap?: boolean };
   /** Held stitches to take back up next, to begin a piece with them, and the needles they go onto. */
   resumeNext?: { holder: string; count: number; needles?: number };
   /** A turn next, at the end of a short row, and the side the row after it is worked from. */
@@ -159,7 +159,9 @@ export const positionOf = (
     needlesNext: next?.type === "needles" ? next.needles : undefined,
     joinNext: next?.type === "join" ? "castOn" : undefined,
     holdNext:
-      next?.type === "hold" ? { holder: next.holder ?? "", count: next.count ?? 0 } : undefined,
+      next?.type === "hold"
+        ? { holder: next.holder ?? "", count: next.count ?? 0, ...(next.wrap ? { wrap: true } : {}) }
+        : undefined,
     resumeNext:
       next?.type === "resume"
         ? { holder: next.holder ?? "", count: next.count ?? 0, ...(next.needles === undefined ? {} : { needles: next.needles }) }
@@ -228,7 +230,16 @@ export interface Run {
   endId: number;
   /** Worked from the wrong side, on a short row purled back. */
   wrongSide?: boolean;
+  /**
+   * A rib in one yarn, read as a pattern writes it rather than a stitch at a
+   * time: the stitches that repeat, each with how many - one knit and one
+   * purl, "(k1, p1)". A rib bound off in pattern is one too.
+   */
+  repeat?: { type: StitchType; count: number }[];
 }
+
+/** A stitch as it is worked: one of the sweater's own, or a KFB worked from the wrong side, a PFB. */
+type Worked = StitchType | "pfb";
 
 /**
  * What a knitter calls one of these.
@@ -238,7 +249,7 @@ export interface Run {
  * pattern writes them: you do not work three stitches of k2tog, you work
  * k2tog three times.
  */
-const words: Record<StitchType, { said: string; after?: string; perStitch: boolean }> = {
+const words: Record<Worked, { said: string; after?: string; perStitch: boolean }> = {
   castOn: { said: "cast on", perStitch: true },
   k1: { said: "knit", perStitch: true },
   p1: { said: "purl", perStitch: true },
@@ -246,12 +257,16 @@ const words: Record<StitchType, { said: string; after?: string; perStitch: boole
   k1tbl: { said: "knit", after: "tbl", perStitch: true },
   m1: { said: "m1", perStitch: false },
   kfb: { said: "KFB", perStitch: false },
+  kbf: { said: "KBF", perStitch: false },
+  pfb: { said: "PFB", perStitch: false },
   k2tog: { said: "k2tog", perStitch: false },
   ssk: { said: "ssk", perStitch: false },
   s2kp: { said: "s2kp", perStitch: false },
   sk2p: { said: "sk2p", perStitch: false },
+  sl1po: { said: "slip 1 and pass the cast-on over", perStitch: false },
   pickUp: { said: "pick up and knit", perStitch: true },
   bindOff: { said: "bind off", perStitch: true },
+  bindOffPurl: { said: "bind off purlwise", perStitch: true },
   // Steps, not stitches: never part of a run. See currentRun.
   join: { said: "join in the round", perStitch: false },
   needles: { said: "change needles", perStitch: false },
@@ -261,22 +276,64 @@ const words: Record<StitchType, { said: string; after?: string; perStitch: boole
 };
 
 /** "knit", "purl", "knit tbl", "k2tog". */
-export const stitchWord = (type: StitchType): string =>
+export const stitchWord = (type: Worked): string =>
   [words[type].said, words[type].after].filter(Boolean).join(" ");
 
-/** A run's stitch, in words, from the side it is worked from: see workedAs. */
-export const runWord = (run: Pick<Run, "type" | "wrongSide">): string =>
-  stitchWord(workedAs(run));
+/** A rib's stitches as a pattern abbreviates them: "k", "p". */
+const ribLetter = (type: StitchType): string => (type === "p1" || type === "bindOffPurl" ? "p" : "k");
 
-/** The instruction a run is: "Knit 6", "Purl 2", "K2tog x 3". */
+/** The stitches of a rib's repeat as a pattern writes them, from the side worked: "k1, p1". */
+const ribUnit = (run: Pick<Run, "repeat" | "wrongSide">): string =>
+  (run.repeat ?? [])
+    .map(({ type, count }) => `${ribLetter(workedAs({ type, wrongSide: run.wrongSide }) as StitchType)}${count}`)
+    .join(", ");
+
+const boundOffInPattern = (run: Pick<Run, "repeat">): boolean =>
+  (run.repeat ?? []).some(({ type }) => type === "bindOff" || type === "bindOffPurl");
+
+/** A run's stitch, in words, from the side it is worked from: see workedAs. */
+export const runWord = (run: Pick<Run, "type" | "wrongSide" | "repeat">): string =>
+  run.repeat
+    ? boundOffInPattern(run)
+      ? "bind off in pattern"
+      : `(${ribUnit(run)}) rib`
+    : stitchWord(workedAs(run));
+
+/** The instruction a run is: "Knit 6", "Purl 2", "K2tog x 3", "(K1, p1) x 48". */
 export const runInstruction = (run: Run): string => {
-  const { said, after, perStitch } = words[workedAs(run)];
-  const phrase = perStitch
-    ? [said, run.length, after].filter(Boolean).join(" ")
-    : run.length === 1
-      ? said
-      : `${said} x ${run.length}`;
-  return phrase.charAt(0).toUpperCase() + phrase.slice(1);
+  let phrase: string;
+  if (run.repeat && boundOffInPattern(run)) {
+    phrase = `bind off ${run.length} in pattern`;
+  } else if (run.repeat) {
+    const size = run.repeat.reduce((total, { count }) => total + count, 0);
+    const times = Math.floor(run.length / size);
+    // What is left over is the first stitches of the repeat: "(k1, p1) x 48, k1".
+    let left = run.length - times * size;
+    const rest: string[] = [];
+    for (const { type, count } of run.repeat) {
+      if (left <= 0) break;
+      rest.push(`${ribLetter(workedAs({ type, wrongSide: run.wrongSide }) as StitchType)}${Math.min(count, left)}`);
+      left -= count;
+    }
+    phrase = [`(${ribUnit(run)}) x ${times}`, ...rest].join(", ");
+  } else {
+    const { said, after, perStitch } = words[workedAs(run)];
+    phrase = perStitch
+      ? [said, run.length, after].filter(Boolean).join(" ")
+      : run.length === 1
+        ? said
+        : `${said} x ${run.length}`;
+  }
+  // A capital for the first letter, past any bracket a rib opens with.
+  return phrase.replace(/[a-z]/i, (letter) => letter.toUpperCase());
+};
+
+/** The stitch a rib alternates with, in one yarn: a knit with a purl, and bound off so in pattern. */
+const ribPartner: Partial<Record<StitchType, StitchType>> = {
+  k1: "p1",
+  p1: "k1",
+  bindOff: "bindOffPurl",
+  bindOffPurl: "bindOff",
 };
 
 /**
@@ -300,22 +357,67 @@ export const currentRun = (
   const type = first.type;
 
   // A KFB is one action at the needles but two loops: report it as one.
-  if (type === "kfb") {
+  if (makesTwo(type)) {
     const second = stitches[startId + 1];
     if (second?.type === "m1" && second.slot === first.slot && index.roundOf.get(second.id) === round) {
-      return { slot: first.slot, type, length: 1, startId, endId: second.id };
+      return {
+        slot: first.slot,
+        type,
+        length: 1,
+        startId,
+        endId: second.id,
+        ...(first.wrongSide ? { wrongSide: true } : {}),
+      };
     }
   }
+
+  /** Whether a stitch goes on in the same yarn, from the same side, in the same round. */
+  const alongside = (candidate: Stitch | undefined): candidate is Stitch =>
+    candidate !== undefined &&
+    candidate.slot === first.slot &&
+    Boolean(candidate.wrongSide) === Boolean(first.wrongSide) &&
+    index.roundOf.get(candidate.id) === round;
 
   let endId = startId;
   for (let id = startId + 1; ; id++) {
     const candidate = stitches[id];
-    if (!candidate) break;
-    if (candidate.slot !== first.slot) break;
-    if (candidate.type !== type) break;
-    if (Boolean(candidate.wrongSide) !== Boolean(first.wrongSide)) break;
-    if (index.roundOf.get(id) !== round) break;
+    if (!alongside(candidate) || candidate.type !== type) break;
     endId = id;
+  }
+
+  /*
+   * A rib in one yarn - a knit or two and a purl or two, again and again -
+   * is one instruction, "(k1, p1) x 48", as a pattern writes it, rather than
+   * a stitch at a time. It is only a rib where the repeat goes round at
+   * least twice; a two-colour rib changes yarn at every turn of it, and so
+   * is runs of its own.
+   */
+  const partner = ribPartner[type];
+  const knits = endId - startId + 1;
+  if (partner && knits <= 3) {
+    let purls = 0;
+    while (purls < 4 && alongside(stitches[endId + 1 + purls]) && stitches[endId + 1 + purls].type === partner) purls++;
+    if (purls >= 1 && purls <= 3) {
+      const unit = [...Array<StitchType>(knits).fill(type), ...Array<StitchType>(purls).fill(partner)];
+      let end = startId;
+      for (let id = startId; alongside(stitches[id]) && stitches[id].type === unit[(id - startId) % unit.length]; id++) {
+        end = id;
+      }
+      if (end - startId + 1 >= 2 * unit.length) {
+        return {
+          slot: first.slot,
+          type,
+          length: end - startId + 1,
+          startId,
+          endId: end,
+          ...(first.wrongSide ? { wrongSide: true } : {}),
+          repeat: [
+            { type, count: knits },
+            { type: partner, count: purls },
+          ],
+        };
+      }
+    }
   }
 
   return {

@@ -7,7 +7,7 @@ import { colourwayLabel, paletteOf, yarnFor } from "../knitting/palette";
 import { totals, positionOf, currentRun, whereYouAre, roundNames, roundWhats } from "../knitting/progress";
 import { keyEntryAt } from "../knitting/stitch-key";
 import { faceAfter, holdsIn, needleChangesIn, turnsIn } from "../knitting/chart-marks";
-import { metresBySlot } from "../knitting/yardage";
+import { metresFor } from "../knitting/yardage";
 import {
   Project as SavedProject,
   chartPath,
@@ -284,7 +284,7 @@ const ProjectView: React.FC<{
 
   const colourway = sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0];
   const palette = useMemo(() => paletteOf(colourway, project.shades), [colourway, project.shades]);
-  const metres = useMemo(() => metresBySlot(stitches, rounds), [stitches, rounds]);
+  const metres = useMemo(() => metresFor(size, stitches, rounds), [size, stitches, rounds]);
 
   const counts = totals(index, project.progress);
   const position = positionOf(stitches, project.progress, index);
@@ -515,6 +515,7 @@ const ProjectView: React.FC<{
         <WoolList
           colourway={colourway}
           metres={metres}
+          stated={size.yardage !== undefined}
           overrides={project.shades ?? {}}
           onChange={setShade}
           body={body}

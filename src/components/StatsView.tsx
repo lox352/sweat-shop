@@ -225,8 +225,12 @@ const opOf: Partial<Record<KeyId, Column>> = {
   sk2p: "doubleDecrease",
   m1: "makeOne",
   kfb: "kfb",
+  kbf: "kfb",
+  pfb: "kfb",
+  sl1po: "decrease",
   pickUp: "pickUp",
   bindOff: "bindOff",
+  bindOffPurl: "bindOff",
 };
 
 /** How many of an operation the timed taps must cover before its cost means much. */

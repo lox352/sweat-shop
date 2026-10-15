@@ -34,10 +34,10 @@ const JoinSwatch: React.FC = () => (
   </svg>
 );
 
-/** A KFB is drawn as the pair of cells it makes: the stitch, and the new one to its left. A PFB likewise. */
+/** A KFB is drawn as the pair of cells it makes: the stitch, and the new one to its left. A PFB and a KBF likewise. */
 export const Swatch: React.FC<{ entry: KeyEntry }> = ({ entry }) => {
   if (entry.id === "join") return <JoinSwatch />;
-  const pair = entry.id === "kfb" || entry.id === "pfb";
+  const pair = entry.id === "kfb" || entry.id === "pfb" || entry.id === "kbf";
   return (
     <svg
       className="key-swatch"
@@ -49,7 +49,7 @@ export const Swatch: React.FC<{ entry: KeyEntry }> = ({ entry }) => {
       {pair ? (
         <>
           <Cell x={0} />
-          <Cell x={1} mark={forkMark(0.5, [0.5, -0.5], entry.id === "pfb")} />
+          <Cell x={1} mark={forkMark(0.5, [0.5, -0.5], entry.id === "pfb", entry.id === "kbf")} />
         </>
       ) : entry.id === "m1" || entry.id === "m1p" ? (
         <Cell x={0} mark={makeOneMark(entry.lean, entry.id === "m1p")} />

@@ -83,9 +83,10 @@ const baseOf = (stitch: Stitch): Operation | undefined => {
     case "k2tog": case "ssk": return "decrease";
     case "s2kp": case "sk2p": return "doubleDecrease";
     case "m1": return "makeOne";
-    case "kfb": return "kfb";
+    case "kfb": case "kbf": case "pfb": return "kfb";
+    case "sl1po": return "decrease";
     case "pickUp": return "pickUp";
-    case "bindOff": return "bindOff";
+    case "bindOff": case "bindOffPurl": return "bindOff";
     case "join": return "join";
     case "hold": return "hold";
     case "resume": return "resume";

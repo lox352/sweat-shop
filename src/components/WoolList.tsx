@@ -22,8 +22,10 @@ import "./WoolList.css";
  */
 interface WoolListProps {
   colourway: Colourway;
-  /** Metres of each slot the size knits up, estimated; see knitting/yardage. */
+  /** Metres of each slot the size knits up: the pattern's own, or estimated; see knitting/yardage. */
   metres: Record<string, number>;
+  /** Whether the metres are the pattern's own rather than estimated. */
+  stated?: boolean;
   overrides: Overrides;
   onChange: (slots: SlotId[], chosen: Chosen | undefined) => void;
   /**
@@ -43,6 +45,7 @@ const nameFor = (slots: SlotId[]): string =>
 const WoolList: React.FC<WoolListProps> = ({
   colourway,
   metres,
+  stated,
   overrides,
   onChange,
   body,
@@ -50,7 +53,8 @@ const WoolList: React.FC<WoolListProps> = ({
 }) => {
   /** Which ball is being chosen, by the yarns it does. */
   const [picking, setPicking] = useState<SlotId[] | undefined>();
-  const balls = ballsOf(colourway, metres, overrides);
+  // Only the wool this size knits: a smaller size leaves the last bands' colours out.
+  const balls = ballsOf(colourway, metres, overrides).filter((ball) => ball.metres > 0);
   const chosen = picking && balls.find((ball) => ball.slots[0] === picking[0]);
   const yours = Object.keys(overrides).length > 0;
 
@@ -93,10 +97,11 @@ const WoolList: React.FC<WoolListProps> = ({
       </ul>
 
       <p className="wool-list-restore">
-        The metres are worked out from this size's stitches, with a tenth to
-        spare, and the balls from{" "}
-        {colourway.ballMetres ? `${colourway.ballMetres}m a ball` : "the yarn's ball length"}: an
-        estimate, not a promise.
+        {stated
+          ? "The metres are the pattern's own, for this size, and the balls from "
+          : "The metres are worked out from this size's stitches, with a tenth to spare, and the balls from "}
+        {colourway.ballMetres ? `${colourway.ballMetres}m a ball` : "the yarn's ball length"}
+        {stated ? "." : ": an estimate, not a promise."}
         {yours &&
           " For wool of your own, buy by the metres, from a yarn of the same weight, and check your swatch."}
       </p>

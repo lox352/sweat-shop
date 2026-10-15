@@ -1,4 +1,5 @@
 import { Stitch } from "../types/Stitch";
+import { makesTwo } from "../types/StitchType";
 import { ChartLayout } from "./layout";
 import { cellAt } from "./draw-chart";
 
@@ -9,7 +10,7 @@ export function progressBefore(stitches: Stitch[], rounds: number[][], round: nu
     throw new Error("Choose a valid round and stitch within that round.");
   }
   let id = ids[stitch - 1];
-  if (stitches[id]?.type === "m1" && stitches[id - 1]?.type === "kfb") id--;
+  if (stitches[id]?.type === "m1" && makesTwo(stitches[id - 1]?.type)) id--;
   return id - 1;
 }
 

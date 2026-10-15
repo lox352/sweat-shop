@@ -1,4 +1,5 @@
 import { Stitch, isStep, joinsCastOn } from "../types/Stitch";
+import { makesTwo } from "../types/StitchType";
 import type { StitchKeyId, StitchNote } from "../data/sweaters/types";
 import { type ChartStitch, type Face, type ReverseStitch, seenFrom, workedAs } from "./sides";
 
@@ -130,6 +131,16 @@ const standard: Record<KeyId, Omit<KeyEntry, "note">> = {
       "the back of the same stitch and slip it off. One stitch becomes two, " +
       "the new one to its left; the pair is one instruction.",
   },
+  kbf: {
+    id: "kbf",
+    type: "kbf",
+    abbreviation: "KBF",
+    label: "Knit back and front",
+    how:
+      "Knit the stitch, then put the left needle into the leg of the stitch " +
+      "below it from the back and knit that through the back loop. One stitch " +
+      "becomes two, a KFB's mirror; the pair is one instruction.",
+  },
   m1: {
     id: "m1",
     type: "m1",
@@ -173,6 +184,16 @@ const standard: Record<KeyId, Omit<KeyEntry, "note">> = {
     how:
       "Slip one, knit two together, then pass the slipped stitch over. " +
       "Three become one, leaning to the left.",
+  },
+  sl1po: {
+    id: "sl1po",
+    type: "sl1po",
+    abbreviation: "sl1, pso",
+    label: "Slip one, pass the cast-on over",
+    how:
+      "Slip the next stitch purlwise, then lift the last stitch cast on over " +
+      "it and off the needle: the cast-on closed up to the stitches after it, " +
+      "with no gap at the corner.",
   },
   pickUp: {
     id: "pickUp",
@@ -284,13 +305,13 @@ const standard: Record<KeyId, Omit<KeyEntry, "note">> = {
 };
 
 const order: KeyId[] = [
-  "castOn", "castOnUnderarm", "join", "k1", "p1", "k1tbl", "p1tbl", "kfb", "pfb", "m1", "m1p", "k2tog", "p2tog", "ssk", "ssp",
-  "s2kp", "s2pp", "sk2p", "p2sps", "pickUp", "pickUpPurl", "bindOff", "bindOffPurl",
+  "castOn", "castOnUnderarm", "join", "k1", "p1", "k1tbl", "p1tbl", "kfb", "pfb", "kbf", "m1", "m1p", "k2tog", "p2tog",
+  "ssk", "ssp", "s2kp", "s2pp", "sk2p", "p2sps", "sl1po", "pickUp", "pickUpPurl", "bindOff", "bindOffPurl",
 ];
 
-/** Whether an m1 is the second loop of the KFB just before it. */
+/** Whether an m1 is the second loop of the KFB or KBF just before it. */
 export const pairedWithKfb = (stitches: Stitch[], index: number): boolean =>
-  stitches[index]?.type === "m1" && stitches[index - 1]?.type === "kfb";
+  stitches[index]?.type === "m1" && makesTwo(stitches[index - 1]?.type);
 
 /**
  * Whether a cast-on stitch is cast on part way round - an underarm, in the
@@ -340,6 +361,9 @@ const entryFor = (id: KeyId, notes: Notes, joinsAfterCastOn: boolean): KeyEntry 
     abbreviation: note?.abbreviation ?? base.abbreviation,
     label: note?.label ?? base.label,
     how: note?.how ?? how,
+    // A design that works it another way says how, step by step, in place of these.
+    steps: note?.steps ?? base.steps,
+    alternative: note?.alternative ?? base.alternative,
     note: note?.note,
     lean: note?.lean,
   };
@@ -354,7 +378,6 @@ const reverseIds: Record<ReverseStitch, true> = {
   m1p: true,
   pfb: true,
   pickUpPurl: true,
-  bindOffPurl: true,
 };
 
 export const stitchKey = (stitches: Stitch[], notes: Notes = {}, view: KeyView = "worked"): KeyEntry[] => {
@@ -403,6 +426,6 @@ export const keyEntryAt = (
   if (!stitch || (isStep(stitch) && stitch.type !== "join")) {
     return undefined;
   }
-  const own: Stitch = pairedWithKfb(stitches, id) ? { ...stitch, type: "kfb" } : stitch;
+  const own: Stitch = pairedWithKfb(stitches, id) ? { ...stitch, type: stitches[id - 1].type } : stitch;
   return entryFor(keyIdOf(own, view, stitches), notes, joinsCastOn(stitches, id));
 };

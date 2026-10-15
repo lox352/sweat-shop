@@ -1,5 +1,5 @@
 import { Stitch } from "../types/Stitch";
-import { StitchType, consumption } from "../types/StitchType";
+import { StitchType, boundOff, consumption, makesTwo } from "../types/StitchType";
 
 /**
  * The knitting, as a knitter has it: the stitches on the needles.
@@ -29,8 +29,12 @@ import { StitchType, consumption } from "../types/StitchType";
  * Positions are not made here. The knitting is the same knitting however it
  * is posed, so that is physics/pose.ts's business.
  */
-/** A round, or a short row worked from one side or the other. */
-export type RoundKind = "round" | "right" | "wrong";
+/**
+ * A round, or a short row worked from one side or the other, or part of a
+ * round knitted on without turning, to move the beginning of the round: see
+ * Needles.beginRoundAt.
+ */
+export type RoundKind = "round" | "right" | "wrong" | "part";
 
 /**
  * Stitches put on hold: a run of the round they were held from, in order,
@@ -221,16 +225,24 @@ export default class Needles {
   /** Work one stitch, or one instruction - a k2tog is one stitch made of two. */
   knit(type: StitchType, slot: string, from?: number): Stitch {
     if (!this.working) throw new Error("start a round before knitting into it");
+    // Slipping a stitch and passing the last cast on over it binds that one off.
+    if (type === "sl1po") {
+      const passed = this.yarn === undefined ? undefined : this.stitches[this.yarn];
+      if (passed?.type !== "castOn" || this.next[this.next.length - 1] !== passed.id) {
+        throw new Error(`${this.label}: there is no stitch just cast on to pass over`);
+      }
+      this.next.pop();
+    }
     const worked = this.take(consumption[type]);
     const links = [...worked];
     /*
-     * A KFB makes two loops out of one stitch: the first is stored as the
-     * KFB, the second as the make-one straight after it. That second loop
+     * A KFB or a KBF makes two loops out of one stitch: the first is stored
+     * as itself, the second as the make-one straight after it. That second loop
      * is worked into the same stitch, so it is held by it too, rather than
      * only by its neighbour.
      */
     const previous = this.yarn === undefined ? undefined : this.stitches[this.yarn];
-    if (type === "m1" && previous?.type === "kfb") links.push(previous.links[0]);
+    if (type === "m1" && makesTwo(previous?.type)) links.push(previous!.links[0]);
     if (this.yarn !== undefined) links.push(this.yarn);
     const stitch = this.push({
       links,
@@ -243,7 +255,7 @@ export default class Needles {
     });
     this.made.push(stitch.id);
     // A bound-off stitch is finished: nothing is left on the needle for it.
-    if (type !== "bindOff") this.next.push(stitch.id);
+    if (!boundOff(type)) this.next.push(stitch.id);
     this.yarn = stitch.id;
     return stitch;
   }
@@ -252,13 +264,14 @@ export default class Needles {
    * Put the next `count` stitches on hold, part way through a round: a step.
    * They wait on waste yarn under `name` until a piece takes them back up.
    */
-  hold(name: string, count: number): this {
+  hold(name: string, count: number, wrap = false): this {
     if (this.holders.has(name)) throw new Error(`there is already a holder called ${name}`);
     const held = this.take(count);
     this.holders.set(name, held);
     const step = this.step("hold");
     step.holder = name;
     step.count = count;
+    if (wrap) step.wrap = true;
     this.holds.push({ holder: name, stitches: [...held], heldAt: step.id });
     return this;
   }
@@ -268,12 +281,37 @@ export default class Needles {
    * in the place of a sleeve's held stitches - and remember them as the edge
    * that sleeve will pick up from.
    */
-  castOnHere(count: number, slot: string, edge: string): this {
+  castOnHere(count: number, slot: string, edge: string, passOver = false): this {
     const ids: number[] = [];
     for (let i = 0; i < count; i++) ids.push(this.knit("castOn", slot).id);
+    // One more, to be passed over the next stitch: no part of the edge left.
+    if (passOver) this.knit("castOn", slot);
     this.edges.set(edge, ids);
     const held = this.holds.find((one) => one.holder === edge && one.resumedAt === undefined);
     if (held) held.edge = ids;
+    return this;
+  }
+
+  /** Where a stitch is on the needles, from the beginning of the round. */
+  placeOf(id: number): number {
+    const place = this.live.indexOf(id);
+    if (place < 0) throw new Error(`stitch ${id} is not on the needles`);
+    return place;
+  }
+
+  /**
+   * Move the beginning of the round on to `place`: knit on from the
+   * beginning of the round as far as it - part of a round, without turning -
+   * and begin every round after there. The body of a sweater divided at the
+   * back may be knitted on round to the middle of an underarm, where the
+   * pattern puts its new end-of-round marker.
+   */
+  beginRoundAt(place: number, label: string, width: number, rise: number, slot: string): this {
+    if (this.working) throw new Error(`${label}: a round is still in progress`);
+    if (place <= 0 || place >= this.live.length) throw new Error(`${label}: no place ${place} to begin the round at`);
+    this.row(label, width, rise, "right", Array.from({ length: place }, (_, i) => i), slot);
+    this.roundKinds[this.roundKinds.length - 1] = "part";
+    this.live = [...this.live.slice(place), ...this.live.slice(0, place)];
     return this;
   }
 
@@ -336,25 +374,49 @@ export default class Needles {
    * A row from the wrong side is purled, and a purl seen from the right side
    * is a knit; that is what is stored. See Stitch.wrongSide.
    */
-  row(label: string, width: number, rise: number, side: "right" | "wrong", places: number[], slot: string): this {
+  row(
+    label: string,
+    width: number,
+    rise: number,
+    side: "right" | "wrong",
+    places: number[],
+    slot: string,
+    /** What to work at each place, in step with `places`: a knit unless it says an increase. */
+    work: ("k1" | "kfb")[] = [],
+  ): this {
     if (this.working) throw new Error(`${label}: a round is still in progress`);
     const made: number[] = [];
-    for (const place of places) {
-      const worked = this.live[place];
-      if (worked === undefined) throw new Error(`${label}: there is no stitch at ${place}`);
+    // A place an increase was worked at holds both its loops, in the order they sit round the needle.
+    const replaced = new Map<number, number[]>();
+    const make = (type: StitchType, links: number[]): Stitch => {
       const stitch = this.push({
-        links: this.yarn === undefined ? [worked] : [worked, this.yarn],
-        type: "k1",
+        links: this.yarn === undefined ? links : [...links, this.yarn],
+        type,
         slot,
         piece: this.piece,
         width,
         rise,
         ...(side === "wrong" ? { wrongSide: true } : {}),
       });
-      this.live[place] = stitch.id;
       this.yarn = stitch.id;
       made.push(stitch.id);
-    }
+      return stitch;
+    };
+    places.forEach((place, index) => {
+      const worked = this.live[place];
+      if (worked === undefined) throw new Error(`${label}: there is no stitch at ${place}`);
+      if (replaced.has(place)) throw new Error(`${label}: works the stitch at ${place} twice`);
+      if (work[index] === "kfb") {
+        const first = make("kfb", [worked]);
+        // Its second loop, worked into the same stitch: see knit.
+        const second = make("m1", [worked]);
+        // From the wrong side the needle runs the other way round, so the second loop sits before the first.
+        replaced.set(place, side === "wrong" ? [second.id, first.id] : [first.id, second.id]);
+      } else {
+        replaced.set(place, [make("k1", [worked]).id]);
+      }
+    });
+    this.live = this.live.flatMap((id, place) => replaced.get(place) ?? [id]);
     this.width = width;
     this.rise = rise;
     this.rounds.push(made);

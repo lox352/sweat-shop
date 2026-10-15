@@ -19,10 +19,18 @@
 
 import type { WoolId } from "../yarns";
 
-export type SlotId = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H";
+/**
+ * A yarn slot, as the design names it: "A", "B", "C"... for a design drawn
+ * in a handful of yarns, or "MC" and "1A", "1B", "2A"... for a yoke of many
+ * bands, each knitted in two yarns of its own.
+ */
+export type SlotId = string;
 
-/** A mark printed in a cell, on top of its colour. */
-export type ChartSymbol = "purl" | "k1tbl" | "k2tog" | "ssk" | "s2kp" | "sk2p" | "m1";
+/**
+ * A mark printed in a cell, on top of its colour. A "kfb" is the first of the
+ * two loops a KFB makes, and the cell after it is always the second: an "m1".
+ */
+export type ChartSymbol = "purl" | "k1tbl" | "k2tog" | "ssk" | "s2kp" | "sk2p" | "m1" | "kfb";
 
 export interface ChartCell {
   slot: SlotId;
@@ -108,6 +116,8 @@ export interface Size {
   label: string;
   /** The chest it is made to fit, before the ease. */
   toFitChestCm: number;
+  /** Who it fits, where the pattern says so in other words than a chest: "2-3 years". */
+  fits?: string;
   finished: Measurements;
   /** Over the stocking stitch and colourwork, after blocking. */
   stitchesPer10cm: number;
@@ -115,6 +125,14 @@ export interface Size {
   needlesMm: number;
   /** The ribbing's finer needles. */
   ribNeedlesMm?: number;
+  /** Larger needles for the colourwork, where the design loosens it. */
+  colourNeedlesMm?: number;
+  /**
+   * Metres of each yarn, where the pattern states them: a bought pattern's
+   * own shopping list, which is better than any estimate. Left out, they
+   * are worked out from the stitches; see knitting/yardage.
+   */
+  yardage?: Record<SlotId, number>;
   /** The whole knitting, for this size, as the pattern writes it. */
   sections: Section[];
   /**
@@ -127,9 +145,10 @@ export interface Size {
 }
 
 /**
- * An entry in the stitch-symbol key. A KFB's second loop is part of "kfb".
- * "castOn" is the neck's, the knitting's first stitches; "castOnUnderarm" is
- * any cast on part way round, with the yarn already at the needle.
+ * An entry in the stitch-symbol key. A KFB's second loop is part of "kfb",
+ * and a KBF's of "kbf". "castOn" is the neck's, the knitting's first
+ * stitches; "castOnUnderarm" is any cast on part way round, with the yarn
+ * already at the needle.
  */
 export type StitchKeyId =
   | "castOn"
@@ -139,23 +158,30 @@ export type StitchKeyId =
   | "p1"
   | "k1tbl"
   | "kfb"
+  | "kbf"
   | "m1"
   | "k2tog"
   | "ssk"
   | "s2kp"
   | "sk2p"
+  | "sl1po"
   | "pickUp"
-  | "bindOff";
+  | "bindOff"
+  | "bindOffPurl";
 
 /**
  * What a design says about one of its stitches, for the symbol key: its own
- * wording, where it puts it differently, and which way a make-one leans.
+ * wording, where it puts it differently, and which way a make-one leans. A
+ * design whose cast-on is worked another way gives its own steps, and its
+ * own other way, in place of the site's.
  */
 export interface StitchNote {
   abbreviation?: string;
   lean?: "left" | "right";
   label?: string;
   how?: string;
+  steps?: string[];
+  alternative?: string;
   note?: string;
 }
 
@@ -166,6 +192,10 @@ export type ShapingOp =
   | { work: "k" | "p"; times: number }
   | { work: "m1" }
   | { work: "kfb" }
+  /** Knit back and front: a KFB's mirror, for the other side of a raglan line. */
+  | { work: "kbf" }
+  /** Purl front and back: a short row's increase, worked from the wrong side. */
+  | { work: "pfb" }
   | { work: "k2tog" }
   | { work: "ssk" }
   | { work: "s2kp" }
@@ -185,16 +215,35 @@ export type DivideSegment =
       /** The holder's name, which is the piece they will become. */
       hold: string;
       count: number;
-      /** Cast on this many in their place, for the body's underarm. */
+      /** Cast on this many in their place, for the body's underarm: the ones that stay cast on. */
       castOn: number;
+      /**
+       * Wrap the first stitch to go on hold before it goes - yarn to the
+       * front, slip it, yarn to the back, slip it back - so the corner of
+       * the underarm is left with no hole.
+       */
+      wrap?: boolean;
+      /**
+       * Close the cast-on up to the stitches after it: cast on one more,
+       * then slip the next stitch and pass that last one over it. The
+       * slipped stitch is the first of the next stretch's.
+       */
+      close?: "slipPassOver";
+      /**
+       * Begin the round here from now on: after this many of the stitches
+       * cast on, where the pattern places the new end-of-round marker. The
+       * body is knitted on round from the old beginning to the new before
+       * its next round begins.
+       */
+      newRound?: number;
     };
 
 export type RoundSpec = (
   | { type: "castOn"; count: number; slot: string; fabric?: string }
   /** "Join to work in the round" - straight after the cast-on. */
   | { type: "join" }
-  /** "Change to larger needles", or back to the ribbing's. */
-  | { type: "needles"; to: "rib" | "main" }
+  /** "Change to larger needles", or back to the ribbing's, or the colourwork's. */
+  | { type: "needles"; to: "rib" | "main" | "colour" }
   | {
       type: "rounds";
       count: number;
@@ -237,9 +286,10 @@ export type RoundSpec = (
    * The first round of a piece begun from held stitches: pick up and knit
    * `before` stitches from the edge cast on in the holder's place, knit the
    * held stitches, then pick up `after` more - starting, as a sleeve does, at
-   * the middle of the underarm. The held stitches go onto the main needles,
-   * whatever the piece before ended on; a rib after that changes needles as
-   * a rib anywhere does.
+   * the middle of the underarm. Picking up more than the edge has stitches
+   * picks the rest up at its corners, where it meets the held stitches. The
+   * held stitches go onto the main needles, whatever the piece before ended
+   * on; a rib after that changes needles as a rib anywhere does.
    */
   | {
       type: "piece";
@@ -249,8 +299,11 @@ export type RoundSpec = (
       slot: string;
       fabric?: string;
     }
-  /** "Bind off all stitches." */
-  | { type: "bindOff"; slot: string; fabric?: string }
+  /**
+   * "Bind off all stitches" - knitwise, or "in pattern", with the stitches
+   * of a rib bound off as they were worked: knits knitwise, purls purlwise.
+   */
+  | { type: "bindOff"; slot: string; fabric?: string; sequence?: ("k" | "p")[] }
   /**
    * German short rows, centred on the beginning of the round - the middle of
    * the back - to raise the back of the neck: `pairs` pairs of rows, the
@@ -260,7 +313,23 @@ export type RoundSpec = (
    * from the last turn to its end, and the next round works the last two
    * double stitches as it reaches them.
    */
-  | { type: "shortRows"; first: number; extend: number; pairs: number; slot: string; fabric?: string }
+  | {
+      type: "shortRows";
+      first: number;
+      extend: number;
+      pairs: number;
+      slot: string;
+      fabric?: string;
+      /** How much further the last pair reaches, where the pattern stretches it. */
+      extendLast?: number;
+      /**
+       * Increases on the way back to the beginning of the round: in the last
+       * row from the wrong side, as far as the beginning of the round, and in
+       * the row that knits on from the last turn to the end of the round -
+       * each written as the pattern works it, "p2, pfb, [p6, pfb] x 2, p3".
+       */
+      shaping?: { wrong?: ShapingOp[]; right?: ShapingOp[] };
+    }
 ) & {
   /** Record the stitch count this leaves under this name; see Size.checks. */
   check?: string;

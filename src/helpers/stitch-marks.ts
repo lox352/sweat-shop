@@ -165,6 +165,21 @@ marks.bindOff = {
 };
 
 /*
+ * Slipping a stitch and passing the last stitch cast on over it: a slipped
+ * stitch's V, closed across the top by the stitch lifted over it.
+ */
+marks.sl1po = {
+  strokes: [
+    [
+      [near, near],
+      [mid, far],
+      [far, near],
+      [near, near],
+    ],
+  ],
+};
+
+/*
  * The stitches as they are from the other side of the fabric - see
  * knitting/sides.ts. Each is drawn as its pair, with a purl's dot wherever its
  * strokes leave the cell clear, as a chart key draws a p2tog: a k2tog's stroke
@@ -220,14 +235,25 @@ export const makeOneMark = (lean?: "left" | "right", purled = false): Mark | und
  * and -0.5 the middle of the cell to its left. Where the point of the V
  * stands is what says which way the increase leans: under the working stitch
  * when the new one is made beside it, as a KFB's is, so one arm stands
- * straight up; or between the two when neither keeps the column.
+ * straight up; or between the two when neither keeps the column. A KBF, whose
+ * second loop is lifted out of the stitch below, stands its V on a foot.
  */
-export const forkMark = (from: number, to: number[], purled = false): Mark => {
+export const forkMark = (from: number, to: number[], purled = false, lifted = false): Mark => {
   const mark: Mark = {
-    strokes: to.map((x) => [
-      [from, far],
-      [x, near],
-    ]),
+    strokes: [
+      ...to.map((x): [number, number][] => [
+        [from, far],
+        [x, near],
+      ]),
+      ...(lifted
+        ? [
+            [
+              [from - 0.16, far],
+              [from + 0.16, far],
+            ] as [number, number][],
+          ]
+        : []),
+    ],
   };
   // Purled - a PFB - with a purl's dot in its own cell, away from the stitch it makes.
   return purled ? dotted(mark, to.some((x) => x < 0) ? 0.82 : 0.18, 0.56) : mark;
@@ -244,4 +270,7 @@ export const markLabels: Partial<Record<StitchType, string>> = {
   sk2p: "slip 1, knit 2 together, pass slipped stitch over",
   m1: "make one",
   kfb: "knit front and back",
+  kbf: "knit back and front",
+  sl1po: "slip 1, pass the cast-on over",
+  bindOffPurl: "bind off purlwise",
 };

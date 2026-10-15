@@ -31,7 +31,7 @@ export const markAt = (
   const shown = seenFrom(stitch, face);
   if (shown === "castOn" && castOnPartWay(stitch.id, (id) => byId.get(id))) return castOnPartWayMark;
   if (shown === "m1" || shown === "m1p") return makeOneMark(makeOneLean, shown === "m1p");
-  if (shown !== "kfb" && shown !== "pfb") return markFor(shown);
+  if (shown !== "kfb" && shown !== "pfb" && shown !== "kbf") return markFor(shown);
 
   const at = layout.cells.get(stitch.id);
   const made = byId.get(stitch.id + 1);
@@ -40,7 +40,7 @@ export const markAt = (
   // Column 1 is at the right, so a higher column is further left.
   const centre = (column: number) => 0.5 + at.column - column;
   const parentAt = layout.cells.get(stitch.links[0]);
-  return forkMark(centre(parentAt?.column ?? at.column), [0.5, centre(madeAt.column)], shown === "pfb");
+  return forkMark(centre(parentAt?.column ?? at.column), [0.5, centre(madeAt.column)], shown === "pfb", shown === "kbf");
 };
 
 /** Where the needles change: after which round, and to what size. */
