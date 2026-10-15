@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { SlotId } from "../data/sweaters/types";
 import type { Stitch } from "../types/Stitch";
+import { consumption } from "../types/StitchType";
 import { yarnFor, type Palette } from "../knitting/palette";
 
 /**
@@ -29,6 +30,39 @@ export const bodyRounds = (rounds: number[][], stitches: Stitch[]) => {
   return rounds.slice(first, last + 1);
 };
 
+/** The stitch a stitch was worked into, or drawn out of: none for one made from nothing. */
+const parentOf = (stitch: Stitch | undefined): number | undefined => {
+  if (!stitch) return undefined;
+  const { links } = stitch;
+  return (links.length > consumption[stitch.type] ? links.slice(0, -1) : links)[0];
+};
+
+/**
+ * The stitches a picture paints for each round, a column at a time.
+ *
+ * Mostly a round's own. But a round that increases is painted where the
+ * round it was worked into is: each of its stitches under the stitch it grew
+ * out of, and the stitches it adds - a KFB's second loop, a make-one - left
+ * for the round after it, which has room for them. That is how the knitting
+ * looks: an increase grows out of the stitch below, in its colour, so a band
+ * whose last round increases keeps its blocks in line to the end, and only
+ * the next round is wider. Painted at its own count instead, that last round
+ * has its blocks shifted along under the rest of the band.
+ */
+export const paintedRows = (body: number[][], stitches: Stitch[]): number[][] =>
+  body.map((round, y) => {
+    const above = body[y - 1];
+    if (!above || round.length <= above.length) return round;
+    const grown = new Map<number, number>();
+    for (const id of round) {
+      const parent = parentOf(stitches[id]);
+      if (parent !== undefined && !grown.has(parent)) grown.set(parent, id);
+    }
+    // Not worked stitch for stitch into the round above it - a sleeve begun after the other - so painted as it is.
+    if (above.some((id) => !grown.has(id))) return round;
+    return above.map((id) => grown.get(id)!);
+  });
+
 /**
  * Whole screen pixels a stitch, as near as they come to a strip `height`
  * screen pixels tall; until that is measured, a pixel a stitch for the
@@ -44,7 +78,8 @@ export const stitchScale = (height: number, rows: number) => Math.max(1, Math.ro
  * - a round goes all the way round the yoke, so more of it is simply the
  * next repeat - which keeps every band at the same stitch scale however many
  * stitches its round has. The picture is repeated sideways for the same
- * reason. Undefined where there is no canvas (a test environment).
+ * reason. A round that increases is drawn in line with the round above it;
+ * see `paintedRows`. Undefined where there is no canvas (a test environment).
  */
 export const usePainting = (body: number[][], stitches: Stitch[], palette: Palette, scale: number, highlight?: SlotId[]) =>
   useMemo(() => {
@@ -61,7 +96,7 @@ export const usePainting = (body: number[][], stitches: Stitch[], palette: Palet
     element.width = width * scale;
     element.height = body.length * scale;
     const lit = highlight && new Set(highlight.map((slot) => palette[slot]));
-    body.forEach((round, y) => {
+    paintedRows(body, stitches).forEach((round, y) => {
       for (let x = 0; x < width; x++) {
         const yarn = yarnFor(palette, stitches[round[x % round.length]]?.slot ?? "");
         ctx.globalAlpha = lit && !lit.has(yarn) ? 0.14 : 1;
