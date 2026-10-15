@@ -1,3 +1,5 @@
-# A personal knitting companion. Not for indexing, for now.
+# A personal knitting companion, kept out of search engines. Crawlers read
+# robots.txt only at the root of a host, so what keeps this site out is the
+# noindex on every page; this says the same to anything that looks here.
 User-agent: *
 Disallow: /
