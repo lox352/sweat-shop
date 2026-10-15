@@ -103,10 +103,17 @@ without them.
 
 ## The designs
 
-One so far: **Hamefarin**, an original circular yoke in the Fair Isle
-tradition, graded in eight sizes from 86 to 156cm finished chest. See
-[DESIGN.md](DESIGN.md) for how it was made, what it was inspired by, and how
-its sizes were graded.
+- **Hamefarin**, an original circular yoke in the Fair Isle tradition,
+  graded in eight sizes from 86 to 156cm finished chest.
+- **The Paul Klee Sweater**, by Midori Hirose: a pattern bought and
+  transcribed for its owner's own knitting, which is all its licence allows -
+  it is not to be shared. A yoke of colour blocks in as many as twenty-four
+  colours, turning into a raglan below them, in sixteen sizes from a child's
+  of two to a 6XL, every count the pattern states checked against the
+  knitting.
+
+See [DESIGN.md](DESIGN.md) for how each was made, and how Hamefarin's sizes
+were graded.
 
 Adding a design is one file and one line:
 

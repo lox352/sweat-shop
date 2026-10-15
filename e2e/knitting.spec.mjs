@@ -28,21 +28,24 @@ async function start(page) {
   await page.getByRole("button", { name: "Start knitting this", exact: true }).click();
   await expect(page.getByRole("button", { name: "End of round", exact: true })).toBeVisible();
 }
+/** Hamefarin in a medium, as a project's choices. */
+const medium = { sweaterId: "hamefarin", sizeId: "m", colourwayId: "simmer-dim" };
+/** The Paul Klee Sweater in its M1, in the colours the pattern gives it. */
+const klee = { sweaterId: "paul-klee", sizeId: "m1", colourwayId: "klee" };
 /**
- * A medium already knitted as far as `progress` - the id of the last stitch
+ * A sweater already knitted as far as `progress` - the id of the last stitch
  * worked - opened at its chart with the knitting showing. Knitting a yoke's
  * twenty thousand stitches a round at a time is no way to reach the divide.
  */
-async function knittedTo(page, progress) {
+async function knittedTo(page, progress, choices = medium) {
   await page.goto("");
-  await page.evaluate(progress => {
+  await page.evaluate(({ progress, choices }) => {
     const now = new Date().toISOString();
     const id = "project-1760000000000";
     localStorage.setItem(id, JSON.stringify({
-      version: 1, id, sweaterId: "hamefarin", sizeId: "m", colourwayId: "simmer-dim",
-      progress, startedAt: now, updatedAt: now,
+      version: 1, id, ...choices, progress, startedAt: now, updatedAt: now,
     }));
-  }, progress);
+  }, { progress, choices });
   await page.goto("#/project/1760000000000/chart?knitting=1");
   await expect(position(page)).toBeAttached();
 }
@@ -64,6 +67,14 @@ const yokeDone = 21146;
 const bodyDone = 56077;
 /** The first stitch of the yoke's last round, its 75th, of 432 stitches. */
 const yokeLastRound = 20715;
+/*
+ * In the Paul Klee Sweater's M1: the back's first half of its dividing round
+ * knitted, with the right sleeve to go on hold next; the last stitch before
+ * its hem's rib; and the last before the rib is bound off.
+ */
+const kleeBeforeHold = 20349;
+const kleeBeforeRib = 36170;
+const kleeBeforeBindOff = 43486;
 
 test("the design and its projects work without WebGL, and nothing fetches the solver", async ({ page }) => {
   await page.addInitScript(() => {
@@ -77,7 +88,7 @@ test("the design and its projects work without WebGL, and nothing fetches the so
   page.context().on("request", request => { if (/solver/i.test(request.url())) physics.push(request.url()); });
   await page.goto("");
   const links = await page.locator(".design-card").evaluateAll(nodes => nodes.map(node => node.href));
-  expect(links).toHaveLength(1);
+  expect(links).toHaveLength(2);
   await page.goto(links[0]);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByRole("button", { name: "Start knitting this", exact: true })).toBeVisible();
@@ -362,6 +373,65 @@ test("a sleeve begins from its held stitches, picked up round from its underarm"
   // On the one chart, the stitch to be worked next is the sleeve's, named as the sleeve's round.
   await tapBeside(page, 0);
   await expect(page.getByRole("dialog", { name: /^Left sleeve, round 2, stitch 1$/ })).toBeVisible();
+});
+
+test("a bought design comes in every size it is written for, by its own wool, every colour of it yours to change", async ({ page }) => {
+  await page.goto("#/sweater/paul-klee");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Paul Klee Sweater");
+  await expect(page.getByText("© Midori Hirose 2022", { exact: false })).toBeVisible();
+  // Four sizes for children, by age, and twelve for adults, by the bust they fit.
+  const sizes = page.locator(".size-option");
+  await expect(sizes).toHaveCount(16);
+  await expect(sizes.first()).toContainText("Kids 1");
+  await expect(sizes.first()).toContainText("2–3 years");
+  await expect(sizes.nth(4)).toContainText("to fit 71cm");
+  // The metres are the pattern's, and only for the colours a size knits: an L's eleven bands, a child's seven.
+  await expect(page.getByText("The metres are the pattern's own", { exact: false })).toBeVisible();
+  const wool = page.locator(".wool-row");
+  await expect(wool).toHaveCount(23);
+  await sizes.first().click();
+  await expect(wool).toHaveCount(15);
+  // Any of them can be changed, each on its own.
+  const first = wool.filter({ has: page.locator(".shade-chip", { hasText: /^1A$/ }) });
+  await first.click();
+  const picker = page.getByRole("dialog", { name: "Wool for Yarn 1A" });
+  await picker.getByLabel("Search the wool").fill("Scarlet");
+  await picker.getByRole("button", { name: /^Scarlet .*Spindrift/ }).click();
+  await picker.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(first).toContainText("Scarlet");
+  await expect(first).toContainText("yours");
+  await expect(wool.filter({ has: page.locator(".shade-chip", { hasText: /^1B$/ }) })).not.toContainText("yours");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+});
+
+test("a raglan divides as its pattern says: a wrap at each corner, one cast on more than stays, and the round moved on", async ({ page }) => {
+  await knittedTo(page, kleeBeforeHold, klee);
+  await expect(position(page)).toContainText("Body, round 1, stitch 55. Put 78 stitches on hold.");
+  await expect(page.locator(".knitting-panel")).toContainText("First wrap the next stitch");
+  await page.getByRole("button", { name: "Held: carry on" }).click();
+  // The underarm is cable cast on, the new end of the round half way along it, and closed up by the stitch after.
+  const hint = page.getByRole("list", { name: "Stitches in this round" });
+  await expect(hint).toContainText("Cable cast-on, at the underarm");
+  await expect(hint).toContainText("new end-of-round marker half way along");
+  await page.getByRole("button", { name: /^Cast on 9 in / }).click();
+  await page.getByRole("button", { name: /^Slip 1 and pass the cast-on over in / }).click();
+  await page.getByRole("button", { name: /^Knit 109 in / }).click();
+  await page.getByRole("button", { name: "Held: carry on" }).click();
+  await page.getByRole("button", { name: /^Cast on 9 in / }).click();
+  await page.getByRole("button", { name: /^Slip 1 and pass the cast-on over in / }).click();
+  await page.getByRole("button", { name: /^Knit 54 in / }).click();
+  // Then on, part of a round, to the middle of the right underarm, where the body's rounds now begin.
+  await expect(position(page)).toContainText("Body, on to the new beginning of the round, stitch 1. Knit 59 in");
+  await page.getByRole("button", { name: /^Knit 59 in / }).click();
+  await expect(position(page)).toContainText("Body, round 3, stitch 1. Knit 236 in");
+});
+
+test("a rib is worked as its pattern words it, and bound off in pattern", async ({ page }) => {
+  await knittedTo(page, kleeBeforeRib, klee);
+  await expect(page.getByRole("button", { name: /^\(K1, p1\) x 118 in / })).toBeVisible();
+  await knittedTo(page, kleeBeforeBindOff, klee);
+  await expect(page.getByRole("button", { name: /^Bind off 236 in pattern in / })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Stitches in this round" })).toContainText("Bind off purlwise");
 });
 
 test("starting to knit brings the stitch into view, and keeps it there when the panel grows", async ({ page }) => {

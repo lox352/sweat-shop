@@ -143,3 +143,49 @@ their charts is copied here.
   body's stitches, sleeves 33, underarm 8, and a yoke of about 134 per cent
   after three increases of a half each: the proportions the grading starts
   from, with a smaller underarm, as modern top-down yokes have.
+
+## The Paul Klee Sweater
+
+Midori Hirose's pattern, bought and transcribed into
+`src/data/sweaters/paul-klee.ts` for its owner's own knitting. Its licence
+is for personal use, and nothing of it here is to be shared.
+
+It was as much a test of the engine as a second design: it asks for
+everything Hamefarin does and a good deal more.
+
+- **Every size the pattern gives**: four for children, by age, and twelve
+  for adults, from 2XS to 6XL, each its own knitting. The pattern groups the
+  sizes by how many bands of colour their yokes have room for, from seven to
+  twelve, and so does the file.
+- **Its counts, to the letter.** Every stitch count the pattern states is a
+  check the knitting must leave: the neck, the set-up, the short rows, each
+  band, the raglan, the body, and each sleeve's top and cuff.
+  `paul-klee.test.ts` holds the knitting to the rest of what the pattern
+  says: how many rounds the yoke takes, how many colours each size knits,
+  how far the short rows reach, how many rounds each sleeve has, the bust and
+  upper arm it comes out at, and how the divide is worked.
+- **Its bands, drawn.** The pattern writes the colourwork in words, block by
+  block. Here each band is a chart of blocks four stitches wide and five
+  rounds deep, in the band's own two colours, with its last round's
+  increases - a block worked k1, kfb, k2 - where the pattern puts them. The
+  next band starts its blocks afresh from the beginning of the round, as the
+  pattern does.
+- **Its methods**, which the engine learned for it:
+  - a cable cast-on, with one stitch more than the round keeps passed over
+    at the join;
+  - short rows with increases in them;
+  - a third size of needles, for the colourwork;
+  - a raglan: a KBF before each marker and a KFB after it;
+  - a divide worked the pattern's way:
+    - a wrap at each corner before a sleeve goes on hold;
+    - the underarm cable cast on, one more than stays, with the last of it
+      passed over the stitch after;
+    - the round moved on to the middle of the right underarm;
+  - sleeves that pick up more than their underarm has;
+  - ribs worked k1, p1 a run at a time - "(K1, p1) x 48" - and bound off
+    in pattern.
+- **Its wool.** The metres are the pattern's own, size by size, for the main
+  colour and each band's colours, and the wool list shows them in place of
+  an estimate. Its three colourways are the three its charts are drawn in,
+  each colour read off the pattern and matched to the nearest Jamieson's
+  Spindrift shade.
