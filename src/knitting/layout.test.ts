@@ -19,7 +19,9 @@ const offTheirStitch = (knitting: SweaterStitches, rounds: number[][], layout: R
     const stitch = knitting.stitches[id];
     if (consumption[stitch.type] !== 1) return false;
     const below = layout.cells.get(stitch.links[0]);
-    return below !== undefined && below.column !== layout.cells.get(id)!.column;
+    // A KFB's mirror, a KBF makes its new stitch on its right: its column is its second loop's, the stitch after it.
+    const standing = stitch.type === "kbf" ? id + 1 : id;
+    return below !== undefined && below.column !== layout.cells.get(standing)!.column;
   });
 
 describe("a piece laid out by what each stitch was worked into", () => {
@@ -214,6 +216,29 @@ describe("a yoke of bands, raglan increases and a round moved at the divide, on 
     const places = [...laid.cells.values()].map((at) => `${at.row}|${at.column}`);
     expect(new Set(places).size).toBe(places.length);
     expect(laid.cells.size).toBe(knitting.rounds.flat().length);
+  });
+
+  it("puts a KBF's new stitch to its right and a KFB's to its left, away from the raglan line between them", () => {
+    const at = knitting.roundLabels.lastIndexOf("Yoke · shaping round");
+    const round = knitting.rounds[at];
+    const column = (id: number) => laid.cells.get(id)!.column;
+    const below = (id: number) => knitting.stitches[id].links[0];
+    let pairs = 0;
+    round.forEach((id, index) => {
+      const type = knitting.stitches[id].type;
+      if (type !== "kbf" && type !== "kfb") return;
+      pairs++;
+      const loop = round[index + 1];
+      // Column 1 is at the right: a KBF's first loop stands one column right of its second, which is over the stitch below.
+      if (type === "kbf") {
+        expect(column(loop)).toBe(column(below(id)));
+        expect(column(id)).toBe(column(loop) - 1);
+      } else {
+        expect(column(id)).toBe(column(below(id)));
+        expect(column(loop)).toBe(column(id) + 1);
+      }
+    });
+    expect(pairs).toBe(8);
   });
 
   it("gives the part of a round its own row, under the round that works into it and the round before", () => {

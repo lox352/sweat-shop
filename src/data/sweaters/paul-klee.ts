@@ -534,7 +534,8 @@ const paulKlee: SweaterPattern = {
         "Slip a stitch knitwise and back to the left needle purlwise, knit it, " +
         "then put the left needle into the right leg of the stitch below it, " +
         "from back to front, and knit that through the back loop. One stitch " +
-        "becomes two, a KFB's mirror, before each raglan marker.",
+        "becomes two, the new one to its right - a KFB's mirror - before each " +
+        "raglan marker.",
     },
     bindOff: {
       how:
