@@ -1,18 +1,29 @@
-import React, { useLayoutEffect, useRef } from "react";
-import { cellAt } from "./chart-paths";
+import { forwardRef, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import { TileView, type TileContent } from "./tile-view";
 
+/** What the chart asks of the tiles, where the columns may not be where the layout put them. */
+export interface TilesHandle {
+  /** Where a stitch's cell is on the sheet, as the chart is drawn now. */
+  place(id: number): { x: number; y: number } | undefined;
+  /** The stitch at a point on screen. */
+  stitchAt(clientX: number, clientY: number): number | undefined;
+  /** Hold a stitch still while the chart scrolls to it. */
+  hold(id: number | undefined): void;
+  /** After a zoom, where the point zoomed about has got to across the sheet; see TileView.zoomedTo. */
+  zoomedTo(x: number, top: number): number | undefined;
+}
+
 interface ChartTilesProps extends TileContent {
-  /** The stitch to be worked next, outlined. */
-  nextStitchId?: number;
+  /** Told whenever the columns move, for anything placed over them. */
+  onMove?: () => void;
 }
 
 /**
  * The chart on canvas tiles, in place of the drawing as vectors: see
- * TileView. The stitch to be worked next is an outline laid over the tiles,
- * moved as you knit rather than painted into them.
+ * TileView, which also outlines the stitch to be worked next and, when asked,
+ * closes up the columns no row in view has a stitch in.
  */
-const ChartTiles: React.FC<ChartTilesProps> = ({ nextStitchId, ...content }) => {
+const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, ...content }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<TileView>();
 
@@ -36,24 +47,21 @@ const ChartTiles: React.FC<ChartTilesProps> = ({ nextStitchId, ...content }) => 
 
   // Every render: the view works out for itself what, if anything, has to be repainted.
   useLayoutEffect(() => {
-    viewRef.current?.show(content);
+    const view = viewRef.current;
+    if (!view) return;
+    view.onMove = onMove;
+    view.show(content);
   });
 
-  const { scene, cell, margin } = content;
-  const next = nextStitchId === undefined ? undefined : scene.layout.cells.get(nextStitchId);
-  const at = next && cellAt(scene.layout, next.row, next.column, cell);
-  return (
-    <>
-      <div ref={containerRef} className="chart-tiles" style={{ left: -margin, right: 0 }} aria-hidden="true" />
-      {at && (
-        <div
-          className="chart-next"
-          style={{ left: at.x - 1, top: at.y - 1, width: cell + 2, height: cell + 2 }}
-          aria-hidden="true"
-        />
-      )}
-    </>
-  );
-};
+  useImperativeHandle(ref, () => ({
+    place: (id) => viewRef.current?.place(id),
+    stitchAt: (x, y) => viewRef.current?.stitchAt(x, y),
+    hold: (id) => viewRef.current?.hold(id),
+    zoomedTo: (x, top) => viewRef.current?.zoomedTo(x, top),
+  }), []);
+
+  return <div ref={containerRef} className="chart-tiles" style={{ left: -content.margin, right: 0 }} aria-hidden="true" />;
+});
+ChartTiles.displayName = "ChartTiles";
 
 export default ChartTiles;

@@ -34,6 +34,12 @@ export function usePinchZoom(
   setCell: (cell: number) => void,
   /** The chart scrolls both ways in a box of its own, not down the page. */
   contained = false,
+  /**
+   * Where a point `x` across the sheet before a zoom is after it, with the
+   * box about to be scrolled `top` down. In proportion, unless the columns
+   * are not: closed up, they are those the rows in view at the new size need.
+   */
+  placeAfter?: (x: number, top: number) => number | undefined,
 ) {
   const gesture = useRef<Gesture>();
   const settle = useRef<{
@@ -164,9 +170,10 @@ export function usePinchZoom(
      * where the point has got to, and move it back.
      */
     const box = sheet.getBoundingClientRect();
-    const left = scroller.scrollLeft + box.left + done.originX * done.ratio - done.screenX;
     if (contained) {
       const top = scroller.scrollTop + box.top + done.originY * done.ratio - done.screenY;
+      const across = placeAfter?.(done.originX, Math.max(top, 0)) ?? done.originX * done.ratio;
+      const left = scroller.scrollLeft + box.left + across - done.screenX;
       const place = () => {
         scroller.scrollLeft = Math.min(Math.max(left, 0), scroller.scrollWidth - scroller.clientWidth);
         scroller.scrollTop = Math.min(Math.max(top, 0), scroller.scrollHeight - scroller.clientHeight);
@@ -187,12 +194,12 @@ export function usePinchZoom(
       });
       return;
     }
-    scroller.scrollLeft = left;
+    scroller.scrollLeft = scroller.scrollLeft + box.left + done.originX * done.ratio - done.screenX;
     window.scrollBy({
       top: box.top + done.originY * done.ratio - done.screenY,
       behavior: "instant",
     });
-  }, [cell, scrollRef, sheetRef, contained]);
+  }, [cell, scrollRef, sheetRef, contained, placeAfter]);
 
   /** Zoom to a cell size about a point on screen, holding that point still. */
   return useCallback(

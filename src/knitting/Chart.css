@@ -206,6 +206,13 @@
   pointer-events: none;
 }
 
+/* The layer the tiles are on, moved across the sheet to hold a column still while the columns close up or open. */
+.chart-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
 .chart-tiles canvas {
   position: absolute;
   display: block;
@@ -214,6 +221,7 @@
 /* The stitch to be worked next, outlined over the tiles. */
 div.chart-next {
   position: absolute;
+  z-index: 1;
   outline: 2px solid var(--crimson);
   outline-offset: -1px;
   pointer-events: none;
