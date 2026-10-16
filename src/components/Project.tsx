@@ -281,7 +281,8 @@ const ProjectView: React.FC<{
 }) => {
   const sweater = sweaterById(sweaterId)!;
   const size = sweater.sizes.find((s) => s.id === project.sizeId) ?? sweater.sizes[0];
-  const { stitches, rounds, roundKinds, roundPieces, index, yoke, holdRegions } = useSweater(sweater, size.id);
+  // The rounds as the knitter counts them where the knitting has got to: see knitting/view.
+  const { stitches, rounds, index, yoke, holdRegions, view: counted } = useSweater(sweater, size.id, project.progress);
 
   const colourway = sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0];
   const palette = useMemo(() => paletteOf(colourway, project.shades), [colourway, project.shades]);
@@ -298,7 +299,7 @@ const ProjectView: React.FC<{
   // Explore statistics: open while the address says so, and there is time to explore.
   const [params, setParams] = useSearchParams();
   const exploring = view === "chart" && !knitting && params.get(statsParam) === "1" && time !== undefined;
-  const detail = useTimeDetail(exploring ? project.id : undefined, stitches, rounds);
+  const detail = useTimeDetail(exploring ? project.id : undefined, stitches, counted.rounds);
   const [layer, setLayer] = useState<Layer>("pace");
   const overlay = useMemo(() => (detail ? statsOverlay(detail, layer) : undefined), [detail, layer]);
   const [speedsOpen, setSpeedsOpen] = useState(false);
@@ -340,7 +341,9 @@ const ProjectView: React.FC<{
         <section className="section chart-page">
           <Chart
             stitches={stitches}
-            rounds={rounds}
+            rounds={counted.rounds}
+            layout={counted.layout}
+            markers={counted.markers}
             palette={palette}
             progress={project.progress}
             // Looking back: the edge of the knitting near the top, what is done below it.
@@ -350,8 +353,8 @@ const ProjectView: React.FC<{
             names={names}
             stitchNotes={sweater.stitchNotes}
             pieces={sweater.pieces}
-            kinds={roundKinds}
-            roundPieces={roundPieces}
+            kinds={counted.kinds}
+            roundPieces={counted.pieces}
             holdRegions={holdRegions}
             overlay={overlay}
             pickerNote={(id) => <StitchTime time={detail} id={id} round={index.roundOf.get(id)} />}
@@ -382,7 +385,9 @@ const ProjectView: React.FC<{
         <section className="section chart-page">
           <Chart
             stitches={stitches}
-            rounds={rounds}
+            rounds={counted.rounds}
+            layout={counted.layout}
+            markers={counted.markers}
             palette={palette}
             progress={project.progress}
             follow={knitting}
@@ -391,8 +396,8 @@ const ProjectView: React.FC<{
             names={names}
             stitchNotes={sweater.stitchNotes}
             pieces={sweater.pieces}
-            kinds={roundKinds}
-            roundPieces={roundPieces}
+            kinds={counted.kinds}
+            roundPieces={counted.pieces}
             holdRegions={holdRegions}
           />
           <ul className="chart-key">

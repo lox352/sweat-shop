@@ -5,7 +5,8 @@ import { numberedRows, sceneOf } from "./chart-scene";
 import { type Ctx2D, type PaintState, defaultColours, laidOutPlaces, laidOutRows, paintRegion } from "./chart-painter";
 import { LiveColumns, mapOf, placeFrom } from "./column-window";
 import { holdsIn, joinIn, needleChangesIn, turnsIn } from "./chart-marks";
-import { testBandedSweater, testSweater } from "./test-sweater";
+import { raglanLine, testBandedSweater, testSweater, testSweaterWithMarkers } from "./test-sweater";
+import { viewAt } from "./view";
 import type { Palette } from "./palette";
 import { isFabric } from "../types/Stitch";
 
@@ -294,5 +295,23 @@ describe("the round numbers down the edge", () => {
     const whole = layOutSweater(built.stitches, built.rounds, built.roundKinds, built.roundPieces);
     // A yoke of six rounds, the body's five above it and the sleeves' four beside them.
     expect(numberedRows(whole)).toEqual([1, 5, 7, 10, 11]);
+  });
+});
+
+describe("the stitch markers on the chart", () => {
+  it("draws each as a line up the chart between two columns, through the rows it is on the needles", () => {
+    const built = buildSweater(testSweaterWithMarkers(), "one");
+    const { stitches, knitting } = built;
+    const seam = layOutSweater(stitches, knitting.rounds, knitting.roundKinds, knitting.roundPieces);
+    // Once the new beginning is placed, the chart turned to it, the raglan line with it.
+    const view = viewAt(built, seam, stitches.length);
+    const line = view.markers.find((one) => one.marker === raglanLine)!;
+    const scene = sceneOf(view.layout, stitches, view.rounds, { markers: view.markers });
+    const state = stateFor(view.layout);
+    const paint = recorder();
+    paintRegion(paint.ctx, { x: 0, y: 0, width: view.layout.columns * cell + 40, height: view.layout.rows * cell }, scene, state);
+    const x = state.left[line.after];
+    const runs = paint.strokes.filter((one) => one.width === 2).flatMap((one) => one.points);
+    expect(runs).toContainEqual([x, state.top[line.to], x, state.top[line.from] + state.height[line.from]]);
   });
 });

@@ -56,6 +56,8 @@ export const indexRounds = (
   roundPieces: string[] = [],
   pieces: Piece[] = [],
   roundKinds: RoundKind[] = [],
+  /** What each round is numbered, where the chart says: see view. Otherwise its row by chartRows. */
+  numbered?: number[],
 ): RoundIndex => {
   const roundOf = new Map<number, number>();
   const worked: number[] = [];
@@ -65,7 +67,7 @@ export const indexRounds = (
       worked.push(id);
     }),
   );
-  const pieceRows = chartRows(roundPieces);
+  const pieceRows = numbered ?? chartRows(roundPieces);
   const rows = rounds.map((_, index) => pieceRows[index] ?? index + 1);
   const spans: PieceSpan[] = [];
   roundPieces.forEach((id, index) => {

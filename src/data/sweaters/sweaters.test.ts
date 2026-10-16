@@ -3,6 +3,7 @@ import { sweaters } from ".";
 import { buildSweater } from "../../knitting/engine";
 import { breaches } from "../../knitting/rules";
 import { ballsFor, metresBySlot } from "../../knitting/yardage";
+import { beginningAt, viewFor } from "../../knitting/view";
 
 /**
  * Every size of every design, knitted through and held to what it says.
@@ -29,6 +30,16 @@ describe.each(sweaters.map((sweater) => [sweater.id, sweater] as const))("%s", (
       expect(built.knitting.roundKinds).toEqual(built.roundKinds);
       expect(built.knitting.roundPieces).toEqual(built.roundPieces);
       expect(built.knitting.stitches).toBe(built.stitches);
+    });
+
+    it("is counted in its own rounds wherever the knitting has got to, never moving the beginning of the round", () => {
+      const beginning = beginningAt(built, built.stitches.length);
+      expect(beginning).toBeUndefined();
+      const view = viewFor(built, () => { throw new Error("no chart is drawn here"); }, beginning);
+      expect(view.rounds).toEqual(built.rounds);
+      expect(view.labels).toEqual(built.roundLabels);
+      expect(view.pieces).toEqual(built.roundPieces);
+      expect(view.kinds).toEqual(built.roundKinds);
     });
 
     it("keeps to two colours a round, and never floats more than seven", () => {

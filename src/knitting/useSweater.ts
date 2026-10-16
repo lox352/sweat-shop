@@ -1,8 +1,10 @@
 import { useMemo } from "react";
 import { SweaterPattern } from "../data/sweaters/types";
-import { buildSweater } from "./engine";
+import { type SweaterStitches, buildSweater } from "./engine";
+import { type ChartLayout, layOutSweater } from "./layout";
 import { indexRounds } from "./progress";
 import { holdRegions } from "./holds";
+import { beginningAt, viewFor } from "./view";
 
 /**
  * A sweater's stitches and rounds, for a size.
@@ -31,15 +33,38 @@ export const sweaterStitches = (pattern: SweaterPattern, sizeId?: string) => {
 export const yokeRounds = (built: { rounds: number[][]; roundPieces: string[] }): number[][] =>
   built.rounds.filter((_, index) => built.roundPieces[index] === built.roundPieces[0]);
 
-export const useSweater = (pattern: SweaterPattern, sizeId?: string) => {
+/**
+ * The chart laid out from the rounds as worked from the seam, once a design
+ * and size, as the stitches are: see view, which only turns it and cuts its
+ * rows again where the beginning of the round has moved.
+ */
+const layouts = new WeakMap<SweaterStitches, ChartLayout>();
+export const seamLayout = (built: SweaterStitches): ChartLayout => {
+  let layout = layouts.get(built);
+  if (!layout) {
+    const { stitches, knitting } = built;
+    layout = layOutSweater(stitches, knitting.rounds, knitting.roundKinds, knitting.roundPieces);
+    layouts.set(built, layout);
+  }
+  return layout;
+};
+
+/**
+ * A sweater, and its rounds as the knitter counts them once `progress`
+ * stitches are worked: cut at the beginning of the round in force, which a
+ * pattern may move part way through. See view.
+ */
+export const useSweater = (pattern: SweaterPattern, sizeId?: string, progress = 0) => {
   const built = useMemo(() => sweaterStitches(pattern, sizeId), [pattern, sizeId]);
+  const beginning = beginningAt(built, progress);
+  const view = useMemo(() => viewFor(built, () => seamLayout(built), beginning), [built, beginning]);
   const index = useMemo(
-    () => indexRounds(built.rounds, built.roundLabels, built.roundPieces, pattern.pieces, built.roundKinds),
-    [built, pattern.pieces],
+    () => indexRounds(view.rounds, view.labels, view.pieces, pattern.pieces, view.kinds, view.rows),
+    [view, pattern.pieces],
   );
   const yoke = useMemo(() => yokeRounds(built), [built]);
   const holds = useMemo(() => holdRegions(built.stitches, built.holds), [built]);
-  return { ...built, index, yoke, holdRegions: holds };
+  return { ...built, index, yoke, holdRegions: holds, view };
 };
 
 /**

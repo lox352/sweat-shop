@@ -1,4 +1,4 @@
-import type { RoundKind } from "./needles";
+import type { SeamKind } from "./needles";
 import { Stitch, isFabric } from "../types/Stitch";
 import { makesTwo } from "../types/StitchType";
 import { consumption } from "../types/StitchType";
@@ -305,7 +305,7 @@ export const layOut = (
   stitches: Stitch[],
   rounds: number[][],
   /** Whether each is a round or a short row, and from which side: see Needles.row. */
-  kinds: RoundKind[] = [],
+  kinds: SeamKind[] = [],
 ): ChartLayout => {
   const byId = indexOf(stitches, rounds);
   const widest = rounds.reduce((most, round) => Math.max(most, round.length), 0);
@@ -385,7 +385,7 @@ export const layOutSweater = (
   stitches: Stitch[],
   rounds: number[][],
   /** Whether each is a round or a short row, and from which side: see Needles.row. */
-  kinds: RoundKind[] = [],
+  kinds: SeamKind[] = [],
   /** The piece each round belongs to, the pieces in the order they are knitted. */
   roundPieces: string[] = [],
 ): ChartLayout => {
