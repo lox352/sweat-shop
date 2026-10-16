@@ -90,8 +90,9 @@ interface ChartProps {
  * a second on a phone. The tiles repaint only what a stitch changes.
  *
  * The columns no row in view has a stitch in close up, so that what is on
- * screen stands side by side as it does on the needles: see column-window.
- * Zooming changes only what is inside the window, never the page.
+ * screen stands side by side as it does on the needles, and so do the rows
+ * no column on screen has a stitch in: see column-window. Zooming changes
+ * only what is inside the window, never the page.
  */
 const Chart: React.FC<ChartProps> = ({
   stitches,
@@ -130,14 +131,17 @@ const Chart: React.FC<ChartProps> = ({
   const sheetRef = useRef<HTMLDivElement>(null);
   const zoomTo = useCallback((cell: number) => setZoom(Math.round(cell)), []);
   /*
-   * The tiles, where the columns are closed up: where a stitch is comes from
-   * them rather than from the layout, and a zoom settles about the column it
-   * began in rather than in proportion.
+   * The tiles, where the columns and rows are closed up: where a stitch is
+   * comes from them rather than from the layout, and a zoom settles about the
+   * column and row it began in rather than in proportion.
    */
   const tilesRef = useRef<TilesHandle>(null);
-  const placeAfter = useCallback((x: number, top: number) => tilesRef.current?.zoomedTo(x, top), []);
+  const placeAfter = useCallback(
+    (x: number, y: number, screenX: number, screenY: number) => tilesRef.current?.zoomedTo(x, y, screenX, screenY),
+    [],
+  );
   const zoomAt = usePinchZoom(scrollRef, sheetRef, cellSize, zoomTo, placeAfter);
-  // Anything over the chart outside the tiles, the picker, is placed again when the columns move.
+  // Anything over the chart outside the tiles, the picker, is placed again when the columns or rows move.
   const [, moved] = useReducer((count: number) => count + 1, 0);
   /*
    * The cell size the follow below reads, kept out of its dependencies: a
@@ -212,7 +216,6 @@ const Chart: React.FC<ChartProps> = ({
   const join = useMemo(() => joinIn(stitches, rounds), [stitches, rounds]);
   const holds = useMemo(() => holdsIn(stitches, rounds, pieces), [stitches, rounds, pieces]);
   const turns = useMemo(() => turnsIn(stitches, rounds), [stitches, rounds]);
-  const height = layout.rows * cellSize;
 
   const scene = useMemo(
     () => sceneOf(layout, stitches, rounds, { needleRules, join, holds, turns, face, makeOneLean }),
@@ -392,8 +395,8 @@ const Chart: React.FC<ChartProps> = ({
         <div
           ref={sheetRef}
           className="chart-sheets chart-pickable"
-          // The tiles say how wide the chart is, as the rows in view change.
-          style={{ height, marginLeft: leftMargin(cellSize) }}
+          // The tiles say how wide and how tall the chart is, as what is in view changes.
+          style={{ marginLeft: leftMargin(cellSize) }}
           onClick={(event) => {
             const id = tilesRef.current?.stitchAt(event.clientX, event.clientY);
             setPicked(id === picked ? undefined : id);
@@ -476,7 +479,8 @@ const Chart: React.FC<ChartProps> = ({
         it, as do the stitches cast on at the underarms and picked up for the
         sleeves, and a decrease ends one. A column with no stitch in the rows on
         screen closes up, so what you see stands side by side as it does on the
-        needles, and parts again when a make-one's row comes into view. Above the divide each row holds a round
+        needles, and parts again when a make-one's row comes into view; so does
+        a row with no stitch in the columns on screen. Above the divide each row holds a round
         of the body and one of each sleeve, all numbered on from the yoke's: going
         round the body you pass over the sleeves' columns, and a sleeve goes up
         its own columns a row at a time.

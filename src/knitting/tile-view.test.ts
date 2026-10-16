@@ -43,7 +43,7 @@ const box = (width: number, height: number) => {
   Object.defineProperty(scroller, "clientWidth", { value: width });
   Object.defineProperty(scroller, "clientHeight", { value: height });
   Object.defineProperty(scroller, "scrollLeft", { value: 0, writable: true, configurable: true });
-  Object.defineProperty(scroller, "scrollTop", { value: 0, writable: true });
+  Object.defineProperty(scroller, "scrollTop", { value: 0, writable: true, configurable: true });
   return { scroller, sheet, container };
 };
 
@@ -119,23 +119,26 @@ describe("the chart on tiles", () => {
 
 /**
  * A box the chart scrolls in, which keeps every scroll set on it by the view,
- * and is scrolled by the knitter with `scrollTo`.
+ * either way, and is scrolled by the knitter with `scrollTo`.
  */
 const scrollingBox = (width: number, height: number) => {
   const { scroller, sheet, container } = box(width, height);
+  Object.defineProperty(scroller, "offsetWidth", { value: width });
   Object.defineProperty(scroller, "offsetHeight", { value: height });
-  let left = 0;
-  const writes: number[] = [];
-  Object.defineProperty(scroller, "scrollLeft", {
-    get: () => left,
-    set: (value: number) => {
-      writes.push(value);
-      left = value;
-    },
-  });
+  const at = { left: 0, top: 0 };
+  const writes: string[] = [];
+  for (const side of ["left", "top"] as const) {
+    Object.defineProperty(scroller, side === "left" ? "scrollLeft" : "scrollTop", {
+      get: () => at[side],
+      set: (value: number) => {
+        writes.push(`${side} ${value}`);
+        at[side] = value;
+      },
+    });
+  }
   const scrollTo = (x: number, y: number) => {
-    left = x;
-    scroller.scrollTop = y;
+    at.left = x;
+    at.top = y;
     scroller.dispatchEvent(new Event("scroll"));
   };
   const touch = (type: string, fingers: number) => {
@@ -146,12 +149,16 @@ const scrollingBox = (width: number, height: number) => {
   return { scroller, sheet, container, writes, scrollTo, touch };
 };
 
+const sheetOf = (scroller: HTMLElement) => scroller.firstElementChild as HTMLElement;
+const idsIn = (row: number) => Array.from(scene.index.id.subarray(scene.index.start[row], scene.index.start[row + 1]));
+
 describe("the chart on tiles, closed up", () => {
   const { rows } = layout;
   const cell = 40;
+  /** Wide enough for every column, so every row has a stitch on screen and none closes up: the rows' own tests are below. */
+  const wide = 4000;
   // Five rows in view: the box `top` down the chart shows rows first to first + 4.
   const topFor = (first: number) => (rows - first - 4) * cell;
-  const idsIn = (row: number) => Array.from(scene.index.id.subarray(scene.index.start[row], scene.index.start[row + 1]));
   let now = 0;
 
   beforeEach(() => {
@@ -195,11 +202,12 @@ describe("the chart on tiles, closed up", () => {
   };
 
   it("closes up the columns no row in view has a stitch in, the sheet as wide as the rest", () => {
-    const { scroller, sheet, container, scrollTo } = scrollingBox(300, 200);
+    const { scroller, sheet, container, scrollTo } = scrollingBox(wide, 200);
     scrollTo(0, topFor(1));
     const view = new TileView(container, scroller, sheet);
     now += 200;
     view.show(content({ collapse: true }));
+    expect(container.dataset.rowsShowing).toBe(String(rows));
     const live = new LiveColumns(scene.index);
     live.moveTo(1, 5);
     const showing = mapOf(live).count;
@@ -220,10 +228,10 @@ describe("the chart on tiles, closed up", () => {
 
   it("holds the stitch being worked still on screen as the columns ease to their new places", () => {
     const { first, id, other } = heldStitch();
-    const { scroller, sheet, container, writes, scrollTo } = scrollingBox(300, 200);
+    const { scroller, sheet, container, writes, scrollTo } = scrollingBox(wide, 200);
     const view = new TileView(container, scroller, sheet);
     view.show(content({ collapse: true, follow: id }));
-    scrollTo(view.place(id)!.x - 100, topFor(first));
+    scrollTo(0, topFor(first));
     now += 200;
     view.update();
     const onScreen = () => view.place(id)!.x - scroller.scrollLeft;
@@ -257,10 +265,10 @@ describe("the chart on tiles, closed up", () => {
 
   it("never sets the box's scroll while a finger is on it or it is still moving", () => {
     const { first, id } = heldStitch();
-    const { scroller, sheet, container, writes, scrollTo, touch } = scrollingBox(300, 200);
+    const { scroller, sheet, container, writes, scrollTo, touch } = scrollingBox(wide, 200);
     const view = new TileView(container, scroller, sheet);
     view.show(content({ collapse: true, follow: id }));
-    scrollTo(view.place(id)!.x - 100, topFor(first));
+    scrollTo(0, topFor(first));
     now += 200;
     view.update();
     const onScreen = () => view.place(id)!.x - scroller.scrollLeft;
@@ -291,7 +299,7 @@ describe("the chart on tiles, closed up", () => {
 
   it("moves the columns at once when the rows in view jump, or when asked for less motion", () => {
     const { first, id, other } = heldStitch();
-    const { scroller, sheet, container, scrollTo } = scrollingBox(300, 200);
+    const { scroller, sheet, container, scrollTo } = scrollingBox(wide, 200);
     const view = new TileView(container, scroller, sheet);
     view.show(content({ collapse: true }));
     scrollTo(0, topFor(1));
@@ -313,10 +321,10 @@ describe("the chart on tiles, closed up", () => {
       value: (query: string) => ({ matches: query.includes("reduce") }),
     });
     try {
-      const again = scrollingBox(300, 200);
+      const again = scrollingBox(wide, 200);
       const calm = new TileView(again.container, again.scroller, again.sheet);
       calm.show(content({ collapse: true, follow: id }));
-      again.scrollTo(calm.place(id)!.x - 100, topFor(first));
+      again.scrollTo(0, topFor(first));
       now += 200;
       calm.update();
       const was = calm.place(other)!.x - calm.place(id)!.x;
@@ -337,10 +345,10 @@ describe("the chart on tiles, closed up", () => {
 
   it("tells of columns moved while the chart is drawn on the next frame, not in the middle of drawing it", () => {
     const { first, id } = heldStitch();
-    const { scroller, sheet, container, scrollTo } = scrollingBox(300, 200);
+    const { scroller, sheet, container, scrollTo } = scrollingBox(wide, 200);
     const view = new TileView(container, scroller, sheet);
     view.show(content({ collapse: true, follow: id }));
-    scrollTo(view.place(id)!.x - 100, topFor(first));
+    scrollTo(0, topFor(first));
     now += 200;
     view.update();
     let told = 0;
@@ -367,10 +375,10 @@ describe("the chart on tiles, closed up", () => {
           set: (target, key: string, value) => ((target[key] = value), true),
         }) as unknown as CanvasRenderingContext2D,
     );
-    const { scroller, sheet, container, scrollTo } = scrollingBox(300, 200);
+    const { scroller, sheet, container, scrollTo } = scrollingBox(wide, 200);
     const view = new TileView(container, scroller, sheet);
     view.show(content({ collapse: true, follow: id }));
-    scrollTo(view.place(id)!.x - 100, topFor(first));
+    scrollTo(0, topFor(first));
     now += 200;
     view.update();
     const gap = () => view.place(other)!.x - view.place(id)!.x;
@@ -400,7 +408,7 @@ describe("the chart on tiles, closed up", () => {
 
   it("finds the stitch at a point by the columns as they are drawn", () => {
     const margin = 16;
-    const { scroller, sheet, container, scrollTo } = scrollingBox(300, 200);
+    const { scroller, sheet, container, scrollTo } = scrollingBox(wide, 200);
     const view = new TileView(container, scroller, sheet);
     scrollTo(0, topFor(3));
     now += 200;
@@ -416,18 +424,218 @@ describe("the chart on tiles, closed up", () => {
     view.destroy();
   });
 
-  it("zooms about the column a point is in, a closed-up column for a closed-up column", () => {
-    const { scroller, sheet, container, scrollTo } = scrollingBox(300, 200);
+  it("zooms about the column and row a point is in, a closed-up column for a closed-up column", () => {
+    const { scroller, sheet, container, scrollTo } = scrollingBox(wide, 200);
     const view = new TileView(container, scroller, sheet);
     scrollTo(0, topFor(1));
     now += 200;
     view.show(content({ collapse: true }));
     const id = idsIn(3)[5];
     const x = view.place(id)!.x + 10;
+    const y = view.place(id)!.y + 10;
     view.show(content({ collapse: true, cell: 32 }));
-    const across = view.zoomedTo(x, topFor(1) * 0.8);
-    expect(across).toBeCloseTo(view.place(id)!.x + 8, 6);
+    // On screen where it was, in a box at the page's corner.
+    const placed = view.zoomedTo(x, y, x - scroller.scrollLeft, y - scroller.scrollTop)!;
+    expect(placed.x).toBeCloseTo(view.place(id)!.x + 8, 6);
+    expect(placed.y).toBeCloseTo(view.place(id)!.y + 8, 6);
     expect(sheet.style.width).toBe(`${view.place(idsIn(1)[0])!.x + 32 + gutter(32)}px`);
     view.destroy();
+  });
+
+  describe("its rows", () => {
+    // A box 300 wide shows eight columns' worth: the top row has no stitch in some eight together.
+    const across = 8;
+    /** How far across the chart's top the box is over columns the top row has no stitch in, every column showing there. */
+    const gapAt = () => {
+      const live = new LiveColumns(scene.index);
+      live.moveTo(rows - 4, rows);
+      const { order } = mapOf(live);
+      const top = new Set(idsIn(rows).map((id) => scene.columnOf[id]));
+      for (let k = 0; k + across <= order.length; k++) {
+        if (Array.from(order.subarray(k, k + across)).every((column) => !top.has(column))) return k * cell;
+      }
+      throw new Error("no gap");
+    };
+    /** The box at the chart's top over that gap, the top row closed up. */
+    const atGap = (follow?: number) => {
+      const box = scrollingBox(300, 200);
+      box.scrollTo(gapAt(), 0);
+      const view = new TileView(box.container, box.scroller, box.sheet);
+      now += 200;
+      view.show(content({ collapse: true, follow }));
+      return { ...box, view };
+    };
+
+    it("closes up the rows no column on screen has a stitch in, the sheet as tall as the rest", () => {
+      const { scroller, sheet, container, scrollTo, view } = atGap();
+      expect(container.dataset.rows).toBe(String(rows));
+      expect(container.dataset.rowsShowing).toBe(String(rows - 1));
+      expect(sheet.style.height).toBe(`${(rows - 1) * cell}px`);
+      // The rows showing one above another from the sheet's top, the top row's stitches nowhere to be seen.
+      for (let row = 1; row < rows; row++) {
+        for (const id of idsIn(row)) expect(view.place(id)!.y).toBe((rows - 1 - row) * cell);
+      }
+
+      // Over the columns at the chart's left edge, the top row has stitches again: it opens.
+      const middle = idsIn(rows - 3)[0];
+      const was = view.place(middle)!.y - scroller.scrollTop;
+      scrollTo(0, 0);
+      now += 16;
+      view.update();
+      expect(container.dataset.rowsShowing).toBe(String(rows));
+      now += 200;
+      view.update();
+      // At the chart's top edge, which stayed at the box's top: the rows below make way.
+      expect(sheet.style.height).toBe(`${rows * cell}px`);
+      expect(scroller.scrollTop).toBe(0);
+      expect(view.place(idsIn(rows)[0])!.y).toBe(0);
+      expect(view.place(middle)!.y - scroller.scrollTop).toBe(was + cell);
+      view.destroy();
+    });
+
+    it("holds the stitch being worked still on screen as the rows ease to their new places", () => {
+      // A stitch of the row below the top in the leftmost column on screen, which stays on screen a column to the left.
+      const left = gapAt();
+      const first = atGap();
+      const id = idsIn(rows - 1).find((one) => Math.abs(first.view.place(one)!.x - left) < 1)!;
+      first.view.destroy();
+      const { scroller, container, writes, scrollTo, view } = atGap(id);
+      const onScreen = () => view.place(id)!.y - scroller.scrollTop;
+      const held = onScreen();
+      writes.length = 0;
+
+      // A column to the left: the top row opens above it, over the next frames.
+      scrollTo(left - cell, 0);
+      const heights: number[] = [];
+      for (let frame = 0; frame < 6; frame++) {
+        now += 16;
+        view.update();
+        expect(onScreen()).toBeCloseTo(held, 6);
+        heights.push(view.place(idsIn(rows)[0])!.y);
+      }
+      expect(container.dataset.rowsShowing).toBe(String(rows));
+      expect(new Set(heights).size).toBeGreaterThan(1);
+      // At rest, the layer goes back to the sheet's edge and the box is scrolled once to match: nothing moves.
+      now += 200;
+      view.update();
+      expect(writes).toEqual([`top ${cell}`]);
+      expect(onScreen()).toBeCloseTo(held, 6);
+      expect(container.querySelector<HTMLElement>(".chart-layer")!.style.transform).toBe("");
+      view.destroy();
+    });
+
+    it("keeps the box inside the chart as rows close between the row held and an edge out of view", () => {
+      // Every row open, the box half a row down from the chart's top, so neither edge is in view.
+      const { scroller, sheet, container, scrollTo } = scrollingBox(300, 200);
+      scrollTo(0, cell / 2);
+      const view = new TileView(container, scroller, sheet);
+      now += 200;
+      view.show(content({ collapse: true }));
+      expect(container.dataset.rowsShowing).toBe(String(rows));
+      // Over the gap, the top row closes above the row in the middle.
+      const below = idsIn(rows - 1)[0];
+      scrollTo(gapAt(), cell / 2);
+      now += 16;
+      view.update();
+      expect(container.dataset.rowsShowing).toBe(String(rows - 1));
+      // Held, the row in the middle would have left half a row's gap above the chart: the chart's top came to the box's top instead.
+      expect(view.place(below)!.y - scroller.scrollTop).toBe(0);
+      now += 200;
+      view.update();
+      expect(scroller.scrollTop).toBe(0);
+      expect(view.place(below)!.y).toBe(0);
+      expect(sheet.style.height).toBe(`${(rows - 1) * cell}px`);
+      view.destroy();
+    });
+
+    it("holds an edge of the chart in view still only while that keeps the row in the middle in the box", () => {
+      // Seven columns showing none of the bottom rows' stitches, the first such from the left: the column before them shows some.
+      const live = new LiveColumns(scene.index);
+      live.moveTo(1, rows);
+      const { order } = mapOf(live);
+      const bottom = new Set(idsIn(1).map((id) => scene.columnOf[id]));
+      const k = order.findIndex((_, k) => k > 0 && Array.from(order.subarray(k, k + 7)).every((column) => !bottom.has(column)));
+      const closed = [1, 2, 3].filter((row) => idsIn(row).every((id) => bottom.has(scene.columnOf[id])));
+      expect(closed).toEqual([1, 2, 3]);
+      /** The box 280 wide, so seven columns, and `height` tall, at the chart's bottom over those columns; then a column to their left. */
+      const opening = (height: number) => {
+        const { scroller, container, scrollTo } = scrollingBox(7 * cell, height);
+        const chart = (rows - closed.length) * cell;
+        scrollTo(k * cell, Math.max(0, chart - height));
+        const view = new TileView(container, scroller, sheetOf(scroller));
+        now += 200;
+        view.show(content({ collapse: true }));
+        expect(container.dataset.rowsShowing).toBe(String(rows - closed.length));
+        const middle = idsIn(closed.length + 2)[0];
+        const was = view.place(middle)!.y - scroller.scrollTop;
+        scrollTo((k - 1) * cell, scroller.scrollTop);
+        for (let frame = 0; frame < 15; frame++) {
+          now += 16;
+          view.update();
+        }
+        expect(container.dataset.rowsShowing).toBe(String(rows));
+        const result = {
+          middle: view.place(middle)!.y - scroller.scrollTop - was,
+          bottom: rows * cell - scroller.scrollTop - height,
+        };
+        view.destroy();
+        return result;
+      };
+      // Three rows opening under the middle of a box five rows tall: held, the bottom edge would send the middle row out of it.
+      expect(opening(5 * cell)).toEqual({ middle: 0, bottom: closed.length * cell });
+      // In a box ten rows tall, it is held, and the box still reaches the chart's bottom.
+      expect(opening(10 * cell).bottom).toBe(0);
+    });
+
+    it("never closes up everything, even with the box off the chart", () => {
+      const { container, scrollTo, view } = atGap();
+      // Far past the chart's bottom left, as a fling might take a box whose sheet is still large: the lines nearest it show.
+      scrollTo(-5000, 5000);
+      now += 16;
+      view.update();
+      expect(Number(container.dataset.rowsShowing)).toBeGreaterThan(0);
+      expect(Number(container.dataset.columnsShowing)).toBeGreaterThan(0);
+      // And zoomed out from there, the old scroll past the new chart's edge.
+      scrollTo(gapAt(), 0);
+      now += 200;
+      view.update();
+      view.show(content({ collapse: true, cell: 8 }));
+      expect(Number(container.dataset.rowsShowing)).toBeGreaterThan(0);
+      expect(Number(container.dataset.columnsShowing)).toBeGreaterThan(0);
+      view.destroy();
+    });
+
+    it("finds the stitch at a point with rows closed up", () => {
+      const { view } = atGap();
+      for (let row = 1; row < rows; row++) {
+        for (const id of idsIn(row)) {
+          const { x, y } = view.place(id)!;
+          expect(view.stitchAt(x + cell / 2, y + cell / 2)).toBe(id);
+        }
+      }
+      view.destroy();
+    });
+
+    it("zooms about the row a point is in, laying out at once the rows the box needs at the new size", () => {
+      const { scroller, sheet, container, scrollTo, view } = atGap();
+      const id = idsIn(rows - 2).find((one) => Math.abs(view.place(one)!.x - scroller.scrollLeft) < 1)!;
+      const point = { x: view.place(id)!.x + 10, y: view.place(id)!.y + 10 };
+      const screen = { x: point.x - scroller.scrollLeft, y: point.y - scroller.scrollTop };
+      // Zoomed out, twice as many columns on screen, and among them the top row's: it opens.
+      view.show(content({ collapse: true, cell: 20 }));
+      const placed = view.zoomedTo(point.x, point.y, screen.x, screen.y)!;
+      expect(placed.x).toBeCloseTo(view.place(id)!.x + 5, 6);
+      expect(placed.y).toBeCloseTo(view.place(id)!.y + 5, 6);
+      expect(sheet.style.height).toBe(`${rows * 20}px`);
+      // Scrolled to put the point back: nothing more opens or closes, and nothing moves.
+      scrollTo(placed.x - screen.x, placed.y - screen.y);
+      now += 16;
+      view.update();
+      expect(container.dataset.rowsShowing).toBe(String(rows));
+      expect(view.place(id)!.x + 5).toBeCloseTo(placed.x, 6);
+      expect(view.place(id)!.y + 5).toBeCloseTo(placed.y, 6);
+      expect(container.querySelector<HTMLElement>(".chart-layer")!.style.transform).toBe("");
+      view.destroy();
+    });
   });
 });

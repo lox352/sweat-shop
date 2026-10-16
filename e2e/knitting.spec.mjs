@@ -610,6 +610,36 @@ test("closed up, zooming keeps the stitch under the point zoomed about", async (
   expect(after.name).toBe(before.name);
 });
 
+test("closed up, a row with no stitch in the columns on screen takes no height, and the chart keeps its bottom", async ({ page }) => {
+  await start(page);
+  await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  const tiles = page.locator(".chart-tiles");
+  const scroller = page.locator(".chart-scroll");
+  const rows = Number(await tiles.getAttribute("data-rows"));
+  const gaps = () => scroller.evaluate(box => ({
+    bottom: Math.round(box.scrollHeight - box.clientHeight - box.scrollTop),
+    showing: Number(box.querySelector(".chart-tiles").dataset.rowsShowing),
+  }));
+  await expect.poll(async () => (await gaps()).bottom).toBe(0);
+  // Along the bottom of the chart from its right edge, a few hundred pixels at a time, each let come to rest.
+  const width = await scroller.evaluate(box => box.scrollWidth);
+  const counts = [];
+  for (let left = width; left >= 0; left -= 300) {
+    await scroller.evaluate((box, left) => { box.scrollLeft = left; }, left);
+    await page.waitForTimeout(250);
+    const now = await gaps();
+    counts.push(now.showing);
+    // Rows close and open far above, over the sleeves, where the body goes on further: the box stays at the bottom.
+    expect(now.bottom).toBe(0);
+  }
+  // Fewer rows than in all somewhere along it, and more elsewhere.
+  expect(Math.min(...counts)).toBeLessThan(rows);
+  expect(Math.max(...counts)).toBeGreaterThan(Math.min(...counts));
+  // At rest, the sheet is as tall as the rows showing.
+  const showing = Number(await tiles.getAttribute("data-rows-showing"));
+  expect(await page.locator(".chart-sheets").evaluate(sheet => sheet.offsetHeight)).toBe(showing * 16);
+});
+
 test("backup restores copies and rename/delete require their dialogs", async ({ page }) => {
   await start(page);
   // Knitting fills the screen; Settings is in the header, once you stop.

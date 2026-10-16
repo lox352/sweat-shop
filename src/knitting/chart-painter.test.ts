@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildSweater } from "./engine";
 import { layOut, layOutSweater } from "./layout";
 import { numberedRows, sceneOf } from "./chart-scene";
-import { type Ctx2D, type PaintState, defaultColours, laidOutPlaces, paintRegion } from "./chart-painter";
+import { type Ctx2D, type PaintState, defaultColours, laidOutPlaces, laidOutRows, paintRegion } from "./chart-painter";
 import { LiveColumns, mapOf, placeFrom } from "./column-window";
 import { holdsIn, joinIn, needleChangesIn, turnsIn } from "./chart-marks";
 import { testBandedSweater, testSweater } from "./test-sweater";
@@ -79,9 +79,10 @@ const palette: Palette = {
 
 const cell = 10;
 const yarns = new Set(["#223344", "#aa0000", "#00aa00"]);
-const stateFor = (columns: number, extra: Partial<PaintState> = {}): PaintState => ({
+const stateFor = (layout: { columns: number; rows: number }, extra: Partial<PaintState> = {}): PaintState => ({
   cell,
-  ...laidOutPlaces(columns, cell),
+  ...laidOutPlaces(layout.columns, cell),
+  ...laidOutRows(layout.rows, cell),
   palette,
   progress: 0,
   hatch: [],
@@ -103,7 +104,7 @@ describe("the chart painted a piece at a time", () => {
     const halfway = yoke[1][11];
     const veiled = (progress: number) => {
       const paint = recorder();
-      paintRegion(paint.ctx, whole, scene, stateFor(layout.columns, { progress }));
+      paintRegion(paint.ctx, whole, scene, stateFor(layout, { progress }));
       return paint.rects.filter((one) => one.fill === defaultColours.paper && one.alpha === 0.62);
     };
     expect(veiled(0)).toHaveLength(0);
@@ -114,7 +115,7 @@ describe("the chart painted a piece at a time", () => {
 
   it("fills a run of one yarn along a row as one rectangle, and every stitch somewhere", () => {
     const paint = recorder();
-    paintRegion(paint.ctx, whole, scene, stateFor(layout.columns));
+    paintRegion(paint.ctx, whole, scene, stateFor(layout));
     const yarn = paint.rects.filter((one) => !one.path && yarns.has(one.fill));
     const area = yarn.reduce((sum, one) => sum + one.w * one.h, 0);
     const drawn = yoke.flat().filter((id) => isFabric(built.stitches[id])).length;
@@ -138,14 +139,14 @@ describe("the chart painted a piece at a time", () => {
           return out;
         });
     const once = recorder();
-    paintRegion(once.ctx, whole, scene, stateFor(layout.columns));
+    paintRegion(once.ctx, whole, scene, stateFor(layout));
     const tiles: string[] = [];
     const halfW = Math.ceil(whole.width / 2 / cell) * cell;
     const halfH = Math.ceil(whole.height / 2 / cell) * cell;
     for (const [x, y] of [[0, 0], [halfW, 0], [0, halfH], [halfW, halfH]]) {
       const region = { x, y, width: halfW, height: halfH };
       const paint = recorder();
-      paintRegion(paint.ctx, region, scene, stateFor(layout.columns));
+      paintRegion(paint.ctx, region, scene, stateFor(layout));
       tiles.push(...fills(paint.rects, region));
     }
     expect(new Set(tiles)).toEqual(new Set(fills(once.rects, whole)));
@@ -170,7 +171,7 @@ describe("the chart with its empty columns closed up", () => {
   it("paints the neck's stitches side by side, with no gap between them", () => {
     const { map, left, width } = closedUp(1, 2);
     const paint = recorder();
-    paintRegion(paint.ctx, { x: 0, y: (layout.rows - 2) * cell, width: map.count * cell, height: 2 * cell }, scene, stateFor(layout.columns, { left, width }));
+    paintRegion(paint.ctx, { x: 0, y: (layout.rows - 2) * cell, width: map.count * cell, height: 2 * cell }, scene, stateFor(layout, { left, width }));
     const row1 = paint.rects.filter((one) => !one.path && yarns.has(one.fill) && one.y === (layout.rows - 1) * cell);
     // The cast-on: one run across every column showing.
     expect(row1).toEqual([expect.objectContaining({ x: 0, w: map.count * cell })]);
@@ -179,7 +180,7 @@ describe("the chart with its empty columns closed up", () => {
   it("draws a heavy line only between two showing columns that are neighbours on the chart as well", () => {
     const { map, left, width } = closedUp(1, 2);
     const paint = recorder();
-    paintRegion(paint.ctx, { x: 0, y: (layout.rows - 1) * cell, width: map.count * cell, height: cell }, scene, stateFor(layout.columns, { left, width }));
+    paintRegion(paint.ctx, { x: 0, y: (layout.rows - 1) * cell, width: map.count * cell, height: cell }, scene, stateFor(layout, { left, width }));
     const heavyDown = paint.rects.filter((one) => one.fill === defaultColours.heavy && one.h === cell);
     for (const rule of heavyDown) {
       const x = rule.x + rule.w / 2;
@@ -230,7 +231,7 @@ describe("a fork across an increase's two loops, its columns closed up", () => {
     const fork = built.stitches.find(
       (stitch) => stitch.type === "kfb" && scene.rowOf[stitch.id] && Math.abs(scene.columnOf[stitch.id + 1] - scene.columnOf[stitch.id]) >= 3,
     )!;
-    const state = stateFor(layout.columns);
+    const state = stateFor(layout);
     const made = scene.columnOf[fork.id + 1];
     const y = (layout.rows - scene.rowOf[fork.id]) * cell;
     const paint = recorder();
@@ -243,7 +244,7 @@ describe("a fork across an increase's two loops, its columns closed up", () => {
   it("paints the steps where their stitches are: the join, the holds and the turns", () => {
     const paint = recorder();
     const whole = { x: 0, y: 0, width: layout.columns * cell + 40, height: layout.rows * cell };
-    paintRegion(paint.ctx, whole, scene, stateFor(layout.columns));
+    paintRegion(paint.ctx, whole, scene, stateFor(layout));
     const holds = paint.strokes.filter((one) => one.width === 2 && one.colour === defaultColours.piece);
     expect(holds).toHaveLength(1);
     expect(holds[0].points).toHaveLength(2 * 2);
@@ -254,7 +255,7 @@ describe("a fork across an increase's two loops, its columns closed up", () => {
 
   it("numbers every fifth row and each piece's first down the edge", () => {
     const paint = recorder();
-    paintRegion(paint.ctx, { x: 0, y: 0, width: layout.columns * cell + 40, height: layout.rows * cell }, scene, stateFor(layout.columns));
+    paintRegion(paint.ctx, { x: 0, y: 0, width: layout.columns * cell + 40, height: layout.rows * cell }, scene, stateFor(layout));
     expect(paint.texts.map((one) => Number(one.text)).sort((a, b) => a - b)).toEqual(scene.numbered);
   });
 });
@@ -272,7 +273,7 @@ describe("the change of needles on the chart", () => {
   it("is dashed across that boundary", () => {
     const scene = sceneOf(layout, built.stitches, yoke, { needleRules: changes });
     const paint = recorder();
-    paintRegion(paint.ctx, { x: 0, y: 0, width: layout.columns * cell + 40, height: layout.rows * cell }, scene, stateFor(layout.columns));
+    paintRegion(paint.ctx, { x: 0, y: 0, width: layout.columns * cell + 40, height: layout.rows * cell }, scene, stateFor(layout));
     const y = (layout.rows - 3) * cell;
     const dashed = paint.strokes.filter((one) => one.width === 2 && one.colour === defaultColours.piece);
     expect(dashed.length).toBeGreaterThan(0);

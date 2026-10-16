@@ -1,7 +1,7 @@
 import { forwardRef, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import { TileView, type TileContent } from "./tile-view";
 
-/** What the chart asks of the tiles, where the columns may not be where the layout put them. */
+/** What the chart asks of the tiles, where the columns and rows may not be where the layout put them. */
 export interface TilesHandle {
   /** Where a stitch's cell is on the sheet, as the chart is drawn now. */
   place(id: number): { x: number; y: number } | undefined;
@@ -9,19 +9,19 @@ export interface TilesHandle {
   stitchAt(clientX: number, clientY: number): number | undefined;
   /** Hold a stitch still while the chart scrolls to it. */
   hold(id: number | undefined): void;
-  /** After a zoom, where the point zoomed about has got to across the sheet; see TileView.zoomedTo. */
-  zoomedTo(x: number, top: number): number | undefined;
+  /** After a zoom, where the point zoomed about has got to on the sheet; see TileView.zoomedTo. */
+  zoomedTo(x: number, y: number, screenX: number, screenY: number): { x: number; y: number } | undefined;
 }
 
 interface ChartTilesProps extends TileContent {
-  /** Told whenever the columns move, for anything placed over them. */
+  /** Told whenever the columns or rows move, for anything placed over them. */
   onMove?: () => void;
 }
 
 /**
- * The chart on canvas tiles, in place of the drawing as vectors: see
- * TileView, which also outlines the stitch to be worked next and, when asked,
- * closes up the columns no row in view has a stitch in.
+ * The chart on canvas tiles: see TileView, which also outlines the stitch to
+ * be worked next and, when asked, closes up the columns no row in view has a
+ * stitch in and the rows no column on screen has.
  */
 const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, ...content }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -57,7 +57,7 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, ...conten
     place: (id) => viewRef.current?.place(id),
     stitchAt: (x, y) => viewRef.current?.stitchAt(x, y),
     hold: (id) => viewRef.current?.hold(id),
-    zoomedTo: (x, top) => viewRef.current?.zoomedTo(x, top),
+    zoomedTo: (x, y, screenX, screenY) => viewRef.current?.zoomedTo(x, y, screenX, screenY),
   }), []);
 
   return <div ref={containerRef} className="chart-tiles" style={{ left: -content.margin, right: 0 }} aria-hidden="true" />;
