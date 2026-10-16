@@ -25,6 +25,7 @@ export function parseBackup(text: string): BackupProject[] {
     if (!sweater || !sweater.sizes.some(s => s.id === p.sizeId) ||
       !sweater.colourways.some(c => c.id === p.colourwayId) ||
       p.version !== currentVersion || !Number.isSafeInteger(p.progress) || p.progress < 0 ||
+      (p.revision !== undefined && !(Number.isSafeInteger(p.revision) && p.revision >= 0)) ||
       p.progress >= sweaterStitches(sweater, p.sizeId).stitches.length ||
       (p.name !== undefined && (typeof p.name !== "string" || p.name.length > 200)) ||
       typeof p.startedAt !== "string" || !Number.isFinite(Date.parse(p.startedAt))) {
@@ -42,6 +43,8 @@ export function parseBackup(text: string): BackupProject[] {
     if (p.timeLog !== undefined && !isLog(p.timeLog)) throw new Error("Invalid knitting times.");
     return { version: currentVersion, id: `project-${crypto.randomUUID()}`, name: p.name,
       sweaterId: p.sweaterId, sizeId: p.sizeId, colourwayId: p.colourwayId, progress: p.progress,
+      // The revision of its design the progress counts in, which reading it brings up to date: see revisions.
+      ...(p.revision ? { revision: p.revision } : {}),
       shades: p.shades, startedAt: p.startedAt, updatedAt: new Date().toISOString(),
       ...(p.timeLog ? { timeLog: p.timeLog } : {}) };
   });

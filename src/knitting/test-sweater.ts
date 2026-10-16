@@ -228,8 +228,7 @@ const blocks = (a: string, b: string, increases?: "both"): ChartCell[] => {
 /**
  * A sweater built the other way the site knows: a yoke of two-colour bands,
  * each in yarns of its own, increased within the bands, then increased again
- * along four raglan lines before it divides - and divided with the round
- * moved to the middle of the right underarm. Small enough to count by hand,
+ * along four raglan lines before it divides. Small enough to count by hand,
  * like the test sweater, with every stitch that construction asks for.
  *
  *   neck     cast on 24, join, 2 rounds of k1 p1 rib on the rib's needles

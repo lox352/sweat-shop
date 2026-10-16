@@ -18,6 +18,7 @@
  */
 
 import type { WoolId } from "../yarns";
+import type { StitchType } from "../../types/StitchType";
 
 /**
  * A yarn slot, as the design names it: "A", "B", "C"... for a design drawn
@@ -233,6 +234,11 @@ export type DivideSegment =
       /** The holder's name, which is the piece they will become. */
       hold: string;
       count: number;
+      /**
+       * A marker taken off once they are on hold, before the cast-on: the
+       * one that stood after them - "place the sts on waste yarn, RM".
+       */
+      thenRemove?: string;
       /** Cast on this many in their place, for the body's underarm: the ones that stay cast on. */
       castOn: number;
       /**
@@ -396,6 +402,22 @@ export interface SweaterPattern {
   tensions?: Record<string, { stitch?: number; round?: number }>;
   /** Anything the design says about its stitches. See StitchNote. */
   stitchNotes?: Partial<Record<StitchKeyId, StitchNote>>;
+  /**
+   * Each time the design's knitting has changed under projects already
+   * saved against it, oldest first. A project's progress is the id of the
+   * last stitch it worked, so steps added before that stitch move it on: a
+   * project records how many of these its progress counts, and is moved on
+   * past the rest when it is read. See helpers/revisions.
+   */
+  revisions?: Revision[];
+}
+
+/** A change to a design's knitting after projects were saved against it: see SweaterPattern.revisions. */
+export interface Revision {
+  /** What changed, in a few words. */
+  what: string;
+  /** The kinds of step it added, wherever they fall. */
+  added: StitchType[];
 }
 
 /** Stitches a cell works on the needle. */

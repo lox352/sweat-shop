@@ -11,8 +11,8 @@ import {
   projectsChanged,
   renameProject,
 } from "../helpers/projects";
-import { sweaterStitches, yokeRounds } from "../knitting/useSweater";
-import { indexRounds, positionOf, totals } from "../knitting/progress";
+import { countedAt, sweaterStitches, yokeRounds } from "../knitting/useSweater";
+import { positionOf, totals } from "../knitting/progress";
 import { colourwayLabel, paletteOf } from "../knitting/palette";
 import PageLayout from "./ui/PageLayout";
 import Button from "./ui/Button";
@@ -37,8 +37,9 @@ const describe = (project: Project) => {
   if (!sweater) return undefined;
   const size = sweater.sizes.find((s) => s.id === project.sizeId) ?? sweater.sizes[0];
   const built = sweaterStitches(sweater, size.id);
-  const { stitches, rounds, roundLabels, roundPieces, roundKinds } = built;
-  const index = indexRounds(rounds, roundLabels, roundPieces, sweater.pieces, roundKinds);
+  const { stitches } = built;
+  // Counted as the project's own pages count it, from the beginning of the round in force.
+  const { index } = countedAt(sweater, built, project.progress);
   const counts = totals(index, project.progress);
   const position = positionOf(stitches, project.progress, index);
   const colourway =

@@ -383,6 +383,7 @@ export const buildSweater = (
           } else {
             if (closing) throw new Error(`${section}: a cast-on is closed up to nothing`);
             needles.hold(segment.hold, segment.count, segment.wrap);
+            if (segment.thenRemove !== undefined) needles.removeMarker(segment.thenRemove);
             needles.castOnHere(
               segment.castOn,
               spec.slot,

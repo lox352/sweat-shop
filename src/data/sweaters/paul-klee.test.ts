@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import paulKlee from "./paul-klee";
+import paulKlee, { newBeginning, raglanLines } from "./paul-klee";
 import { buildSweater } from "../../knitting/engine";
+import { layOutSweater } from "../../knitting/layout";
+import { isFabric } from "../../types/Stitch";
 
 /**
  * The Paul Klee Sweater, held to what its pattern says beyond its stitch
@@ -19,6 +21,11 @@ const stated = {
   sleeveRounds: [38, 54, 72, 88, 124, 121, 116, 112, 108, 108, 108, 108, 108, 108, 108, 108],
   // The short rows across the back: 11, 13, 15 or 17 rows.
   shortRows: [11, 11, 11, 11, 13, 13, 13, 13, 13, 15, 15, 15, 15, 15, 15, 17],
+  // The raglan's set-up round, "Sts between markers": half the back, a sleeve, the front.
+  setUp: [
+    [33, 46, 66], [34, 44, 68], [39, 50, 78], [39, 50, 78], [41, 62, 82], [42, 60, 84], [43, 58, 86], [44, 56, 88],
+    [45, 54, 90], [54, 72, 108], [55, 70, 110], [56, 68, 112], [66, 84, 132], [66, 84, 132], [67, 82, 134], [68, 80, 136],
+  ],
 };
 
 describe.each(paulKlee.sizes.map((size, at) => [size.label, size, at] as const))("Paul Klee in size %s", (_, size, at) => {
@@ -26,6 +33,14 @@ describe.each(paulKlee.sizes.map((size, at) => [size.label, size, at] as const))
   const { stitches, rounds, roundLabels, roundPieces, roundKinds } = built;
   const labelled = (pattern: RegExp) => rounds.filter((_round, index) => pattern.test(roundLabels[index]));
   const perCm = size.stitchesPer10cm / 10;
+  const markers = stitches.filter((stitch) => stitch.type === "marker");
+  const placed = (name: string) => markers.find((step) => step.marker === name && !step.removed)!;
+  const takenOff = (name: string) => markers.find((step) => step.marker === name && step.removed)!;
+  /** The round a step falls in, and how many of its stitches come before the step. */
+  const placeOf = (id: number) => {
+    const index = rounds.findIndex((round) => round[0] < id && id < round[round.length - 1]);
+    return { label: roundLabels[index], after: rounds[index].filter((one) => one < id).length };
+  };
 
   it("takes as many rounds for its yoke as the pattern says", () => {
     const first = roundLabels.findIndex((label) => label.startsWith("Colour "));
@@ -64,18 +79,102 @@ describe.each(paulKlee.sizes.map((size, at) => [size.label, size, at] as const))
     within((size.checks["sleeve-left:cuff"] * rib) / perCm, finished.cuffCm, "cuff", 3);
   });
 
-  it("divides at the underarms, casting on with one passed over, and goes on round from the middle of the back", () => {
+  it("places one band's markers after every fifth block, and takes them off in the first plain round after the colourwork", () => {
+    const sections = markers.filter((step) => step.marker?.startsWith("section "));
+    const on = sections.filter((step) => !step.removed);
+    const round = rounds.find((one) => one[0] < on[0].id && on[0].id < one[one.length - 1])!;
+    // Every five blocks are 24 stitches as charted: a marker after each 24 but the last, the beginning of the round.
+    expect(on.map((step) => placeOf(step.id).after)).toEqual(Array.from({ length: round.length / 24 - 1 }, (_, k) => 24 * (k + 1)));
+    expect(new Set(on.map((step) => placeOf(step.id).label)).size).toBe(1);
+    expect(placeOf(on[0].id).label).toMatch(/^Colour \d+, row 5$/);
+    expect(sections.filter((step) => step.removed).map((step) => placeOf(step.id).label)).toEqual(on.map(() => "Raglan · plain round"));
+  });
+
+  it("places the raglan's four markers in its set-up round, as the pattern divides it", () => {
+    const [back, sleeve, front] = stated.setUp[at];
+    expect(raglanLines.map((name) => placeOf(placed(name).id))).toEqual(
+      [back, back + sleeve, back + sleeve + front, back + 2 * sleeve + front].map((after) => ({ label: "Raglan · plain round", after })),
+    );
+  });
+
+  it("takes every marker off between the same two columns of the chart it was placed between", () => {
+    const { cells } = layOutSweater(stitches, built.knitting.rounds, built.knitting.roundKinds, built.knitting.roundPieces);
+    const before = (id: number) => {
+      let at = id;
+      while (!isFabric(stitches[at])) at--;
+      return cells.get(at)!.column;
+    };
+    for (const step of markers.filter((one) => !one.removed && one.marker?.startsWith("section "))) {
+      expect(before(takenOff(step.marker!).id), step.marker).toBe(before(step.id));
+    }
+    // A raglan line comes off at the divide, where its sleeve goes on hold: in every round between, its KBF just before it and its KFB after it.
+    const lines = raglanLines.map((name) => before(placed(name).id));
+    labelled(/^Raglan · shaping round$/).forEach((round) => {
+      const kbf = round.filter((id) => stitches[id].type === "kbf");
+      const kfb = round.filter((id) => stitches[id].type === "kfb");
+      const columns = (id: number) => [id, id + 1].map((one) => cells.get(one)!.column);
+      lines.forEach((line, k) => {
+        // Each with the second loop it makes, straight after it.
+        expect(Math.max(...columns(kbf[k]))).toBe(line);
+        expect(Math.min(...columns(kfb[k]))).toBeGreaterThan(line);
+      });
+    });
+  });
+
+  it("divides at the underarms, casting on with one passed over, and places the new beginning of the round half way along the right one", () => {
     const divide = labelled(/^Body · dividing round$/)[0];
     const castOn = divide.filter((id) => stitches[id].type === "castOn");
     expect(divide.filter((id) => stitches[id].type === "sl1po")).toHaveLength(2);
     // Each underarm casts on one more than stays, the last passed over the stitch after it.
     const right = built.holds.find((held) => held.holder === "sleeve-right")!.edge!;
     expect(right).toHaveLength(castOn.length / 2 - 1);
-    // The pattern moves the beginning of the round to the right underarm, which only renames it: it stays where it was.
-    expect(roundLabels.some((label) => /beginning of the round/.test(label))).toBe(false);
-    const next = rounds[roundLabels.indexOf("Body · dividing round") + 1];
-    expect(stitches[next[0]].links[0]).toBe(divide[0]);
-    expect(stitches[next[next.length - 1]].links[0]).toBe(divide[divide.length - 1]);
+    const step = placed(newBeginning);
+    expect(step.begins).toBe(true);
+    expect(right.indexOf(step.id + 1)).toBe(right.length / 2);
+    // "K to marker, RM", wrap and hold the sleeve, "RM", cast on: the raglan's markers come off either side of each sleeve.
+    const order = stitches
+      .filter((one) => one.id > divide[0] && one.id < divide[divide.length - 1] && (one.type === "marker" || one.type === "hold"))
+      .map((one) => (one.type === "hold" ? `hold ${one.holder}` : `${one.removed ? "off" : "on"} ${one.marker}`));
+    expect(order).toEqual([
+      `off ${raglanLines[0]}`,
+      "hold sleeve-right",
+      `off ${raglanLines[1]}`,
+      `on ${newBeginning}`,
+      `off ${raglanLines[2]}`,
+      "hold sleeve-left",
+      `off ${raglanLines[3]}`,
+    ]);
+  });
+
+  it("knits on from the old beginning of the round to the new, a quarter of the way round, and the body from there", () => {
+    const divide = labelled(/^Body · dividing round$/)[0];
+    const step = placed(newBeginning);
+    const index = roundLabels.indexOf("Body · to the new beginning of the round");
+    const walk = rounds[index];
+    // The old beginning comes off as the walk sets out from it, at the middle of the back.
+    expect(stitches[walk[0] - 1]).toMatchObject({ type: "marker", marker: "the beginning of the round", removed: true });
+    // Half the back and the underarm's stitches to the new beginning, each over the stitch it knits.
+    const [back] = stated.setUp[at];
+    const increases = labelled(/^Raglan · shaping round$/).length;
+    const right = built.holds.find((held) => held.holder === "sleeve-right")!.edge!;
+    expect(walk).toHaveLength(back + increases + right.length / 2);
+    expect(walk.map((id) => stitches[id].links[0])).toEqual(divide.slice(0, walk.length));
+    expect(divide[walk.length]).toBe(step.id + 1);
+    // Every round after it begins at the new beginning, the hem's rib and its bind-off too.
+    const inDivide = new Set(divide);
+    const down = (id: number) => {
+      let at = id;
+      while (!inDivide.has(at)) at = stitches[at].links[0];
+      return at;
+    };
+    const body = rounds.slice(index + 1).filter((_round, k) => roundPieces[index + 1 + k] === "body");
+    expect(body.length).toBeGreaterThan(0);
+    for (const round of body) {
+      expect(down(round[0])).toBe(step.id + 1);
+      expect(round).toHaveLength(size.checks.body);
+    }
+    expect(stitches[body[body.length - 1][0]].type).toBe("bindOff");
+    expect(body.some((round) => stitches[round[1]].type === "p1")).toBe(true);
   });
 
   it("works each sleeve as many rounds as the pattern says, picking up one more than its underarm has at each corner", () => {

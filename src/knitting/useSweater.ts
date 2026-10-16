@@ -2,9 +2,9 @@ import { useMemo } from "react";
 import { SweaterPattern } from "../data/sweaters/types";
 import { type SweaterStitches, buildSweater } from "./engine";
 import { type ChartLayout, layOutSweater } from "./layout";
-import { indexRounds } from "./progress";
+import { type RoundIndex, indexRounds } from "./progress";
 import { holdRegions } from "./holds";
-import { beginningAt, viewFor } from "./view";
+import { type View, beginningAt, viewFor } from "./view";
 
 /**
  * A sweater's stitches and rounds, for a size.
@@ -50,18 +50,30 @@ export const seamLayout = (built: SweaterStitches): ChartLayout => {
 };
 
 /**
- * A sweater, and its rounds as the knitter counts them once `progress`
- * stitches are worked: cut at the beginning of the round in force, which a
- * pattern may move part way through. See view.
+ * A sweater's rounds as the knitter counts them once `progress` stitches are
+ * worked - cut at the beginning of the round in force, which a pattern may
+ * move part way through - and what the knitting panel and the project's
+ * pages read them by. See view. Kept once a design, size and beginning: a
+ * pattern places very few.
  */
+const counts = new WeakMap<SweaterStitches, Map<number | undefined, { view: View; index: RoundIndex }>>();
+export const countedAt = (pattern: SweaterPattern, built: SweaterStitches, progress: number) => {
+  const beginning = beginningAt(built, progress);
+  let kept = counts.get(built);
+  if (!kept) counts.set(built, (kept = new Map()));
+  let counted = kept.get(beginning);
+  if (!counted) {
+    const view = viewFor(built, () => seamLayout(built), beginning);
+    counted = { view, index: indexRounds(view.rounds, view.labels, view.pieces, pattern.pieces, view.kinds, view.rows) };
+    kept.set(beginning, counted);
+  }
+  return counted;
+};
+
+/** A sweater, and its rounds as the knitter counts them once `progress` stitches are worked: see countedAt. */
 export const useSweater = (pattern: SweaterPattern, sizeId?: string, progress = 0) => {
   const built = useMemo(() => sweaterStitches(pattern, sizeId), [pattern, sizeId]);
-  const beginning = beginningAt(built, progress);
-  const view = useMemo(() => viewFor(built, () => seamLayout(built), beginning), [built, beginning]);
-  const index = useMemo(
-    () => indexRounds(view.rounds, view.labels, view.pieces, pattern.pieces, view.kinds, view.rows),
-    [view, pattern.pieces],
-  );
+  const { view, index } = countedAt(pattern, built, progress);
   const yoke = useMemo(() => yokeRounds(built), [built]);
   const holds = useMemo(() => holdRegions(built.stitches, built.holds), [built]);
   return { ...built, index, yoke, holdRegions: holds, view };

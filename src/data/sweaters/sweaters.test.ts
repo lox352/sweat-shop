@@ -4,6 +4,7 @@ import { buildSweater } from "../../knitting/engine";
 import { breaches } from "../../knitting/rules";
 import { ballsFor, metresBySlot } from "../../knitting/yardage";
 import { beginningAt, viewFor } from "../../knitting/view";
+import { layOutSweater } from "../../knitting/layout";
 
 /**
  * Every size of every design, knitted through and held to what it says.
@@ -25,21 +26,43 @@ describe.each(sweaters.map((sweater) => [sweater.id, sweater] as const))("%s", (
       expect(built.checks).toEqual(size.checks);
     });
 
-    it("has the physics stand on the rounds as worked from each piece's seam: the pattern's own, while no marker moves", () => {
-      expect(built.knitting.rounds).toEqual(built.rounds);
-      expect(built.knitting.roundKinds).toEqual(built.roundKinds);
-      expect(built.knitting.roundPieces).toEqual(built.roundPieces);
+    // Where the pattern places a new beginning of the round, if it does, and the round it knits on to it in.
+    const moved = beginningAt(built, built.stitches.length);
+    const walk = built.roundLabels.findIndex((label) => label.endsWith("to the new beginning of the round"));
+
+    it("has the physics stand on the rounds as worked from each piece's seam: the pattern's own, until the beginning of the round moves", () => {
       expect(built.knitting.stitches).toBe(built.stitches);
+      const until = moved === undefined ? built.rounds.length : walk;
+      expect(built.knitting.rounds.slice(0, until)).toEqual(built.rounds.slice(0, until));
+      expect(built.knitting.roundKinds.slice(0, until)).toEqual(built.roundKinds.slice(0, until));
+      expect(built.knitting.roundPieces.slice(0, until)).toEqual(built.roundPieces.slice(0, until));
+      // And every stitch in them once, whatever the beginning.
+      const ids = (rounds: number[][]) => rounds.flat().sort((a, b) => a - b);
+      expect(ids(built.knitting.rounds)).toEqual(ids(built.rounds));
     });
 
-    it("is counted in its own rounds wherever the knitting has got to, never moving the beginning of the round", () => {
-      const beginning = beginningAt(built, built.stitches.length);
-      expect(beginning).toBeUndefined();
-      const view = viewFor(built, () => { throw new Error("no chart is drawn here"); }, beginning);
-      expect(view.rounds).toEqual(built.rounds);
-      expect(view.labels).toEqual(built.roundLabels);
-      expect(view.pieces).toEqual(built.roundPieces);
-      expect(view.kinds).toEqual(built.roundKinds);
+    it("is counted in its own rounds wherever the knitting has got to: the pattern's own from the beginning of the round in force", () => {
+      if (moved === undefined) {
+        const view = viewFor(built, () => { throw new Error("no chart is drawn here"); }, undefined);
+        expect(view.rounds).toEqual(built.rounds);
+        expect(view.labels).toEqual(built.roundLabels);
+        expect(view.pieces).toEqual(built.roundPieces);
+        expect(view.kinds).toEqual(built.roundKinds);
+        return;
+      }
+      // Once the new beginning is placed, the whole chart is cut at it: the round it is placed in ends there, the next runs on to the end of the walk...
+      const { knitting } = built;
+      const view = viewFor(built, () => layOutSweater(built.stitches, knitting.rounds, knitting.roundKinds, knitting.roundPieces), moved);
+      const byFirst = new Map(view.rounds.map((round, index) => [round[0], index]));
+      const after = byFirst.get(moved + 1)!;
+      expect(view.rounds[after - 1].at(-1)).toBe(moved - 1);
+      expect(view.rounds[after].at(-1)).toBe(built.rounds[walk].at(-1));
+      // ...and every round the pattern knits after it is the pattern's own, named as the pattern names it.
+      built.rounds.slice(walk + 1).forEach((round, k) => {
+        const index = byFirst.get(round[0])!;
+        expect(view.rounds[index], built.roundLabels[walk + 1 + k]).toEqual(round);
+        expect(view.labels[index]).toBe(built.roundLabels[walk + 1 + k]);
+      });
     });
 
     it("keeps to two colours a round, and never floats more than seven", () => {

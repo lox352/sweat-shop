@@ -23,13 +23,14 @@ import { underarmDecrease } from "./writing";
  * goes on hold, and the underarm is cable cast on and closed up to the next
  * stitch with the last of it passed over.
  *
- * Two things the pattern does only rename where it is, and are left out
- * here: it moves the beginning of the round from the middle of the back to
- * the middle of the right underarm at the divide, and it counts the body's
- * and the sleeves' rounds from 1 again. The body's rounds begin at the middle
- * of the back, as the yoke's do, and every round is counted on from the neck.
- * The one difference that makes to the knitting is that the hem's rib and
- * bind-off start at the middle of the back, half a round sooner.
+ * Its markers are placed and taken off where it says: one band's, which the
+ * bands after it increase between; the raglan's four; and at the divide a new
+ * beginning of the round, half way along the right underarm's cast-on. The
+ * body is knitted on to that from the old beginning at the middle of the
+ * back, a quarter of the way round, and its rounds - the hem's rib and
+ * bind-off with them - begin there. What the pattern does only to rename
+ * where it is, it leaves out: it counts the body's and the sleeves' rounds
+ * from 1 again, and here every round is counted on from the neck.
  *
  * Slots: MC is the main colour - the neck, the raglan, the body and the
  * sleeves. "1A" and "1B" are the first band's colours A and B, "2A" and
@@ -128,8 +129,9 @@ interface Grade {
   increases: number;
   /**
    * Cast on at each underarm, in the pattern's two counts: before the middle,
-   * where it would move the end of the round, and after. One more is cast on
-   * than stays; a sleeve picks up the second count either side.
+   * where the right one places the new beginning of the round, and after.
+   * One more is cast on than stays; a sleeve picks up the second count
+   * either side.
    */
   underarm: [before: number, after: number];
   /** Plain rounds of the body. */
@@ -249,8 +251,46 @@ const plain = (count: number, fabric?: string): RoundSpec[] =>
 const rib = (count: number): RoundSpec => ({ type: "rounds", count, slot: "MC", sequence: ["k", "p"], fabric: "rib" });
 const bindOff: RoundSpec = { type: "bindOff", slot: "MC", sequence: ["k", "p"], fabric: "rib" };
 
-const sectionsFor = (g: Grade, at: number): Section[] => {
+/*
+ * What the markers mark, as the knitting panel names them - "Place a marker
+ * for the right back raglan line": the raglan's four, in the order its
+ * set-up round places them; the new beginning of the round; and one band's,
+ * each beginning a section of the round, as the beginning of the round
+ * begins the first.
+ */
+export const raglanLines = [
+  "the right back raglan line",
+  "the right front raglan line",
+  "the left front raglan line",
+  "the left back raglan line",
+] as const;
+export const newBeginning = "the new beginning of the round";
+export const section = (which: number, of: number) => `section ${which} of ${of}`;
+
+/** The stitches each band leaves: those the pattern states, under each band that increases, and the rest as many as the band before. */
+const bandCounts = (g: Grade, at: number, colours: Record<number, number>): number[] => {
+  let count = stated.shortRows[at];
+  return bands[g.group].map((_, index) => (count = colours[index + 1] ?? count));
+};
+
+const sectionsFor = (g: Grade, at: number, colours: Record<number, number>): Section[] => {
   const [back, sleeve, front] = g.raglan;
+  /*
+   * The band shaped "k4" places a marker after every fifth block of its last
+   * round - "(k1, kfb, k2) in four blocks, k4 in the fifth, PM" - all but
+   * the last, at the beginning of the round: the round in sections, which
+   * the bands after it increase within. A block that increases is five of
+   * the chart's cells and a plain one four, so a marker falls every 24
+   * cells, and there are as many sections as there are twenties - five
+   * blocks - in the round before. The first plain round after the colourwork
+   * takes them off again, all but the beginning: "RM except EOR".
+   */
+  const counts = bandCounts(g, at, colours);
+  const placing = bands[g.group].indexOf("k4");
+  const sections = counts[placing - 1] / 20;
+  const yoke = counts[counts.length - 1];
+  const placed = Array.from({ length: sections - 1 }, (_, k) => ({ after: 24 * (k + 1), place: section(k + 2, sections) }));
+  const takenOff = Array.from({ length: sections - 1 }, (_, k) => ({ after: (yoke / sections) * (k + 1), remove: section(k + 2, sections) }));
   const raglan: RoundSpec[] = [];
   for (let round = 0; round < g.increases; round++) {
     const at: [number, number, number] = [back + round, sleeve + 2 * round, front + 2 * round];
@@ -320,12 +360,15 @@ const sectionsFor = (g: Grade, at: number): Section[] => {
       piece: "yoke",
       rounds: [
         { type: "needles", to: "colour" },
-        ...bands[g.group].map((shape, index): RoundSpec => ({
-          type: "chart",
-          chart: `colour-${index + 1}-${shape}`,
-          rows: [1, 5],
-          check: `colour-${index + 1}`,
-        })),
+        ...bands[g.group].flatMap((shape, index): RoundSpec[] => {
+          const [chart, check] = [`colour-${index + 1}-${shape}`, `colour-${index + 1}`];
+          return index === placing
+            ? [
+                { type: "chart", chart, rows: [1, 4] },
+                { type: "chart", chart, rows: [5, 5], markers: placed, check },
+              ]
+            : [{ type: "chart", chart, rows: [1, 5], check }];
+        }),
       ],
     },
     {
@@ -333,9 +376,14 @@ const sectionsFor = (g: Grade, at: number): Section[] => {
       piece: "yoke",
       rounds: [
         { type: "needles", to: "main" },
-        ...plain(g.plain),
-        // The set-up round places the raglan's markers: a plain round as knitted.
-        ...plain(1),
+        { type: "rounds", count: g.plain, slot: "MC", markers: takenOff },
+        // The set-up round places the raglan's markers: in M1, "K44 for a half of back body, PM, k56 for right sleeve, PM..."
+        {
+          type: "rounds",
+          count: 1,
+          slot: "MC",
+          markers: [back, back + sleeve, back + sleeve + front, back + 2 * sleeve + front].map((after, k) => ({ after, place: raglanLines[k] })),
+        },
         ...raglan,
       ],
     },
@@ -344,17 +392,35 @@ const sectionsFor = (g: Grade, at: number): Section[] => {
       piece: "body",
       rounds: [
         {
+          /*
+           * "K to marker, RM", wrap and put the sleeve on hold, "RM", cast on
+           * the underarm - placing the new beginning of the round half way
+           * along the right one's - and again for the left sleeve. Then "k
+           * to marker, RM (= previous EOR in center back), k to marker (= new
+           * EOR under arm)": the walk.
+           */
           type: "divide",
           slot: "MC",
           segments: [
             { work: back + g.increases },
-            { hold: "sleeve-right", count: held, castOn: before + after - 1, wrap: true, close: "slipPassOver" },
+            { remove: raglanLines[0] },
+            {
+              hold: "sleeve-right",
+              count: held,
+              wrap: true,
+              thenRemove: raglanLines[1],
+              castOn: before + after - 1,
+              close: "slipPassOver",
+              marker: { after: before, place: newBeginning, begins: true },
+            },
             { work: front + 2 * g.increases },
-            { hold: "sleeve-left", count: held, castOn: before + after - 1, wrap: true, close: "slipPassOver" },
+            { remove: raglanLines[2] },
+            { hold: "sleeve-left", count: held, wrap: true, thenRemove: raglanLines[3], castOn: before + after - 1, close: "slipPassOver" },
             { work: back + g.increases },
           ],
           check: "body",
         },
+        { type: "walk", slot: "MC" },
         ...plain(g.body),
         { type: "needles", to: "rib" },
         ...plain(2, "rib"),
@@ -424,17 +490,11 @@ const listed: Listed[] = [
 
 const checksFor = (size: Listed, at: number): Record<string, number> => {
   const g = grades[size.id];
-  const bandCounts: Record<string, number> = {};
-  let count = stated.shortRows[at];
-  bands[g.group].forEach((_, index) => {
-    count = size.colours[index + 1] ?? count;
-    bandCounts[`colour-${index + 1}`] = count;
-  });
   return {
     neck: g.neck,
     setUp: stated.setUp[at],
     shortRows: stated.shortRows[at],
-    ...bandCounts,
+    ...Object.fromEntries(bandCounts(g, at, size.colours).map((count, index) => [`colour-${index + 1}`, count])),
     raglan: stated.raglan[at],
     body: stated.body[at],
     "sleeve-left:top": stated.top[at],
@@ -524,11 +584,14 @@ const paulKlee: SweaterPattern = {
       label: "Cable cast-on, at the underarm",
       how:
         "With the sleeve's stitches on hold, turn the work and cable cast on " +
-        "the underarm; then turn back. One more is cast on than stays: the " +
-        "stitch after them closes it up.",
+        "the underarm, with the marker for the new beginning of the round half " +
+        "way along the stitches that will stay cast on at the right underarm; " +
+        "then turn back. One more is cast on than stays: the stitch after them " +
+        "closes it up.",
       steps: [
         "Turn the work, so the wrong side faces you.",
         "Cable cast on: put the right needle between the first two stitches on the left needle, draw a loop through and put it on the left needle. Repeat for each stitch.",
+        "At the right underarm, place the marker for the new beginning of the round half way: the body's rounds begin there.",
         "Turn the work back, right side facing: the next stitch slips, and the last stitch cast on is passed over it.",
       ],
     },
@@ -614,9 +677,10 @@ const paulKlee: SweaterPattern = {
     ribNeedlesMm: 2.75,
     colourNeedlesMm: 3.75,
     yardage: yardageFor(grades[size.id], at),
-    sections: sectionsFor(grades[size.id], at),
+    sections: sectionsFor(grades[size.id], at, size.colours),
     checks: checksFor(size, at),
   })),
+  revisions: [{ what: "The pattern's stitch markers, placed and taken off where it says", added: ["marker"] }],
 };
 
 export default paulKlee;
