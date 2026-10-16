@@ -2,6 +2,7 @@ import React from "react";
 import type { ChartLayout } from "./layout";
 import type { Hold, Join, NeedleChange, Turn } from "./chart-marks";
 import type { HoldRegion } from "./holds";
+import type { MarkerLine } from "./view";
 
 /**
  * What the chart marks besides its stitches, in words: where the knitting is
@@ -24,7 +25,9 @@ const ChartNotes: React.FC<{
   names?: string[];
   /** The sweater's pieces, to name what is on hold. */
   pieces?: { id: string; label: string }[];
-}> = ({ layout, join, turns, holds, needles, onHold, hatch, names, pieces }) => {
+  /** The stitch markers on the needles, each a line up the chart. */
+  markers?: MarkerLine[];
+}> = ({ layout, join, turns, holds, needles, onHold, hatch, names, pieces, markers = [] }) => {
   const roundName = (id: number) => {
     const round = layout.cells.get(id)?.round;
     return round === undefined ? "" : names?.[round - 1] ?? `round ${round}`;
@@ -50,6 +53,11 @@ const ChartNotes: React.FC<{
       {onHold.map((region) => (
         <li key={`on-hold-${region.heldAt}`} data-note="on-hold">
           {`On hold, crosshatched: the ${(pieces?.find((piece) => piece.id === region.holder)?.label ?? region.holder).toLowerCase()}'s stitches, and everything to be knitted from them.`}
+        </li>
+      ))}
+      {markers.map((line) => (
+        <li key={`marker-${line.marker}-${line.from}`} data-note="marker">
+          {`A marker for ${line.marker} runs up the chart from row ${line.from} to row ${line.to}.`}
         </li>
       ))}
       {hatch.map(([from, to]) => (

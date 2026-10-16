@@ -624,6 +624,20 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     ctx.setLineDash([]);
   }
 
+  // A stitch marker: a line up the chart between two columns, from the row it is placed in to the row it comes off in.
+  const lines = scene.markers.filter((line) => left[line.after] >= region.x - 4 && left[line.after] <= region.x + region.width + 4);
+  if (lines.length > 0) {
+    const draw = () => {
+      for (const line of lines) {
+        const x = snap(left[line.after]);
+        ctx.moveTo(x, top(line.to));
+        ctx.lineTo(x, top(line.from) + height[line.from]);
+      }
+    };
+    strokeIn(draw, "#fff", 4);
+    strokeIn(draw, colours.piece, 2);
+  }
+
   /* The round numbers down the right-hand edge, beside where column 1 ends. */
   const numbersAt = left[0] + Math.round(cell * 0.45);
   if (numbersAt < region.x + region.width && numbersAt + 4 * cell > region.x) {

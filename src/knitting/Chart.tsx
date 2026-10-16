@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Stitch, isStep } from "../types/Stitch";
-import { layOutSweater, mirrorLayout } from "./layout";
+import { type ChartLayout, layOutSweater, mirrorLayout } from "./layout";
+import type { MarkerLine } from "./view";
 import type { RoundKind } from "./needles";
 import { Palette, yarnFor } from "./palette";
 import ChartTiles, { type TilesHandle } from "./ChartTiles";
@@ -78,6 +79,14 @@ interface ChartProps {
   names?: string[];
   /** The knitting's held regions, to mark as on hold while they are. See holds.ts. */
   holdRegions?: HoldRegion[];
+  /**
+   * The chart already laid out from these rounds, as the knitting's view of
+   * them is - cut and turned at the beginning of the round in force - rather
+   * than laid out here. See knitting/view.
+   */
+  layout?: ChartLayout;
+  /** The stitch markers on the needles, each a line up the chart: see knitting/view. */
+  markers?: MarkerLine[];
 }
 
 /**
@@ -111,6 +120,8 @@ const Chart: React.FC<ChartProps> = ({
   roundPieces,
   names,
   holdRegions,
+  layout: given,
+  markers,
 }) => {
   const [picked, setPicked] = useState<number>();
   const makeOneLean = stitchNotes?.m1?.lean;
@@ -168,8 +179,8 @@ const Chart: React.FC<ChartProps> = ({
    * next stitch and a jump all mean what they mean anywhere else on the site.
    */
   const laid = useMemo(
-    () => layOutSweater(stitches, rounds, kinds, roundPieces),
-    [stitches, rounds, kinds, roundPieces],
+    () => given ?? layOutSweater(stitches, rounds, kinds, roundPieces),
+    [given, stitches, rounds, kinds, roundPieces],
   );
   /*
    * A chart shows the knitting from the side you are working on, as the hat
@@ -184,6 +195,14 @@ const Chart: React.FC<ChartProps> = ({
   );
   const face = faceAfter(turnIds, progress);
   const layout = useMemo(() => (face === "wrong" ? mirrorLayout(laid) : laid), [laid, face]);
+  // Turned over with it: the line to the left of a column, to the left of the column on its other side.
+  const markerLines = useMemo(
+    () =>
+      face === "wrong"
+        ? (markers ?? []).map((line) => ({ ...line, after: laid.columns - line.after }))
+        : (markers ?? []),
+    [markers, face, laid.columns],
+  );
   /*
    * And every stitch is drawn as it looks from the side shown: from the right
    * side, as it is there, the rows purled back from the wrong side knits like
@@ -218,8 +237,8 @@ const Chart: React.FC<ChartProps> = ({
   const turns = useMemo(() => turnsIn(stitches, rounds), [stitches, rounds]);
 
   const scene = useMemo(
-    () => sceneOf(layout, stitches, rounds, { needleRules, join, holds, turns, face, makeOneLean }),
-    [layout, stitches, rounds, needleRules, join, holds, turns, face, makeOneLean],
+    () => sceneOf(layout, stitches, rounds, { needleRules, join, holds, turns, face, makeOneLean, markers: markerLines }),
+    [layout, stitches, rounds, needleRules, join, holds, turns, face, makeOneLean, markerLines],
   );
   const colours = useMemo(
     () => ({
@@ -391,6 +410,7 @@ const Chart: React.FC<ChartProps> = ({
           hatch={hatch}
           names={names}
           pieces={pieces}
+          markers={markerLines}
         />
         <div
           ref={sheetRef}

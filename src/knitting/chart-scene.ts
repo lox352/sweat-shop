@@ -4,6 +4,7 @@ import { type RowIndex, indexRows } from "./column-window";
 import { type Face, type Hold, type Join, type Turn, markAt } from "./chart-marks";
 import { seenFrom } from "./sides";
 import type { Mark } from "../helpers/stitch-marks";
+import type { MarkerLine } from "./view";
 
 /** Every fifth row and column is counted by: numbered down the edge, and ruled heavier. */
 export const emphasis = 5;
@@ -76,6 +77,8 @@ export interface ChartScene {
   joinWays: [number, number];
   holds: Hold[];
   turns: Turn[];
+  /** The stitch markers on the needles, each a line up the chart between two columns. */
+  markers: MarkerLine[];
   face: Face;
   makeOneLean?: "left" | "right";
   /**
@@ -98,11 +101,12 @@ export const sceneOf = (
     join?: Join;
     holds?: Hold[];
     turns?: Turn[];
+    markers?: MarkerLine[];
     face?: Face;
     makeOneLean?: "left" | "right";
   } = {},
 ): ChartScene => {
-  const { needleRules = [], join, holds = [], turns = [], face = "right", makeOneLean } = options;
+  const { needleRules = [], join, holds = [], turns = [], markers = [], face = "right", makeOneLean } = options;
   const index = indexRows(layout);
   const size = stitches.length;
   const rowOf = new Int32Array(size);
@@ -206,6 +210,7 @@ export const sceneOf = (
     joinWays,
     holds,
     turns,
+    markers,
     face,
     makeOneLean,
     markOf,
