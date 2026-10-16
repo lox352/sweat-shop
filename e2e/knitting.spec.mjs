@@ -49,8 +49,14 @@ async function knittedTo(page, progress, choices = medium) {
   await page.goto("#/project/1760000000000/chart?knitting=1");
   await expect(position(page)).toBeAttached();
 }
-/** Taps the chart `across` cells to the left of the stitch to be worked next, in its round. */
+/**
+ * Taps the chart `across` cells to the left of the stitch to be worked next,
+ * in its round, once the chart has brought it into view: with the columns
+ * closed up, the stitches beside it are only side by side while its row is
+ * in view.
+ */
 async function tapBeside(page, across) {
+  await expect(page.locator(".chart-next")).toBeInViewport();
   await page.locator(".chart-next").evaluate((mark, across) => {
     const box = mark.getBoundingClientRect();
     const cell = box.width - 2;
@@ -118,10 +124,11 @@ test("accessible chart controls and text instructions", async ({ page }) => {
   await start(page);
   // Out of knitting, so the chart stops following and any round can be read.
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
-  const sheetWidth = () => page.locator(".chart-sheets").evaluate(node => node.offsetWidth);
-  const unzoomed = await sheetWidth();
+  // Taller, a row at a time: closed up, the chart need not be wider with fewer rows in view.
+  const sheetHeight = () => page.locator(".chart-sheets").evaluate(node => node.offsetHeight);
+  const unzoomed = await sheetHeight();
   await page.getByRole("region", { name: /Scrollable knitting chart/ }).press("+");
-  await expect.poll(sheetWidth).toBeGreaterThan(unzoomed);
+  await expect.poll(sheetHeight).toBeGreaterThan(unzoomed);
   const settings = await openSettings(page);
   await settings.getByRole("switch", { name: "High contrast chart" }).check();
   await settings.getByRole("switch", { name: "Written round instructions" }).check();
@@ -524,6 +531,86 @@ test("tapping a stitch on the chart carries on from it, and can be undone", asyn
   await expect(picker).toBeHidden();
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(position(page)).toHaveText(original);
+});
+
+/** Clicks the chart at a point on screen. */
+async function tapAt(page, x, y) {
+  await page.locator(".chart-sheets").evaluate((sheet, { x, y }) => {
+    sheet.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: x, clientY: y }));
+  }, { x, y });
+}
+/** The stitch the picker is open at, by name, and the middle of its cell on screen; then closes it. */
+async function picked(page) {
+  const picker = page.getByRole("dialog", { name: /, stitch \d+$/ });
+  const name = await picker.getAttribute("aria-label");
+  const box = await page.locator(".chart-picked").boundingBox();
+  await picker.getByRole("button", { name: "Close" }).click();
+  return { name, x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+/** Zooms the chart in as far as it goes, a press of "+" at a time. */
+async function zoomAllTheWayIn(page) {
+  const chart = page.getByRole("region", { name: /Scrollable knitting chart/ });
+  const tall = () => page.locator(".chart-sheets").evaluate(sheet => sheet.offsetHeight);
+  // From 16 pixels a stitch to 40, 4 at a time.
+  for (let press = 0; press < 6; press++) {
+    const before = await tall();
+    await chart.press("+");
+    await expect.poll(tall).toBeGreaterThan(before);
+  }
+}
+const closingUp = testInfo => testInfo.project.name.endsWith("-tiles");
+
+test("closed up, the rib at the neck is its stitches side by side, and every column shows by the widest round", async ({ page }, testInfo) => {
+  test.skip(!closingUp(testInfo), "Only the tiles close up the columns");
+  await start(page);
+  // Close enough that the rows in view are the neck's, below the yoke's first make-ones.
+  await zoomAllTheWayIn(page);
+  await page.getByRole("button", { name: "End of round", exact: true }).click();
+  await page.getByRole("button", { name: "Joined: carry on" }).click();
+  await expect(position(page)).toContainText("Yoke, round 2, stitch 1.");
+  // The next cell along is the next stitch: with every column showing, the yoke's make-ones stand between them.
+  await tapBeside(page, 1);
+  const next = page.getByRole("dialog", { name: "Yoke, round 2, stitch 2" });
+  await expect(next).toBeVisible();
+  await next.getByRole("button", { name: "Close" }).click();
+
+  // Up the chart a little at a time, from the neck: fewer columns there than in all, and every one of them further up.
+  await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  const tiles = page.locator(".chart-tiles");
+  const columns = Number(await tiles.getAttribute("data-columns"));
+  const scroller = page.locator(".chart-scroll");
+  const height = await scroller.evaluate(box => box.scrollHeight);
+  const counts = [];
+  for (let top = height; top >= 0; top -= 400) {
+    await scroller.evaluate((box, top) => { box.scrollTop = top; }, top);
+    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    counts.push(Number(await tiles.getAttribute("data-columns-showing")));
+  }
+  expect(counts[0]).toBeLessThan(columns);
+  expect(Math.max(...counts)).toBe(columns);
+});
+
+test("closed up, zooming keeps the stitch under the point zoomed about", async ({ page }, testInfo) => {
+  test.skip(!closingUp(testInfo), "Only the tiles close up the columns");
+  await start(page);
+  await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  await page.waitForTimeout(400);
+  // A stitch of the rib, near the middle of the box: tapped for leftwards from the middle, past any columns between.
+  const box = await page.locator(".chart-scroll").boundingBox();
+  const picker = page.getByRole("dialog", { name: /, stitch \d+$/ });
+  for (let step = 0; step < 40 && !(await picker.count()); step++) {
+    await tapAt(page, box.x + box.width / 2 - step * 6, box.y + box.height * 0.8);
+  }
+  const before = await picked(page);
+  // Zoomed in about the middle of its cell, as a trackpad pinches: fewer rows in view, and fewer columns.
+  await page.mouse.move(before.x, before.y);
+  await page.keyboard.down("Control");
+  await page.mouse.wheel(0, -40);
+  await page.keyboard.up("Control");
+  await page.waitForTimeout(1200);
+  await tapAt(page, before.x, before.y);
+  const after = await picked(page);
+  expect(after.name).toBe(before.name);
 });
 
 test("backup restores copies and rename/delete require their dialogs", async ({ page }) => {

@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Stitch, isFabric, isStep } from "../types/Stitch";
 import { layOutSweater, mirrorLayout, type ChartLayout } from "./layout";
 import type { RoundKind } from "./needles";
 import { Palette, yarnFor } from "./palette";
 import { cellAt, chartSize, drawChart, drawProgress, leftMargin } from "./draw-chart";
 import ChartSvg from "./ChartSvg";
-import ChartTiles from "./ChartTiles";
+import ChartTiles, { type TilesHandle } from "./ChartTiles";
 import ChartNotes from "./ChartNotes";
 import { sceneOf } from "./chart-scene";
 import { defaultColours } from "./chart-painter";
@@ -68,6 +68,15 @@ const renderer = (): Renderer => {
   }
   return kept === "tiles" ? "tiles" : "svg";
 };
+
+/**
+ * Whether the tiles close up the columns no row in view has a stitch in:
+ * unless "?collapse=0" asks to see every column, to compare.
+ */
+const closesUp = (): boolean =>
+  new URLSearchParams(
+    typeof window === "undefined" ? "" : (window.location.hash.split("?")[1] ?? ""),
+  ).get("collapse") !== "0";
 
 /**
  * A colour from the stylesheet, so the canvas is painted in the same palette
@@ -177,7 +186,20 @@ const Chart: React.FC<ChartProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const zoomTo = useCallback((cell: number) => setZoom(Math.round(cell)), []);
-  const zoomAt = usePinchZoom(scrollRef, sheetRef, cellSize, zoomTo, contained);
+  /*
+   * The tiles, where the columns may be closed up: then where a stitch is
+   * comes from them rather than from the layout, and a zoom settles about
+   * the column it began in rather than in proportion.
+   */
+  const tilesRef = useRef<TilesHandle>(null);
+  const closingUp = useRef(false);
+  const placeAfter = useCallback(
+    (x: number, top: number) => (closingUp.current ? tilesRef.current?.zoomedTo(x, top) : undefined),
+    [],
+  );
+  const zoomAt = usePinchZoom(scrollRef, sheetRef, cellSize, zoomTo, contained, placeAfter);
+  // Anything over the chart outside the tiles, the picker, is placed again when the columns move.
+  const [, moved] = useReducer((count: number) => count + 1, 0);
   /*
    * The cell size the follow below reads, kept out of its dependencies: a
    * zoom leaves the chart where it lands, and only knitting moves it.
@@ -200,6 +222,12 @@ const Chart: React.FC<ChartProps> = ({
   const preferredRenderer = useMemo(() => renderer(), []);
   // The older canvas cannot number the yarns for high contrast; the vectors and the tiles both can.
   const drawWith = contrast && preferredRenderer === "canvas" ? "svg" : preferredRenderer;
+  /*
+   * Only in a box of its own, whose scroll says which rows are in view, and
+   * not under a heat map, which is drawn where the layout puts each stitch.
+   */
+  const collapse = useMemo(() => drawWith === "tiles" && closesUp(), [drawWith]) && contained && !overlay;
+  closingUp.current = collapse;
 
   /*
    * The whole sweater, every stitch over the stitch it was worked into: the
@@ -382,7 +410,10 @@ const Chart: React.FC<ChartProps> = ({
       const scroller = scrollRef.current;
       if (!scroller || !at) return;
       const cell = cellNow.current;
-      const { x, y } = cellAt(layout, at.row, at.column, cell);
+      // Held still on the tiles while the box scrolls to it, however the columns move on the way.
+      if (drawWith === "tiles" && nextId !== undefined) tilesRef.current?.hold(nextId);
+      const placed = drawWith === "tiles" && nextId !== undefined ? tilesRef.current?.place(nextId) : undefined;
+      const { x, y } = placed ?? cellAt(layout, at.row, at.column, cell);
       scroller.scrollTo({
         left: Math.max(x - scroller.clientWidth / 2 + cell / 2, 0),
         top: contained
@@ -391,7 +422,7 @@ const Chart: React.FC<ChartProps> = ({
         behavior,
       });
     },
-    [at, layout, contained, followAt],
+    [at, layout, contained, followAt, drawWith, nextId],
   );
   useEffect(() => {
     aim(reducedMotion() ? "auto" : "smooth");
@@ -541,17 +572,15 @@ const Chart: React.FC<ChartProps> = ({
         <div
           ref={sheetRef}
           className="chart-sheets chart-pickable"
-          style={{ width, height, marginLeft: leftMargin(cellSize) }}
+          // Closed up, the tiles say how wide the chart is as the rows in view change.
+          style={{ width: collapse ? undefined : width, height, marginLeft: leftMargin(cellSize) }}
           onClick={
             ((event) => {
               const box = event.currentTarget.getBoundingClientRect();
-              const id = stitchAtPoint(
-                layout,
-                rounds,
-                cellSize,
-                event.clientX - box.left,
-                event.clientY - box.top,
-              );
+              const id =
+                drawWith === "tiles"
+                  ? tilesRef.current?.stitchAt(event.clientX, event.clientY)
+                  : stitchAtPoint(layout, rounds, cellSize, event.clientX - box.left, event.clientY - box.top);
               setPicked(id === picked ? undefined : id);
             })
           }
@@ -569,6 +598,7 @@ const Chart: React.FC<ChartProps> = ({
         >
           {drawWith === "tiles" && scene ? (
             <ChartTiles
+              ref={tilesRef}
               scene={scene}
               cell={cellSize}
               palette={shownPalette}
@@ -578,7 +608,9 @@ const Chart: React.FC<ChartProps> = ({
               onHold={onHoldSets}
               colours={colours}
               margin={leftMargin(cellSize)}
-              nextStitchId={nextId}
+              follow={nextId}
+              collapse={collapse}
+              onMove={picked !== undefined ? moved : undefined}
             />
           ) : drawWith === "svg" ? (
             <ChartSvg
@@ -615,6 +647,8 @@ const Chart: React.FC<ChartProps> = ({
           )}
           {picked !== undefined && (
             <StitchPicker
+              place={drawWith === "tiles" ? (id) => tilesRef.current?.place(id) : undefined}
+              chartWidth={collapse ? sheetRef.current?.offsetWidth : undefined}
               note={pickerNote?.(picked)}
               entry={keyEntryAt(stitches, picked, stitchNotes, face)}
               labels={labels}

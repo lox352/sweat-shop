@@ -47,7 +47,11 @@ const StitchPicker: React.FC<{
   onHold?: { piece: string; waiting: boolean };
   /** Anything more to say about the stitch, below what it is. */
   note?: React.ReactNode;
-}> = ({ id, stitches, rounds, layout, cell, progress, onJump, onClose, entry, yarn, labels, names, otherFace, onHold, note }) => {
+  /** Where a stitch is on the chart, where the columns are not all where the layout put them. */
+  place?: (id: number) => { x: number; y: number } | undefined;
+  /** And how wide the chart is then. */
+  chartWidth?: number;
+}> = ({ id, stitches, rounds, layout, cell, progress, onJump, onClose, entry, yarn, labels, names, otherFace, onHold, note, place, chartWidth }) => {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -59,9 +63,9 @@ const StitchPicker: React.FC<{
   const at = layout.cells.get(id);
   if (!at) return null;
   const target = progressBefore(stitches, rounds, at.round, at.index);
-  const { x, y } = cellAt(layout, at.row, at.column, cell);
+  const { x, y } = place?.(id) ?? cellAt(layout, at.row, at.column, cell);
   const where = `${names?.[at.round - 1] ?? `Round ${at.round}`}, stitch ${at.index}`;
-  const { width } = chartSize(layout, cell);
+  const width = chartWidth ?? chartSize(layout, cell).width;
   const explains = entry !== undefined && entry.id !== "k1";
   const needles = stitches[id]?.needles;
   const joinsAfter = stitches[id + 1]?.type === "join";
