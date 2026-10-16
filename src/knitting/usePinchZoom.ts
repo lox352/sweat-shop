@@ -33,11 +33,12 @@ export function usePinchZoom(
   cell: number,
   setCell: (cell: number) => void,
   /**
-   * Where a point `x` across the sheet before a zoom is after it, with the
-   * box about to be scrolled `top` down. In proportion, unless the columns
-   * are not: closed up, they are those the rows in view at the new size need.
+   * Where a point `x` across and `y` down the sheet before a zoom is after
+   * it, to be put back at `screenX`, `screenY` on screen. In proportion,
+   * unless the columns and rows are not: closed up, they are those the box
+   * needs at the new size.
    */
-  placeAfter?: (x: number, top: number) => number | undefined,
+  placeAfter?: (x: number, y: number, screenX: number, screenY: number) => { x: number; y: number } | undefined,
 ) {
   const gesture = useRef<Gesture>();
   const settle = useRef<{
@@ -168,9 +169,12 @@ export function usePinchZoom(
      * where the point has got to, and move it back.
      */
     const box = sheet.getBoundingClientRect();
-    const top = scroller.scrollTop + box.top + done.originY * done.ratio - done.screenY;
-    const across = placeAfter?.(done.originX, Math.max(top, 0)) ?? done.originX * done.ratio;
-    const left = scroller.scrollLeft + box.left + across - done.screenX;
+    // Read before the sheet takes its new size, which may cut the box's scroll back to fit.
+    const sheetLeft = scroller.scrollLeft + box.left;
+    const sheetTop = scroller.scrollTop + box.top;
+    const placed = placeAfter?.(done.originX, done.originY, done.screenX, done.screenY);
+    const left = sheetLeft + (placed?.x ?? done.originX * done.ratio) - done.screenX;
+    const top = sheetTop + (placed?.y ?? done.originY * done.ratio) - done.screenY;
     const place = () => {
       scroller.scrollLeft = Math.min(Math.max(left, 0), scroller.scrollWidth - scroller.clientWidth);
       scroller.scrollTop = Math.min(Math.max(top, 0), scroller.scrollHeight - scroller.clientHeight);

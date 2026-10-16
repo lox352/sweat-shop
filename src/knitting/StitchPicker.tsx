@@ -46,7 +46,7 @@ const StitchPicker: React.FC<{
   onHold?: { piece: string; waiting: boolean };
   /** Anything more to say about the stitch, below what it is. */
   note?: React.ReactNode;
-  /** Where a stitch is on the chart, as the tiles have the columns now. */
+  /** Where a stitch is on the chart, as the tiles have the columns and rows now. */
   place: (id: number) => { x: number; y: number } | undefined;
   /** And how wide the chart is then. */
   chartWidth: number;
@@ -93,8 +93,9 @@ const StitchPicker: React.FC<{
         style={{
           left,
           width: bubble,
-          top: below ? y + cell + 8 : undefined,
-          bottom: below ? undefined : layout.rows * cell - y + 8,
+          // Above, it hangs from the stitch's top: the chart's height changes as its rows close up.
+          top: below ? y + cell + 8 : y - 8,
+          transform: below ? undefined : "translateY(-100%)",
         }}
         onClick={(event) => event.stopPropagation()}
       >

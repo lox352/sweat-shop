@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "./engine";
 import { layOutSweater } from "./layout";
-import { LiveColumns, columnAt, everyColumn, indexRows, mapOf, placeFrom, rowsShowing } from "./column-window";
+import {
+  LiveColumns,
+  LiveRows,
+  columnAt,
+  everyColumn,
+  everyRow,
+  indexColumns,
+  indexRows,
+  mapOf,
+  placeFrom,
+  rowMapOf,
+  rowsWithin,
+} from "./column-window";
 import { testSweater } from "./test-sweater";
 import { sweaters } from "../data/sweaters";
 import hamefarin from "../data/sweaters/hamefarin";
@@ -20,15 +32,50 @@ const occupied = (index: ReturnType<typeof indexRows>, first: number, last: numb
   return out;
 };
 
+/** Each row's top edge and height, ten pixels a row, the rows in `closed` taking none. */
+const rowPlaces = (rows: number, closed: number[] = []) => {
+  const top = new Float64Array(rows + 2);
+  const height = new Float64Array(rows + 2);
+  let y = 0;
+  for (let row = rows + 1; row >= 0; row--) {
+    top[row] = y;
+    height[row] = row >= 1 && row <= rows && !closed.includes(row) ? 10 : 0;
+    y += height[row];
+  }
+  return { top, height };
+};
+
+/** The rows with a stitch in any of these columns, counted the slow way. */
+const crossed = (index: ReturnType<typeof indexRows>, columns: Iterable<number>) => {
+  const wanted = new Set(columns);
+  const out = new Set<number>();
+  for (let k = 0; k < index.column.length; k++) {
+    if (!wanted.has(index.column[k])) continue;
+    let row = 1;
+    while (index.start[row + 1] <= k) row++;
+    out.add(row);
+  }
+  return out;
+};
+
 describe("the rows on screen", () => {
   it("are every row any part of which shows, counted from the bottom", () => {
     // Ten rows of ten pixels: the top row is 0-10 down the chart, the bottom 90-100.
-    expect(rowsShowing(10, 10, 0, 100)).toEqual([1, 10]);
-    expect(rowsShowing(10, 10, 0, 10)).toEqual([10, 10]);
-    expect(rowsShowing(10, 10, 5, 10)).toEqual([9, 10]);
-    expect(rowsShowing(10, 10, 90, 30)).toEqual([1, 1]);
+    const { top, height } = rowPlaces(10);
+    expect(rowsWithin(top, height, 10, 0, 100)).toEqual([1, 10]);
+    expect(rowsWithin(top, height, 10, 0, 10)).toEqual([10, 10]);
+    expect(rowsWithin(top, height, 10, 5, 15)).toEqual([9, 10]);
+    expect(rowsWithin(top, height, 10, 90, 120)).toEqual([1, 1]);
     // A box that only touches a row's edge does not show it.
-    expect(rowsShowing(10, 10, 10, 10)).toEqual([9, 9]);
+    expect(rowsWithin(top, height, 10, 10, 20)).toEqual([9, 9]);
+  });
+
+  it("go by where the rows are drawn, a row closed up taking none of the box", () => {
+    // Rows 4 to 6 closed: row 7 stands on row 3, 30 to 40 and 40 to 50 down the chart.
+    const { top, height } = rowPlaces(10, [4, 5, 6]);
+    expect(rowsWithin(top, height, 10, 35, 45)).toEqual([3, 7]);
+    expect(rowsWithin(top, height, 10, 30, 40)).toEqual([7, 7]);
+    expect(rowsWithin(top, height, 10, 40, 50)).toEqual([3, 3]);
   });
 });
 
@@ -47,6 +94,66 @@ describe("a chart's rows in column order", () => {
         if (k > index.start[row]) expect(index.column[k]).toBeGreaterThan(index.column[k - 1]);
       }
     }
+  });
+});
+
+describe("a chart's columns in row order", () => {
+  const { layout } = laidOut(testSweater, "one");
+  const index = indexRows(layout);
+  const columns = indexColumns(index);
+
+  it("holds every stitch's row once, in its column, from the bottom up", () => {
+    expect(columns.row.length).toBe(layout.cells.size);
+    const seen = new Set<string>();
+    layout.cells.forEach((at) => seen.add(`${at.column}|${at.row}`));
+    for (let c = 1; c <= columns.columns; c++) {
+      for (let k = columns.start[c]; k < columns.start[c + 1]; k++) {
+        expect(seen.has(`${c}|${columns.row[k]}`)).toBe(true);
+        if (k > columns.start[c]) expect(columns.row[k]).toBeGreaterThan(columns.row[k - 1]);
+      }
+    }
+  });
+});
+
+describe("the rows showing, as the view moves sideways", () => {
+  const { built, layout } = laidOut(hamefarin, "m");
+  const index = indexRows(layout);
+  const columns = indexColumns(index);
+
+  it("are those with a stitch in a column on screen, however the view got there", () => {
+    const live = new LiveRows(columns);
+    const spans: [number, number][] = [];
+    for (let from = 1; from + 20 <= index.columns; from += 7) spans.push([from, from + 20]);
+    spans.push([1, index.columns], [300, 310], [5, 6], [100, 99]);
+    for (const [from, to] of spans) {
+      const on = Array.from({ length: Math.max(0, to - from + 1) }, (_, i) => from + i);
+      const before = new Set(Array.from({ length: index.rows }, (_, i) => i + 1).filter((row) => live.has(row)));
+      const changed = live.moveTo(on);
+      const want = crossed(index, on);
+      const now = new Set(Array.from({ length: index.rows }, (_, i) => i + 1).filter((row) => live.has(row)));
+      expect(now, `${from}-${to}`).toEqual(want);
+      expect(live.live).toBe(want.size);
+      expect(changed, `${from}-${to}`).toBe(before.size !== now.size || [...now].some((row) => !before.has(row)));
+    }
+  });
+
+  it("close up a short row's band wherever its stitches are off screen, and keep every round's", () => {
+    // The back of the neck's short rows, worked to and fro.
+    const short = [...new Set(layout.roundRows.filter((_, round) => built.roundKinds[round] !== "round"))];
+    expect(short.length).toBeGreaterThan(0);
+    // Somewhere across the chart, a stretch of columns no short row has a stitch in: the rows there show, the short rows do not.
+    const shortColumns = crossed(index, []);
+    for (const row of short) for (let k = index.start[row]; k < index.start[row + 1]; k++) shortColumns.add(index.column[k]);
+    const clear = Array.from({ length: index.columns }, (_, i) => i + 1).find(
+      (c) => !shortColumns.has(c) && occupied(index, 1, 1).has(c),
+    )!;
+    const live = new LiveRows(columns);
+    live.moveTo([clear]);
+    const map = rowMapOf(live);
+    for (const row of short) expect(map.shows[row], `row ${row}`).toBe(0);
+    expect(map.shows[1]).toBe(1);
+    expect(map.order[map.order.length - 1]).toBe(1);
+    expect(everyRow(index.rows).count).toBe(index.rows);
   });
 });
 

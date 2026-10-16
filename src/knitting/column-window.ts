@@ -2,7 +2,8 @@ import type { ChartLayout } from "./layout";
 
 /**
  * Which of the chart's columns have a stitch in the rows on screen, and where
- * each column goes when the ones that do not are closed up.
+ * each column goes when the ones that do not are closed up - and the same
+ * the other way, for the rows with no stitch in the columns on screen.
  *
  * A chart laid out stitch over stitch has empty columns wherever a stitch is
  * yet to be made or has been taken in: under every make-one, all the way down
@@ -65,13 +66,31 @@ export const indexRows = (layout: ChartLayout): RowIndex => {
 };
 
 /**
- * The rows any part of which shows in a box `height` pixels tall, `top`
- * pixels down the chart: the first and last, counted from 1 at the bottom.
- * Empty, last before first, when the box shows none of the chart.
+ * The rows any part of which is drawn between `y0` and `y1` down the chart,
+ * each row `top[row]` down and `height[row]` tall: the first and last,
+ * counted from 1 at the bottom. A row closed up counts only between two that
+ * show. Empty, last before first, when no row is there.
  */
-export const rowsShowing = (rows: number, cell: number, top: number, height: number): [number, number] => {
-  const first = Math.max(1, Math.floor(rows - (top + height) / cell) + 1);
-  const last = Math.min(rows, Math.ceil(rows + 1 - top / cell) - 1);
+export const rowsWithin = (
+  top: ArrayLike<number>,
+  height: ArrayLike<number>,
+  rows: number,
+  y0: number,
+  y1: number,
+): [number, number] => {
+  // Rows rise as their number does, so both their top edges and their bottom edges fall.
+  const firstWhere = (test: (row: number) => boolean) => {
+    let low = 1;
+    let high = rows + 1;
+    while (low < high) {
+      const row = (low + high) >> 1;
+      if (test(row)) high = row;
+      else low = row + 1;
+    }
+    return low;
+  };
+  const first = firstWhere((row) => top[row] < y1);
+  const last = firstWhere((row) => top[row] + height[row] <= y0) - 1;
   return [first, last];
 };
 
@@ -140,6 +159,111 @@ export class LiveColumns {
 }
 
 /**
+ * Each column's stitches by row, as one array for the whole chart: column c's
+ * rows are from start[c] to start[c + 1], from the bottom up.
+ */
+export interface ColumnIndex {
+  columns: number;
+  rows: number;
+  start: Int32Array;
+  row: Int32Array;
+}
+
+/** The chart's stitches, column by column: the rows index turned on its side. */
+export const indexColumns = (index: RowIndex): ColumnIndex => {
+  const { rows, columns } = index;
+  const start = new Int32Array(columns + 3);
+  for (let k = 0; k < index.column.length; k++) start[index.column[k] + 1]++;
+  for (let c = 1; c <= columns + 2; c++) start[c] += start[c - 1];
+  const fill = start.slice();
+  const row = new Int32Array(index.column.length);
+  // Row by row from the bottom, so each column's rows come out in order.
+  for (let r = 1; r <= rows; r++) {
+    for (let k = index.start[r]; k < index.start[r + 1]; k++) row[fill[index.column[k]]++] = r;
+  }
+  return { columns, rows, start, row };
+};
+
+/**
+ * How many of the columns on screen have a stitch in each row, kept up as the
+ * view moves rather than counted afresh: a row shows only while one does.
+ */
+export class LiveRows {
+  readonly count: Int32Array;
+  /** How many rows have a stitch in the columns on screen. */
+  live = 0;
+  /** The lowest and highest numbered columns on screen; none while high is below low. */
+  low = 1;
+  high = 0;
+  private on: Uint8Array;
+  private stamp: Int32Array;
+  private now = 0;
+  private columns: number[] = [];
+
+  constructor(readonly index: ColumnIndex) {
+    this.count = new Int32Array(index.rows + 2);
+    this.on = new Uint8Array(index.columns + 2);
+    this.stamp = new Int32Array(index.columns + 2);
+  }
+
+  get lines() {
+    return this.index.rows;
+  }
+
+  /** Whether a row has a stitch in a column on screen. */
+  has(row: number): boolean {
+    return this.count[row] > 0;
+  }
+
+  /**
+   * Bring the columns on screen to these, and say whether that changed which
+   * rows have a stitch in them. As with the columns, those coming on screen
+   * are counted in before those leaving are counted out.
+   */
+  moveTo(columns: ArrayLike<number>): boolean {
+    this.now++;
+    let changed = false;
+    const next: number[] = [];
+    let low = this.index.columns + 1;
+    let high = 0;
+    for (let i = 0; i < columns.length; i++) {
+      const c = columns[i];
+      low = Math.min(low, c);
+      high = Math.max(high, c);
+      this.stamp[c] = this.now;
+      next.push(c);
+      if (!this.on[c]) {
+        this.on[c] = 1;
+        changed = this.add(c, 1) || changed;
+      }
+    }
+    for (const c of this.columns) {
+      if (this.stamp[c] === this.now) continue;
+      this.on[c] = 0;
+      changed = this.add(c, -1) || changed;
+    }
+    this.columns = next;
+    this.low = low;
+    this.high = high;
+    return changed;
+  }
+
+  private add(c: number, by: 1 | -1): boolean {
+    const { start, row } = this.index;
+    let crossed = false;
+    for (let k = start[c]; k < start[c + 1]; k++) {
+      const before = this.count[row[k]];
+      this.count[row[k]] = before + by;
+      if (before === 0 || before + by === 0) {
+        crossed = true;
+        this.live += by;
+      }
+    }
+    return crossed;
+  }
+}
+
+/**
  * Where each column goes with the empty ones closed up.
  *
  * Measured from the chart's left edge, which is its highest column, in cells:
@@ -177,6 +301,31 @@ const mapFrom = (columns: number, shows: (column: number) => boolean): ColumnMap
 
 /** The chart with only the columns that have a stitch in a row in view. */
 export const mapOf = (live: LiveColumns): ColumnMap => mapFrom(live.index.columns, (column) => live.has(column));
+
+/**
+ * Where each row goes with the empty ones closed up: as a column map, a row
+ * standing as many cells down as there are rows showing above it. Row 0 and
+ * the one past the last stand for the chart's bottom and top edges.
+ */
+export interface RowMap {
+  shows: Uint8Array;
+  count: number;
+  /** For each row, how many rows showing are above it: those with a higher number. */
+  above: Int32Array;
+  /** The rows showing, top to bottom. */
+  order: Int32Array;
+}
+
+const rowMapFrom = (rows: number, shows: (row: number) => boolean): RowMap => {
+  const map = mapFrom(rows, shows);
+  return { shows: map.shows, count: map.count, above: map.leftOf, order: map.order };
+};
+
+/** The chart with only the rows that have a stitch in a column on screen. */
+export const rowMapOf = (live: LiveRows): RowMap => rowMapFrom(live.lines, (row) => live.has(row));
+
+/** The chart with every row. */
+export const everyRow = (rows: number): RowMap => rowMapFrom(rows, () => true);
 
 /** The chart with every column, as it is laid out. */
 export const everyColumn = (columns: number): ColumnMap => mapFrom(columns, () => true);

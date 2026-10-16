@@ -1,5 +1,5 @@
 import { type ChartScene, emphasis } from "./chart-scene";
-import { rowsShowing } from "./column-window";
+import { rowsWithin } from "./column-window";
 import { type Palette, inkOn, yarnFor } from "./palette";
 
 /**
@@ -106,6 +106,13 @@ export interface PaintState {
    */
   left: Float64Array;
   width: Float64Array;
+  /**
+   * Each row's top edge down the chart and its height: a cell, or none for a
+   * row closed up. Row 0 and the one past the last stand for the chart's
+   * bottom and top edges.
+   */
+  top: Float64Array;
+  height: Float64Array;
   /** The yarns, as they are to be shown: all white for high contrast. */
   palette: Palette;
   /** For high contrast: each yarn's number, written in every cell. */
@@ -186,11 +193,11 @@ const merged = (spans: [number, number][]): [number, number][] => {
 
 export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state: PaintState) => {
   const { layout, index } = scene;
-  const { cell, left, width, colours } = state;
+  const { cell, left, width, colours, height } = state;
   const rows = layout.rows;
   const columns = layout.columns;
   const snap = (v: number) => Math.round(v * state.ratio) / state.ratio;
-  const top = (row: number) => (rows - row) * cell;
+  const top = (row: number) => state.top[row];
 
   ctx.save();
   ctx.beginPath();
@@ -200,12 +207,13 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
   ctx.fillRect(region.x, region.y, region.width, region.height);
 
   // A row and a cell beyond each side, for what reaches past its own cell: a hold's bar, a turn's hook, a fork.
-  const [firstRow, lastRow] = rowsShowing(rows, cell, region.y - cell, region.height + 2 * cell);
+  const [firstRow, lastRow] = rowsWithin(state.top, height, rows, region.y - cell, region.y + region.height + cell);
   const from = region.x - cell;
   const to = region.x + region.width + cell;
   const spans = new Map<number, [number, number]>();
+  // A row closed up has nothing to paint.
   const spanOf = (row: number): [number, number] => {
-    if (row < 1 || row > rows) return [0, 0];
+    if (row < 1 || row > rows || height[row] <= 0) return [0, 0];
     let span = spans.get(row);
     if (!span) spans.set(row, (span = within(scene, state, row, from, to)));
     return span;
@@ -228,7 +236,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
       if (!colour) return;
       let list = fills.get(colour);
       if (!list) fills.set(colour, (list = []));
-      list.push(runLeft, top(row), runRight - runLeft);
+      list.push(runLeft, top(row), runRight - runLeft, height[row]);
     };
     for (let k = begin; k < end; k++) {
       const c = index.column[k];
@@ -247,16 +255,16 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
   }
   fills.forEach((list, colour) => {
     ctx.fillStyle = colour;
-    for (let i = 0; i < list.length; i += 3) ctx.fillRect(list[i], list[i + 1], list[i + 2], cell);
+    for (let i = 0; i < list.length; i += 4) ctx.fillRect(list[i], list[i + 1], list[i + 2], list[i + 3]);
   });
 
   /*
    * The rules between cells, a path each for the hairlines and the heavy
    * lines, so a crossing is drawn once. A boundary between rows has a rule
-   * wherever there is fabric on either side of it. Between columns, a rule is
-   * heavy every fifth column of the chart's grid, and only between two
-   * columns side by side on the chart as well as on screen: a closed gap
-   * between two showing columns is no boundary of the grid's.
+   * wherever there is fabric on either side of it. A rule is heavy every
+   * fifth column or row of the chart's grid, and only between two side by
+   * side on the chart as well as on screen: a closed gap between two that
+   * show is no boundary of the grid's.
    */
   const light: number[] = [];
   const heavy: number[] = [];
@@ -265,15 +273,24 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     const y0 = snap(y - 0.5);
     line(into, x0, y0, x1 - x0, Math.max(snap(y + 0.5) - y0, 1 / state.ratio));
   };
-  const down = (into: number[], x: number, y: number) => {
+  const down = (into: number[], x: number, y: number, h: number) => {
     const x0 = snap(x - 0.5);
-    line(into, x0, y, Math.max(snap(x + 0.5) - x0, 1 / state.ratio), cell);
+    line(into, x0, y, Math.max(snap(x + 0.5) - x0, 1 / state.ratio), h);
+  };
+  // The next row up that shows, past any closed up: the one a row meets on screen.
+  const aboveOf = (row: number) => {
+    let up = row + 1;
+    while (up <= rows && height[up] <= 0) up++;
+    return up;
   };
   for (let row = firstRow - 1; row <= lastRow; row++) {
+    if (row > 0 && height[row] <= 0) continue;
     const y = top(row);
     if (y < region.y - 1 || y > region.y + region.height + 1) continue;
-    const both = merged([...runsIn(scene, state, spanOf(row)), ...runsIn(scene, state, spanOf(row + 1))]);
-    for (const [x0, x1] of both) across(row > 0 && row % emphasis === 0 ? heavy : light, x0, x1, y);
+    const up = aboveOf(row);
+    const both = merged([...runsIn(scene, state, spanOf(row)), ...runsIn(scene, state, spanOf(up))]);
+    const fifth = row > 0 && row % emphasis === 0 && up === row + 1;
+    for (const [x0, x1] of both) across(fifth ? heavy : light, x0, x1, y);
   }
   const showing = (c: number) => c === columns + 1 || width[c] > 0;
   for (let row = firstRow; row <= lastRow; row++) {
@@ -287,13 +304,13 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
       if (!touching) {
         // The edge on the stitch-1 side of a run: heavy if the column to its right shows and is a fifth.
         const right = c - 1;
-        down(right >= 1 && right % emphasis === 0 && width[right] > 0 ? heavy : light, left[c] + width[c], y);
+        down(right >= 1 && right % emphasis === 0 && width[right] > 0 ? heavy : light, left[c] + width[c], y, height[row]);
       }
       // And the left edge of every stitch, against the next one along on screen.
       const next = k + 1 < end ? index.column[k + 1] : -1;
       const nextTouches = next >= 0 && width[next] > 0 && Math.abs(left[c] - (left[next] + width[next])) < 1e-6;
       const fifth = c % emphasis === 0 && (nextTouches ? next === c + 1 : showing(c + 1));
-      down(fifth ? heavy : light, left[c], y);
+      down(fifth ? heavy : light, left[c], y, height[row]);
       previous = c;
     }
   }
@@ -310,16 +327,17 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
   /* Where one piece meets another: beside each other on screen in a row, and one over the other in a column. */
   const pieceLines: number[] = [];
   const pieceAbove = (row: number, c: number): number | undefined => {
-    if (row + 1 > rows) return undefined;
+    const up = aboveOf(row);
+    if (up > rows) return undefined;
     const { start, column } = index;
-    let low = start[row + 1];
-    let high = start[row + 2];
+    let low = start[up];
+    let high = start[up + 1];
     while (low < high) {
       const middle = (low + high) >> 1;
       if (column[middle] < c) low = middle + 1;
       else high = middle;
     }
-    return low < start[row + 2] && column[low] === c ? scene.pieceAt[low] : undefined;
+    return low < start[up + 1] && column[low] === c ? scene.pieceAt[low] : undefined;
   };
   visit((k, row) => {
     const c = index.column[k];
@@ -331,7 +349,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
       Math.abs(left[c] - (left[next] + width[next])) < 1e-6 &&
       scene.pieceAt[k + 1] !== scene.pieceAt[k]
     ) {
-      pieceLines.push(snap(left[c] - 1.25), y, snap(left[c] + 1.25) - snap(left[c] - 1.25), cell);
+      pieceLines.push(snap(left[c] - 1.25), y, snap(left[c] + 1.25) - snap(left[c] - 1.25), height[row]);
     }
     const above = pieceAbove(row, c);
     if (above !== undefined && above !== scene.pieceAt[k]) {
@@ -362,7 +380,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
   };
   marked((k, row) => {
     const c = index.column[k];
-    if (width[c] < cell * markable) return;
+    if (width[c] < cell * markable || height[row] < cell * markable) return;
     const id = index.id[k];
     const mark = scene.markOf(id, centre, cell);
     if (!mark) return;
@@ -372,8 +390,9 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     const x = left[c];
     const y = top(row);
     const w = width[c];
-    for (const stroke of mark.strokes ?? []) group.strokes.push(stroke.flatMap(([px, py]) => [x + px * w, y + py * cell]));
-    if (mark.dot) group.dots.push(x + mark.dot.x * w, y + mark.dot.y * cell, mark.dot.r * cell);
+    const h = height[row];
+    for (const stroke of mark.strokes ?? []) group.strokes.push(stroke.flatMap(([px, py]) => [x + px * w, y + py * h]));
+    if (mark.dot) group.dots.push(x + mark.dot.x * w, y + mark.dot.y * h, mark.dot.r * cell);
   });
   inks.forEach((group, ink) => {
     if (group.strokes.length > 0) {
@@ -410,7 +429,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     ctx.textBaseline = "alphabetic";
     visit((k, row) => {
       const label = state.yarnLabels![scene.slots[scene.slotAt[k]]];
-      if (label) ctx.fillText(label, left[index.column[k]] + 2, top(row) + 9);
+      if (label && height[row] >= cell * markable) ctx.fillText(label, left[index.column[k]] + 2, top(row) + 9);
     });
   }
 
@@ -418,7 +437,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
   const regionOf = (keep: (id: number) => boolean) => {
     const out: number[] = [];
     for (let row = firstRow; row <= lastRow; row++) {
-      for (const [x0, x1] of runsIn(scene, state, spanOf(row), keep)) out.push(x0, top(row), x1 - x0, cell);
+      for (const [x0, x1] of runsIn(scene, state, spanOf(row), keep)) out.push(x0, top(row), x1 - x0, height[row]);
     }
     return out;
   };
@@ -467,7 +486,8 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
   const hatched: number[] = [];
   for (const [first, last] of state.hatch) {
     if (last < firstRow || first > lastRow) continue;
-    hatched.push(0, top(last), left[0], (last - first + 1) * cell);
+    const span = top(first) + height[first] - top(last);
+    if (span > 0) hatched.push(0, top(last), left[0], span);
   }
   diagonals(hatched, true, false, 0.75, 0.2);
 
@@ -482,11 +502,12 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
   }
 
   /* The steps, drawn where they fall between stitches. */
+  // Where a step's stitch is drawn: nowhere, if its row is closed up.
   const at = (id: number) => {
     const row = scene.rowOf[id];
-    if (!row) return undefined;
+    if (!row || height[row] <= 0) return undefined;
     const c = scene.columnOf[id];
-    return { x: left[c], y: top(row), w: width[c], row };
+    return { x: left[c], y: top(row), w: width[c], h: height[row], row };
   };
   const strokeIn = (draw: () => void, colour: string, lineWidth: number) => {
     ctx.beginPath();
@@ -517,8 +538,8 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
       const leaveFrom = out < 0 ? last.x : last.x + last.w;
       const enterAt = into < 0 ? first.x + first.w : first.x;
       strokeIn(() => {
-        arrow(leaveFrom, leaveFrom + out * length, last.y + cell / 2);
-        arrow(enterAt - into * length, enterAt, first.y + cell / 2);
+        arrow(leaveFrom, leaveFrom + out * length, last.y + last.h / 2);
+        arrow(enterAt - into * length, enterAt, first.y + first.h / 2);
       }, colours.ink, 1.6);
     }
   }
@@ -529,7 +550,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     const a = at(hold.before);
     const b = at(hold.after);
     if (!a || !b) continue;
-    bars.push({ x: b.x < a.x ? a.x : a.x + a.w, top: a.y - cell * 0.3, bottom: a.y + cell * 0.88 });
+    bars.push({ x: b.x < a.x ? a.x : a.x + a.w, top: a.y - a.h * 0.3, bottom: a.y + a.h * 0.88 });
   }
   if (bars.length > 0) {
     const head = cell * 0.2;
@@ -557,7 +578,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
         if (!last || !before) continue;
         const way = last.x < before.x ? -1 : 1;
         const edge = way < 0 ? last.x : last.x + last.w;
-        const [y0, y1] = [last.y + cell / 2, last.y - cell / 2];
+        const [y0, y1] = [last.y + last.h / 2, last.y - last.h / 2];
         ctx.moveTo(edge, y0);
         ctx.lineTo(edge + way * reach, y0);
         ctx.lineTo(edge + way * reach, y1);
@@ -611,8 +632,8 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
     for (const row of scene.numbered) {
-      if (row < firstRow || row > lastRow) continue;
-      ctx.fillText(String(row), numbersAt, top(row) + cell / 2);
+      if (row < firstRow || row > lastRow || height[row] < cell * markable) continue;
+      ctx.fillText(String(row), numbersAt, top(row) + height[row] / 2);
     }
   }
 
@@ -624,7 +645,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
       if (!tint) return;
       ctx.globalAlpha = tint.alpha;
       ctx.fillStyle = tint.fill;
-      ctx.fillRect(left[index.column[k]], top(row), width[index.column[k]], cell);
+      ctx.fillRect(left[index.column[k]], top(row), width[index.column[k]], height[row]);
     });
     ctx.globalAlpha = 1;
   }
@@ -632,13 +653,24 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     const stripWidth = Math.max(3, Math.round(cell * 0.28));
     for (const strip of overlay.strips) {
       const row = layout.roundRows[strip.round - 1] ?? strip.round;
-      if (row < firstRow || row > lastRow) continue;
+      if (row < firstRow || row > lastRow || height[row] <= 0) continue;
       ctx.fillStyle = strip.fill;
-      ctx.fillRect(left[0] + 1 + scene.beside[strip.round - 1] * (stripWidth + 1), top(row), stripWidth, cell);
+      ctx.fillRect(left[0] + 1 + scene.beside[strip.round - 1] * (stripWidth + 1), top(row), stripWidth, height[row]);
     }
   }
 
   ctx.restore();
+};
+
+/** Where every row is with every row showing, as the layout lays them out: row 1 at the bottom. */
+export const laidOutRows = (rows: number, cell: number): { top: Float64Array; height: Float64Array } => {
+  const top = new Float64Array(rows + 2);
+  const height = new Float64Array(rows + 2);
+  for (let row = 0; row <= rows + 1; row++) {
+    top[row] = Math.max(0, rows - row) * cell;
+    height[row] = row >= 1 && row <= rows ? cell : 0;
+  }
+  return { top, height };
 };
 
 /** Where every column is with every column showing, as the layout lays them out. */
