@@ -11,8 +11,6 @@
  */
 import React, { useEffect } from "react";
 import type { Stitch } from "../types/Stitch";
-import type { ChartLayout } from "../knitting/layout";
-import { cellAt } from "../knitting/draw-chart";
 import { type KeyId, stitchKey } from "../knitting/stitch-key";
 import { Swatch, NeedlesSwatch } from "../knitting/ChartHelp";
 import type { SweaterPattern } from "../data/sweaters/types";
@@ -26,79 +24,11 @@ import {
   paceStep,
   paceWords,
   seconds,
-  sittingColours,
   usualStep,
 } from "../knitting/timing/pace";
+import type { Layer } from "../knitting/timing/overlay";
 import Button from "./ui/Button";
 import "./StatsView.css";
-
-export type Layer = "pattern" | "pace" | "sittings";
-
-/**
- * Each stitch painted by the pace around it. Stitches that came in one tap
- * of more than 30 are faded: their pace is only that tap's average.
- */
-export const PaceCells: React.FC<{ time: TimeDetail; layout: ChartLayout; cell: number }> = ({ time, layout, cell }) => {
-  const rects: React.ReactNode[] = [];
-  layout.cells.forEach((at, id) => {
-    const s = time.smooth[id];
-    if (!Number.isFinite(s)) return;
-    const { x, y } = cellAt(layout, at.row, at.column, cell);
-    rects.push(
-      <rect
-        key={id}
-        x={x}
-        y={y}
-        width={cell}
-        height={cell}
-        fill={paceColours[paceStep(s / time.usual)]}
-        opacity={time.tapSpan[id] > 30 ? 0.4 : 0.92}
-      />,
-    );
-  });
-  return <g>{rects}</g>;
-};
-
-/**
- * A strip beside each round's number: the round's pace against the
- * knitter's usual. The steadiest figure there is, since a round's time
- * doesn't depend on how it is shared out among its stitches. Only for
- * rounds at least half timed.
- */
-export const RoundStrips: React.FC<{ time: TimeDetail; layout: ChartLayout; cell: number }> = ({ time, layout, cell }) => {
-  let right = 0;
-  layout.cells.forEach((at) => {
-    right = Math.max(right, cellAt(layout, at.row, at.column, cell).x + cell);
-  });
-  const width = Math.max(3, Math.round(cell * 0.28));
-  return (
-    <g>
-      {time.perRound.map((r, i) => {
-        if (r.timed < r.stitches / 2) return null;
-        // Above the divide a row holds a round of each piece: their strips stand side by side.
-        const row = layout.roundRows[i] ?? i + 1;
-        const beside = layout.roundRows.slice(0, i).filter((other) => other === row).length;
-        const { y } = cellAt(layout, row, 1, cell);
-        const fill = paceColours[paceStep(r.seconds / r.timed / time.usual)];
-        return <rect key={i} x={right + 1 + beside * (width + 1)} y={y} width={width} height={cell} fill={fill} />;
-      })}
-    </g>
-  );
-};
-
-/** Each stitch in the colour of the sitting it was knitted in. */
-export const SittingCells: React.FC<{ time: TimeDetail; layout: ChartLayout; cell: number }> = ({ time, layout, cell }) => {
-  const rects: React.ReactNode[] = [];
-  layout.cells.forEach((at, id) => {
-    const n = time.sittingOf[id];
-    if (n < 0) return;
-    const { x, y } = cellAt(layout, at.row, at.column, cell);
-    rects.push(
-      <rect key={id} x={x} y={y} width={cell} height={cell} fill={sittingColours[n % sittingColours.length]} opacity={0.88} />,
-    );
-  });
-  return <g>{rects}</g>;
-};
 
 /** What a tapped stitch's bubble adds: when it was knitted, and how fast. */
 export const StitchTime: React.FC<{ time: TimeDetail; id: number; round?: number }> = ({ time, id, round }) => {

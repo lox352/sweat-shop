@@ -2,9 +2,42 @@ import { Stitch } from "../types/Stitch";
 import type { ChartLayout } from "./layout";
 import { type RowIndex, indexRows } from "./column-window";
 import { type Face, type Hold, type Join, type Turn, markAt } from "./chart-marks";
-import { type NeedleRule, numberedRows } from "./chart-paths";
 import { seenFrom } from "./sides";
 import type { Mark } from "../helpers/stitch-marks";
+
+/** Every fifth row and column is counted by: numbered down the edge, and ruled heavier. */
+export const emphasis = 5;
+
+/** Where the needles change: the row before the change, and the piece it is in. */
+export interface NeedleRule {
+  after: number;
+  piece: string;
+}
+
+/**
+ * Which rows get a number down the right-hand edge, the row's own number,
+ * which is what the knitting calls its rounds; see chartRows.
+ *
+ * Every fifth, each piece's first and the chart's last - and both rows a
+ * change of needles falls between, so the line across the chart can be named
+ * in words and found by eye.
+ */
+export const numberedRows = (layout: ChartLayout, needleChanges: NeedleRule[] = []): number[] => {
+  const named = new Set<number>();
+  needleChanges.forEach((change) => {
+    named.add(change.after);
+    named.add(change.after + 1);
+  });
+  // Each piece's first row: the neck's, and the one the body and the sleeves all begin in.
+  const first = new Map<string, number>();
+  layout.cells.forEach((at) => first.set(at.piece, Math.min(at.row, first.get(at.piece) ?? at.row)));
+  first.forEach((row) => named.add(row));
+  const out: number[] = [];
+  for (let row = 1; row <= layout.rows; row++) {
+    if (row % emphasis === 0 || row === 1 || row === layout.rows || named.has(row)) out.push(row);
+  }
+  return out;
+};
 
 /**
  * Everything the chart draws, gathered once for a layout, so that any piece

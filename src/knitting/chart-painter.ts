@@ -1,4 +1,4 @@
-import type { ChartScene } from "./chart-scene";
+import { type ChartScene, emphasis } from "./chart-scene";
 import { rowsShowing } from "./column-window";
 import { type Palette, inkOn, yarnFor } from "./palette";
 
@@ -91,6 +91,12 @@ export interface ChartOverlay {
   strips?: { round: number; fill: string }[];
 }
 
+/** Room to the right of the chart for the round numbers. */
+export const gutter = (cell: number) => Math.round(cell * 2.2);
+
+/** Room kept to the left of the chart, for the join's arrow to reach into. On the right, the gutter has room for it. */
+export const leftMargin = (cell: number) => Math.ceil(cell * 0.5);
+
 export interface PaintState {
   cell: number;
   /**
@@ -122,8 +128,6 @@ export interface Region {
   height: number;
 }
 
-/** Every fifth line is heavier, to count by. */
-const emphasis = 5;
 const joinArrowLength = 0.42;
 /** A cell squeezed narrower than this, opening or closing, is painted without its mark. */
 const markable = 0.6;

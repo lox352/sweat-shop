@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "./engine";
 import { layOut, layOutSweater } from "./layout";
-import { sceneOf } from "./chart-scene";
+import { numberedRows, sceneOf } from "./chart-scene";
 import { type Ctx2D, type PaintState, defaultColours, laidOutPlaces, paintRegion } from "./chart-painter";
 import { LiveColumns, mapOf, placeFrom } from "./column-window";
-import { progressPath } from "./chart-paths";
-import { holdsIn, joinIn, turnsIn } from "./chart-marks";
+import { holdsIn, joinIn, needleChangesIn, turnsIn } from "./chart-marks";
 import { testBandedSweater, testSweater } from "./test-sweater";
 import type { Palette } from "./palette";
 import { isFabric } from "../types/Stitch";
@@ -102,11 +101,15 @@ describe("the chart painted a piece at a time", () => {
   it("veils the knitting done a rectangle to each unbroken run, as the vectors did", () => {
     // Under the yoke's make-ones the neck's stitches stand apart: the cast-on and half the first rib round, a rectangle each.
     const halfway = yoke[1][11];
-    const paint = recorder();
-    paintRegion(paint.ctx, whole, scene, stateFor(layout.columns, { progress: halfway }));
-    const veil = paint.rects.filter((one) => one.fill === defaultColours.paper && one.alpha === 0.62);
-    expect(veil).toHaveLength(progressPath(layout, yoke, halfway, cell).match(/M/g)!.length);
-    expect(veil).toHaveLength(24 + 12);
+    const veiled = (progress: number) => {
+      const paint = recorder();
+      paintRegion(paint.ctx, whole, scene, stateFor(layout.columns, { progress }));
+      return paint.rects.filter((one) => one.fill === defaultColours.paper && one.alpha === 0.62);
+    };
+    expect(veiled(0)).toHaveLength(0);
+    expect(veiled(halfway)).toHaveLength(24 + 12);
+    // And the round that fills the gaps in, side by side, is one.
+    expect(veiled(yoke[3].at(-1)!)).toHaveLength(24 * 3 + 1);
   });
 
   it("fills a run of one yarn along a row as one rectangle, and every stitch somewhere", () => {
@@ -253,5 +256,42 @@ describe("a fork across an increase's two loops, its columns closed up", () => {
     const paint = recorder();
     paintRegion(paint.ctx, { x: 0, y: 0, width: layout.columns * cell + 40, height: layout.rows * cell }, scene, stateFor(layout.columns));
     expect(paint.texts.map((one) => Number(one.text)).sort((a, b) => a - b)).toEqual(scene.numbered);
+  });
+});
+
+describe("the change of needles on the chart", () => {
+  const built = buildSweater(testSweater, "one");
+  const yoke = built.rounds.filter((_, index) => built.roundPieces[index] === "yoke");
+  const layout = layOut(built.stitches, yoke);
+  const changes = needleChangesIn(built.stitches, yoke).map((change) => ({ after: change.after, piece: "yoke" }));
+
+  it("falls between the rib and the yoke", () => {
+    expect(changes.map((change) => change.after)).toEqual([3]);
+  });
+
+  it("is dashed across that boundary", () => {
+    const scene = sceneOf(layout, built.stitches, yoke, { needleRules: changes });
+    const paint = recorder();
+    paintRegion(paint.ctx, { x: 0, y: 0, width: layout.columns * cell + 40, height: layout.rows * cell }, scene, stateFor(layout.columns));
+    const y = (layout.rows - 3) * cell;
+    const dashed = paint.strokes.filter((one) => one.width === 2 && one.colour === defaultColours.piece);
+    expect(dashed.length).toBeGreaterThan(0);
+    for (const one of dashed) for (const run of one.points) for (let k = 1; k < run.length; k += 2) expect(run[k]).toBe(y);
+  });
+
+  it("numbers both rounds it falls between, so it can be named", () => {
+    const numbers = numberedRows(layout, changes);
+    expect(numbers).toContain(3);
+    expect(numbers).toContain(4);
+    expect(numbers).toEqual([...new Set(numbers)].sort((a, b) => a - b));
+  });
+});
+
+describe("the round numbers down the edge", () => {
+  it("number the row every piece after the yoke begins in, the yoke's last plus one, as well as every fifth", () => {
+    const built = buildSweater(testSweater, "one");
+    const whole = layOutSweater(built.stitches, built.rounds, built.roundKinds, built.roundPieces);
+    // A yoke of six rounds, the body's five above it and the sleeves' four beside them.
+    expect(numberedRows(whole)).toEqual([1, 5, 7, 10, 11]);
   });
 });
