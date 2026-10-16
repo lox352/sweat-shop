@@ -33,7 +33,7 @@ await withSite(async (load) => {
   const { pose } = await load("/src/physics/pose.ts");
   const { settle } = await load("/src/physics/solver.ts");
   const { measurePiece } = await load("/src/physics/gauge.ts");
-  const { decodeSettled } = await load("/src/data/sweaters/settled/format.ts");
+  const { allPositions, decodeSettled } = await load("/src/data/sweaters/settled/format.ts");
 
   for (const sweater of sweaters) {
     for (const size of sweater.sizes.filter((candidate) => !onlySize || candidate.id === onlySize)) {
@@ -43,20 +43,20 @@ await withSite(async (load) => {
       let note = "";
       if (fresh) {
         const started = Date.now();
-        const result = settle(built, pose(built), overrides);
+        const result = settle(built.knitting, pose(built.knitting), overrides);
         const seconds = (Date.now() - started) / 1000;
         positions = result.positions;
         note = `${result.rested ? "settled" : "did not settle"} in ${result.steps} steps, ${seconds.toFixed(0)}s, ${(result.steps / seconds).toFixed(1)} steps a second`;
       } else if (existsSync(path)) {
-        positions = decodeSettled(JSON.parse(readFileSync(path, "utf8")));
+        positions = allPositions(built.stitches, decodeSettled(JSON.parse(readFileSync(path, "utf8"))));
         note = "as committed";
       } else {
         console.log(`${sweater.id}/${size.id}: not settled yet`);
         continue;
       }
       console.log(`${sweater.id}/${size.id}: ${note}`);
-      for (const piece of [...new Set(built.roundPieces)]) {
-        const gauge = measurePiece(built, positions, piece);
+      for (const piece of [...new Set(built.knitting.roundPieces)]) {
+        const gauge = measurePiece(built.knitting, positions, piece);
         const off = ((gauge.ratio / gauge.wanted - 1) * 100).toFixed(1);
         console.log(
           `  ${piece.padEnd(13)} tension ${gauge.ratio.toFixed(3)} against ${gauge.wanted.toFixed(3)} (${off}%), ` +

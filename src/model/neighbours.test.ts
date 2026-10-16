@@ -22,8 +22,8 @@ const cases = [
 ] as const;
 
 describe.each(cases)("how the stitches of %s face", (_, built) => {
-  const { drawn, pairs } = neighboursOf(built.stitches, built.rounds);
-  const { positions } = pose(built);
+  const { drawn, pairs } = neighboursOf(built.stitches, built.knitting.rounds);
+  const { positions } = pose(built.knitting);
   const at = (id: number) => [positions[id * 3], positions[id * 3 + 1], positions[id * 3 + 2]];
   const minus = (a: number[], b: number[]) => a.map((value, axis) => value - b[axis]);
 
@@ -76,7 +76,7 @@ describe.each(cases)("how the stitches of %s face", (_, built) => {
 
 describe("the edges of the silhouette", () => {
   const built = buildSweater(sweaterById("hamefarin")!, "m");
-  const { positions } = pose(built);
+  const { positions } = pose(built.knitting);
   const ids = built.rounds.flat();
   const extremes = extremesOf(positions, ids);
 

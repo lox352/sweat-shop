@@ -24,6 +24,13 @@ describe.each(sweaters.map((sweater) => [sweater.id, sweater] as const))("%s", (
       expect(built.checks).toEqual(size.checks);
     });
 
+    it("has the physics stand on the rounds as worked from each piece's seam: the pattern's own, while no marker moves", () => {
+      expect(built.knitting.rounds).toEqual(built.rounds);
+      expect(built.knitting.roundKinds).toEqual(built.roundKinds);
+      expect(built.knitting.roundPieces).toEqual(built.roundPieces);
+      expect(built.knitting.stitches).toBe(built.stitches);
+    });
+
     it("keeps to two colours a round, and never floats more than seven", () => {
       expect(breaches(built.stitches, built.rounds)).toEqual([]);
     });

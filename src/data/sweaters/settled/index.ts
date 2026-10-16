@@ -14,6 +14,7 @@ const files = import.meta.glob<{ default: SettledFile }>("./*.json");
 export const hasSettled = (sweaterId: string, sizeId: string): boolean =>
   `./${sweaterId}--${sizeId}.json` in files;
 
+/** Where a size's fabric came to rest, stitch by stitch in id order: see format's allPositions for every stitch. */
 export const loadSettled = async (sweaterId: string, sizeId: string): Promise<Float32Array | undefined> => {
   const load = files[`./${sweaterId}--${sizeId}.json`];
   if (!load) return undefined;

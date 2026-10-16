@@ -1,7 +1,7 @@
 import { Stitch, isFabric, isStep } from "../types/Stitch";
 import { consumption } from "../types/StitchType";
 import { adjacentStitchDistance } from "../constants";
-import type { SweaterStitches } from "../knitting/engine";
+import type { Knitting } from "./knitting";
 import { Vec, add, cross, length, lerp, scale, sub } from "./vector";
 import { ropesOf } from "./ropes";
 
@@ -123,8 +123,8 @@ const onRing = (centre: Vec, radius: number, e1: Vec, e2: Vec, at: number): Vec 
 const near = (fraction: number, to: number): number =>
   fraction - Math.round(fraction - to);
 
-export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose => {
-  const { stitches, rounds, roundPieces, roundHeight } = built;
+export const pose = (knitting: Knitting, options: PoseOptions = {}): Pose => {
+  const { stitches, rounds, roundPieces, roundHeight } = knitting;
   const arm = ((options.armAngle ?? 45) * Math.PI) / 180;
   const positions = new Float32Array(stitches.length * 3);
   const set = (id: number, at: Vec) => positions.set(at, id * 3);
@@ -349,7 +349,7 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
    * arm.
    */
   const yokeRounds = roundsOf(yokeId);
-  const yokeKinds = built.roundKinds.filter((_, index) => roundPieces[index] === yokeId);
+  const yokeKinds = knitting.roundKinds.filter((_, index) => roundPieces[index] === yokeId);
   const isRow = (k: number) => (yokeKinds[k] ?? "round") !== "round";
   yokeRounds.forEach((round, k) => (k === 0 ? evenly(round) : isRow(k) ? overParents(round) : follow(round)));
   const last = yokeRounds[yokeRounds.length - 1];
@@ -476,7 +476,7 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
 
   axes[yokeId] = { origin: [0, neckY, 0], direction: down };
 
-  tighten(positions, built, yokeRounds[0]);
+  tighten(positions, knitting, yokeRounds[0]);
 
   /*
    * The phantom stitch 0 with the first stitch cast on, and every step where
@@ -500,9 +500,9 @@ export const pose = (built: SweaterStitches, options: PoseOptions = {}): Pose =>
  * have gone by. A rope only ever comes in, and only where it is too long, so
  * whatever the construction got right it leaves alone.
  */
-const tighten = (positions: Float32Array, built: SweaterStitches, held: number[]) => {
+const tighten = (positions: Float32Array, knitting: Knitting, held: number[]) => {
   const fixed = new Set(held);
-  const ropes = ropesOf(built.stitches, built.roundHeight).filter((rope) => !(fixed.has(rope.a) && fixed.has(rope.b)));
+  const ropes = ropesOf(knitting.stitches, knitting.roundHeight).filter((rope) => !(fixed.has(rope.a) && fixed.has(rope.b)));
   // Plain numbers for the inner loop, as the solver keeps them: where each end's three numbers start, and its share.
   const ropeA = Int32Array.from(ropes.map((rope) => rope.a * 3));
   const ropeB = Int32Array.from(ropes.map((rope) => rope.b * 3));

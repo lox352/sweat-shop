@@ -68,7 +68,13 @@ Rapier, settled in a browser; a sweater is ten times that, in every size.
 So `src/physics/solver.ts` is a small position-based solver in plain
 TypeScript that settles a size in Node in a minute or so, gives the same
 answer every time, and is never loaded by the site at all. Its answers are
-committed, a size to a file, in `src/data/sweaters/settled/`.
+committed, a size to a file, in `src/data/sweaters/settled/`: a position for
+each stitch of the fabric, and none for the steps between - a change of
+needles, a turn - which are put beside the stitch before them.
+
+The physics stands on the rounds as they are worked from each piece's seam,
+the middle of the back or of an underarm, whatever marker a pattern counts
+its rounds from: see `src/physics/knitting.ts`.
 
 ```sh
 npm run settle                 # every size of every sweater
@@ -77,8 +83,8 @@ npm run bench                  # each piece's tension and frill, size by size
 ```
 
 A sweater is settled again when its knitting or the physics changes, and
-only then. Recolouring it never re-settles it: see
-`scripts/settlement-plan.mjs`. On `main`, `settle-missing.yml` does that by
+only then. Recolouring it never re-settles it, and nor does a step gained or
+lost: see `scripts/settlement-plan.mjs`. On `main`, `settle-missing.yml` does that by
 itself and commits the answer.
 
 The settling starts from `src/physics/pose.ts`, which lays the sweater out
