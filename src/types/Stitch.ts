@@ -52,6 +52,12 @@ export interface Stitch {
   count?: number;
   /** A "hold" step that wraps the first stitch held before it goes, to leave no hole. */
   wrap?: boolean;
+  /** A "marker" step: what the marker marks - "the raglan line", "the new beginning of the round". */
+  marker?: string;
+  /** A "marker" step taking its marker off, rather than placing it. */
+  removed?: boolean;
+  /** A "marker" step placing the round's new beginning, from the next round on. */
+  begins?: boolean;
   /**
    * Worked from the wrong side, on a short row knitted back the other way.
    * Its type is what it looks like from the right side - a stitch purled from

@@ -206,11 +206,29 @@ export type ShapingOp =
   | { repeat: ShapingOp[]; times: number };
 
 /**
+ * A stitch marker placed or taken off part way round, once `after` of the
+ * round's stitches are worked - nought, before the first. One placed as the
+ * round's new beginning moves where the rounds begin from the next one on: a
+ * `walk` then knits on to it.
+ */
+export interface MarkerAt {
+  after: number;
+  /** What a marker placed marks: "the raglan line". */
+  place?: string;
+  /** What a marker taken off marked. */
+  remove?: string;
+  /** Placed as the round's new beginning. */
+  begins?: boolean;
+}
+
+/**
  * A stretch of a divide round: knit some, or put some on hold and cast on
- * new stitches in their place.
+ * new stitches in their place, or place or take off a marker.
  */
 export type DivideSegment =
   | { work: number }
+  | { place: string; begins?: boolean }
+  | { remove: string }
   | {
       /** The holder's name, which is the piece they will become. */
       hold: string;
@@ -229,6 +247,8 @@ export type DivideSegment =
        * slipped stitch is the first of the next stretch's.
        */
       close?: "slipPassOver";
+      /** A marker placed part way through the cast-on: "CO 3, PM for new beginning of round, CO 3". */
+      marker?: { after: number; place: string; begins?: boolean };
     };
 
 export type RoundSpec = (
@@ -244,6 +264,8 @@ export type RoundSpec = (
       /** Repeated to the end of each round. Defaults to a single knit. */
       sequence?: ("k" | "p" | "k1tbl")[];
       fabric?: string;
+      /** Markers placed or taken off in the first of them. */
+      markers?: MarkerAt[];
     }
   | {
       type: "shaping";
@@ -268,6 +290,8 @@ export type RoundSpec = (
       /** How many times to work that block of rows. Defaults to one. */
       passes?: number;
       fabric?: string;
+      /** Markers placed or taken off in the first of its rounds. */
+      markers?: MarkerAt[];
     }
   /**
    * "Divide for body and sleeves": the yoke's last stitches are knitted into
@@ -275,6 +299,13 @@ export type RoundSpec = (
    * on in their place. The round belongs to the body.
    */
   | { type: "divide"; slot: string; segments: DivideSegment[]; fabric?: string }
+  /**
+   * "Knit to marker" after a round that placed a new beginning of the round:
+   * on from the old beginning, which comes off as it is reached, to the new
+   * one, as a round of its own short of the whole way round. The rounds after
+   * it begin at the new beginning.
+   */
+  | { type: "walk"; slot: string; fabric?: string }
   /**
    * The first round of a piece begun from held stitches: pick up and knit
    * `before` stitches from the edge cast on in the holder's place, knit the

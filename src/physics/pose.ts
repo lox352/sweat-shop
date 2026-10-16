@@ -2,6 +2,7 @@ import { Stitch, isFabric, isStep } from "../types/Stitch";
 import { consumption } from "../types/StitchType";
 import { adjacentStitchDistance } from "../constants";
 import type { Knitting } from "./knitting";
+import type { SeamKind } from "../knitting/needles";
 import { Vec, add, cross, length, lerp, scale, sub } from "./vector";
 import { ropesOf } from "./ropes";
 
@@ -131,11 +132,31 @@ export const pose = (knitting: Knitting, options: PoseOptions = {}): Pose => {
   const get = (id: number): Vec => [positions[id * 3], positions[id * 3 + 1], positions[id * 3 + 2]];
   const widthOf = (stitch: Stitch) => stitch.width ?? adjacentStitchDistance;
   const riseOf = (round: number[]) => stitches[round[0]].rise ?? roundHeight;
-  const radiusOf = (round: number[]) =>
-    (round.length * widthOf(stitches[round[0]])) / (2 * Math.PI);
+  /**
+   * How wide a ring a round's stitches make: their widths summed a run of
+   * one width at a time - for a round of one fabric, its count times its
+   * width, exactly - so a round from the seam that changes fabric part way
+   * round, into a hem's rib, is as wide as both parts.
+   */
+  const radiusOf = (round: number[]) => {
+    let around = 0;
+    let width = widthOf(stitches[round[0]]);
+    let run = 0;
+    for (const id of round) {
+      const next = widthOf(stitches[id]);
+      if (next !== width) {
+        around += run * width;
+        width = next;
+        run = 0;
+      }
+      run++;
+    }
+    return (around + run * width) / (2 * Math.PI);
+  };
 
   const order = [...new Set(roundPieces)];
   const roundsOf = (piece: string) => rounds.filter((_, index) => roundPieces[index] === piece);
+  const kindsOf = (piece: string) => knitting.roundKinds.filter((_, index) => roundPieces[index] === piece);
   const yokeId = order[0];
   const pickedUp = (piece: string) => roundsOf(piece)[0].some((id) => stitches[id].type === "pickUp");
   const sleeves = order.filter((piece) => piece !== yokeId && pickedUp(piece));
@@ -218,8 +239,10 @@ export const pose = (knitting: Knitting, options: PoseOptions = {}): Pose => {
    * and the yarn runs on from the last stitch of a round to the first of the
    * next without a jog.
    */
-  const radiiOf = (tubeRounds: number[][]) => {
-    const radii = tubeRounds.map(radiusOf);
+  const radiiOf = (tubeRounds: number[][], kinds: SeamKind[]) => {
+    // Part of a round, the last of a piece, is on the ring of the round below it.
+    const radii: number[] = [];
+    tubeRounds.forEach((round, k) => radii.push(kinds[k] === "part" && k > 0 ? radii[k - 1] : radiusOf(round)));
     const rises = tubeRounds.map(riseOf);
     for (let k = radii.length - 2; k >= 0; k--) {
       radii[k] = Math.min(radii[k], radii[k + 1] + taper * rises[k + 1]);
@@ -242,13 +265,21 @@ export const pose = (knitting: Knitting, options: PoseOptions = {}): Pose => {
    */
   const tube = (
     tubeRounds: number[][],
+    kinds: SeamKind[],
     radii: number[],
     frameAt: (along: number) => Frame,
     spread: (along: number, radius: number) => number = () => 1,
   ) => {
     let along = 0;
     tubeRounds.forEach((round, k) => {
+      /*
+       * Part of a round, the last of a piece that ends at a beginning of the
+       * round moved off its seam: each stitch over what it was worked into,
+       * and the helix taken only as far round as it goes.
+       */
+      const part = kinds[k] === "part" && k > 0;
       if (k === 0) evenly(round);
+      else if (part) overParents(round);
       else follow(round);
       /*
        * Each stitch is as far along from what it was worked into as part
@@ -265,20 +296,22 @@ export const pose = (knitting: Knitting, options: PoseOptions = {}): Pose => {
         ? Math.sqrt(Math.min(riseOf(round), riseOf(next)) ** 2 - narrowing ** 2) /
           spread(along, Math.max(radii[k], radii[k + 1]))
         : riseOf(round);
+      const around = part ? tubeRounds[k - 1].length : round.length;
       round.forEach((id, index) => {
-        const { centre, e1, e2 } = frameAt(along + (step * index) / round.length);
+        const { centre, e1, e2 } = frameAt(along + (step * index) / around);
         set(id, onRing(centre, radii[k], e1, e2, turn[id]));
       });
-      along += step;
+      along += part ? (step * round.length) / around : step;
     });
   };
 
   /* The body, straight down from the dividing round, which is at y = 0. */
   {
     const bodyRounds = roundsOf(bodyId);
+    const bodyKinds = kindsOf(bodyId);
     const e1: Vec = [0, 0, -1];
     const e2 = cross(down, e1);
-    tube(bodyRounds, radiiOf(bodyRounds), (along) => ({ centre: [0, -along, 0], e1, e2 }));
+    tube(bodyRounds, bodyKinds, radiiOf(bodyRounds, bodyKinds), (along) => ({ centre: [0, -along, 0], e1, e2 }));
     axes[bodyId] = { origin: [0, 0, 0], direction: down };
   }
 
@@ -308,7 +341,8 @@ export const pose = (knitting: Knitting, options: PoseOptions = {}): Pose => {
       1 / edge.length,
     );
     const side = Math.sign(middle[0]) || 1;
-    const radii = radiiOf(sleeveRounds);
+    const sleeveKinds = kindsOf(piece);
+    const radii = radiiOf(sleeveRounds, sleeveKinds);
     /*
      * The underarm is straight and the armhole round, so the ends of the
      * underarm stand below the armhole by as much as it curves up over half
@@ -336,7 +370,7 @@ export const pose = (knitting: Knitting, options: PoseOptions = {}): Pose => {
         e2,
       };
     };
-    tube(sleeveRounds, radii, frameAt, (distance, radius) =>
+    tube(sleeveRounds, sleeveKinds, radii, frameAt, (distance, radius) =>
       distance < bent ? (curve + radius) / curve : 1,
     );
     outward[piece] = along(0);

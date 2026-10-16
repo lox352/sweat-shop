@@ -124,6 +124,8 @@ export interface Position {
   resumeNext?: { holder: string; count: number; needles?: number };
   /** A turn next, at the end of a short row, and the side the row after it is worked from. */
   turnNext?: { side: "right" | "wrong" };
+  /** A marker to place or take off next, what it marks, and whether it is the round's new beginning. */
+  markerNext?: { marker: string; removed?: boolean; begins?: boolean };
   /** A round, or a short row and the side it is worked from. */
   kind: RoundKind;
   finished: boolean;
@@ -182,6 +184,14 @@ export const positionOf = (
     turnNext:
       next?.type === "turn"
         ? { side: index.roundKinds[round] === "wrong" ? "wrong" : "right" }
+        : undefined,
+    markerNext:
+      next?.type === "marker"
+        ? {
+            marker: next.marker ?? "",
+            ...(next.removed ? { removed: true } : {}),
+            ...(next.begins ? { begins: true } : {}),
+          }
         : undefined,
     kind: index.roundKinds[round - 1] ?? "round",
     finished: nextStitchId === undefined,
@@ -286,6 +296,7 @@ const words: Record<Worked, { said: string; after?: string; perStitch: boolean }
   hold: { said: "put stitches on hold", perStitch: false },
   resume: { said: "take up the held stitches", perStitch: false },
   turn: { said: "turn and make a double stitch", perStitch: false },
+  marker: { said: "place a marker", perStitch: false },
 };
 
 /** "knit", "purl", "knit tbl", "k2tog". */

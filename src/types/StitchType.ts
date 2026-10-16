@@ -51,6 +51,12 @@
  * after the turn is made a double stitch - slipped, and its two legs pulled
  * up over the needle - and worked as one when a later row or round reaches
  * it. See Needles.turn.
+ *
+ * "marker" is placing a stitch marker on the needle between two stitches, or
+ * taking one off: the beginning of the round, a raglan line, a band's
+ * repeat. The stitch carries the marker's name. One placed as the round's
+ * new beginning moves where the rounds begin from the next one on. See
+ * Needles.placeMarker.
  */
 export type StitchType =
   | "castOn"
@@ -72,7 +78,8 @@ export type StitchType =
   | "needles"
   | "hold"
   | "resume"
-  | "turn";
+  | "turn"
+  | "marker";
 
 /** How many stitches on the needle this one works. */
 export const consumption: Record<StitchType, number> = {
@@ -96,6 +103,7 @@ export const consumption: Record<StitchType, number> = {
   hold: 0,
   resume: 0,
   turn: 0,
+  marker: 0,
 };
 
 /** The step types: part of the order of work, but no fabric. */
@@ -105,6 +113,7 @@ export const stepTypes: ReadonlySet<StitchType> = new Set<StitchType>([
   "hold",
   "resume",
   "turn",
+  "marker",
 ]);
 
 /** Whether a stitch makes two loops of one, its second the make-one straight after it: a KFB or a KBF. */

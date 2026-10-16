@@ -130,6 +130,34 @@ const HoldSwatch: React.FC = () => (
   </svg>
 );
 
+/** A stitch marker: a ring on the needle, between two stitches. */
+const MarkerSwatch: React.FC = () => (
+  <svg className="key-swatch" width="24" height="24" viewBox="0 0 1 1" aria-hidden="true">
+    <path d="M0.08 0.5H0.92" className="key-join" />
+    <ellipse cx="0.5" cy="0.5" rx="0.14" ry="0.3" className="key-join" fill="none" />
+  </svg>
+);
+
+/**
+ * A stitch marker placed or taken off part way round: a step. A new
+ * beginning of the round says what comes of it: this round still ends at
+ * the old beginning, and the stitches on to the new one are knitted after.
+ */
+const MarkerStep: React.FC<{ marker: string; removed?: boolean; begins?: boolean }> = ({ marker, removed, begins }) => (
+  <div className="knitting-step">
+    <StepHeading symbol={<MarkerSwatch />}>
+      {removed ? `Take off the marker for ${marker}` : `Place a marker for ${marker}`}
+    </StepHeading>
+    <span className="quiet">
+      {removed
+        ? "Slip it off the needle as you come to it, and knit on."
+        : begins
+          ? "Put it on the needle here, between this stitch and the next. Knit on to the end of the round, at the old beginning; then take that marker off and knit to this one. The rounds begin here from then on."
+          : "Put it on the needle here, between this stitch and the next, and slip it from one needle to the other each time you come to it."}
+    </span>
+  </div>
+);
+
 /** Held stitches taken back up onto the needle. */
 const ResumeSwatch: React.FC = () => (
   <svg className="key-swatch" width="24" height="24" viewBox="0 0 1 1" aria-hidden="true">
@@ -402,7 +430,8 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
     position.needlesNext !== undefined ||
     position.holdNext ||
     position.resumeNext ||
-    position.turnNext
+    position.turnNext ||
+    position.markerNext
   ) {
     return (
       <div className="knitting-panel">
@@ -423,7 +452,9 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
         <p className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
           {position.holdNext
             ? `${where}, stitch ${position.stitchInRound}. Put ${position.holdNext.count} stitches on hold.`
-            : position.resumeNext
+            : position.markerNext
+              ? `${where}, stitch ${position.stitchInRound}. ${position.markerNext.removed ? "Take off" : "Place"} the marker for ${position.markerNext.marker}.`
+              : position.resumeNext
               ? `Begin the ${pieceLabel(position.resumeNext.holder).toLowerCase()}.`
               : position.turnNext
                 ? `${where} done. Turn, and make a double stitch.`
@@ -437,6 +468,8 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
             piece={pieceLabel(position.holdNext.holder)}
             wrap={position.holdNext.wrap}
           />
+        ) : position.markerNext ? (
+          <MarkerStep {...position.markerNext} />
         ) : position.resumeNext ? (
           <ResumeStep
             count={position.resumeNext.count}
@@ -467,7 +500,11 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
           >
             {position.holdNext
               ? "Held: carry on"
-              : position.resumeNext
+              : position.markerNext
+                ? position.markerNext.removed
+                  ? "Taken off: carry on"
+                  : "Placed: carry on"
+                : position.resumeNext
                 ? "On the needles: carry on"
                 : position.turnNext
                   ? "Turned: carry on"

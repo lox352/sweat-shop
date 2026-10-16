@@ -182,6 +182,40 @@ export const testSweaterWithShortRows = (): SweaterPattern => {
   return pattern;
 };
 
+/** What the test sweater's markers mark. */
+export const raglanLine = "the raglan line";
+export const newBeginning = "the new beginning of the round";
+
+/**
+ * The test sweater with markers, as a pattern places them:
+ * - one for a raglan line, a quarter of the way round the band, taken off at
+ *   the divide just before it would go on hold with the right sleeve;
+ * - a new beginning of the round in the right underarm, between the second
+ *   and third of the four stitches cast on there, then a walk from the old
+ *   beginning to it: the back's 8 stitches and those 2, 10 of the body's 40.
+ *
+ * The body is then knitted, and bound off, from the right underarm.
+ */
+export const testSweaterWithMarkers = (): SweaterPattern => {
+  const pattern = structuredClone(testSweater);
+  const [, yoke, body] = pattern.sizes[0].sections;
+  const band = yoke.rounds.find((spec) => spec.type === "chart" && spec.chart === "band");
+  if (band?.type !== "chart") throw new Error("the test sweater has no band");
+  band.markers = [{ after: 12, place: raglanLine }];
+  const divide = body.rounds[0];
+  if (divide.type !== "divide") throw new Error("the test sweater's body begins with its divide");
+  divide.segments = [
+    { work: 8 },
+    { remove: raglanLine },
+    { hold: "sleeve-right", count: 8, castOn: 4, marker: { after: 2, place: newBeginning, begins: true } },
+    { work: 16 },
+    { hold: "sleeve-left", count: 8, castOn: 4 },
+    { work: 8 },
+  ];
+  body.rounds.splice(1, 0, { type: "walk", slot: "A" });
+  return pattern;
+};
+
 /** Four stitches of one yarn and four of the next, round after round: a band's blocks. */
 const blocks = (a: string, b: string, increases?: "both"): ChartCell[] => {
   const block = (slot: string): ChartCell[] =>

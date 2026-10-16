@@ -6,6 +6,7 @@ import { StitchType } from "../types/StitchType";
 import {
   Chart,
   ChartCell,
+  MarkerAt,
   RoundSpec,
   ShapingOp,
   Size,
@@ -249,15 +250,28 @@ export const buildSweater = (
   let onNeedles = startingNeedles;
   const needleChanges: number[] = [];
 
+  /** Place a marker, or take one off, as the pattern says. */
+  const marker = ({ place, remove, begins }: Omit<MarkerAt, "after">) => {
+    if (remove !== undefined) needles.removeMarker(remove);
+    if (place !== undefined) needles.placeMarker(place, begins);
+  };
+
   const round = (
     label: string,
     work: { type: StitchType; slot: string }[],
     fabric?: string,
     borrow?: number,
+    /** Markers placed or taken off part way round: see MarkerAt. */
+    markers: MarkerAt[] = [],
   ) => {
     const { width, rise } = fabricOf(pattern, roundHeight, fabric);
     needles.startRound(label, width, rise, borrow ?? borrowFor(work[0]?.type));
-    work.forEach(({ type, slot }) => needles.knit(type, slot));
+    const at = (after: number) => markers.filter((one) => one.after === after).forEach(marker);
+    work.forEach(({ type, slot }, index) => {
+      at(index);
+      needles.knit(type, slot);
+    });
+    at(work.length);
     needles.endRound();
   };
 
@@ -300,7 +314,7 @@ export const buildSweater = (
             type: asStitch[sequence[i % sequence.length]],
             slot: spec.slot,
           }));
-          round(`${section} · ${what}`, work, spec.fabric);
+          round(`${section} · ${what}`, work, spec.fabric, undefined, pass === 0 ? spec.markers : []);
         }
         break;
       }
@@ -343,9 +357,16 @@ export const buildSweater = (
               `${chart.name ?? `Chart ${chart.id}`}, row ${row}`,
               work,
               spec.fabric ?? chart.fabric,
+              undefined,
+              pass === 0 && row === from ? spec.markers : [],
             );
           }
         }
+        break;
+      }
+      case "walk": {
+        const { width, rise } = fabricOf(pattern, roundHeight, spec.fabric);
+        needles.walk(`${section} · to the new beginning of the round`, spec.slot, width, rise);
         break;
       }
       case "divide": {
@@ -357,10 +378,18 @@ export const buildSweater = (
           if ("work" in segment) {
             for (let i = 0; i < segment.work; i++) needles.knit(closing && i === 0 ? "sl1po" : "k1", spec.slot);
             closing = false;
+          } else if ("place" in segment || "remove" in segment) {
+            marker(segment);
           } else {
             if (closing) throw new Error(`${section}: a cast-on is closed up to nothing`);
             needles.hold(segment.hold, segment.count, segment.wrap);
-            needles.castOnHere(segment.castOn, spec.slot, segment.hold, segment.close === "slipPassOver");
+            needles.castOnHere(
+              segment.castOn,
+              spec.slot,
+              segment.hold,
+              segment.close === "slipPassOver",
+              segment.marker && { after: segment.marker.after, name: segment.marker.place, begins: segment.marker.begins },
+            );
             closing = segment.close === "slipPassOver";
           }
         }

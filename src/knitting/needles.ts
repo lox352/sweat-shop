@@ -33,6 +33,16 @@ import { StitchType, boundOff, consumption, makesTwo } from "../types/StitchType
 export type RoundKind = "round" | "right" | "wrong";
 
 /**
+ * And among the rounds from the seam, as the physics counts them, one can be
+ * part of the way round: the last of a piece whose beginning of the round
+ * was moved off its seam, which ends at the beginning and not at the seam.
+ */
+export type SeamKind = RoundKind | "part";
+
+/** What the marker the rounds begin at is called until a pattern places another. */
+export const beginning = "the beginning of the round";
+
+/**
  * Stitches put on hold: a run of the round they were held from, in order,
  * waiting on waste yarn under a holder's name - the step that put them there,
  * and the step that takes them up again, once there is one. Consecutive held
@@ -68,11 +78,12 @@ export default class Needles {
   readonly holds: Held[] = [];
   /**
    * The rounds again as the physics stands on them: worked from each piece's
-   * seam, where its first round began, rather than from wherever a pattern
-   * keeps its marker - see physics/knitting. Every round begins at the seam
-   * for now, so these are the rounds.
+   * seam, where its first round began, rather than from wherever the pattern
+   * has its beginning of the round - see physics/knitting. While the
+   * beginning is at the seam, these are the rounds; once it has moved, each
+   * round runs on past the seam and these are cut there instead.
    */
-  readonly objective: { rounds: number[][]; kinds: RoundKind[]; pieces: string[] } = {
+  readonly objective: { rounds: number[][]; kinds: SeamKind[]; pieces: string[] } = {
     rounds: [],
     kinds: [],
     pieces: [],
@@ -87,6 +98,32 @@ export default class Needles {
   private piece = "";
   /** The stitch the yarn runs on from, or undefined where new yarn starts. */
   private yarn: number | undefined;
+
+  /**
+   * Where the rounds begin: a place on the ring, counted from its seam - the
+   * place the piece's first round began. Nought, the seam itself, until a
+   * pattern places a new beginning; see placeMarker.
+   */
+  private start = 0;
+  /** A new beginning placed in the round in progress, from the next round on: after how many of its stitches. */
+  private beginsAt?: number;
+  /** Where the ring's next rounds begin once the stitches up to a new beginning are knitted on to it: see walk. */
+  private walkTo?: number;
+  /** The marker the rounds begin at, and the one placed to be their new beginning. */
+  private beginningMarker = beginning;
+  private newBeginning?: string;
+  /** The markers on the needles, by what they mark. */
+  private readonly markers = new Set<string>([beginning]);
+  /**
+   * The round from the seam the work is in: the stitches made since it last
+   * came round past the seam, and the piece they are of.
+   */
+  private course: number[] = [];
+  private coursePiece = "";
+  /** The round in progress has taken the stitch at the seam, so the next stitch made begins a round from the seam. */
+  private crossed = false;
+  /** How many stitches the round in progress had put on the next ring when it came round past the seam. */
+  private seamAt?: number;
 
   /* The round in progress. */
   private working = false;
@@ -104,7 +141,13 @@ export default class Needles {
 
   /** How many are left to work in the round in progress. */
   get remaining(): number {
-    return this.live.length - this.cursor;
+    return this.end - this.cursor;
+  }
+
+  /** Where the round in progress ends: where it began, all the way round, or a new beginning walked to. */
+  private get end(): number {
+    if (this.walkTo === undefined) return this.start + this.live.length;
+    return this.start + ((this.walkTo - this.start + this.live.length) % this.live.length);
   }
 
   /** The stitches waiting on a holder, by name. */
@@ -124,8 +167,32 @@ export default class Needles {
 
   /** Begin a piece: the rounds that follow belong to it. */
   startPiece(piece: string): this {
+    if (piece !== this.piece) this.closeCourse("part");
     this.piece = piece;
     return this;
+  }
+
+  /**
+   * Close the round from the seam the work is in: "round" where it came all
+   * the way round to the seam, or "part" where its piece ended at a
+   * beginning of the round moved off the seam.
+   */
+  private closeCourse(kind: SeamKind) {
+    if (this.course.length === 0) return;
+    this.objective.rounds.push(this.course);
+    this.objective.kinds.push(kind);
+    this.objective.pieces.push(this.coursePiece);
+    this.course = [];
+  }
+
+  /** A stitch made in the round in progress, into the round from the seam it falls in. */
+  private onCourse(id: number) {
+    if (this.crossed) {
+      this.closeCourse("round");
+      this.crossed = false;
+    }
+    if (this.course.length === 0) this.coursePiece = this.piece;
+    this.course.push(id);
   }
 
   /**
@@ -155,6 +222,9 @@ export default class Needles {
       ids.push(stitch.id);
     }
     this.record(ids, label, "round");
+    this.objective.rounds.push([...ids]);
+    this.objective.kinds.push("round");
+    this.objective.pieces.push(this.piece);
     this.live = ids;
     this.yarn = ids[ids.length - 1];
     return this;
@@ -202,25 +272,40 @@ export default class Needles {
    */
   startRound(label: string, width: number, rise: number, borrow = 0): this {
     if (this.working) throw new Error(`a round is already in progress: ${this.label}`);
+    if (this.walkTo !== undefined) throw new Error(`${label}: knit on to the new beginning of the round first`);
     this.working = true;
     this.made = [];
     this.next = [];
-    this.cursor = -borrow;
+    this.crossed = false;
+    this.seamAt = undefined;
+    this.beginsAt = undefined;
+    // A round begun at the seam begins a round from the seam with its first stitch.
+    if (this.start === 0) this.closeCourse("round");
+    this.cursor = this.start - borrow;
     this.label = label;
     this.width = width;
     this.rise = rise;
     return this;
   }
 
-  /** The next `n` stitches on the needle, taken off it. */
+  /**
+   * The next `n` stitches on the needle, taken off it. Taking the stitch at
+   * the seam, in a round begun anywhere else, comes round past it: the next
+   * stitch made begins a round from the seam.
+   */
   private take(n: number): number[] {
     const out: number[] = [];
     const ring = this.live.length;
     for (let i = 0; i < n; i++) {
-      if (ring === 0 || this.cursor >= ring) {
+      if (ring === 0 || this.cursor >= this.end) {
         throw new Error(`${this.label}: ran out of stitches on the needle`);
       }
-      out.push(this.live[((this.cursor % ring) + ring) % ring]);
+      const place = ((this.cursor % ring) + ring) % ring;
+      if (place === 0 && this.start !== 0) {
+        this.crossed = true;
+        this.seamAt = this.next.length;
+      }
+      out.push(this.live[place]);
       this.cursor++;
     }
     return out;
@@ -258,10 +343,78 @@ export default class Needles {
       ...(from === undefined ? {} : { from }),
     });
     this.made.push(stitch.id);
+    this.onCourse(stitch.id);
     // A bound-off stitch is finished: nothing is left on the needle for it.
     if (!boundOff(type)) this.next.push(stitch.id);
     this.yarn = stitch.id;
     return stitch;
+  }
+
+  /**
+   * Place a stitch marker on the needle here, part way through a round: a
+   * step. Placed as the round's new beginning, it is where the rounds begin
+   * from the next one on: this round still ends at the old beginning, which
+   * comes off there, and the stitches from it to the new one are knitted on
+   * as a round of their own - see walk.
+   */
+  placeMarker(name: string, begins = false): this {
+    if (this.markers.has(name)) throw new Error(`there is already a marker for ${name}`);
+    if (begins) {
+      if (!this.working) throw new Error(`${name}: a new beginning of the round is placed part way through a round`);
+      if (this.beginsAt !== undefined) throw new Error(`${name}: this round has a new beginning already`);
+      this.beginsAt = this.next.length;
+      this.newBeginning = name;
+    }
+    this.markers.add(name);
+    const step = this.step("marker");
+    step.marker = name;
+    if (begins) step.begins = true;
+    return this;
+  }
+
+  /** Take a marker off the needle: a step. */
+  removeMarker(name: string): this {
+    if (!this.markers.delete(name)) throw new Error(`there is no marker for ${name} to take off`);
+    const step = this.step("marker");
+    step.marker = name;
+    step.removed = true;
+    return this;
+  }
+
+  /**
+   * Knit on from the old beginning of the round to the new one placed in the
+   * round just ended - "knit to marker" - as a round of its own, short of
+   * the whole way round. The rounds after it begin at the new beginning.
+   */
+  walk(label: string, slot: string, width: number, rise: number): this {
+    if (this.walkTo === undefined) throw new Error(`${label}: no new beginning of the round to knit on to`);
+    const to = this.walkTo;
+    // The old beginning comes off where the walk sets out from it.
+    this.removeMarker(this.beginningMarker);
+    this.beginningMarker = this.newBeginning!;
+    this.newBeginning = undefined;
+    this.working = true;
+    this.made = [];
+    this.next = [];
+    this.crossed = false;
+    this.seamAt = undefined;
+    this.beginsAt = undefined;
+    this.label = label;
+    this.width = width;
+    this.rise = rise;
+    if (this.start === 0) this.closeCourse("round");
+    this.cursor = this.start;
+    while (this.remaining > 0) this.knit("k1", slot);
+    this.working = false;
+    // The ring as it was, but each stitch walked over now the one knitted into it.
+    const ring = this.live.length;
+    const live = [...this.live];
+    this.next.forEach((id, k) => (live[(this.start + k) % ring] = id));
+    this.live = live;
+    this.walkTo = undefined;
+    this.start = to;
+    if (this.made.length > 0) this.record(this.made, this.label, "round");
+    return this;
   }
 
   /**
@@ -285,9 +438,20 @@ export default class Needles {
    * in the place of a sleeve's held stitches - and remember them as the edge
    * that sleeve will pick up from.
    */
-  castOnHere(count: number, slot: string, edge: string, passOver = false): this {
+  castOnHere(
+    count: number,
+    slot: string,
+    edge: string,
+    passOver = false,
+    /** A marker placed part way through them: "CO 3, PM for new beginning of round, CO 3". */
+    marker?: { after: number; name: string; begins?: boolean },
+  ): this {
     const ids: number[] = [];
-    for (let i = 0; i < count; i++) ids.push(this.knit("castOn", slot).id);
+    for (let i = 0; i < count; i++) {
+      if (marker?.after === i) this.placeMarker(marker.name, marker.begins);
+      ids.push(this.knit("castOn", slot).id);
+    }
+    if (marker && marker.after >= count) this.placeMarker(marker.name, marker.begins);
     // One more, to be passed over the next stitch: no part of the edge left.
     if (passOver) this.knit("castOn", slot);
     this.edges.set(edge, ids);
@@ -309,6 +473,8 @@ export default class Needles {
     if (this.live.length > 0) throw new Error(`${name}: the needles still have stitches on them`);
     this.holders.delete(name);
     this.live = held;
+    // A ring of its own, its rounds beginning at its own seam.
+    this.start = 0;
     this.yarn = undefined;
     const step = this.step("resume");
     step.holder = name;
@@ -329,26 +495,47 @@ export default class Needles {
   /** Close the round in progress; every stitch on the needle must be worked or held. */
   endRound(): this {
     if (!this.working) return this;
-    if (this.cursor !== this.live.length) {
+    if (this.cursor !== this.end) {
       throw new Error(
-        `${this.label}: works ${this.cursor} of the ${this.live.length} stitches on the needle`,
+        `${this.label}: works ${this.cursor - this.start} of the ${this.live.length} stitches on the needle`,
       );
     }
     this.working = false;
-    this.live = this.next;
+    const began = this.start;
+    let next = this.next;
+    let start = 0;
+    let beginsAt = this.beginsAt;
+    /*
+     * The next ring is counted from the seam again: a round begun anywhere
+     * else made the stitches from its beginning round to the seam first, and
+     * those belong at the end. Its beginning, and any new beginning placed
+     * in it, move round with them.
+     */
+    if (began !== 0) {
+      if (this.seamAt === undefined) throw new Error(`${this.label}: never came round past the seam`);
+      const at = this.seamAt;
+      const length = next.length;
+      next = [...next.slice(at), ...next.slice(0, at)];
+      start = (length - at) % Math.max(length, 1);
+      if (beginsAt !== undefined) beginsAt = (beginsAt - at + length) % length;
+    } else {
+      // Begun at the seam, it ends there: so does the round from the seam.
+      this.closeCourse("round");
+    }
+    this.live = next;
+    this.start = start;
+    this.walkTo = beginsAt;
+    this.beginsAt = undefined;
     if (this.made.length > 0) this.record(this.made, this.label, "round");
     return this;
   }
 
-  /** A round or short row finished: as the pattern counts it, and as the physics does. */
+  /** A round or short row finished, as the pattern counts it. */
   private record(made: number[], label: string, kind: RoundKind) {
     this.rounds.push(made);
     this.labels.push(label);
     this.roundPieces.push(this.piece);
     this.roundKinds.push(kind);
-    this.objective.rounds.push([...made]);
-    this.objective.kinds.push(kind);
-    this.objective.pieces.push(this.piece);
   }
 
   /**
@@ -374,6 +561,11 @@ export default class Needles {
     work: ("k1" | "kfb")[] = [],
   ): this {
     if (this.working) throw new Error(`${label}: a round is still in progress`);
+    if (this.start !== 0 || this.walkTo !== undefined) {
+      throw new Error(`${label}: short rows are worked from a beginning of the round at the seam`);
+    }
+    // A row is a round from the seam of its own, cut only at its turns.
+    this.closeCourse("round");
     const made: number[] = [];
     // A place an increase was worked at holds both its loops, in the order they sit round the needle.
     const replaced = new Map<number, number[]>();
@@ -409,6 +601,9 @@ export default class Needles {
     this.width = width;
     this.rise = rise;
     this.record(made, label, side);
+    this.objective.rounds.push([...made]);
+    this.objective.kinds.push(side);
+    this.objective.pieces.push(this.piece);
     return this;
   }
 
@@ -426,6 +621,8 @@ export default class Needles {
 
   finish() {
     this.endRound();
+    if (this.walkTo !== undefined) throw new Error("the stitches up to a new beginning of the round were never knitted on");
+    this.closeCourse("part");
     if (this.holders.size > 0) {
       throw new Error(`stitches are still on hold: ${[...this.holders.keys()].join(", ")}`);
     }
