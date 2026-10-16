@@ -260,13 +260,7 @@
   margin: 0;
 }
 
-/*
- * The chart scrolls both ways in a window of its own, so zooming it changes
- * what is in the window and never the length of the page.
- */
-.chart-scroll.chart-scroll-contained {
-  overflow: auto;
-  overscroll-behavior: contain;
+.chart-scroll {
   /*
    * Of the screen as it is with the browser's bars showing, which does not
    * change as they come and go on a scroll.
@@ -323,7 +317,7 @@
   display: none;
 }
 
-.knit-screen .chart-scroll.chart-scroll-contained {
+.knit-screen .chart-scroll {
   flex: 1;
   height: auto;
   min-height: 0;

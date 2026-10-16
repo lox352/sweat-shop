@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 import { Stitch } from "../types/Stitch";
 import { ChartLayout } from "./layout";
-import { cellAt, chartSize } from "./draw-chart";
 import { progressBefore } from "./jump";
 import Button from "../components/ui/Button";
 import { KeyEntry } from "./stitch-key";
@@ -47,10 +46,10 @@ const StitchPicker: React.FC<{
   onHold?: { piece: string; waiting: boolean };
   /** Anything more to say about the stitch, below what it is. */
   note?: React.ReactNode;
-  /** Where a stitch is on the chart, where the columns are not all where the layout put them. */
-  place?: (id: number) => { x: number; y: number } | undefined;
+  /** Where a stitch is on the chart, as the tiles have the columns now. */
+  place: (id: number) => { x: number; y: number } | undefined;
   /** And how wide the chart is then. */
-  chartWidth?: number;
+  chartWidth: number;
 }> = ({ id, stitches, rounds, layout, cell, progress, onJump, onClose, entry, yarn, labels, names, otherFace, onHold, note, place, chartWidth }) => {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -63,9 +62,11 @@ const StitchPicker: React.FC<{
   const at = layout.cells.get(id);
   if (!at) return null;
   const target = progressBefore(stitches, rounds, at.round, at.index);
-  const { x, y } = place?.(id) ?? cellAt(layout, at.row, at.column, cell);
+  const placed = place(id);
+  if (!placed) return null;
+  const { x, y } = placed;
   const where = `${names?.[at.round - 1] ?? `Round ${at.round}`}, stitch ${at.index}`;
-  const width = chartWidth ?? chartSize(layout, cell).width;
+  const width = chartWidth;
   const explains = entry !== undefined && entry.id !== "k1";
   const needles = stitches[id]?.needles;
   const joinsAfter = stitches[id + 1]?.type === "join";

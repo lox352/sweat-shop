@@ -1,7 +1,5 @@
 import { Stitch } from "../types/Stitch";
 import { makesTwo } from "../types/StitchType";
-import { ChartLayout } from "./layout";
-import { cellAt } from "./draw-chart";
 
 /** Return the last worked id immediately before the requested next stitch. */
 export function progressBefore(stitches: Stitch[], rounds: number[][], round: number, stitch: number) {
@@ -13,29 +11,3 @@ export function progressBefore(stitches: Stitch[], rounds: number[][], round: nu
   if (stitches[id]?.type === "m1" && makesTwo(stitches[id - 1]?.type)) id--;
   return id - 1;
 }
-
-/**
- * Which stitch, if any, is drawn at a point on the chart: in the row under
- * it, of whichever round is drawn there - above the divide a row holds a
- * round of the body and one of each sleeve.
- */
-export const stitchAtPoint = (
-  layout: ChartLayout,
-  rounds: number[][],
-  cell: number,
-  x: number,
-  y: number,
-): number | undefined => {
-  const row = layout.rows - Math.floor(y / cell);
-  for (let index = 0; index < rounds.length; index++) {
-    if ((layout.roundRows[index] ?? index + 1) !== row) continue;
-    const found = rounds[index].find((id) => {
-      const at = layout.cells.get(id);
-      if (!at) return false;
-      const left = cellAt(layout, at.row, at.column, cell).x;
-      return x >= left && x < left + cell;
-    });
-    if (found !== undefined) return found;
-  }
-  return undefined;
-};

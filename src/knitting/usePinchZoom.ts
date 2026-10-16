@@ -32,8 +32,6 @@ export function usePinchZoom(
   sheetRef: RefObject<HTMLDivElement>,
   cell: number,
   setCell: (cell: number) => void,
-  /** The chart scrolls both ways in a box of its own, not down the page. */
-  contained = false,
   /**
    * Where a point `x` across the sheet before a zoom is after it, with the
    * box about to be scrolled `top` down. In proportion, unless the columns
@@ -170,36 +168,28 @@ export function usePinchZoom(
      * where the point has got to, and move it back.
      */
     const box = sheet.getBoundingClientRect();
-    if (contained) {
-      const top = scroller.scrollTop + box.top + done.originY * done.ratio - done.screenY;
-      const across = placeAfter?.(done.originX, Math.max(top, 0)) ?? done.originX * done.ratio;
-      const left = scroller.scrollLeft + box.left + across - done.screenX;
-      const place = () => {
-        scroller.scrollLeft = Math.min(Math.max(left, 0), scroller.scrollWidth - scroller.clientWidth);
-        scroller.scrollTop = Math.min(Math.max(top, 0), scroller.scrollHeight - scroller.clientHeight);
-      };
-      /*
-       * An iPhone scrolls a box itself, apart from the page, and while it
-       * thinks a finger is still on it - as it does for a while after a long
-       * pinch - it ignores a scroll set from here and keeps its own. Zoomed
-       * out, that is past the chart's new edge: blank, until the next touch
-       * springs it back. Stopping the box scrolling for a frame makes it let
-       * go of its own, and the scroll set here then stands.
-       */
-      scroller.style.overflow = "hidden";
+    const top = scroller.scrollTop + box.top + done.originY * done.ratio - done.screenY;
+    const across = placeAfter?.(done.originX, Math.max(top, 0)) ?? done.originX * done.ratio;
+    const left = scroller.scrollLeft + box.left + across - done.screenX;
+    const place = () => {
+      scroller.scrollLeft = Math.min(Math.max(left, 0), scroller.scrollWidth - scroller.clientWidth);
+      scroller.scrollTop = Math.min(Math.max(top, 0), scroller.scrollHeight - scroller.clientHeight);
+    };
+    /*
+     * An iPhone scrolls a box itself, apart from the page, and while it
+     * thinks a finger is still on it - as it does for a while after a long
+     * pinch - it ignores a scroll set from here and keeps its own. Zoomed
+     * out, that is past the chart's new edge: blank, until the next touch
+     * springs it back. Stopping the box scrolling for a frame makes it let
+     * go of its own, and the scroll set here then stands.
+     */
+    scroller.style.overflow = "hidden";
+    place();
+    requestAnimationFrame(() => {
+      scroller.style.overflow = "";
       place();
-      requestAnimationFrame(() => {
-        scroller.style.overflow = "";
-        place();
-      });
-      return;
-    }
-    scroller.scrollLeft = scroller.scrollLeft + box.left + done.originX * done.ratio - done.screenX;
-    window.scrollBy({
-      top: box.top + done.originY * done.ratio - done.screenY,
-      behavior: "instant",
     });
-  }, [cell, scrollRef, sheetRef, contained, placeAfter]);
+  }, [cell, scrollRef, sheetRef, placeAfter]);
 
   /** Zoom to a cell size about a point on screen, holding that point still. */
   return useCallback(

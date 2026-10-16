@@ -1,6 +1,5 @@
 import type { ChartScene } from "./chart-scene";
-import { type ChartColours, type ChartOverlay, type PaintState, paintRegion } from "./chart-painter";
-import { gutter } from "./chart-paths";
+import { type ChartColours, type ChartOverlay, type PaintState, gutter, paintRegion } from "./chart-painter";
 import { type ColumnMap, LiveColumns, everyColumn, mapOf, rowsShowing } from "./column-window";
 import type { Palette } from "./palette";
 

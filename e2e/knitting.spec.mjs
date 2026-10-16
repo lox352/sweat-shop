@@ -558,17 +558,15 @@ async function zoomAllTheWayIn(page) {
     await expect.poll(tall).toBeGreaterThan(before);
   }
 }
-const closingUp = testInfo => testInfo.project.name.endsWith("-tiles");
 
-test("closed up, the rib at the neck is its stitches side by side, and every column shows by the widest round", async ({ page }, testInfo) => {
-  test.skip(!closingUp(testInfo), "Only the tiles close up the columns");
+test("closed up, the rib at the neck is its stitches side by side, and every column shows by the widest round", async ({ page }) => {
   await start(page);
   // Close enough that the rows in view are the neck's, below the yoke's first make-ones.
   await zoomAllTheWayIn(page);
   await page.getByRole("button", { name: "End of round", exact: true }).click();
   await page.getByRole("button", { name: "Joined: carry on" }).click();
   await expect(position(page)).toContainText("Yoke, round 2, stitch 1.");
-  // The next cell along is the next stitch: with every column showing, the yoke's make-ones stand between them.
+  // The next cell along is the next stitch: the columns the yoke's make-ones open stay closed while their rows are out of view.
   await tapBeside(page, 1);
   const next = page.getByRole("dialog", { name: "Yoke, round 2, stitch 2" });
   await expect(next).toBeVisible();
@@ -590,8 +588,7 @@ test("closed up, the rib at the neck is its stitches side by side, and every col
   expect(Math.max(...counts)).toBe(columns);
 });
 
-test("closed up, zooming keeps the stitch under the point zoomed about", async ({ page }, testInfo) => {
-  test.skip(!closingUp(testInfo), "Only the tiles close up the columns");
+test("closed up, zooming keeps the stitch under the point zoomed about", async ({ page }) => {
   await start(page);
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
   await page.waitForTimeout(400);

@@ -114,11 +114,12 @@
 .chart-help select { max-width: 100%; }
 .chart-yarn-numbers { display: flex; flex-wrap: wrap; gap: .4rem 1.5rem; }
 
+/* The chart scrolls both ways in a window of its own, so zooming it changes what is in the window and never the page. */
 .chart-scroll {
   /* What the tiles in view are is measured from here. */
   position: relative;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: auto;
+  overscroll-behavior: contain;
   /* Let a horizontal drag scroll the chart without stealing page scrolling. */
   touch-action: pan-x pan-y;
   -webkit-overflow-scrolling: touch;
@@ -182,17 +183,6 @@
   color: var(--ink-soft);
 }
 
-.chart-sheets > canvas {
-  display: block;
-  /* Cells are flat colour, so never let a browser blur them when scaling. */
-  image-rendering: pixelated;
-}
-
-.chart-sheets > canvas + canvas {
-  position: absolute;
-  inset: 0;
-}
-
 /*
  * The chart on canvas tiles: each tile placed where its square of the chart
  * is, and any that hang past the chart's edge cut off, so they never make
@@ -219,117 +209,12 @@
 }
 
 /* The stitch to be worked next, outlined over the tiles. */
-div.chart-next {
+.chart-next {
   position: absolute;
   z-index: 1;
   outline: 2px solid var(--crimson);
   outline-offset: -1px;
   pointer-events: none;
-}
-
-.chart-svg {
-  display: block;
-  /* The join's arrows reach just past the chart's edges. */
-  overflow: visible;
-}
-
-.chart-join {
-  fill: none;
-  stroke: var(--ink);
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  shape-rendering: geometricPrecision;
-}
-
-.chart-rule {
-  fill: none;
-  stroke: rgb(0 0 0 / 0.22);
-  stroke-width: 1;
-}
-
-.chart-rule-heavy {
-  stroke: rgb(0 0 0 / 0.7);
-}
-
-/*
- * Where one piece of the sweater meets another: the body beside a sleeve,
- * and both above the yoke they were knitted out of. Heavier than any
- * counting line, in ink, so the pieces read as pieces.
- */
-.chart-rule-piece {
-  stroke: #1d1a17;
-  stroke-width: 2.5;
-}
-
-/*
- * Where the needles are changed: a dashed rule in ink, on a pale line of its
- * own so that it shows on dark wool as well as light.
- */
-.chart-rule-needles-ground {
-  stroke: #fff;
-  stroke-width: 4;
-}
-
-.chart-rule-needles {
-  stroke: #1d1a17;
-  stroke-width: 2;
-  stroke-dasharray: 5 3;
-  shape-rendering: geometricPrecision;
-}
-
-/*
- * Where a sleeve's stitches go on hold: a bar with an arrow down it, in ink
- * on a pale line of its own like the change of needles.
- */
-.chart-hold-ground {
-  fill: none;
-  stroke: #fff;
-  stroke-width: 4.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  shape-rendering: geometricPrecision;
-}
-
-.chart-hold {
-  fill: none;
-  stroke: #1d1a17;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  shape-rendering: geometricPrecision;
-}
-
-.chart-mark {
-  fill: none;
-  stroke-width: 1.2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.chart-mark-halo {
-  fill: none;
-  stroke-width: 2.4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-/* Worked stitches are veiled, so what is left to do is what stands out. */
-.chart-done {
-  fill: var(--paper);
-  opacity: 0.62;
-}
-
-.chart-next {
-  fill: none;
-  stroke: var(--crimson);
-  stroke-width: 2;
-}
-
-.chart-numbers text {
-  font-size: 9px;
-  font-variant-numeric: tabular-nums;
-  fill: var(--ink-faint);
 }
 
 .chart-caption {
@@ -401,32 +286,14 @@ div.chart-next {
 }
 
 /*
- * Rounds worked with the other side of the sweater towards you: a light
- * hatch, so they read as the other side of the fabric without hiding it.
+ * The key's swatches for the rounds worked from the other side, a light
+ * hatch, and for stitches on hold, crosshatched two ways so the two never
+ * read alike; the tiles paint the same.
  */
-.chart-hatch {
-  pointer-events: none;
-}
-
 .chart-hatch-line {
   stroke: var(--ink);
   stroke-width: 1.5;
   opacity: 0.2;
-}
-
-/*
- * Stitches on hold, and everything to be knitted from them: a pale wash, to
- * set them back from the knitting in hand, and a crosshatch over it - two
- * ways, where the other side's hatch is one - so the two never read alike.
- */
-.chart-on-hold-wash {
-  fill: var(--paper);
-  opacity: 0.45;
-  pointer-events: none;
-}
-
-.chart-on-hold {
-  pointer-events: none;
 }
 
 .chart-on-hold-line {
@@ -469,10 +336,3 @@ div.chart-next {
   line-height: 1.35;
 }
 
-/* Anything drawn over the chart, such as a heat map: seen, never tapped. */
-.chart-overlay {
-  position: absolute;
-  inset: 0;
-  overflow: visible;
-  pointer-events: none;
-}
