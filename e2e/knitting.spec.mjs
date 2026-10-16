@@ -3,11 +3,11 @@ import { readFile } from "node:fs/promises";
 
 const design = "#/sweater/hamefarin";
 const position = page => page.locator(".knitting-panel [role=status]");
-const steps = /^(Joined|Changed|Held|On the needles|Turned): carry on$/;
+const steps = /^(Joined|Changed|Held|On the needles|Turned|Placed|Taken off): carry on$/;
 /**
  * Work to the end of `count` rounds - or short rows - taking any step on the
  * way - joining the round, changing needles, turning a short row, putting a
- * sleeve on hold - as asked.
+ * sleeve on hold, placing or taking off a marker - as asked.
  */
 async function workRounds(page, count) {
   for (let done = 0; done < count;) {
@@ -30,8 +30,8 @@ async function start(page) {
 }
 /** Hamefarin in a medium, as a project's choices. */
 const medium = { sweaterId: "hamefarin", sizeId: "m", colourwayId: "simmer-dim" };
-/** The Paul Klee Sweater in its M1, in the colours the pattern gives it. */
-const klee = { sweaterId: "paul-klee", sizeId: "m1", colourwayId: "klee" };
+/** The Paul Klee Sweater in its M1, in the colours the pattern gives it, counted with its markers: see helpers/revisions. */
+const klee = { sweaterId: "paul-klee", sizeId: "m1", colourwayId: "klee", revision: 1 };
 /**
  * A sweater already knitted as far as `progress` - the id of the last stitch
  * worked - opened at its chart with the knitting showing. Knitting a yoke's
@@ -74,13 +74,16 @@ const bodyDone = 56077;
 /** The first stitch of the yoke's last round, its 75th, of 432 stitches. */
 const yokeLastRound = 20715;
 /*
- * In the Paul Klee Sweater's M1: the back's first half of its dividing round
- * knitted, with the right sleeve to go on hold next; the last stitch before
- * its hem's rib; and the last before the rib is bound off.
+ * In the Paul Klee Sweater's M1: the last stitch before the raglan's set-up
+ * round; the back's first half of its dividing round knitted, with the
+ * raglan's first marker to come off and the right sleeve to go on hold next;
+ * the last stitch before its hem's rib; and the last before the rib is bound
+ * off.
  */
-const kleeBeforeHold = 20349;
-const kleeBeforeRib = 36111;
-const kleeBeforeBindOff = 43427;
+const kleeBeforeSetUp = 13004;
+const kleeBeforeHold = 20367;
+const kleeBeforeRib = 36194;
+const kleeBeforeBindOff = 43510;
 
 test("the design and its projects work without WebGL, and nothing fetches the solver", async ({ page }) => {
   await page.addInitScript(() => {
@@ -415,24 +418,68 @@ test("a bought design comes in every size it is written for, by its own wool, ev
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 });
 
-test("a raglan divides as its pattern says: a wrap at each corner, one cast on more than stays, and on round from the back", async ({ page }) => {
+test("a raglan's set-up round places its four markers where the pattern says, each a line up the chart", async ({ page }) => {
+  await knittedTo(page, kleeBeforeSetUp, klee);
+  for (const [knit, line] of [[44, "right back"], [56, "right front"], [88, "left front"], [56, "left back"]]) {
+    await page.getByRole("button", { name: new RegExp(`^Knit ${knit} in `) }).click();
+    await expect(position(page)).toContainText(`Place the marker for the ${line} raglan line.`);
+    await expect(page.locator(".knitting-panel")).toContainText(`Place a marker for the ${line} raglan line`);
+    await page.getByRole("button", { name: "Placed: carry on" }).click();
+  }
+  await expect(page.getByRole("button", { name: /^Knit 44 in / })).toBeVisible();
+  // The four raglan lines, and the colourwork's seven before them.
+  const lines = page.locator(".chart-notes [data-note=marker]");
+  await expect(lines).toHaveCount(11);
+  await expect(lines.filter({ hasText: "raglan line" })).toHaveCount(4);
+});
+
+test("a raglan divides as its pattern says: its markers off either side of each sleeve, a wrap at each corner, one cast on more than stays, and a new beginning of the round", async ({ page }) => {
+  // Whether the stitch to be worked next is in the chart's first column, at its right-hand edge.
+  const edge = () => page.evaluate(() => {
+    const next = document.querySelector(".chart-next").getBoundingClientRect();
+    const cell = next.width - 2;
+    // Column 1 ends where the round numbers' gutter begins, 2.2 cells from the sheet's edge: see chart-painter.
+    const end = document.querySelector(".chart-sheets").getBoundingClientRect().right - Math.round(cell * 2.2);
+    return Math.abs(end - next.right) < cell / 2;
+  });
   await knittedTo(page, kleeBeforeHold, klee);
-  await expect(position(page)).toContainText("Body, round 107, stitch 55. Put 78 stitches on hold.");
+  await expect(position(page)).toContainText("Body, round 107, stitch 55. Take off the marker for the right back raglan line.");
+  await expect.poll(edge).toBe(false);
+  await page.getByRole("button", { name: "Taken off: carry on" }).click();
+  await expect(position(page)).toContainText("Put 78 stitches on hold.");
   await expect(page.locator(".knitting-panel")).toContainText("First wrap the next stitch");
   await page.getByRole("button", { name: "Held: carry on" }).click();
-  // The underarm is cable cast on, and closed up by the stitch after.
+  await expect(position(page)).toContainText("Take off the marker for the right front raglan line.");
+  await page.getByRole("button", { name: "Taken off: carry on" }).click();
+  // The underarm is cable cast on, the new beginning of the round half way along it, and closed up by the stitch after.
   const hint = page.getByRole("list", { name: "Stitches in this round" });
   await expect(hint).toContainText("Cable cast-on, at the underarm");
-  await expect(hint).not.toContainText("end-of-round marker");
-  await page.getByRole("button", { name: /^Cast on 9 in / }).click();
+  await expect(hint).toContainText("the marker for the new beginning of the round");
+  await page.getByRole("button", { name: /^Cast on 4 in / }).click();
+  await expect(position(page)).toContainText("Place the marker for the new beginning of the round.");
+  await page.getByRole("button", { name: "Placed: carry on" }).click();
+  // The whole chart is cut at it from now on: a new round, and the next stitch the chart's right-hand edge. The
+  // rounds are numbered by its rows, two more now below: the cast-on's part, and the set-up round's beside the short rows.
+  await expect(position(page)).toContainText("Body, round 109, stitch 1.");
+  await expect.poll(edge).toBe(true);
+  await page.getByRole("button", { name: /^Cast on 5 in / }).click();
   await page.getByRole("button", { name: /^Slip 1 and pass the cast-on over in / }).click();
   await page.getByRole("button", { name: /^Knit 109 in / }).click();
+  await expect(position(page)).toContainText("Take off the marker for the left front raglan line.");
+  await page.getByRole("button", { name: "Taken off: carry on" }).click();
   await page.getByRole("button", { name: "Held: carry on" }).click();
+  await expect(position(page)).toContainText("Take off the marker for the left back raglan line.");
+  await page.getByRole("button", { name: "Taken off: carry on" }).click();
   await page.getByRole("button", { name: /^Cast on 9 in / }).click();
   await page.getByRole("button", { name: /^Slip 1 and pass the cast-on over in / }).click();
   await page.getByRole("button", { name: /^Knit 54 in / }).click();
-  // The pattern moves the beginning of the round to the right underarm; here it stays at the middle of the back.
-  await expect(position(page)).toContainText("Body, round 108, stitch 1. Knit 236 in");
+  // At the old beginning, which comes off; then on to the new one, a quarter of the way round, to end the round.
+  await expect(position(page)).toContainText("Take off the marker for the beginning of the round.");
+  await page.getByRole("button", { name: "Taken off: carry on" }).click();
+  await expect(position(page)).toContainText("Body, round 109, stitch 180. Knit 59 in");
+  await page.getByRole("button", { name: /^Knit 59 in / }).click();
+  await expect(position(page)).toContainText("Body, round 110, stitch 1. Knit 236 in");
+  await expect.poll(edge).toBe(true);
 });
 
 test("a rib is worked as its pattern words it, and bound off in pattern", async ({ page }) => {

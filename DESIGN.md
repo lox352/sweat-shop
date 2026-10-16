@@ -180,10 +180,25 @@ everything Hamefarin does and a good deal more.
     - a wrap at each corner before a sleeve goes on hold;
     - the underarm cable cast on, one more than stays, with the last of it
       passed over the stitch after;
-    - the round moved on to the middle of the right underarm;
+    - a new beginning of the round half way along the right underarm, and
+      the quarter round knitted on to it from the old one;
   - sleeves that pick up more than their underarm has;
   - ribs worked k1, p1 a run at a time - "(K1, p1) x 48" - and bound off
     in pattern.
+- **Its markers**, placed and taken off where the pattern says: one band's,
+  which the bands after it increase between; the raglan's four; and the new
+  beginning of the round. Each is a step in the order of work, and a line up
+  the chart between two columns. A marker changes how the rounds are
+  counted, never the knitting, so the knitting keeps two sets of rounds:
+  - the rounds from each piece's seam, which the physics stands on and which
+    no marker changes;
+  - the rounds as the knitter counts them, from the beginning of the round
+    in force, which the chart and the knitting panel show. Once the divide
+    places the new beginning, the whole chart is cut at it from the neck
+    down, and turned so that it is the chart's right-hand edge.
+
+  A project saved before the markers were added moves on past each one
+  before its stitch, the first time it is opened.
 - **Its wool.** The metres are the pattern's own, size by size, for the main
   colour and each band's colours, and the wool list shows them in place of
   an estimate. Its three colourways are the three its charts are drawn in,

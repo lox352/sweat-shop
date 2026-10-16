@@ -199,9 +199,10 @@ const ResumeStep: React.FC<{ count: number; piece: string; to?: number; from?: n
             from !== undefined && from !== to ? `, changing from the ${from}mm ones` : ""
           }.`}{" "}
       Join new yarn at the middle of the underarm: the round starts there,
-      picking up stitches out of the edge the body cast on. On the chart the
-      crosshatch comes off the {piece.toLowerCase()}: it is on your needles
-      again.
+      picking up stitches out of the edge the body cast on, and a marker for
+      the start of the round goes there when you come round to it. On the
+      chart the crosshatch comes off the {piece.toLowerCase()}: it is on your
+      needles again.
     </span>
   </div>
 );
