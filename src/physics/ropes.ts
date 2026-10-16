@@ -1,4 +1,4 @@
-import { Stitch, isFabric } from "../types/Stitch";
+import { Stitch, isFabric, isStep } from "../types/Stitch";
 import { consumption } from "../types/StitchType";
 import { adjacentStitchDistance } from "../constants";
 
@@ -48,7 +48,10 @@ export const ropesOf = (stitches: Stitch[], roundHeight: number): Rope[] => {
     for (const id of below) if (fabric(id)) ropes.push({ a: stitch.id, b: id, length: rise, kind: "below" });
     if (hasBefore) {
       const id = links[links.length - 1];
-      const turned = stitches[stitch.id - 1]?.type === "turn";
+      // Turned just before it, whatever other steps came between: a marker slipped, say.
+      let step = stitch.id - 1;
+      while (step > 0 && isStep(stitches[step]) && stitches[step].type !== "turn") step--;
+      const turned = stitches[step]?.type === "turn";
       if (fabric(id)) ropes.push({ a: stitch.id, b: id, length: turned ? Math.hypot(width, rise) : width, kind: "before" });
     }
     if (fabric(stitch.from)) ropes.push({ a: stitch.id, b: stitch.from!, length: rise, kind: "picked" });

@@ -45,10 +45,11 @@ export const measurePiece = (knitting: Knitting, positions: ArrayLike<number>, p
   const { stitches, rounds, roundPieces, roundHeight } = knitting;
   const at = (id: number) => [positions[id * 3], positions[id * 3 + 1], positions[id * 3 + 2]];
   const gap = (a: number[], b: number[]) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+  // Whole rounds of the main fabric all the way round: not a short row, nor part of a round, nor one turning into a rib.
   const indices = rounds
     .map((_, index) => index)
-    .filter((index) => roundPieces[index] === piece)
-    .filter((index) => (stitches[rounds[index][0]].width ?? adjacentStitchDistance) === adjacentStitchDistance);
+    .filter((index) => roundPieces[index] === piece && (knitting.roundKinds[index] ?? "round") === "round")
+    .filter((index) => rounds[index].every((id) => (stitches[id].width ?? adjacentStitchDistance) === adjacentStitchDistance));
   const band = indices.slice(Math.floor(indices.length * 0.25), Math.ceil(indices.length * 0.75));
   const middleOf = (index: number) => {
     const sum = [0, 0, 0];

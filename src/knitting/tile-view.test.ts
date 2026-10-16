@@ -66,6 +66,8 @@ describe("the chart on tiles", () => {
   beforeEach(() => {
     painted = [];
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => context() as unknown as CanvasRenderingContext2D);
+    // The clock stopped, so painting never runs out of time for the tiles just out of view, however busy the machine.
+    vi.spyOn(performance, "now").mockImplementation(() => 1000);
   });
   afterEach(() => vi.restoreAllMocks());
 

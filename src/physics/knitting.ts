@@ -1,5 +1,5 @@
 import type { Stitch } from "../types/Stitch";
-import type { RoundKind } from "../knitting/needles";
+import type { SeamKind } from "../knitting/needles";
 
 /**
  * The knitting as the physics sees it: every stitch, and the rounds as they
@@ -14,8 +14,12 @@ export interface Knitting {
   stitches: Stitch[];
   /** Stitch ids in each round from the seam, in the order they are worked. */
   rounds: number[][];
-  /** Whether each is a round, or a short row worked from one side or the other. */
-  roundKinds: RoundKind[];
+  /**
+   * Whether each is a round, a short row worked from one side or the other,
+   * or part of a round: the last of a piece whose beginning of the round was
+   * moved off its seam.
+   */
+  roundKinds: SeamKind[];
   /** The piece each belongs to. */
   roundPieces: string[];
   /** How tall a round of the main fabric is, in the units the stitches are laid out in. */
