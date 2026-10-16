@@ -1,5 +1,6 @@
 import Needles, { type Held, RoundKind } from "./needles";
 import { adjacentStitchDistance, verticalStitchDistance } from "../constants";
+import type { Knitting } from "../physics/knitting";
 import { Stitch } from "../types/Stitch";
 import { StitchType } from "../types/StitchType";
 import {
@@ -39,6 +40,8 @@ export interface SweaterStitches {
   checks: Record<string, number>;
   /** How tall a round is, in the units the stitches are laid out in. */
   roundHeight: number;
+  /** The knitting as the physics sees it, its rounds worked from each piece's seam: see physics/knitting. */
+  knitting: Knitting;
 }
 
 /**
@@ -505,7 +508,7 @@ export const buildSweater = (
     for (const spec of section.rounds) apply(spec, section.label);
   }
 
-  const { stitches, rounds, roundLabels, roundPieces, roundKinds, holds } = needles.finish();
+  const { stitches, rounds, roundLabels, roundPieces, roundKinds, holds, objective } = needles.finish();
   /*
    * Every stitch on the needles it is worked on, the steps saying when that
    * changes: a change of needles, or held stitches taken up onto needles of
@@ -516,5 +519,13 @@ export const buildSweater = (
     if (stitch.type === "needles" || (stitch.type === "resume" && stitch.needles !== undefined)) on = stitch.needles;
     else if (on !== undefined) stitch.needles = on;
   }
-  return { stitches, rounds, roundLabels, roundPieces, roundKinds, holds, needleChanges, checks, roundHeight };
+  const knitting: Knitting = {
+    fromSeam: true,
+    stitches,
+    rounds: objective.rounds,
+    roundKinds: objective.kinds,
+    roundPieces: objective.pieces,
+    roundHeight,
+  };
+  return { stitches, rounds, roundLabels, roundPieces, roundKinds, holds, needleChanges, checks, roundHeight, knitting };
 };

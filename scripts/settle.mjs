@@ -51,7 +51,7 @@ await withSite(async (load) => {
   const { buildSweater } = await load("/src/knitting/engine.ts");
   const { pose } = await load("/src/physics/pose.ts");
   const { settle } = await load("/src/physics/solver.ts");
-  const { encodeSettled } = await load("/src/data/sweaters/settled/format.ts");
+  const { encodeSettled, fabricPositions } = await load("/src/data/sweaters/settled/format.ts");
   mkdirSync(settledDir, { recursive: true });
   const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : {};
 
@@ -63,7 +63,7 @@ await withSite(async (load) => {
       const label = `${target.id}/${sizeId}`;
       const built = buildSweater(sweater, sizeId);
       const started = Date.now();
-      const result = settle(built, pose(built), {}, ({ steps, moved }) => {
+      const result = settle(built.knitting, pose(built.knitting), {}, ({ steps, moved }) => {
         if (steps % 50 === 0) {
           say(`  ${label}: ${steps} steps, the average stitch moving ${moved.toFixed(5)} of its width a step, ${((Date.now() - started) / 1000).toFixed(0)}s`);
         }
@@ -74,7 +74,8 @@ await withSite(async (load) => {
         all = false;
         continue;
       }
-      writeFileSync(`${settledDir}/${target.id}--${sizeId}.json`, JSON.stringify(encodeSettled(result.positions)));
+      const file = encodeSettled(fabricPositions(built.stitches, result.positions));
+      writeFileSync(`${settledDir}/${target.id}--${sizeId}.json`, JSON.stringify(file));
       say(`${label}: settled in ${result.steps} steps, ${seconds}s`);
     }
     if (all) {

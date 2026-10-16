@@ -6,6 +6,7 @@ import { sweaterById } from "../data/sweaters";
 import { sweaterStitches } from "../knitting/useSweater";
 import { Palette, rgbOf, yarnFor } from "../knitting/palette";
 import { pose } from "../physics/pose";
+import { allPositions, settledLength } from "../data/sweaters/settled/format";
 import { extremesOf } from "./framing";
 import FrameModel, { OrbitLike } from "./FrameModel";
 import StitchInstances from "./StitchInstances";
@@ -17,7 +18,7 @@ export interface SweaterStageProps {
   /** Id of the last stitch worked; earlier stitches are shown in their wool. */
   progress: number;
   reducedMotion: boolean;
-  /** Where it came to rest, when that is known: see data/sweaters/settled. */
+  /** Where its fabric came to rest, when that is known: see data/sweaters/settled. */
   settled?: Float32Array;
 }
 
@@ -37,7 +38,10 @@ export default function SweaterStage({ sweaterId, sizeId, palette, progress, red
   const controls = useRef<OrbitLike | null>(null);
   const built = useMemo(() => sweaterStitches(sweaterById(sweaterId)!, sizeId), [sweaterId, sizeId]);
   const positions = useMemo(
-    () => (settled && settled.length === built.stitches.length * 3 ? settled : pose(built).positions),
+    () =>
+      settled && settled.length === settledLength(built.stitches)
+        ? allPositions(built.stitches, settled)
+        : pose(built.knitting).positions,
     [built, settled],
   );
   // In the order StitchInstances draws them, which the colours have to match.
@@ -84,7 +88,7 @@ export default function SweaterStage({ sweaterId, sizeId, palette, progress, red
       />
       <StitchInstances
         stitches={built.stitches}
-        rounds={built.rounds}
+        rounds={built.knitting.rounds}
         positions={positions}
         roundHeight={built.roundHeight}
         colours={colours}

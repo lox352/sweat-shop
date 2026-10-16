@@ -19,10 +19,10 @@ const paulKlee = sweaterById("paul-klee")!;
  * and its yoke of three rounds below the rib is far too shallow to reach
  * from its neck to its body, which no real yoke is.
  */
-describe.each(everySize)("the pose of %s", (_, built) => {
+describe.each(everySize)("the pose of %s", (_, { knitting }) => {
   it("starts with the ropes at or near their length, so the physics has nothing to tear", () => {
-    const { positions } = pose(built);
-    const ropes = ropesOf(built.stitches, built.roundHeight);
+    const { positions } = pose(knitting);
+    const ropes = ropesOf(knitting.stitches, knitting.roundHeight);
     let over = 0;
     let most = 0;
     for (const rope of ropes) {
@@ -46,10 +46,10 @@ const cases = [
   ["Paul Klee, size 6XL", buildSweater(paulKlee, "6xl")],
 ] as const;
 
-describe.each(cases)("the pose of %s", (_, built) => {
-  const { positions, axes } = pose(built);
-  const pieceOf = (id: number) => built.roundPieces[built.rounds.findIndex((round) => round.includes(id))];
-  const roundsOf = (piece: string) => built.rounds.filter((_, index) => built.roundPieces[index] === piece);
+describe.each(cases)("the pose of %s", (_, { knitting }) => {
+  const { positions, axes } = pose(knitting);
+  const pieceOf = (id: number) => knitting.roundPieces[knitting.rounds.findIndex((round) => round.includes(id))];
+  const roundsOf = (piece: string) => knitting.rounds.filter((_, index) => knitting.roundPieces[index] === piece);
   const meanOf = (piece: string, axis: 0 | 1 | 2) => {
     const ids = roundsOf(piece).flat();
     return ids.reduce((sum, id) => sum + positions[id * 3 + axis], 0) / ids.length;
@@ -68,7 +68,7 @@ describe.each(cases)("the pose of %s", (_, built) => {
   it("hangs the body below the yoke, and holds the arms out and down", () => {
     expect(meanOf("yoke", 1)).toBeGreaterThan(meanOf("body", 1));
     expect(meanOf("sleeve-left", 1)).toBeLessThan(meanOf("yoke", 1));
-    const body = built.rounds[built.roundPieces.indexOf("body")];
+    const body = knitting.rounds[knitting.roundPieces.indexOf("body")];
     const radius = Math.hypot(positions[body[0] * 3], positions[body[0] * 3 + 2]);
     expect(Math.abs(meanOf("sleeve-left", 0))).toBeGreaterThan(radius);
     const arm = axes["sleeve-left"].direction;
@@ -82,7 +82,7 @@ describe.each(cases)("the pose of %s", (_, built) => {
       const xs = armhole.map((id) => positions[id * 3]);
       const ys = armhole.map((id) => positions[id * 3 + 1]);
       // As upright as a round's own turn of the helix leaves it...
-      expect(Math.max(...xs) - Math.min(...xs)).toBeLessThan(built.roundHeight * 1.5);
+      expect(Math.max(...xs) - Math.min(...xs)).toBeLessThan(knitting.roundHeight * 1.5);
       // ...and as tall as it is round.
       const across = (armhole.length * 2) / Math.PI;
       expect(Math.max(...ys) - Math.min(...ys)).toBeGreaterThan(across * 0.9);
@@ -90,13 +90,13 @@ describe.each(cases)("the pose of %s", (_, built) => {
   });
 
   it("starts the body at the middle of the back, and each sleeve at its underarm", () => {
-    const body = built.rounds[built.roundPieces.indexOf("body")];
+    const body = knitting.rounds[knitting.roundPieces.indexOf("body")];
     expect(positions[body[0] * 3 + 2]).toBeLessThan(0);
     expect(Math.abs(positions[body[0] * 3])).toBeLessThan(2);
-    const sleeve = built.rounds[built.roundPieces.indexOf("sleeve-left")];
-    const first = built.stitches[sleeve[0]];
+    const sleeve = knitting.rounds[knitting.roundPieces.indexOf("sleeve-left")];
+    const first = knitting.stitches[sleeve[0]];
     expect(first.type).toBe("pickUp");
-    expect(distance(positions, first.id, first.from!)).toBeLessThan(built.roundHeight * 1.3);
+    expect(distance(positions, first.id, first.from!)).toBeLessThan(knitting.roundHeight * 1.3);
     expect(pieceOf(first.from!)).toBe("body");
   });
 });

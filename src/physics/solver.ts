@@ -1,7 +1,7 @@
 import { Stitch, isFabric, isStep } from "../types/Stitch";
 import { consumption } from "../types/StitchType";
 import { adjacentStitchDistance } from "../constants";
-import type { SweaterStitches } from "../knitting/engine";
+import type { Knitting } from "./knitting";
 import type { Pose } from "./pose";
 import { ropesOf } from "./ropes";
 import { Tuning, defaultTuning } from "./tuning";
@@ -66,13 +66,13 @@ const upFrom = (stitch: Stitch): { id: number; across: boolean } | undefined => 
 };
 
 export const settle = (
-  built: SweaterStitches,
+  knitting: Knitting,
   pose: Pose,
   overrides: Partial<Tuning> = {},
   onProgress?: (progress: Progress) => void,
 ): Settled => {
   const tuning = { ...defaultTuning, ...overrides };
-  const { stitches, rounds, roundPieces, roundHeight } = built;
+  const { stitches, rounds, roundPieces, roundHeight } = knitting;
   const count = stitches.length;
 
   /* Which piece each stitch is in, and what pulls it there. */
@@ -106,7 +106,7 @@ export const settle = (
   const roundOf = new Int32Array(count).fill(-1);
   let whole = 0;
   rounds.forEach((round, index) => {
-    if ((built.roundKinds[index] ?? "round") === "round") whole = index;
+    if ((knitting.roundKinds[index] ?? "round") === "round") whole = index;
     for (const id of round) roundOf[id] = whole;
   });
   // The pieces that hang straight down are pushed out level; the rest, a sleeve held out, along themselves.

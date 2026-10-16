@@ -66,6 +66,17 @@ export default class Needles {
   readonly roundKinds: RoundKind[] = [];
   /** Every run of stitches put on hold, in the order they were held. */
   readonly holds: Held[] = [];
+  /**
+   * The rounds again as the physics stands on them: worked from each piece's
+   * seam, where its first round began, rather than from wherever a pattern
+   * keeps its marker - see physics/knitting. Every round begins at the seam
+   * for now, so these are the rounds.
+   */
+  readonly objective: { rounds: number[][]; kinds: RoundKind[]; pieces: string[] } = {
+    rounds: [],
+    kinds: [],
+    pieces: [],
+  };
 
   /** The stitches on the needles, from the beginning of the round. */
   private live: number[] = [];
@@ -143,10 +154,7 @@ export default class Needles {
       });
       ids.push(stitch.id);
     }
-    this.rounds.push(ids);
-    this.labels.push(label);
-    this.roundPieces.push(this.piece);
-    this.roundKinds.push("round");
+    this.record(ids, label, "round");
     this.live = ids;
     this.yarn = ids[ids.length - 1];
     return this;
@@ -328,13 +336,19 @@ export default class Needles {
     }
     this.working = false;
     this.live = this.next;
-    if (this.made.length > 0) {
-      this.rounds.push(this.made);
-      this.labels.push(this.label);
-      this.roundPieces.push(this.piece);
-      this.roundKinds.push("round");
-    }
+    if (this.made.length > 0) this.record(this.made, this.label, "round");
     return this;
+  }
+
+  /** A round or short row finished: as the pattern counts it, and as the physics does. */
+  private record(made: number[], label: string, kind: RoundKind) {
+    this.rounds.push(made);
+    this.labels.push(label);
+    this.roundPieces.push(this.piece);
+    this.roundKinds.push(kind);
+    this.objective.rounds.push([...made]);
+    this.objective.kinds.push(kind);
+    this.objective.pieces.push(this.piece);
   }
 
   /**
@@ -394,10 +408,7 @@ export default class Needles {
     this.live = this.live.flatMap((id, place) => replaced.get(place) ?? [id]);
     this.width = width;
     this.rise = rise;
-    this.rounds.push(made);
-    this.labels.push(label);
-    this.roundPieces.push(this.piece);
-    this.roundKinds.push(side);
+    this.record(made, label, side);
     return this;
   }
 
@@ -425,6 +436,7 @@ export default class Needles {
       roundPieces: this.roundPieces,
       roundKinds: this.roundKinds,
       holds: this.holds,
+      objective: this.objective,
     };
   }
 }

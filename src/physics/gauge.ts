@@ -1,6 +1,6 @@
 import { adjacentStitchDistance } from "../constants";
 import { consumption } from "../types/StitchType";
-import type { SweaterStitches } from "../knitting/engine";
+import type { Knitting } from "./knitting";
 
 /**
  * How a piece came out, measured off a settled sweater: the shape of its
@@ -41,8 +41,8 @@ export interface PieceGauge {
 
 const mean = (values: number[]) => (values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0);
 
-export const measurePiece = (built: SweaterStitches, positions: ArrayLike<number>, piece: string): PieceGauge => {
-  const { stitches, rounds, roundPieces, roundHeight } = built;
+export const measurePiece = (knitting: Knitting, positions: ArrayLike<number>, piece: string): PieceGauge => {
+  const { stitches, rounds, roundPieces, roundHeight } = knitting;
   const at = (id: number) => [positions[id * 3], positions[id * 3 + 1], positions[id * 3 + 2]];
   const gap = (a: number[], b: number[]) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
   const indices = rounds

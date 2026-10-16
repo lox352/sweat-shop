@@ -3,9 +3,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "../../../knitting/engine";
+import { testSweater } from "../../../knitting/test-sweater";
+import { pose } from "../../../physics/pose";
 import { sweaterById, sweaters } from "../index";
 import { loadSettled } from "./index";
-import { SettledFile, decodeSettled, encodeSettled } from "./format";
+import { SettledFile, allPositions, decodeSettled, encodeSettled, fabricPositions, settledLength } from "./format";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(here).filter((name) => name.endsWith(".json"));
@@ -16,15 +18,28 @@ describe("the settled file format", () => {
     const back = decodeSettled(encodeSettled(positions));
     positions.forEach((value, index) => expect(back[index]).toBeCloseTo(Math.round(value * 10) / 10, 5));
   });
+
+  it("holds the fabric alone, and puts the steps and the phantom stitch back where the pose puts them", () => {
+    const { stitches, knitting } = buildSweater(testSweater, "one");
+    const { positions } = pose(knitting);
+    const fabric = fabricPositions(stitches, positions);
+    expect(fabric.length).toBe(settledLength(stitches));
+    expect(fabric.length).toBeLessThan(positions.length);
+    expect(allPositions(stitches, fabric)).toEqual(positions);
+  });
+
+  it("reads no file of an older version, which had a position for every step", () => {
+    expect(() => decodeSettled({ version: 1, scale: 10, deltas: [] } as unknown as SettledFile)).toThrow();
+  });
 });
 
 describe("the settled sweaters", () => {
   for (const sweater of sweaters) {
     for (const size of sweater.sizes) {
-      it(`has ${sweater.id} in size ${size.label}, with a position for every stitch`, async () => {
+      it(`has ${sweater.id} in size ${size.label}, with a position for every stitch of its fabric`, async () => {
         const positions = await loadSettled(sweater.id, size.id);
         expect(positions, "Run npm run settle for the missing size").toBeDefined();
-        expect(positions!.length).toBe(buildSweater(sweater, size.id).stitches.length * 3);
+        expect(positions!.length).toBe(settledLength(buildSweater(sweater, size.id).stitches));
       });
     }
   }
@@ -42,7 +57,8 @@ describe("the settled sweaters", () => {
       const sweater = sweaterById(sweaterId);
       if (!sweater) return;
       const built = buildSweater(sweater, sizeId);
-      const positions = decodeSettled(JSON.parse(readFileSync(join(here, file), "utf8")) as SettledFile);
+      const settled = JSON.parse(readFileSync(join(here, file), "utf8")) as SettledFile;
+      const positions = allPositions(built.stitches, decodeSettled(settled));
       expect(positions.every(Number.isFinite)).toBe(true);
       const mean = (piece: string, axis: number) => {
         const ids = built.rounds.filter((_, index) => built.roundPieces[index] === piece).flat();
