@@ -1,5 +1,6 @@
 import type { ChartScene } from "./chart-scene";
 import { type ChartColours, type ChartOverlay, type PaintState, gutter, paintRegion } from "./chart-painter";
+import { scrollAcross, scrollsFromRight } from "./scroll-corner";
 import {
   type ColumnMap,
   LiveColumns,
@@ -221,6 +222,19 @@ class Axis {
     this.shift = ease.shift + (this.targetShift - ease.shift) * e;
   }
 
+  /** The layer put `shift` along from the sheet's edge, at once, and kept there. */
+  anchor(shift: number) {
+    this.shift = this.targetShift = shift;
+    if (this.ease) this.ease.shift = shift;
+  }
+
+  /** The sheet's edge moved by `by` under the layer: the layer moved back by as much, so nothing on it moves. */
+  offset(by: number) {
+    this.shift -= by;
+    this.targetShift -= by;
+    if (this.ease) this.ease.shift -= by;
+  }
+
   /** At rest: the layer put back at the sheet's edge. Says how far it had moved. */
   rebase(): number {
     const shift = this.shift;
@@ -350,8 +364,34 @@ export class TileView {
     this.rowMap = everyRow(layout.rows);
     this.columns.reset(columnPlaces(this.columnMap, content.cell));
     this.rows.reset(rowPlaces(this.rowMap, content.cell));
+    this.anchorColumns();
     if (content.collapse) this.settle(true);
     this.version++;
+  }
+
+  /**
+   * A chart laid out afresh, its right-hand edge put at the sheet's, which
+   * the box is scrolled from (see scroll-corner), whatever width the sheet
+   * still is from the chart before: then what is in view is as far from that
+   * edge as the box is, and the sheet takes the chart's width at rest with
+   * nothing on screen moving. A box scrolled from the left has the chart at
+   * the sheet's left-hand edge instead.
+   */
+  private anchorColumns() {
+    const width = parseFloat(this.sheet.style.width) || 0;
+    this.columns.anchor(scrollsFromRight(this.scroller) && width > 0 ? width - this.size().width : 0);
+  }
+
+  /**
+   * Give the sheet a width, and keep everything on it where it is on screen
+   * if `keep`: scrolled from its right-hand edge, the box holds that edge
+   * still, so the sheet's left-hand edge moves as it grows or shrinks, and the
+   * layer is moved back by as much. Scrolled from the left, nothing moves.
+   */
+  private sheetWidth(width: number, keep: boolean) {
+    const was = this.sheet.offsetLeft;
+    this.sheet.style.width = `${width}px`;
+    if (keep) this.columns.offset(this.sheet.offsetLeft - was);
   }
 
   /** What of the chart the box shows, from the chart's own top left: where the lines are drawn, or going. */
@@ -381,8 +421,10 @@ export class TileView {
       if (columnsMoved) {
         this.columnMap = mapOf(this.liveColumns!);
         const to = columnPlaces(this.columnMap, cell);
-        if (fresh) this.columns.reset(to);
-        else {
+        if (fresh) {
+          this.columns.reset(to);
+          this.anchorColumns();
+        } else {
           this.columns.retarget(to, this.columnHeld(wasColumns));
           this.keepColumnsInBox();
         }
@@ -571,7 +613,7 @@ export class TileView {
     const room = gutter(this.content!.cell) + (parseFloat(getComputedStyle(this.scroller).paddingRight) || 0);
     if (this.columns.target.start[0] + room < size) return;
     const left = this.sheet.offsetLeft;
-    this.columns.keepBox(this.scroller.scrollLeft - left, size, -left, room);
+    this.columns.keepBox(this.scroller.scrollLeft - left, size, scrollAcross(this.scroller)[0] - left, room);
   }
 
   /** The line under `at` along `order`, by where lines are drawn now, or the nearest to it that `shows`. */
@@ -621,7 +663,19 @@ export class TileView {
     const height = parseFloat(style.height) || 0;
     const shifted = this.columns.shift !== 0 || this.rows.shift !== 0;
     if (!still) {
-      if (this.columns.shift + wanted.width > width) style.width = `${this.columns.shift + wanted.width}px`;
+      if (!scrollsFromRight(this.scroller)) {
+        if (this.columns.shift + wanted.width > width) style.width = `${this.columns.shift + wanted.width}px`;
+      } else if (width === 0) {
+        // Nothing on it yet to keep still.
+        this.sheetWidth(wanted.width, false);
+      }
+      /*
+       * Scrolled from its right-hand edge, the sheet keeps its width until
+       * rest, whatever runs past its left-hand edge meanwhile: that is the
+       * far side from where the box is held, and growing the sheet there
+       * would move a smooth scroll under way, which a browser aims at a place
+       * counted from the left.
+       */
       if (this.rows.shift + wanted.height > height) style.height = `${this.rows.shift + wanted.height}px`;
       /*
        * Looked at again until at rest, while there is something to put right
@@ -635,15 +689,23 @@ export class TileView {
     this.target = undefined;
     this.point = undefined;
     if (!shifted && width === wanted.width && height === wanted.height) return false;
-    // Read before the sheet shrinks, which may cut the box's scroll back to fit.
+    /*
+     * Read before the sheet shrinks, which may cut the box's scroll back to
+     * fit. Scrolled from its right-hand edge, the box keeps its place as the
+     * sheet shrinks away from it, the layer moving back by as much (see
+     * sheetWidth): it is only scrolled across by however far the layer had
+     * moved beyond that - nothing, when the columns that closed were all to
+     * the left of the line held, as they most often are. A scroll set here
+     * can be lost on a phone scrolling the box itself; one not set cannot.
+     */
     const left = this.scroller.scrollLeft;
     const top = this.scroller.scrollTop;
-    style.width = `${wanted.width}px`;
+    this.sheetWidth(wanted.width, width > 0);
     style.height = `${wanted.height}px`;
     const x = this.columns.rebase();
     const y = this.rows.rebase();
     this.layer.style.transform = "";
-    if (x) this.scroller.scrollLeft = left - x;
+    if (Math.abs(x) >= 0.5) this.scroller.scrollLeft = left - x;
     if (y) this.scroller.scrollTop = top - y;
     return shifted;
   }
@@ -907,6 +969,8 @@ export class TileView {
       const at = place();
       return { x: at.x - inBox.x, y: at.y - inBox.y };
     });
+    // Placed from the sheet's edge, as the box is scrolled to it from here: not anchored as a fresh chart is.
+    this.columns.anchor(0);
     // The sheet takes the chart's new size now, before the box is scrolled to the point.
     const size = this.size();
     this.sheet.style.width = `${size.width}px`;

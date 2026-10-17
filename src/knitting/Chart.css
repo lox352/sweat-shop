@@ -123,11 +123,18 @@
   /* Let a horizontal drag scroll the chart without stealing page scrolling. */
   touch-action: pan-x pan-y;
   -webkit-overflow-scrolling: touch;
+  /*
+   * Scrolled across from the right, where a chart is read from: the browser
+   * then holds that edge still as columns open and close to the left of what
+   * is showing. See scroll-corner.ts.
+   */
+  direction: rtl;
 }
 
 /* The chart and the progress over it, stacked. */
 .chart-sheets {
   position: relative;
+  direction: ltr;
 }
 
 .chart-pickable {
