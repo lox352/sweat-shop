@@ -97,7 +97,7 @@ test("the design and its projects work without WebGL, and nothing fetches the so
   page.context().on("request", request => { if (/solver/i.test(request.url())) physics.push(request.url()); });
   await page.goto("");
   const links = await page.locator(".design-card").evaluateAll(nodes => nodes.map(node => node.href));
-  expect(links).toHaveLength(2);
+  expect(links).toHaveLength(3);
   await page.goto(links[0]);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByRole("button", { name: "Start knitting this", exact: true })).toBeVisible();
@@ -434,6 +434,25 @@ test("a bought design comes in every size it is written for, by its own wool, ev
   await expect(first).toContainText("yours");
   await expect(wool.filter({ has: page.locator(".shade-chip", { hasText: /^1B$/ }) })).not.toContainText("yours");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+});
+
+test("the Wool Week Sampler knits every hat from 2014 to 2026, each in its own band, in one ladder of yarns", async ({ page }) => {
+  await page.goto("#/sweater/wool-week-sampler");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Wool Week Sampler");
+  await expect(page.getByText("Hazel Tindall", { exact: false }).first()).toBeVisible();
+  await expect(page.locator(".size-option")).toHaveCount(8);
+  // Ten yarns, darkest to lightest, whichever colourway.
+  await expect(page.locator(".wool-row")).toHaveCount(10);
+  // Knitting it: the yoke's first band is the Shwook Hat's, its sheep the Baa-ble Hat's, a sleeve's last band the Birsie Beanny's.
+  const sampler = { sweaterId: "wool-week-sampler", sizeId: "m", colourwayId: "aa-da-years" };
+  const onChart = (what) => page.getByRole("img", { name: new RegExp(`You are on .*: ${what}`) });
+  await knittedTo(page, 3056, sampler);
+  await expect(onChart("2014 Shwook Hat, chart C")).toBeVisible();
+  await knittedTo(page, 11704, sampler);
+  await expect(onChart("2015 Baa-ble Hat, the sheep")).toBeVisible();
+  await knittedTo(page, 90454, sampler);
+  await expect(onChart("2026 Birsie Beanny, the lattice")).toBeVisible();
+  await expect(page.locator(".chart-page")).toHaveAttribute("data-view", "held-sleeve-left");
 });
 
 test("a raglan's set-up round places its four markers where the pattern says, each a line up the chart", async ({ page }) => {

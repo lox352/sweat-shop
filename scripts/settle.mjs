@@ -33,7 +33,7 @@ const say = (line) => {
 const args = process.argv.slice(2);
 const sizeAt = args.indexOf("--size");
 const onlySize = sizeAt >= 0 ? args[sizeAt + 1] : undefined;
-const requested = args.filter((arg, index) => !arg.startsWith("--") && index !== sizeAt + 1);
+const requested = args.filter((arg, index) => !arg.startsWith("--") && (sizeAt < 0 || index !== sizeAt + 1));
 
 await withSite(async (load) => {
   const plan = await settlementPlan(load);

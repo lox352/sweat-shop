@@ -20,7 +20,12 @@ import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 
 const kb = 1024;
-const budgets = { page: 170 * kb, stage: 260 * kb, settled: 300 * kb };
+/*
+ * The page's was 170KB, and the site had grown to exactly that; the Wool Week
+ * Sampler's thirteen hats' charts, and the grader that fits them to a size,
+ * are another 14KB of it.
+ */
+const budgets = { page: 200 * kb, stage: 260 * kb, settled: 300 * kb };
 
 const files = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>

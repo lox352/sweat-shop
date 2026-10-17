@@ -1,0 +1,117 @@
+{
+ "id": "sww18-merrie-dancers-toorie",
+ "year": 2018,
+ "name": "Merrie Dancers Toorie",
+ "designer": "Elizabeth Johnston",
+ "credit": "© Elizabeth Johnston (Shetland Handspun)",
+ "patternUrl": "https://www.ravelry.com/patterns/library/merrie-dancers-toorie-2",
+ "colourway": {
+  "name": "Jamieson & Smith",
+  "shades": {
+   "A": {
+    "name": "Dark Navy",
+    "hex": "#24222a",
+    "wool": "jamieson-smith-2ply-jumper-weight-36"
+   },
+   "B": {
+    "name": "Dark Green Grey",
+    "hex": "#6d6850",
+    "wool": "jamieson-smith-2ply-jumper-weight-fc46"
+   },
+   "C": {
+    "name": "Mid Fawn Green Mix",
+    "hex": "#957b66",
+    "wool": "jamieson-smith-2ply-jumper-weight-fc64"
+   },
+   "D": {
+    "name": "Dark Fawn",
+    "hex": "#af8067",
+    "wool": "jamieson-smith-2ply-jumper-weight-78"
+   },
+   "E": {
+    "name": "Lavender",
+    "hex": "#8e787f",
+    "wool": "jamieson-smith-2ply-jumper-weight-fc21"
+   }
+  }
+ },
+ "gauge": {
+  "stitches": 27,
+  "rounds": 27
+ },
+ "charts": {
+  "B": [
+   "A-A-B-A-A-A-B-A-A-A-B-A-",
+   "A-B-B-B-A-B-B-B-A-B-B-B-",
+   "A-A-B-A-A-A-B-A-A-A-B-A-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-",
+   "E-A-A-E-E-E-A-E-E-E-A-A-",
+   "A-A-A-E-A-E-A-E-A-E-A-A-",
+   "E-A-A-E-E-E-A-E-E-E-A-A-",
+   "A-A-D-A-A-A-D-A-A-A-D-A-",
+   "A-D-D-D-A-D-D-D-A-D-D-D-",
+   "A-A-D-A-A-A-D-A-A-A-D-A-",
+   "E-A-A-E-E-E-A-E-E-E-A-A-",
+   "A-A-A-E-A-E-A-E-A-E-A-A-",
+   "E-A-A-E-E-E-A-E-E-E-A-A-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-",
+   "A-A-B-A-A-A-B-A-A-A-B-A-",
+   "A-B-B-B-A-B-B-B-A-B-B-B-",
+   "A-A-B-A-A-A-B-A-A-A-B-A-",
+   "E-A-A-A-E-A-A-A-E-A-A-A-",
+   "E-E-A-E-E-E-A-E-E-E-A-E-",
+   "E-A-A-A-E-A-A-A-E-A-A-A-",
+   "A-A-C-A-A-A-C-A-A-A-C-A-",
+   "A-C-C-C-A-C-C-C-A-C-C-C-",
+   "A-A-C-A-A-A-C-A-A-A-C-A-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-",
+   "D-A-A-D-D-D-A-D-D-D-A-A-",
+   "A-A-A-D-A-D-A-D-A-D-A-A-",
+   "D-A-A-D-D-D-A-D-D-D-A-A-",
+   "A-A-E-A-A-A-E-A-A-A-E-A-",
+   "A-E-E-E-A-E-E-E-A-E-E-E-",
+   "A-A-E-A-A-A-E-A-A-A-E-A-",
+   "D-A-A-D-D-D-A-D-D-D-A-A-",
+   "A-A-A-D-A-D-A-D-A-D-A-A-",
+   "D-A-A-D-D-D-A-D-D-D-A-A-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-"
+  ],
+  "A": [
+   "B-B-ApAp",
+   "B-B-ApAp",
+   "C-C-ApAp",
+   "C-C-ApAp",
+   "D-D-ApAp",
+   "D-D-ApAp",
+   "B-B-ApAp",
+   "B-B-ApAp",
+   "C-C-ApAp",
+   "C-C-ApAp",
+   "D-D-ApAp",
+   "D-D-ApAp"
+  ],
+  "C": [
+   "C-A-A-A-C-A-A-A-C-A-A-A-C-A-A-A-C-A-A-A-C-A-A-A-",
+   "C-C-A-C-C-C-A-C-C-C-A-AsA-C-C-C-A-C-C-C-A-C-",
+   "C-A-A-A-C-A-A-A-C-A-A-C-A-A-C-A-A-A-C-A-A-A-",
+   "A-A-A-A-A-A-A-A-A-A-AsA-A-A-A-A-A-A-A-A-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-",
+   "A-A-E-A-A-A-E-A-A-AsA-A-E-A-A-A-E-A-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-",
+   "A-A-A-A-A-A-A-A-AsA-A-A-A-A-A-A-",
+   "E-A-A-A-E-A-A-A-E-A-A-A-E-A-A-A-",
+   "A-A-A-A-A-A-A-AsA-A-A-A-A-A-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-A-A-",
+   "A-A-E-A-A-A-AsA-A-A-E-A-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-",
+   "A-A-A-A-A-AsA-A-A-A-",
+   "E-A-A-A-A-E-A-A-A-A-",
+   "A-A-A-A-AsA-A-A-",
+   "A-A-A-A-A-A-A-A-",
+   "B-A-A-AsA-A-",
+   "B-B-A-A-A-B-",
+   "B-A-AsA-",
+   "A-As"
+  ]
+ }
+}

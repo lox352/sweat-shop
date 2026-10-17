@@ -403,6 +403,14 @@ export interface SweaterPattern {
   /** Anything the design says about its stitches. See StitchNote. */
   stitchNotes?: Partial<Record<StitchKeyId, StitchNote>>;
   /**
+   * Where the design asks more of a knitter than Fair Isle's usual two
+   * colours a round and floats of seven stitches at most (see knitting/
+   * rules): a design that knits other people's charts as they drew them
+   * says so here - a float longer than seven to be caught behind the work,
+   * and how long the longest is.
+   */
+  rules?: { colours?: number; float?: number };
+  /**
    * Each time the design's knitting has changed under projects already
    * saved against it, oldest first. A project's progress is the id of the
    * last stitch it worked, so steps added before that stitch move it on: a

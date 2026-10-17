@@ -1,0 +1,62 @@
+{
+ "id": "sww17-bousta-beanie",
+ "year": 2017,
+ "name": "Bousta Beanie",
+ "designer": "Gudrun Johnston",
+ "credit": "© Gudrun Johnston",
+ "patternUrl": "https://www.shetlandwoolweek.com/wp-content/uploads/2017/10/Bousta-Beanie-hat-pattern.pdf",
+ "colourway": {
+  "name": "Colourway 1",
+  "shades": {
+   "A": {
+    "name": "Blue Mix",
+    "hex": "#40778e",
+    "wool": "jamieson-smith-2ply-jumper-weight-fc39"
+   },
+   "B": {
+    "name": "Dark Azure Blue",
+    "hex": "#1e68a0",
+    "wool": "jamieson-smith-2ply-jumper-weight-142"
+   },
+   "C": {
+    "name": "Dark Teal Blue",
+    "hex": "#1b4159",
+    "wool": "jamieson-smith-2ply-jumper-weight-fc41"
+   }
+  }
+ },
+ "gauge": {
+  "stitches": 31,
+  "rounds": 31
+ },
+ "charts": {
+  "A": [
+   "B-A-A-A-",
+   "A-B-A-A-",
+   "A-B-B-A-",
+   "A-B-B-B-",
+   "A-B-B-A-",
+   "A-B-A-A-",
+   "B-A-A-A-",
+   "A-A-A-C-",
+   "A-A-C-A-",
+   "A-C-C-A-",
+   "C-C-C-A-",
+   "A-C-C-A-",
+   "A-A-C-A-",
+   "A-A-A-C-"
+  ],
+  "B": [
+   "A-A-A-C-A-A-CkA-A-A-C-",
+   "A-A-C-A-A-C-A-A-A-C-A-",
+   "A-C-C-A-A-AkA-C-C-A-",
+   "C-C-C-A-A-A-C-C-C-A-",
+   "A-C-C-A-AkA-C-C-A-",
+   "A-A-C-A-A-A-A-C-A-",
+   "A-A-A-CkA-A-A-C-",
+   "B-A-A-A-B-A-A-A-",
+   "A-B-AkA-B-Ak",
+   "A-B-B-A-B-B-"
+  ]
+ }
+}

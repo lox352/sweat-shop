@@ -1,0 +1,95 @@
+{
+ "id": "sww14-shwook-hat",
+ "year": 2014,
+ "name": "Shwook Hat",
+ "designer": "Hazel Tindall",
+ "credit": "Shwook hat © Hazel Tindall, 2014",
+ "patternUrl": "https://www.hazeltindall.com",
+ "colourway": {
+  "name": "Colour 1",
+  "shades": {
+   "A": {
+    "name": "Moorit",
+    "hex": "#834f3d",
+    "wool": "jamieson-smith-2ply-jumper-weight-4"
+   },
+   "B": {
+    "name": "Light Fawn",
+    "hex": "#c9c0a4",
+    "wool": "jamieson-smith-2ply-jumper-weight-202"
+   },
+   "C": {
+    "name": "Dark Grey",
+    "hex": "#5c5b57",
+    "wool": "jamieson-smith-2ply-jumper-weight-54"
+   },
+   "D": {
+    "name": "Natural White",
+    "hex": "#efe8c9",
+    "wool": "jamieson-smith-2ply-jumper-weight-1a"
+   },
+   "E": {
+    "name": "Dyed Shetland Black",
+    "hex": "#614030",
+    "wool": "jamieson-smith-2ply-jumper-weight-5"
+   }
+  }
+ },
+ "gauge": {
+  "stitches": 33,
+  "rounds": 34
+ },
+ "charts": {
+  "A": [
+   "B-B-B-C-C-C-",
+   "B-B-C-B-C-B-",
+   "B-C-B-C-B-B-",
+   "C-C-C-B-B-B-"
+  ],
+  "B": [
+   "C-C-D-C-D-C-D-C-C-C-D-C-C-C-C-C-D-C-C-C-D-C-D-C-D-C-C-C-",
+   "C-D-C-D-C-D-C-C-C-C-D-D-C-C-C-D-D-C-C-C-C-D-C-D-C-D-C-C-",
+   "D-C-D-C-D-C-C-C-C-C-D-D-D-C-D-D-D-C-C-C-C-C-D-C-D-C-D-C-",
+   "E-B-E-B-E-E-E-B-B-B-E-E-E-B-E-E-E-B-B-B-E-E-E-B-E-B-E-B-",
+   "B-E-B-E-E-E-E-E-B-B-E-E-B-B-B-E-E-B-B-E-E-E-E-E-B-E-B-E-",
+   "E-B-E-E-E-B-E-E-E-B-E-B-B-E-B-B-E-B-E-E-E-B-E-E-E-B-E-B-",
+   "B-A-A-A-B-A-B-A-A-A-B-B-A-A-A-B-B-A-A-A-B-A-B-A-A-A-D-A-",
+   "E-B-E-E-E-B-E-E-E-B-E-B-B-E-B-B-E-B-E-E-E-B-E-E-E-B-E-B-",
+   "B-E-B-E-E-E-E-E-B-B-E-E-B-B-B-E-E-B-B-E-E-E-E-E-B-E-B-E-",
+   "E-B-E-B-E-E-E-B-B-B-E-E-E-B-E-E-E-B-B-B-E-E-E-B-E-B-E-B-",
+   "D-C-D-C-D-C-C-C-C-C-D-D-D-C-D-D-D-C-C-C-C-C-D-C-D-C-D-C-",
+   "C-D-C-D-C-D-C-C-C-C-D-D-C-C-C-D-D-C-C-C-C-D-C-D-C-D-C-C-",
+   "C-C-D-C-D-C-D-C-C-C-D-C-C-C-C-C-D-C-C-C-D-C-D-C-D-C-C-C-"
+  ],
+  "C": [
+   "A-A-B-A-B-A-A-A-B-A-A-A-A-A-B-A-A-A-B-A-B-A-A-A-",
+   "A-B-A-B-A-A-A-A-B-B-A-A-A-B-B-A-A-A-A-B-A-B-A-A-",
+   "B-A-B-A-A-A-A-A-B-B-B-A-B-B-B-A-A-A-A-A-B-A-B-A-",
+   "C-D-C-C-C-D-D-D-C-C-C-D-C-C-C-D-D-D-C-C-C-D-C-D-",
+   "D-C-C-C-C-C-D-D-C-C-D-D-D-C-C-D-D-C-C-C-C-C-D-C-",
+   "C-C-C-D-C-C-C-D-C-D-D-C-D-D-C-D-C-C-C-D-C-C-C-D-",
+   "E-E-D-E-D-E-E-E-D-D-E-E-E-D-D-E-E-E-D-E-D-E-E-E-",
+   "C-C-C-D-C-C-C-D-C-D-D-C-D-D-C-D-C-C-C-D-C-C-C-D-",
+   "D-C-C-C-C-C-D-D-C-C-D-D-D-C-C-D-D-C-C-C-C-C-D-C-",
+   "C-D-C-C-C-D-D-D-C-C-C-D-C-C-C-D-D-D-C-C-C-D-C-D-",
+   "B-A-B-A-A-A-A-A-B-B-B-A-B-B-B-A-A-A-A-A-B-A-B-A-",
+   "A-B-A-B-A-A-A-A-B-B-A-A-A-B-B-A-A-A-A-B-A-B-A-A-",
+   "A-A-B-A-B-A-A-A-B-A-A-A-A-A-B-A-A-A-B-A-B-A-A-A-"
+  ],
+  "D": [
+   "B-E-E-E-B-B-B-EsB-B-B-E-E-E-",
+   "E-D-D-D-E-D-D-D-D-D-E-D-D-D-",
+   "E-E-D-D-D-E-DsE-D-D-D-E-",
+   "D-E-E-D-D-E-E-E-D-D-E-E-",
+   "E-E-D-D-D-EsD-D-D-E-",
+   "E-D-D-D-E-E-E-D-D-D-",
+   "C-D-D-D-CsD-D-D-",
+   "C-D-D-C-C-C-D-D-",
+   "C-D-D-CsD-D-",
+   "C-D-C-C-C-D-",
+   "C-D-CsD-",
+   "A-A-A-A-",
+   "A-As"
+  ]
+ }
+}
