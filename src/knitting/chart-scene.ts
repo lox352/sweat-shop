@@ -76,6 +76,8 @@ export interface ChartScene {
   /** Which way the round before the join and the round after it run across the chart: -1 leftwards. */
   joinWays: [number, number];
   holds: Hold[];
+  /** The stitches put on hold, each marked in its own cell. */
+  held: number[];
   turns: Turn[];
   /** The stitch markers on the needles, each a line up the chart between two columns. */
   markers: MarkerLine[];
@@ -100,13 +102,14 @@ export const sceneOf = (
     needleRules?: NeedleRule[];
     join?: Join;
     holds?: Hold[];
+    held?: number[];
     turns?: Turn[];
     markers?: MarkerLine[];
     face?: Face;
     makeOneLean?: "left" | "right";
   } = {},
 ): ChartScene => {
-  const { needleRules = [], join, holds = [], turns = [], markers = [], face = "right", makeOneLean } = options;
+  const { needleRules = [], join, holds = [], held = [], turns = [], markers = [], face = "right", makeOneLean } = options;
   const index = indexRows(layout);
   const size = stitches.length;
   const rowOf = new Int32Array(size);
@@ -209,6 +212,7 @@ export const sceneOf = (
     join,
     joinWays,
     holds,
+    held,
     turns,
     markers,
     face,

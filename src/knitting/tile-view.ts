@@ -277,6 +277,13 @@ export class TileView {
   private shown = "";
   /** Told when lines move, for anything placed over the chart outside the tiles. */
   onMove?: () => void;
+  /**
+   * Told how far across the stitch being scrolled to has been moved: by
+   * keeping the box inside the chart, which comes before holding it still.
+   * Wherever the box was sent was worked out from where the stitch was, so it
+   * is sent on by as much.
+   */
+  onTargetMoved?: (by: number) => void;
 
   private readonly onScroll = () => {
     this.movedAt = performance.now();
@@ -613,7 +620,10 @@ export class TileView {
     const room = gutter(this.content!.cell) + (parseFloat(getComputedStyle(this.scroller).paddingRight) || 0);
     if (this.columns.target.start[0] + room < size) return;
     const left = this.sheet.offsetLeft;
+    const was = this.columns.targetShift;
     this.columns.keepBox(this.scroller.scrollLeft - left, size, scrollAcross(this.scroller)[0] - left, room);
+    const by = this.columns.targetShift - was;
+    if (this.target !== undefined && Math.abs(by) >= 0.5) this.onTargetMoved?.(by);
   }
 
   /** The line under `at` along `order`, by where lines are drawn now, or the nearest to it that `shows`. */

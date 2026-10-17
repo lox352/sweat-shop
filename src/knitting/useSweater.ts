@@ -4,7 +4,8 @@ import { type SweaterStitches, buildSweater } from "./engine";
 import { type ChartLayout, layOutSweater } from "./layout";
 import { type RoundIndex, indexRounds } from "./progress";
 import { holdRegions } from "./holds";
-import { type View, beginningAt, viewFor } from "./view";
+import { type MarkerLine, type View, beginningAt, viewFor } from "./view";
+import { type ChartView, chartViews, layOutView, markersInView, viewFollowedAt } from "./views";
 
 /**
  * A sweater's stitches and rounds, for a size.
@@ -70,13 +71,33 @@ export const countedAt = (pattern: SweaterPattern, built: SweaterStitches, progr
   return counted;
 };
 
+/**
+ * One of the chart's views, as the knitting counts it: its chart, and the
+ * markers on it. See knitting/views. Kept once a view and a beginning.
+ */
+const charts = new WeakMap<View, Map<string, { layout: ChartLayout; markers: MarkerLine[] }>>();
+export const viewChart = (built: SweaterStitches, counted: View, view: ChartView) => {
+  let kept = charts.get(counted);
+  if (!kept) charts.set(counted, (kept = new Map()));
+  let chart = kept.get(view.id);
+  if (!chart) {
+    const edge = built.holds.find((held) => view.kind === "held" && held.holder === view.holder)?.edge;
+    const { layout, boundary } = layOutView(view, counted.layout, built, edge);
+    chart = { layout, markers: markersInView(counted.markers, boundary) };
+    kept.set(view.id, chart);
+  }
+  return chart;
+};
+
 /** A sweater, and its rounds as the knitter counts them once `progress` stitches are worked: see countedAt. */
 export const useSweater = (pattern: SweaterPattern, sizeId?: string, progress = 0) => {
   const built = useMemo(() => sweaterStitches(pattern, sizeId), [pattern, sizeId]);
   const { view, index } = countedAt(pattern, built, progress);
   const yoke = useMemo(() => yokeRounds(built), [built]);
   const holds = useMemo(() => holdRegions(built.stitches, built.holds), [built]);
-  return { ...built, index, yoke, holdRegions: holds, view };
+  const views = useMemo(() => chartViews(built, pattern.pieces), [built, pattern]);
+  const following = viewFollowedAt(views, built, progress);
+  return { ...built, index, yoke, holdRegions: holds, view, views, following };
 };
 
 /**

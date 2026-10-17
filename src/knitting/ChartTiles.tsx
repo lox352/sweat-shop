@@ -16,6 +16,8 @@ export interface TilesHandle {
 interface ChartTilesProps extends TileContent {
   /** Told whenever the columns or rows move, for anything placed over them. */
   onMove?: () => void;
+  /** Told how far the stitch being scrolled to has moved across: see TileView.onTargetMoved. */
+  onTargetMoved?: (by: number) => void;
 }
 
 /**
@@ -23,7 +25,7 @@ interface ChartTilesProps extends TileContent {
  * be worked next and, when asked, closes up the columns no row in view has a
  * stitch in and the rows no column on screen has.
  */
-const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, ...content }, ref) => {
+const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetMoved, ...content }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<TileView>();
 
@@ -50,6 +52,7 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, ...conten
     const view = viewRef.current;
     if (!view) return;
     view.onMove = onMove;
+    view.onTargetMoved = onTargetMoved;
     view.show(content);
   });
 

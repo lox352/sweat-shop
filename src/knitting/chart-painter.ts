@@ -567,6 +567,27 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     strokeIn(draw, colours.piece, 2);
   }
 
+  /*
+   * A stitch put on hold: a bracket over the top of its cell, open below,
+   * which runs on across a run of them as the holder they go onto.
+   */
+  if (scene.held.length > 0) {
+    const drop = cell * 0.22;
+    const draw = () => {
+      for (const id of scene.held) {
+        const a = at(id);
+        if (!a || a.w <= 0) continue;
+        const y = a.y + a.h * 0.14;
+        ctx.moveTo(a.x + a.w * 0.12, y + drop);
+        ctx.lineTo(a.x + a.w * 0.12, y);
+        ctx.lineTo(a.x + a.w * 0.88, y);
+        ctx.lineTo(a.x + a.w * 0.88, y + drop);
+      }
+    };
+    strokeIn(draw, "#fff", 3.5);
+    strokeIn(draw, colours.piece, 1.6);
+  }
+
   // A short row's turn: a hook from its last stitch round into the row above.
   if (scene.turns.length > 0) {
     const reach = cell * 0.38;
