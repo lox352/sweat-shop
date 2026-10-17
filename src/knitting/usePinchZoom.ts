@@ -1,4 +1,5 @@
 import { RefObject, useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { scrollAcross } from "./scroll-corner";
 
 export const minCell = 8;
 export const maxCell = 40;
@@ -168,15 +169,22 @@ export function usePinchZoom(
      * anchoring), and adding the growth on top of that overshoots. So look
      * where the point has got to, and move it back.
      */
+    const placed = placeAfter?.(done.originX, done.originY, done.screenX, done.screenY);
+    /*
+     * Where the sheet is in the box with its scroll taken back out, read once
+     * it has its new size: scrolled across from its right-hand edge (see
+     * scroll-corner), the sheet's left moves in the box as it grows or
+     * shrinks. A scroll cut back to fit moves the sheet on screen the other
+     * way, and leaves this as it is.
+     */
     const box = sheet.getBoundingClientRect();
-    // Read before the sheet takes its new size, which may cut the box's scroll back to fit.
     const sheetLeft = scroller.scrollLeft + box.left;
     const sheetTop = scroller.scrollTop + box.top;
-    const placed = placeAfter?.(done.originX, done.originY, done.screenX, done.screenY);
     const left = sheetLeft + (placed?.x ?? done.originX * done.ratio) - done.screenX;
     const top = sheetTop + (placed?.y ?? done.originY * done.ratio) - done.screenY;
+    const [lowest, highest] = scrollAcross(scroller);
     const place = () => {
-      scroller.scrollLeft = Math.min(Math.max(left, 0), scroller.scrollWidth - scroller.clientWidth);
+      scroller.scrollLeft = Math.min(Math.max(left, lowest), highest);
       scroller.scrollTop = Math.min(Math.max(top, 0), scroller.scrollHeight - scroller.clientHeight);
     };
     /*

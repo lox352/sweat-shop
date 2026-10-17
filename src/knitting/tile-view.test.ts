@@ -299,6 +299,87 @@ describe("the chart on tiles, closed up", () => {
     view.destroy();
   });
 
+  it("never carries the chart's right-hand edge into the box, whatever it holds still", () => {
+    /*
+     * A step up the chart that closes or opens columns between the chart's
+     * right-hand edge and a stitch near it, which would be held still - and
+     * the edge with it carried into the box, or out past it.
+     */
+    const live = new LiveColumns(scene.index);
+    const narrow = 13 * cell + gutter(cell);
+    let found: { first: number; id: number } | undefined;
+    for (let first = 1; first + 5 <= rows && !found; first++) {
+      live.moveTo(first, first + 4);
+      const before = mapOf(live);
+      if (!live.moveTo(first + 1, first + 5)) continue;
+      const after = mapOf(live);
+      const id = idsIn(first + 2).find((id) => {
+        const column = scene.columnOf[id];
+        const fromEdge = (map: typeof before) => map.count - map.leftOf[column];
+        return fromEdge(before) !== fromEdge(after) && fromEdge(before) <= 10;
+      });
+      if (id !== undefined) found = { first, id };
+    }
+    if (!found) throw new Error("no step moves the edge against a stitch near it");
+    const { first, id } = found;
+    const { scroller, sheet, container, scrollTo } = scrollingBox(narrow, 200);
+    const view = new TileView(container, scroller, sheet);
+    view.show(content({ collapse: true, follow: id }));
+    // At the chart's right-hand edge, the rows above `first` in view; then down a row, which closes the columns again.
+    const toEdge = () => parseFloat(sheet.style.width) - narrow;
+    scrollTo(toEdge(), topFor(first + 1));
+    now += 200;
+    view.update();
+    scrollTo(toEdge(), topFor(first + 1));
+    now += 200;
+    view.update();
+    const column1 = idsIn(first + 2).find((one) => scene.columnOf[one] === 1)!;
+    const edge = () => view.place(column1)!.x + cell + gutter(cell);
+    const boxRight = () => scroller.scrollLeft + narrow;
+    expect(edge()).toBeCloseTo(boxRight(), 6);
+
+    scrollTo(scroller.scrollLeft, topFor(first));
+    for (let frame = 0; frame < 20; frame++) {
+      now += 16;
+      view.update();
+      expect(edge(), `frame ${frame}`).toBeGreaterThanOrEqual(boxRight() - 1e-6);
+    }
+    view.destroy();
+  });
+
+  it("scrolled across from the right, never sets the box's scroll across as columns close or open to the left of what it holds", () => {
+    const { first } = heldStitch();
+    const narrow = 13 * cell + gutter(cell);
+    const { scroller, sheet, container, writes, scrollTo } = scrollingBox(narrow, 200);
+    // As a box written right to left lays it out: the sheet against its right-hand edge, growing and shrinking leftwards.
+    scroller.style.direction = "rtl";
+    Object.defineProperty(sheet, "offsetLeft", { get: () => narrow - (parseFloat(sheet.style.width) || 0) });
+    Object.defineProperty(scroller, "scrollWidth", { get: () => Math.max(narrow, parseFloat(sheet.style.width) || 0) });
+    const view = new TileView(container, scroller, sheet);
+    view.show(content({ collapse: true }));
+    // At the right-hand edge, scrolled nought, the rows above `first` in view; then down a row and back, closing columns and opening them.
+    scrollTo(0, topFor(first + 1));
+    now += 200;
+    view.update();
+    const edge = () => {
+      const column1 = idsIn(first + 2).find((one) => scene.columnOf[one] === 1)!;
+      return sheet.offsetLeft + view.place(column1)!.x + cell + gutter(cell) - scroller.scrollLeft;
+    };
+    for (const to of [first, first + 1]) {
+      writes.length = 0;
+      scrollTo(0, topFor(to));
+      for (let frame = 0; frame < 30; frame++) {
+        now += 16;
+        view.update();
+        // The chart's right-hand edge at the box's, every frame.
+        expect(edge(), `frame ${frame}`).toBeCloseTo(narrow, 6);
+      }
+      expect(container.querySelector<HTMLElement>(".chart-layer")!.style.transform).toBe("");
+      expect(writes.filter((write) => write.startsWith("left"))).toEqual([]);
+    }
+    view.destroy();
+  });
+
   it("moves the columns at once when the rows in view jump, or when asked for less motion", () => {
     const { first, id, other } = heldStitch();
     const { scroller, sheet, container, scrollTo } = scrollingBox(wide, 200);

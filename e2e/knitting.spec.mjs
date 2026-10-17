@@ -201,14 +201,15 @@ test("knitting fills the screen, says how to work the round's stitches, and clos
 
   const at = () => page.locator(".chart-sheets").evaluate(sheet => {
     const box = sheet.getBoundingClientRect();
-    return { left: box.left, top: box.top };
+    // By its right-hand edge, which it is scrolled across from: columns opening to the left move nothing.
+    return { right: box.right, top: box.top };
   });
   const before = await at();
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
   await expect(page.getByRole("region", { name: "Your progress" })).toBeVisible();
   const after = await at();
   expect(Math.abs(after.top - before.top)).toBeLessThan(2);
-  expect(Math.abs(after.left - before.left)).toBeLessThan(2);
+  expect(Math.abs(after.right - before.right)).toBeLessThan(2);
 });
 
 test("the chart keeps its bottom right corner when its window is resized for a moment", async ({ page }) => {
@@ -216,7 +217,8 @@ test("the chart keeps its bottom right corner when its window is resized for a m
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
   await page.reload();
   const gaps = () => page.locator(".chart-scroll").evaluate(scroller => ({
-    right: Math.round(scroller.scrollWidth - scroller.clientWidth - scroller.scrollLeft),
+    // Scrolled across from the right, a scroll is how far it is from there, less than nought: see scroll-corner.
+    right: Math.round(-scroller.scrollLeft) || 0,
     bottom: Math.round(scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop),
   }));
   await expect.poll(gaps).toEqual({ right: 0, bottom: 0 });
@@ -482,27 +484,6 @@ test("a raglan divides as its pattern says: its markers off either side of each 
   await expect.poll(edge).toBe(true);
 });
 
-test("the chart finds the stitch again if the browser leaves it elsewhere as a short row ends, but not if you scroll away", async ({ page }) => {
-  // Short row 3 of Paul Klee's M1, its thirteen stitches still to knit; then the turn, with its long panel.
-  await knittedTo(page, 2364, klee);
-  await page.getByRole("button", { name: /^Knit 13 in / }).click();
-  await expect(page.getByRole("button", { name: "Turned: carry on" })).toBeVisible();
-  // As a phone's browser has been seen to while the chart turns over and the panel grows: the chart's window left
-  // somewhere else, with nothing touched.
-  await page.locator(".chart-scroll").evaluate((box) => {
-    box.scrollLeft = 0;
-    box.scrollTop = 0;
-  });
-  await expect(page.locator(".chart-next")).toBeInViewport();
-  // A scroll of your own stays where you take it.
-  await page.waitForTimeout(1200);
-  const box = await page.locator(".chart-scroll").boundingBox();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.wheel(-4000, -4000);
-  await page.waitForTimeout(1200);
-  await expect(page.locator(".chart-next")).not.toBeInViewport();
-});
-
 test("a rib is worked as its pattern words it, and bound off in pattern", async ({ page }) => {
   await knittedTo(page, kleeBeforeRib, klee);
   await expect(page.getByRole("button", { name: /^\(K1, p1\) x 118 in / })).toBeVisible();
@@ -692,8 +673,9 @@ test("closed up, a row with no stitch in the columns on screen takes no height, 
   // Along the bottom of the chart from its right edge, a few hundred pixels at a time, each let come to rest.
   const width = await scroller.evaluate(box => box.scrollWidth);
   const counts = [];
-  for (let left = width; left >= 0; left -= 300) {
-    await scroller.evaluate((box, left) => { box.scrollLeft = left; }, left);
+  for (let across = 0; across <= width; across += 300) {
+    // Scrolled from the right, leftwards is less than nought.
+    await scroller.evaluate((box, across) => { box.scrollLeft = -across; }, across);
     await page.waitForTimeout(250);
     const now = await gaps();
     counts.push(now.showing);

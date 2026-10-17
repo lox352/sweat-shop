@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Stitch, isStep } from "../types/Stitch";
 import { type ChartLayout, layOutSweater, mirrorLayout } from "./layout";
+import { scrollAcross } from "./scroll-corner";
 import type { MarkerLine } from "./view";
 import type { RoundKind } from "./needles";
 import { Palette, yarnFor } from "./palette";
@@ -262,7 +263,7 @@ const Chart: React.FC<ChartProps> = ({
     const scroller = scrollRef.current;
     if (!scroller || opened.current) return;
     opened.current = true;
-    scroller.scrollLeft = scroller.scrollWidth;
+    scroller.scrollLeft = scrollAcross(scroller)[1];
     scroller.scrollTop = scroller.scrollHeight;
   }, []);
 
@@ -279,14 +280,16 @@ const Chart: React.FC<ChartProps> = ({
   const aim = useCallback(
     (behavior: ScrollBehavior) => {
       const scroller = scrollRef.current;
-      if (!scroller || nextId === undefined || !at) return;
+      const sheet = sheetRef.current;
+      if (!scroller || !sheet || nextId === undefined || !at) return;
       const cell = cellNow.current;
       // Held still on the tiles while the box scrolls to it, however the columns move on the way.
       tilesRef.current?.hold(nextId);
       const placed = tilesRef.current?.place(nextId);
       if (!placed) return;
       scroller.scrollTo({
-        left: Math.max(placed.x - scroller.clientWidth / 2 + cell / 2, 0),
+        // From the same edge as the sheet's offset in the box, whichever it is scrolled from: see scroll-corner.
+        left: sheet.offsetLeft + placed.x - scroller.clientWidth / 2 + cell / 2,
         top: Math.max(placed.y + cell - (scroller.clientHeight - lift(scroller.clientHeight, cell, followAt)), 0),
         behavior,
       });
@@ -296,52 +299,6 @@ const Chart: React.FC<ChartProps> = ({
   useEffect(() => {
     aim(reducedMotion() ? "auto" : "smooth");
   }, [aim]);
-
-  /*
-   * And make sure it got there. Once the box has been still a moment after
-   * an aim, the stitch must be in it: a phone's browser has been seen to
-   * leave the box somewhere else entirely as the chart turns over at a short
-   * row's end and the panel grows, showing nothing at all. Then it is put
-   * there at once. Not if you have scrolled, touched or zoomed the chart
-   * since, and not again once it has been seen there: where you take it is
-   * where it stays.
-   */
-  useEffect(() => {
-    const scroller = scrollRef.current;
-    if (!scroller || nextId === undefined || !at) return;
-    const yourOwn = ["touchstart", "wheel", "pointerdown", "keydown"];
-    let timer = 0;
-    let checks = 0;
-    const check = () => {
-      const placed = tilesRef.current?.place(nextId);
-      if (!placed) return;
-      const cell = cellNow.current;
-      const inBox =
-        placed.x + cell > scroller.scrollLeft &&
-        placed.x < scroller.scrollLeft + scroller.clientWidth &&
-        placed.y + cell > scroller.scrollTop &&
-        placed.y < scroller.scrollTop + scroller.clientHeight;
-      // There, or given up on: done until the next aim.
-      if (inBox || checks++ > 1) return yours();
-      aimRef.current("auto");
-      wait();
-    };
-    const wait = () => {
-      window.clearTimeout(timer);
-      timer = window.setTimeout(check, 400);
-    };
-    const yours = () => {
-      window.clearTimeout(timer);
-      scroller.removeEventListener("scroll", wait);
-    };
-    wait();
-    scroller.addEventListener("scroll", wait, { passive: true });
-    for (const kind of yourOwn) scroller.addEventListener(kind, yours, { passive: true });
-    return () => {
-      yours();
-      for (const kind of yourOwn) scroller.removeEventListener(kind, yours);
-    };
-  }, [aim, nextId, at]);
 
   /*
    * When the window changes size. Scroll positions are counted from the top
@@ -386,7 +343,7 @@ const Chart: React.FC<ChartProps> = ({
     let bottom = 0;
     const settled = () => scroller.clientWidth === width && scroller.clientHeight === height;
     const note = () => {
-      right = scroller.scrollWidth - scroller.clientWidth - scroller.scrollLeft;
+      right = scrollAcross(scroller)[1] - scroller.scrollLeft;
       bottom = scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop;
     };
     note();
@@ -408,7 +365,7 @@ const Chart: React.FC<ChartProps> = ({
       } else if (followingRef.current) {
         aimRef.current("auto");
       } else {
-        scroller.scrollLeft = scroller.scrollWidth - scroller.clientWidth - right;
+        scroller.scrollLeft = scrollAcross(scroller)[1] - right;
         scroller.scrollTop = scroller.scrollHeight - scroller.clientHeight - bottom;
       }
     });

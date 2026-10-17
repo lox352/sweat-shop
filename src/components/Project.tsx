@@ -201,9 +201,11 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
   /*
    * Opening or closing the knitting rearranges everything around the chart:
    * knitting fills the screen, without the header and title above it. Hold
-   * the chart where it is on screen rather than letting it jump.
+   * the chart where it is on screen rather than letting it jump: by its top
+   * right corner, as the box is scrolled across from the right and columns
+   * open and close away from it.
    */
-  const chartHeld = useRef<{ left: number; top: number }>();
+  const chartHeld = useRef<{ right: number; top: number }>();
   useLayoutEffect(() => {
     const was = chartHeld.current;
     chartHeld.current = undefined;
@@ -213,7 +215,7 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
     window.scrollBy({ top: sheet.getBoundingClientRect().top - was.top, behavior: "instant" });
     const now = sheet.getBoundingClientRect();
     scroller.scrollTop += now.top - was.top;
-    scroller.scrollLeft += now.left - was.left;
+    scroller.scrollLeft += now.right - was.right;
   }, [knitting]);
 
   if (!project || !sweater) {
@@ -241,7 +243,7 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
       knitting={knitting}
       setKnitting={(on) => {
         const sheet = document.querySelector(".chart-sheets")?.getBoundingClientRect();
-        chartHeld.current = sheet && { left: sheet.left, top: sheet.top };
+        chartHeld.current = sheet && { right: sheet.right, top: sheet.top };
         const next = new URLSearchParams(params);
         if (on) next.set(knittingParam, "1");
         else next.delete(knittingParam);
