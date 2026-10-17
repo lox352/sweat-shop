@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { sweaterById } from "../data/sweaters";
 import { SlotId } from "../data/sweaters/types";
-import { useSweater } from "../knitting/useSweater";
+import { useSweater, viewChart } from "../knitting/useSweater";
+import type { ChartView } from "../knitting/views";
 import { colourwayLabel, paletteOf, yarnFor } from "../knitting/palette";
 import { totals, positionOf, currentRun, whereYouAre, roundNames, roundWhats } from "../knitting/progress";
 import { keyEntryAt } from "../knitting/stitch-key";
@@ -41,6 +42,34 @@ const statsParam = "stats";
 /** "Under 1%", "3%": how far through, never rounded up to done. */
 const percentKnitted = (worked: number, percent: number) =>
   `${worked > 0 && percent < 1 ? "Under 1" : Math.floor(percent)}%`;
+
+/**
+ * The chart's views as tabs over it: from the neck, the body and each sleeve,
+ * each its own chart, with the one the knitting is in marked. See
+ * knitting/views.
+ */
+const ViewTabs: React.FC<{
+  views: ChartView[];
+  shown: string;
+  current?: string;
+  onShow: (view: string) => void;
+}> = ({ views, shown, current, onShow }) => (
+  <div className="view-tabs" role="tablist" aria-label="Views of the chart">
+    {views.map((view) => (
+      <button
+        key={view.id}
+        type="button"
+        role="tab"
+        aria-selected={view.id === shown}
+        className={`view-tab${view.id === shown ? " is-shown" : ""}`}
+        onClick={() => onShow(view.id)}
+      >
+        {view.label}
+        {view.id === current && <span className="quiet">knitting</span>}
+      </button>
+    ))}
+  </div>
+);
 
 /**
  * The end of the chart page while you are not knitting: how far you have
@@ -284,7 +313,26 @@ const ProjectView: React.FC<{
   const sweater = sweaterById(sweaterId)!;
   const size = sweater.sizes.find((s) => s.id === project.sizeId) ?? sweater.sizes[0];
   // The rounds as the knitter counts them where the knitting has got to: see knitting/view.
-  const { stitches, rounds, index, yoke, holdRegions, view: counted } = useSweater(sweater, size.id, project.progress);
+  const built = useSweater(sweater, size.id, project.progress);
+  const { stitches, rounds, index, yoke, holdRegions, view: counted, views, following } = built;
+  /*
+   * Which of the chart's views it shows: the one the knitting is in while you
+   * knit, and otherwise the one you pick, or that one again. See knitting/views.
+   */
+  const [chosenView, setChosenView] = useState<string>();
+  useEffect(() => {
+    if (knitting) setChosenView(undefined);
+  }, [knitting]);
+  const shownView = (!knitting && views.find((one) => one.id === chosenView)) || views[following];
+  const chart = shownView ? viewChart(built, counted, shownView) : { layout: counted.layout, markers: counted.markers };
+  const tabs = views.length > 1 && shownView && (
+    <ViewTabs
+      views={views}
+      shown={shownView.id}
+      current={views[following]?.id}
+      onShow={setChosenView}
+    />
+  );
 
   const colourway = sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0];
   const palette = useMemo(() => paletteOf(colourway, project.shades), [colourway, project.shades]);
@@ -294,7 +342,7 @@ const ProjectView: React.FC<{
   const position = positionOf(stitches, project.progress, index);
   const time = useKnittingTime(project.id, stitches, project.progress);
 
-  // The whole sweater is one chart; each round goes by the name the knitting panel gives it.
+  // Every view of the chart names each round as the knitting panel does.
   const names = useMemo(() => roundNames(index), [index]);
   const whats = useMemo(() => roundWhats(index), [index]);
 
@@ -340,12 +388,14 @@ const ProjectView: React.FC<{
   if (exploring && detail && time) {
     return (
       <PageLayout title={title} eyebrow={eyebrow} showTitle={false} className="knit-screen">
-        <section className="section chart-page">
+        <section className="section chart-page" data-view={shownView?.id}>
+          {!knitting && tabs}
           <Chart
+            key={shownView?.id}
             stitches={stitches}
             rounds={counted.rounds}
-            layout={counted.layout}
-            markers={counted.markers}
+            layout={chart.layout}
+            markers={chart.markers}
             palette={palette}
             progress={project.progress}
             // Looking back: the edge of the knitting near the top, what is done below it.
@@ -384,12 +434,14 @@ const ProjectView: React.FC<{
         showTitle={!knitting}
         className={knitting ? "knit-screen" : undefined}
       >
-        <section className="section chart-page">
+        <section className="section chart-page" data-view={shownView?.id}>
+          {!knitting && tabs}
           <Chart
+            key={shownView?.id}
             stitches={stitches}
             rounds={counted.rounds}
-            layout={counted.layout}
-            markers={counted.markers}
+            layout={chart.layout}
+            markers={chart.markers}
             palette={palette}
             progress={project.progress}
             follow={knitting}

@@ -236,10 +236,12 @@ const Chart: React.FC<ChartProps> = ({
   const join = useMemo(() => joinIn(stitches, rounds), [stitches, rounds]);
   const holds = useMemo(() => holdsIn(stitches, rounds, pieces), [stitches, rounds, pieces]);
   const turns = useMemo(() => turnsIn(stitches, rounds), [stitches, rounds]);
+  // Every stitch a holder takes, marked where it is: in the views that show it rather than the bar.
+  const held = useMemo(() => (holdRegions ?? []).flatMap((region) => region.stitches), [holdRegions]);
 
   const scene = useMemo(
-    () => sceneOf(layout, stitches, rounds, { needleRules, join, holds, turns, face, makeOneLean, markers: markerLines }),
-    [layout, stitches, rounds, needleRules, join, holds, turns, face, makeOneLean, markerLines],
+    () => sceneOf(layout, stitches, rounds, { needleRules, join, holds, held, turns, face, makeOneLean, markers: markerLines }),
+    [layout, stitches, rounds, needleRules, join, holds, held, turns, face, makeOneLean, markerLines],
   );
   const colours = useMemo(
     () => ({
@@ -277,6 +279,7 @@ const Chart: React.FC<ChartProps> = ({
    * directions cannot be sent separately. The round only changes once a
    * round, so within one this moves only sideways.
    */
+  const aimedAt = useRef<ScrollToOptions>();
   const aim = useCallback(
     (behavior: ScrollBehavior) => {
       const scroller = scrollRef.current;
@@ -287,18 +290,41 @@ const Chart: React.FC<ChartProps> = ({
       tilesRef.current?.hold(nextId);
       const placed = tilesRef.current?.place(nextId);
       if (!placed) return;
-      scroller.scrollTo({
+      aimedAt.current = {
         // From the same edge as the sheet's offset in the box, whichever it is scrolled from: see scroll-corner.
         left: sheet.offsetLeft + placed.x - scroller.clientWidth / 2 + cell / 2,
         top: Math.max(placed.y + cell - (scroller.clientHeight - lift(scroller.clientHeight, cell, followAt)), 0),
         behavior,
-      });
+      };
+      scroller.scrollTo(aimedAt.current);
     },
     [at, followAt, nextId],
   );
+  /*
+   * Where the box was last sent, and sent on from there when the stitch it
+   * was sent to is moved across on the way: by the columns being kept from
+   * carrying the chart's right-hand edge into the box, which outranks holding
+   * the stitch still. See TileView.keepColumnsInBox.
+   */
+  const targetMoved = useCallback((by: number) => {
+    const scroller = scrollRef.current;
+    const aimed = aimedAt.current;
+    if (!scroller || !aimed) return;
+    aimedAt.current = { ...aimed, left: (aimed.left ?? 0) + by };
+    scroller.scrollTo(aimedAt.current);
+  }, []);
+  /*
+   * The first aim, as the chart opens - on a view of its own after the
+   * knitting moves to another - goes straight there: there is nothing on
+   * screen yet to follow on from, and the chart is still being sized for
+   * where it is going, which a smooth scroll under way would be thrown by.
+   */
+  const aimed = useRef(false);
   useEffect(() => {
-    aim(reducedMotion() ? "auto" : "smooth");
-  }, [aim]);
+    if (!at) return;
+    aim(reducedMotion() || !aimed.current ? "auto" : "smooth");
+    aimed.current = true;
+  }, [aim, at]);
 
   /*
    * When the window changes size. Scroll positions are counted from the top
@@ -451,6 +477,7 @@ const Chart: React.FC<ChartProps> = ({
             follow={nextId}
             collapse
             onMove={picked !== undefined ? moved : undefined}
+            onTargetMoved={targetMoved}
           />
           {picked !== undefined && (
             <StitchPicker
@@ -493,9 +520,13 @@ const Chart: React.FC<ChartProps> = ({
         {showText && <TextRound stitches={stitches} rounds={rounds} round={follow && focusRound ? focusRound : textRound} labels={labels} names={names} palette={palette} pieces={pieces} />}
       </details>}
       <p className="chart-caption">
-        The whole sweater, {layout.columns} columns across and {layout.rows} rows: the
-        yoke from the neck up, then the body and both sleeves side by side above
-        it. Read from the bottom right, working right to left; scroll sideways to
+        {layout.columns} columns across and {layout.rows} rows. The stitches cast on at
+        an underarm are the bottom of two pieces, the body and a sleeve, so the
+        sweater has more than one chart, chosen by the tabs above it: from the neck,
+        the yoke with the body and both sleeves side by side above it, all but the
+        underarms; the body, with both underarms; and each sleeve, picked up over
+        its underarm. While you knit, the chart is the one the next stitch is in.
+        Read from the bottom right, working right to left; scroll sideways to
         see a whole round, and pinch to zoom.{onJump && " Tap a stitch to carry on from there."} Every
         stitch stands over the stitch it was knitted into, so a column is a
         column of the knitting: a make-one begins a new one, with nothing below
@@ -504,9 +535,7 @@ const Chart: React.FC<ChartProps> = ({
         screen closes up, so what you see stands side by side as it does on the
         needles, and parts again when a make-one's row comes into view; so does
         a row with no stitch in the columns on screen. Above the divide each row holds a round
-        of the body and one of each sleeve, all numbered on from the yoke's: going
-        round the body you pass over the sleeves' columns, and a sleeve goes up
-        its own columns a row at a time.
+        of each piece the chart shows, all numbered on from the yoke's.
         {turns.length > 0 &&
           " The chart shows the side you are working on, every stitch as it looks from there, and turns over" +
             " with the work at a short row."}

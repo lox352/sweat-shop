@@ -347,6 +347,51 @@ describe("the chart on tiles, closed up", () => {
     view.destroy();
   });
 
+  it("tells how far the stitch being scrolled to moves when keeping the edge out of the box moves it, for the scroll to follow", () => {
+    const live = new LiveColumns(scene.index);
+    const narrow = 13 * cell + gutter(cell);
+    let found: { first: number; id: number } | undefined;
+    for (let first = 1; first + 5 <= rows && !found; first++) {
+      live.moveTo(first, first + 4);
+      const before = mapOf(live);
+      if (!live.moveTo(first + 1, first + 5)) continue;
+      const after = mapOf(live);
+      const id = idsIn(first + 2).find((id) => {
+        const column = scene.columnOf[id];
+        const fromEdge = (map: typeof before) => map.count - map.leftOf[column];
+        return fromEdge(before) !== fromEdge(after) && fromEdge(before) <= 10;
+      });
+      if (id !== undefined) found = { first, id };
+    }
+    if (!found) throw new Error("no step moves the edge against a stitch near it");
+    const { first, id } = found;
+    const { scroller, sheet, container, scrollTo } = scrollingBox(narrow, 200);
+    const view = new TileView(container, scroller, sheet);
+    const told: number[] = [];
+    view.onTargetMoved = (by) => told.push(by);
+    view.show(content({ collapse: true }));
+    const toEdge = () => parseFloat(sheet.style.width) - narrow;
+    scrollTo(toEdge(), topFor(first + 1));
+    now += 200;
+    view.update();
+    scrollTo(toEdge(), topFor(first + 1));
+    now += 200;
+    view.update();
+    // Scrolling to the stitch, which the columns closing between it and the edge would carry the edge in with.
+    // Where it is on screen: on the sheet, less the box's scroll, which coming to rest may set.
+    const onScreen = () => view.place(id)!.x - scroller.scrollLeft;
+    const was = onScreen();
+    view.hold(id);
+    scrollTo(scroller.scrollLeft, topFor(first));
+    for (let frame = 0; frame < 20; frame++) {
+      now += 16;
+      view.update();
+    }
+    expect(told.length).toBeGreaterThan(0);
+    expect(onScreen() - was).toBeCloseTo(told.reduce((sum, by) => sum + by, 0), 6);
+    view.destroy();
+  });
+
   it("scrolled across from the right, never sets the box's scroll across as columns close or open to the left of what it holds", () => {
     const { first } = heldStitch();
     const narrow = 13 * cell + gutter(cell);

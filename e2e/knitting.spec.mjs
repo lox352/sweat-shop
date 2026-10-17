@@ -327,7 +327,11 @@ test("the dividing round puts each sleeve on hold, casts on its underarm, and go
   await expect(page.locator(".knitting-panel")).toContainText("Put 80 stitches on hold");
   await expect(page.locator(".knitting-panel")).toContainText("right sleeve");
   await expect(page.getByRole("button", { name: "End of round", exact: true })).toHaveCount(0);
+  // The chart is the view from the neck until the first stitch cast on at the underarm, which is the body's.
+  const view = page.locator(".chart-page");
+  await expect(view).toHaveAttribute("data-view", "neck");
   await page.getByRole("button", { name: "Held: carry on" }).click();
+  await expect(view).toHaveAttribute("data-view", /^remaining-/);
   // Crosshatched once on hold, with the whole sleeve to be knitted from them.
   await expect(onHold).toHaveCount(1);
 
@@ -360,9 +364,15 @@ test("the dividing round puts each sleeve on hold, casts on its underarm, and go
   // Written out, the round is whole: its holds in their places.
   await key.getByRole("button", { name: "Close the key" }).click();
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
-  // The whole sweater is one chart: the body and the sleeves beside it, above the yoke.
-  await expect(page.getByRole("tab")).toHaveCount(0);
-  await expect(page.getByRole("img", { name: /^The chart: 480 columns and 219 rows\./ })).toBeVisible();
+  // Four views of the chart, the body's the one being knitted: its underarms, without the sleeves: a round of its 296 stitches wide.
+  const tabs = page.getByRole("tab");
+  await expect(tabs).toHaveText(["From the neck", "Bodyknitting", "Right sleeve", "Left sleeve"]);
+  await expect(page.getByRole("tab", { selected: true })).toHaveText("Bodyknitting");
+  await expect(page.getByRole("img", { name: /^The chart: 296 columns and 193 rows\./ })).toBeVisible();
+  // From the neck, the yoke and above it everything but the underarms: the body and the sleeves beside it.
+  await page.getByRole("tab", { name: "From the neck" }).click();
+  await expect(page.getByRole("img", { name: /^The chart: 436 columns and 219 rows\./ })).toBeVisible();
+  await page.getByRole("tab", { name: "Body" }).click();
   const settings = await openSettings(page);
   await settings.getByRole("switch", { name: "Written round instructions" }).check();
   await page.getByRole("button", { name: "Done", exact: true }).click();
@@ -379,14 +389,20 @@ test("a sleeve begins from its held stitches, picked up round from its underarm"
   // Both sleeves are on hold until each is taken up; the right waits for the left.
   const onHold = page.locator("[data-note=on-hold]");
   await expect(onHold).toHaveCount(2);
+  // The chart stays the body's until the first stitch picked up, which is the sleeve's.
+  const view = page.locator(".chart-page");
+  await expect(view).toHaveAttribute("data-view", /^remaining-/);
   await page.getByRole("button", { name: "On the needles: carry on" }).click();
+  await expect(view).toHaveAttribute("data-view", "held-sleeve-left");
+  // The sleeve's chart, just opened, brings the stitch to be worked next into view.
+  await expect(page.locator(".chart-next")).toBeInViewport();
   await expect(onHold).toHaveCount(1);
   await expect(position(page)).toContainText("Left sleeve, round 76, stitch 1.");
   await page.getByRole("button", { name: /^Pick up and knit 6 in / }).click();
   await page.getByRole("button", { name: /^Knit 80 in / }).click();
   await page.getByRole("button", { name: /^Pick up and knit 6 in / }).click();
   await expect(position(page)).toContainText("Left sleeve, round 77, stitch 1.");
-  // On the one chart, the stitch to be worked next is the sleeve's, named as the sleeve's round.
+  // On the sleeve's chart, the stitch to be worked next is named as the sleeve's round.
   await tapBeside(page, 0);
   await expect(page.getByRole("dialog", { name: /^Left sleeve, round 77, stitch 1$/ })).toBeVisible();
 });
