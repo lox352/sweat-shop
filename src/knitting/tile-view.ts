@@ -281,7 +281,8 @@ export class TileView {
    * Told how far across the stitch being scrolled to has been moved: by
    * keeping the box inside the chart, which comes before holding it still.
    * Wherever the box was sent was worked out from where the stitch was, so it
-   * is sent on by as much.
+   * is sent on by as much - or sent again, by nothing, when the sheet grows
+   * under a smooth scroll on its way there.
    */
   onTargetMoved?: (by: number) => void;
 
@@ -621,7 +622,18 @@ export class TileView {
     if (this.columns.target.start[0] + room < size) return;
     const left = this.sheet.offsetLeft;
     const was = this.columns.targetShift;
-    this.columns.keepBox(this.scroller.scrollLeft - left, size, scrollAcross(this.scroller)[0] - left, room);
+    const [lowest, highest] = scrollAcross(this.scroller);
+    this.columns.keepBox(this.scroller.scrollLeft - left, size, lowest - left, room);
+    if (scrollsFromRight(this.scroller)) {
+      /*
+       * Nor carried out past the furthest right the box can go, which
+       * holding a stitch still would do as columns close between it and
+       * the edge: the box can't follow it there, and what it held would be
+       * out of reach. Scrolled from the left, the sheet grows to meet it.
+       */
+      const most = highest - left - (this.columns.target.start[0] + room - size);
+      if (this.columns.targetShift > most) this.columns.targetShift = most;
+    }
     const by = this.columns.targetShift - was;
     if (this.target !== undefined && Math.abs(by) >= 0.5) this.onTargetMoved?.(by);
   }
@@ -678,10 +690,20 @@ export class TileView {
       } else if (width === 0) {
         // Nothing on it yet to keep still.
         this.sheetWidth(wanted.width, false);
+      } else if (this.target !== undefined && wanted.width > width) {
+        /*
+         * But while the box is being sent to a stitch, a sheet too narrow
+         * for it would leave the stitch out of reach past its left-hand
+         * edge until rest. So it grows, keeping everything where it is on
+         * screen, and the box is sent again to the same place, which the
+         * browser now counts from a left-hand edge further away.
+         */
+        this.sheetWidth(wanted.width, true);
+        this.onTargetMoved?.(0);
       }
       /*
-       * Scrolled from its right-hand edge, the sheet keeps its width until
-       * rest, whatever runs past its left-hand edge meanwhile: that is the
+       * Otherwise, scrolled from its right-hand edge, the sheet keeps its width
+       * until rest, whatever runs past its left-hand edge meanwhile: that is the
        * far side from where the box is held, and growing the sheet there
        * would move a smooth scroll under way, which a browser aims at a place
        * counted from the left.

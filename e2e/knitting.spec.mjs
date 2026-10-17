@@ -394,6 +394,8 @@ test("a sleeve begins from its held stitches, picked up round from its underarm"
   await expect(view).toHaveAttribute("data-view", /^remaining-/);
   await page.getByRole("button", { name: "On the needles: carry on" }).click();
   await expect(view).toHaveAttribute("data-view", "held-sleeve-left");
+  // The sleeve's chart, just opened, brings the stitch to be worked next into view.
+  await expect(page.locator(".chart-next")).toBeInViewport();
   await expect(onHold).toHaveCount(1);
   await expect(position(page)).toContainText("Left sleeve, round 76, stitch 1.");
   await page.getByRole("button", { name: /^Pick up and knit 6 in / }).click();

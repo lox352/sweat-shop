@@ -313,9 +313,18 @@ const Chart: React.FC<ChartProps> = ({
     aimedAt.current = { ...aimed, left: (aimed.left ?? 0) + by };
     scroller.scrollTo(aimedAt.current);
   }, []);
+  /*
+   * The first aim, as the chart opens - on a view of its own after the
+   * knitting moves to another - goes straight there: there is nothing on
+   * screen yet to follow on from, and the chart is still being sized for
+   * where it is going, which a smooth scroll under way would be thrown by.
+   */
+  const aimed = useRef(false);
   useEffect(() => {
-    aim(reducedMotion() ? "auto" : "smooth");
-  }, [aim]);
+    if (!at) return;
+    aim(reducedMotion() || !aimed.current ? "auto" : "smooth");
+    aimed.current = true;
+  }, [aim, at]);
 
   /*
    * When the window changes size. Scroll positions are counted from the top
