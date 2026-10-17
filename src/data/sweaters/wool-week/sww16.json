@@ -1,0 +1,111 @@
+{
+ "id": "sww16-crofthoose-hat",
+ "year": 2016,
+ "name": "Crofthoose Hat",
+ "designer": "Ella Gordon",
+ "credit": "© 2016 Ella Gordon Designs",
+ "patternUrl": "https://www.ravelry.com/patterns/library/crofthoose-hat",
+ "colourway": {
+  "name": "Colourway 1",
+  "shades": {
+   "A": {
+    "name": "Marled Brown Mix",
+    "hex": "#886555",
+    "wool": "jamieson-smith-2ply-jumper-weight-fc58"
+   },
+   "B": {
+    "name": "Blue Mix",
+    "hex": "#40778e",
+    "wool": "jamieson-smith-2ply-jumper-weight-fc39"
+   },
+   "C": {
+    "name": "Bright Grass Green",
+    "hex": "#678322",
+    "wool": "jamieson-smith-2ply-jumper-weight-fc11"
+   },
+   "D": {
+    "name": "Grey Fawn",
+    "hex": "#ebd8b6",
+    "wool": "jamieson-smith-2ply-jumper-weight-2"
+   },
+   "E": {
+    "name": "Light Fawn",
+    "hex": "#c9c0a4",
+    "wool": "jamieson-smith-2ply-jumper-weight-202"
+   }
+  }
+ },
+ "gauge": {
+  "stitches": 26,
+  "rounds": 26
+ },
+ "charts": {
+  "A": [
+   "ApA-ApA-ApA-ApA-ApA-ApA-",
+   "ApB-ApB-ApB-ApB-ApB-ApB-",
+   "ApC-ApC-ApC-ApC-ApC-ApC-",
+   "ApD-ApD-ApD-ApD-ApD-ApD-",
+   "ApE-ApE-ApE-ApE-ApE-ApE-",
+   "ApD-ApD-ApD-ApD-ApD-ApD-",
+   "ApC-ApC-ApC-ApC-ApC-ApC-",
+   "ApB-ApB-ApB-ApB-ApB-ApB-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-",
+   "A-E-A-E-A-E-A-E-A-E-A-E-",
+   "E-E-E-E-E-E-E-E-E-E-E-E-",
+   "E-B-B-B-E-B-B-B-E-E-B-E-",
+   "E-B-E-B-E-B-E-B-E-B-E-B-",
+   "E-B-B-B-B-B-B-B-E-E-E-E-",
+   "E-C-C-C-C-C-C-C-E-E-C-E-",
+   "E-C-C-C-C-C-C-C-E-C-E-C-",
+   "E-B-B-E-E-E-B-B-E-E-E-E-",
+   "E-B-B-E-E-E-B-B-E-E-B-E-",
+   "E-E-E-E-E-E-E-E-E-E-E-E-",
+   "D-E-D-E-D-E-D-E-D-E-D-E-",
+   "D-D-D-D-D-D-D-D-D-D-D-D-",
+   "A-A-D-D-A-D-D-A-A-A-D-A-",
+   "D-A-D-A-D-A-D-A-D-A-D-A-",
+   "A-A-D-D-D-D-D-A-A-A-A-A-",
+   "B-B-D-D-B-D-D-B-B-B-B-B-",
+   "B-B-D-B-D-B-D-B-B-B-B-B-",
+   "A-A-D-D-D-D-D-A-A-D-D-D-",
+   "A-A-D-D-A-D-D-A-A-D-D-D-",
+   "D-D-D-D-D-D-D-D-D-D-D-D-",
+   "D-E-D-E-D-E-D-E-D-E-D-E-",
+   "E-E-E-E-E-E-E-E-E-E-E-E-",
+   "E-B-B-B-E-B-B-B-E-E-B-E-",
+   "E-B-E-B-E-B-E-B-E-B-E-B-",
+   "E-B-B-B-B-B-B-B-E-E-E-E-",
+   "E-C-C-C-C-C-C-C-E-E-C-E-",
+   "E-C-C-C-C-C-C-C-E-C-E-C-",
+   "E-B-B-E-E-E-B-B-E-E-E-E-",
+   "E-B-B-E-E-E-B-B-E-E-B-E-",
+   "E-E-E-E-E-E-E-E-E-E-E-E-",
+   "A-E-A-E-A-E-A-E-A-E-A-E-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-"
+  ],
+  "B": [
+   "A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-",
+   "A-D-A-D-A-D-A-D-A-D-A-AsA-D-A-D-A-D-A-D-A-D-",
+   "A-D-A-D-D-D-D-A-D-D-D-D-D-D-D-A-D-D-D-D-A-D-",
+   "A-D-D-A-D-D-A-A-A-D-AsD-A-A-A-D-D-A-D-D-",
+   "A-D-D-D-A-D-D-A-D-D-D-D-D-A-D-D-A-D-D-D-",
+   "B-B-E-E-E-B-E-E-E-BsE-E-E-B-E-E-E-B-",
+   "C-E-C-E-E-E-C-E-E-E-E-E-C-E-E-E-C-E-",
+   "B-E-E-B-E-E-E-B-BsB-E-E-E-B-E-E-",
+   "A-D-D-D-A-D-D-D-D-D-D-D-A-D-D-D-",
+   "A-A-D-D-D-A-D-AsD-A-D-D-D-A-",
+   "A-D-A-D-D-D-A-D-A-D-D-D-A-D-",
+   "B-E-E-B-E-E-BsE-E-B-E-E-",
+   "C-C-E-E-C-E-E-E-C-E-E-C-",
+   "B-E-B-E-E-BsE-E-B-E-",
+   "A-D-D-A-D-D-D-A-D-D-",
+   "A-A-D-D-AsD-D-A-",
+   "A-D-A-D-D-D-A-D-",
+   "B-E-E-BsE-E-",
+   "C-C-E-E-E-C-",
+   "B-E-BsE-",
+   "A-D-D-D-",
+   "A-As"
+  ]
+ }
+}

@@ -1,0 +1,138 @@
+{
+ "id": "sww19-roadside-beanie",
+ "year": 2019,
+ "name": "Roadside Beanie",
+ "designer": "Sandra Manson, for Oliver Henry",
+ "credit": "© Sandra Manson; charted by Ella Gordon; for Oliver Henry",
+ "patternUrl": "https://www.ravelry.com/patterns/library/roadside-beanie-2",
+ "colourway": {
+  "name": "Colourway 1",
+  "shades": {
+   "A": {
+    "name": "Light Marled Blue Green",
+    "hex": "#93a092",
+    "wool": "jamieson-smith-2ply-jumper-weight-1280"
+   },
+   "B": {
+    "name": "Brown",
+    "hex": "#452c29",
+    "wool": "jamieson-smith-2ply-jumper-weight-80"
+   },
+   "C": {
+    "name": "Bright Purple Mix",
+    "hex": "#4e3858",
+    "wool": "jamieson-smith-2ply-jumper-weight-fc56"
+   },
+   "D": {
+    "name": "Light Turquoise",
+    "hex": "#75bfc7",
+    "wool": "jamieson-smith-2ply-jumper-weight-75"
+   },
+   "E": {
+    "name": "Pale Lemon",
+    "hex": "#ead293",
+    "wool": "jamieson-smith-2ply-jumper-weight-96"
+   },
+   "F": {
+    "name": "Bleached/Optic White",
+    "hex": "#f0efe4",
+    "wool": "jamieson-smith-2ply-jumper-weight-1"
+   },
+   "G": {
+    "name": "Light Grey Green Mix",
+    "hex": "#839882",
+    "wool": "jamieson-smith-2ply-jumper-weight-fc62"
+   }
+  }
+ },
+ "gauge": {
+  "stitches": 32,
+  "rounds": 28
+ },
+ "charts": {
+  "A": [
+   "A-A-ApAp",
+   "A-A-ApAp",
+   "A-A-ApAp",
+   "B-B-ApAp",
+   "B-B-ApAp",
+   "C-C-ApAp",
+   "C-C-ApAp",
+   "D-D-ApAp",
+   "D-D-ApAp",
+   "E-E-ApAp",
+   "E-E-ApAp",
+   "F-F-ApAp",
+   "F-F-ApAp",
+   "A-A-ApAp"
+  ],
+  "B": [
+   "A-A-",
+   "A-A-",
+   "C-A-"
+  ],
+  "C": [
+   "C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-",
+   "C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-C-",
+   "F-C-C-C-C-F-C-F-C-C-C-C-F-C-C-C-C-C-F-C-C-C-F-C-C-C-C-C-",
+   "F-C-C-C-F-F-F-F-F-C-C-C-F-C-C-C-C-C-F-C-C-C-F-C-C-C-C-C-",
+   "F-C-C-F-F-F-F-F-F-F-C-C-F-C-C-C-F-F-F-F-F-F-F-F-F-C-C-C-",
+   "F-C-F-F-F-F-F-F-F-F-F-C-F-C-C-F-F-F-F-F-F-F-F-F-F-F-C-C-",
+   "F-C-F-F-F-F-F-F-F-F-F-C-F-C-C-F-F-F-F-F-F-F-F-F-F-F-C-C-",
+   "F-C-F-F-F-F-F-F-F-F-F-C-F-C-C-F-F-F-F-F-F-F-F-F-F-F-C-C-",
+   "F-G-F-F-F-F-F-F-F-F-F-G-F-G-G-F-F-F-F-F-F-F-F-F-F-G-G-G-",
+   "F-G-G-F-F-F-F-F-F-F-G-G-F-G-G-F-F-F-F-F-F-F-F-F-F-F-G-G-",
+   "F-G-G-G-F-F-F-F-F-G-G-G-F-G-G-G-F-F-F-F-F-F-F-F-F-F-G-G-",
+   "F-G-F-G-G-F-F-F-G-G-F-G-F-G-G-G-G-G-G-G-G-G-F-F-F-F-G-G-",
+   "F-G-F-G-G-F-F-F-G-G-F-G-F-G-G-G-G-G-G-G-G-G-F-F-F-F-G-G-",
+   "F-G-G-F-F-G-G-G-F-F-G-G-F-G-G-G-G-G-G-G-G-F-G-G-G-G-F-G-",
+   "G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-",
+   "G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-G-"
+  ],
+  "D": [
+   "A-G-A-G-",
+   "G-A-G-G-",
+   "A-G-G-G-",
+   "D-D-A-D-",
+   "D-A-D-D-",
+   "F-F-D-D-",
+   "D-D-F-F-"
+  ],
+  "E": [
+   "D-D-D-B-B-B-B-B-D-D-D-D-",
+   "D-D-B-B-B-B-B-B-B-D-D-D-",
+   "D-B-B-B-B-B-B-B-B-B-D-D-",
+   "B-B-B-B-B-B-B-B-B-B-B-D-",
+   "D-D-D-B-D-D-B-B-B-D-D-D-",
+   "D-D-D-B-D-D-B-B-B-D-D-D-",
+   "D-D-D-B-D-D-B-B-B-D-D-D-",
+   "D-D-D-B-D-D-D-D-D-D-D-D-",
+   "D-D-D-E-D-D-D-D-D-D-D-D-",
+   "D-D-D-D-D-D-D-D-D-D-D-D-",
+   "D-D-D-D-D-D-D-D-D-D-D-D-",
+   "G-D-G-D-G-D-G-D-G-D-G-D-"
+  ],
+  "F": [
+   "B-G-G-G-G-G-G-G-G-B-G-G-G-G-G-G-G-G-G-G-",
+   "B-B-G-G-G-G-G-G-B-G-B-G-G-G-G-G-G-G-Gk",
+   "B-G-B-G-G-G-G-B-G-B-G-B-G-G-G-G-G-Gk",
+   "B-G-B-B-G-G-G-G-B-G-B-G-G-G-G-G-Gk",
+   "B-G-B-G-B-G-G-G-G-B-G-G-G-G-G-Gk",
+   "B-G-B-G-B-B-G-G-G-G-G-G-G-G-Gk",
+   "C-E-C-E-C-E-C-E-E-E-E-E-E-Ek",
+   "C-E-C-E-C-E-C-C-E-E-E-E-Ek",
+   "C-E-C-E-C-E-C-E-C-E-E-Ek",
+   "C-E-C-E-C-E-C-E-C-C-Ek",
+   "C-E-C-E-C-E-C-E-C-Ek",
+   "C-E-C-E-C-E-C-E-Ek",
+   "D-F-D-F-D-F-D-Fk",
+   "D-F-D-F-D-F-Fk",
+   "D-F-D-F-D-Fk",
+   "D-F-D-F-Fk",
+   "A-F-A-Fk",
+   "A-F-Fk",
+   "A-Fk",
+   "Fk"
+  ]
+ }
+}

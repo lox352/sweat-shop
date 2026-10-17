@@ -205,6 +205,57 @@ everything Hamefarin does and a good deal more.
   each colour read off the pattern and matched to the nearest Jamieson's
   Spindrift shade.
 
+## The Wool Week Sampler
+
+Every Shetland Wool Week hat from 2014 to 2026 in one top-down jumper, in the
+order they came out. Its file is `src/data/sweaters/wool-week-sampler.ts`, and
+everything it knits from is in `src/data/sweaters/wool-week/` (see
+`WOOL-WEEK.md` for where the charts came from).
+
+- **The years, in date order.** 2014 to 2016 round the yoke, 2017 to 2021
+  down the body, 2022 to 2026 down both sleeves, which match. Knitted from the
+  neck down, that is the order they are knitted in, too.
+- **Every motif in every size.** Each hat is cut into its motifs and its
+  extras: its peeries, the stripes between its bands, the rows where its
+  chart repeats or mirrors itself, and its crown. Every size knits every
+  motif; the extras are what grade it.
+  - Two charts are each other upside down, 2022's B and D and 2024's B and
+    D: one is the motif, the other an extra.
+  - 2016's houses come twice in the hat, 2018's dancers three times; once is
+    the motif.
+- **Turned, so every picture stands up.** A chart knitted top down comes out
+  turned through half a circle, so each hat's charts are turned before they
+  are knitted: the sheep, houses, boat and ram stand the right way up on the
+  jumper as worn. Turned, not mirrored, so nothing is back to front.
+- **Flat bands round a cone.** Each band is knitted at a whole number of its
+  repeats - the multiple nearest what the jumper wants there - and the count
+  changes in a plain round between bands. A yoke grows, a body stays near the
+  chest, a sleeve tapers; a wide repeat on a sleeve may bring it back up a
+  little, as 2023's flowers do, as a hat's body comes up for its widest band.
+- **The crowns as shaping.** A hat's crown is a run of decreases. Worked from
+  its point outwards, each decrease turned into its increase, a slice of it
+  is a yoke's increase that sits as it does on the hat, point upwards; worked
+  as the hat works it, it tapers a sleeve, its point towards the cuff. The
+  grader cuts a slice of a whole number of wedges wherever one fits the
+  shaping a size needs, so the bigger sizes carry more of the hats' crowns.
+- **One ladder of colours.** Thirteen hats are knitted in sixty-odd yarns
+  between them, and the jumper in ten: a ladder from darkest to lightest,
+  each hat's yarns put onto it in their own order of lightness. Any colourway
+  that keeps the ladder in order keeps every hat's lights and darks, row by
+  row, and where a hat's row relies on hue rather than lightness - 2016's
+  brown and blue houses - its colourway keeps those two apart as well. Its
+  four colourways are the hats' consensus, rung by rung; 2025's Vintage,
+  carried onto every other year; a brighter one; and Uradale's naturals and
+  heathers.
+- **Measurements.** Hamefarin's, but the yoke a centimetre and a half deeper
+  and the body three and a half longer: a sampler of thirteen hats is a long
+  jumper, and that is what lets the smallest size carry every motif. Knitted
+  at 32 stitches and 38 rounds to 10cm.
+- **What it asks of a knitter.** The charts are knitted as their designers
+  drew them, so a few floats are longer than seven stitches - twelve at most,
+  in the Baa-ble Hat's sheep - and are caught behind the work, as the hats'
+  patterns say; one round of the Shwook Hat is in three colours.
+
 ## The chart's views
 
 Every stitch on a chart stands over the stitches it was worked into, so a

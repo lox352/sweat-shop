@@ -1,0 +1,153 @@
+{
+ "id": "sww26-birsie-beanny",
+ "year": 2026,
+ "name": "Birsie Beanny",
+ "designer": "Helen Robertson",
+ "credit": "© Helen Robertson",
+ "patternUrl": "https://payhip.com/b/Zozyp",
+ "colourway": {
+  "name": "Sea Anemone",
+  "shades": {
+   "A": {
+    "name": "Port Wine",
+    "hex": "#382229",
+    "wool": "jamieson-s-of-shetland-spindrift-293"
+   },
+   "B": {
+    "name": "Cloud",
+    "hex": "#b6d2d5",
+    "wool": "jamieson-s-of-shetland-spindrift-764"
+   },
+   "C": {
+    "name": "Pacific",
+    "hex": "#576375",
+    "wool": "jamieson-s-of-shetland-spindrift-763"
+   },
+   "D": {
+    "name": "Orchid",
+    "hex": "#d1c0c0",
+    "wool": "jamieson-s-of-shetland-spindrift-547"
+   },
+   "E": {
+    "name": "Gentian",
+    "hex": "#302f4f",
+    "wool": "jamieson-s-of-shetland-spindrift-710"
+   },
+   "F": {
+    "name": "Lilac",
+    "hex": "#bbb3c4",
+    "wool": "jamieson-s-of-shetland-spindrift-620"
+   }
+  }
+ },
+ "gauge": {
+  "stitches": 28,
+  "rounds": 35
+ },
+ "charts": {
+  "Body": [
+   "D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-",
+   "D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-D-",
+   "C-D-D-D-D-D-C-C-D-D-D-D-C-D-D-D-C-D-D-D-C-D-D-D-D-C-C-D-D-D-D-D-",
+   "C-C-D-D-C-D-D-C-C-D-D-C-C-C-D-C-C-C-D-C-C-C-D-D-C-C-D-D-C-D-D-C-",
+   "D-C-C-D-D-D-D-D-C-C-D-D-C-D-C-D-C-D-C-D-C-D-D-C-C-D-D-D-D-D-C-C-",
+   "D-D-C-C-D-D-C-D-D-C-C-D-D-C-C-C-D-C-C-C-D-D-C-C-D-D-C-D-D-C-C-D-",
+   "A-A-B-A-A-B-B-B-B-B-A-A-B-B-A-B-A-B-A-B-B-A-A-B-B-B-B-B-A-A-B-A-",
+   "A-A-A-B-A-A-B-B-A-B-B-A-A-B-B-A-A-A-B-B-A-A-B-B-A-B-B-A-A-B-A-A-",
+   "A-A-A-B-B-A-A-B-B-B-B-B-A-A-B-B-A-B-B-A-A-B-B-B-B-B-A-A-B-B-A-A-",
+   "A-A-B-B-B-B-A-A-B-B-A-B-B-A-A-B-B-B-A-A-B-B-A-B-B-A-A-B-B-B-B-A-",
+   "D-D-C-C-C-D-D-C-C-D-D-D-D-D-C-C-D-C-C-D-D-D-D-D-C-C-D-D-C-C-C-D-",
+   "D-C-C-C-C-C-D-D-C-C-D-D-C-D-D-C-C-C-D-D-C-D-D-C-C-D-D-C-C-C-C-C-",
+   "D-C-C-C-C-C-D-D-D-C-C-D-D-D-D-D-C-D-D-D-D-D-C-C-D-D-D-C-C-C-C-C-",
+   "D-D-C-C-C-D-D-D-D-D-C-C-D-D-C-D-D-D-C-D-D-C-C-D-D-D-D-D-C-C-C-D-",
+   "E-E-F-F-F-E-E-E-F-F-F-E-E-F-F-F-F-F-F-F-E-E-F-F-F-E-E-E-F-F-F-E-",
+   "E-E-E-F-E-E-E-E-E-F-F-F-E-E-F-F-E-F-F-E-E-F-F-F-E-E-E-E-E-F-E-E-",
+   "E-E-E-F-E-E-E-E-E-F-F-F-F-E-E-F-F-F-E-E-F-F-F-F-E-E-E-E-E-F-E-E-",
+   "E-E-F-F-F-E-E-E-F-F-F-F-F-F-E-E-F-E-E-F-F-F-F-F-F-E-E-E-F-F-F-E-",
+   "B-B-A-A-A-B-B-B-A-A-A-B-B-B-B-A-A-A-B-B-B-B-A-A-A-B-B-B-A-A-A-B-",
+   "B-A-A-A-A-A-B-A-A-A-A-A-B-B-B-B-A-B-B-B-B-A-A-A-A-A-B-A-A-A-A-A-",
+   "B-A-A-A-A-A-B-A-A-A-A-A-B-B-B-B-A-B-B-B-B-A-A-A-A-A-B-A-A-A-A-A-",
+   "B-B-A-A-A-B-B-B-A-A-A-B-B-B-B-A-A-A-B-B-B-B-A-A-A-B-B-B-A-A-A-B-",
+   "E-E-F-F-F-E-E-E-F-F-F-F-F-F-E-E-F-E-E-F-F-F-F-F-F-E-E-E-F-F-F-E-",
+   "E-E-E-F-E-E-E-E-E-F-F-F-F-E-E-F-F-F-E-E-F-F-F-F-E-E-E-E-E-F-E-E-",
+   "E-E-E-F-E-E-E-E-E-F-F-F-E-E-F-F-E-F-F-E-E-F-F-F-E-E-E-E-E-F-E-E-",
+   "E-E-F-F-F-E-E-E-F-F-F-E-E-F-F-F-F-F-F-F-E-E-F-F-F-E-E-E-F-F-F-E-",
+   "D-D-C-C-C-D-D-D-D-D-C-C-D-D-C-D-D-D-C-D-D-C-C-D-D-D-D-D-C-C-C-D-",
+   "D-C-C-C-C-C-D-D-D-C-C-D-D-D-D-D-C-D-D-D-D-D-C-C-D-D-D-C-C-C-C-C-",
+   "D-C-C-C-C-C-D-D-C-C-D-D-C-D-D-C-C-C-D-D-C-D-D-C-C-D-D-C-C-C-C-C-",
+   "D-D-C-C-C-D-D-C-C-D-D-D-D-D-C-C-D-C-C-D-D-D-D-D-C-C-D-D-C-C-C-D-",
+   "A-A-B-B-B-B-A-A-B-B-A-B-B-A-A-B-B-B-A-A-B-B-A-B-B-A-A-B-B-B-B-A-",
+   "A-A-A-B-B-A-A-B-B-B-B-B-A-A-B-B-A-B-B-A-A-B-B-B-B-B-A-A-B-B-A-A-",
+   "A-A-A-B-A-A-B-B-A-B-B-A-A-B-B-A-A-A-B-B-A-A-B-B-A-B-B-A-A-B-A-A-",
+   "A-A-B-A-A-B-B-B-B-B-A-A-B-B-A-A-A-A-A-B-B-A-A-B-B-B-B-B-A-A-B-A-",
+   "B-B-A-A-B-B-A-B-B-A-A-B-B-A-A-A-B-A-A-A-B-B-A-A-B-B-A-B-B-A-A-B-",
+   "B-A-A-B-B-B-B-B-A-A-B-B-A-A-A-B-B-B-A-A-A-B-B-A-A-B-B-B-B-B-A-A-",
+   "A-A-B-B-A-B-B-A-A-B-B-A-A-A-B-A-B-A-B-A-A-A-B-B-A-A-B-B-A-B-B-A-",
+   "C-D-D-D-D-D-C-C-D-D-C-C-C-D-D-D-C-D-D-D-C-C-C-D-D-C-C-D-D-D-D-D-",
+   "D-D-C-D-D-C-C-D-D-C-C-C-D-C-D-C-C-C-D-C-D-C-C-C-D-D-C-C-D-D-C-D-",
+   "D-D-D-D-C-C-D-D-C-C-C-D-D-D-C-C-D-C-C-D-D-D-C-C-C-D-D-C-C-D-D-D-"
+  ],
+  "Crown": [
+   "DsD-C-C-D-D-C-C-C-D-C-D-C-C-D-D-D-C-C-D-C-D-C-C-C-D-D-C-C-D-",
+   "C-C-C-D-D-C-C-C-D-D-D-C-C-D-C-D-C-D-C-C-D-D-D-C-C-C-D-D-C-C-",
+   "EsF-F-E-E-E-F-E-F-E-E-F-F-F-E-F-F-F-E-E-F-E-F-E-E-E-F-F-",
+   "F-F-E-E-E-F-F-F-E-E-F-E-F-E-E-E-F-E-F-E-E-F-F-F-E-E-E-F-",
+   "FsE-E-F-E-F-E-E-F-F-F-E-E-F-E-E-F-F-F-E-E-F-E-F-E-E-",
+   "F-E-F-F-F-E-E-F-E-F-E-E-F-F-F-E-E-F-E-F-E-E-F-F-F-E-",
+   "FsE-F-E-E-F-F-F-E-E-F-E-F-E-F-E-E-F-F-F-E-E-F-E-",
+   "D-C-C-C-D-C-D-C-C-D-D-D-C-D-D-D-C-C-D-C-D-C-C-C-",
+   "DsC-D-D-D-C-C-D-C-D-C-C-C-D-C-D-C-C-D-D-D-C-",
+   "D-C-C-D-C-C-D-D-D-C-C-D-C-C-D-D-D-C-C-D-C-C-",
+   "DsC-C-C-D-C-D-C-C-D-D-D-C-C-D-C-D-C-C-C-",
+   "B-B-A-B-B-B-A-A-B-A-B-A-B-A-A-B-B-B-A-B-",
+   "BsB-A-B-A-A-B-B-B-A-B-B-B-A-A-B-A-B-",
+   "B-B-A-A-A-B-A-B-A-A-A-B-A-B-A-A-A-B-",
+   "BsB-A-B-B-B-A-A-B-A-A-B-B-B-A-B-",
+   "B-B-A-A-B-A-A-B-B-B-A-A-B-A-A-B-",
+   "BsB-A-A-A-B-A-B-A-B-A-A-A-B-",
+   "B-B-B-A-B-B-B-A-B-B-B-A-B-B-",
+   "DsD-C-C-D-C-C-C-D-C-C-D-",
+   "D-D-D-C-C-C-D-C-C-C-D-D-",
+   "DsD-D-C-D-D-D-C-D-D-",
+   "D-D-D-C-C-D-C-C-D-D-",
+   "FsF-F-E-E-E-F-F-",
+   "F-F-F-F-E-F-F-F-",
+   "FsF-F-F-F-F-",
+   "F-F-F-F-F-F-",
+   "FsF-F-F-",
+   "F-F-F-F-",
+   "FsF-"
+  ],
+  "Rib": [
+   "AtAtApAp",
+   "AtAtApAp",
+   "AtAtApAp"
+  ],
+  "Hem": [
+   "A-A-ApAp",
+   "A-A-ApAp",
+   "A-A-ApAp",
+   "A-A-ApAp",
+   "E-E-E-E-",
+   "E-E-EpEp",
+   "E-E-EpEp",
+   "E-E-EpEp",
+   "C-C-C-C-",
+   "C-C-CpCp",
+   "C-C-CpCp",
+   "C-C-CpCp",
+   "C-C-CpCp",
+   "C-C-CpCp",
+   "C-C-CpCp",
+   "C-C-CpCp",
+   "E-E-E-E-",
+   "E-E-EpEp",
+   "E-E-EpEp",
+   "E-E-EpEp",
+   "A-A-A-A-",
+   "A-A-ApAp",
+   "A-A-ApAp",
+   "A-A-ApAp"
+  ]
+ }
+}

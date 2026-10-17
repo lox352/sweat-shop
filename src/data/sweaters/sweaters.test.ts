@@ -65,8 +65,8 @@ describe.each(sweaters.map((sweater) => [sweater.id, sweater] as const))("%s", (
       });
     });
 
-    it("keeps to two colours a round, and never floats more than seven", () => {
-      expect(breaches(built.stitches, built.rounds)).toEqual([]);
+    it("keeps to two colours a round, and never floats more than seven - or to what the design says it asks instead", () => {
+      expect(breaches(built.stitches, built.rounds, sweater.rules)).toEqual([]);
     });
 
     it("takes each sleeve up onto the main needles, and changes to the rib's for its cuff", () => {
@@ -97,11 +97,12 @@ describe.each(sweaters.map((sweater) => [sweater.id, sweater] as const))("%s", (
         expect(total(estimated) / total(size.yardage)).toBeLessThan(1.5);
         return;
       }
-      // A jumper-weight yoke sweater is somewhere between about 1000 and 3500 metres.
+      // A jumper-weight yoke sweater is somewhere between about 1000 and 4000 metres: the most, a long one stranded all over in a big size.
       expect(total(estimated)).toBeGreaterThan(1000);
-      expect(total(estimated)).toBeLessThan(3500);
-      // The body colour is the most of it, and every slot is used.
+      expect(total(estimated)).toBeLessThan(4000);
+      // Every slot is used, and a design with a body colour - not a sampler of many yarns shared out - uses most of that.
       expect(knitted).toEqual([...sweater.slots].sort());
+      if (!/body|main/.test(sweater.slotRoles?.[sweater.slots[0]] ?? "")) return;
       expect(Math.max(...Object.values(estimated))).toBe(estimated[sweater.slots[0]]);
       sweater.colourways.forEach((colourway) => {
         if (!colourway.ballMetres) return;

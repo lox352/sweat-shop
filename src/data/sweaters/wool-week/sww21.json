@@ -1,0 +1,123 @@
+{
+ "id": "sww21-da-crofters-kep",
+ "year": 2021,
+ "name": "Da Crofter's Kep",
+ "designer": "Wilma Malcolmson",
+ "credit": "© Wilma Malcolmson",
+ "patternUrl": "https://www.ravelry.com/patterns/library/da-crofters-kep",
+ "colourway": {
+  "name": "Colourway 1",
+  "shades": {
+   "A": {
+    "name": "Eclipse",
+    "hex": "#2a283c",
+    "wool": "jamieson-s-of-shetland-spindrift-707"
+   },
+   "B": {
+    "name": "Fjord",
+    "hex": "#767b94",
+    "wool": "jamieson-s-of-shetland-spindrift-170"
+   },
+   "C": {
+    "name": "Twilight",
+    "hex": "#7e8596",
+    "wool": "jamieson-s-of-shetland-spindrift-175"
+   },
+   "D": {
+    "name": "Pacific",
+    "hex": "#576375",
+    "wool": "jamieson-s-of-shetland-spindrift-763"
+   },
+   "E": {
+    "name": "Blueberry",
+    "hex": "#4a3648",
+    "wool": "jamieson-s-of-shetland-spindrift-294"
+   },
+   "F": {
+    "name": "Mist",
+    "hex": "#b1abaf",
+    "wool": "jamieson-s-of-shetland-spindrift-180"
+   }
+  }
+ },
+ "gauge": {
+  "stitches": 34,
+  "rounds": 32
+ },
+ "charts": {
+  "A": [
+   "ApApB-B-",
+   "ApApB-B-",
+   "ApApB-B-",
+   "ApApB-B-",
+   "ApApC-C-",
+   "ApApC-C-",
+   "ApApD-D-",
+   "ApApD-D-",
+   "ApApD-D-",
+   "ApApD-D-"
+  ],
+  "B": [
+   "A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-",
+   "B-B-A-A-B-A-A-B-B-B-A-A-B-A-A-B-B-B-A-A-B-A-A-B-",
+   "B-A-A-B-A-B-A-A-B-A-A-B-A-B-A-A-B-A-A-B-A-B-A-A-",
+   "A-A-B-A-A-A-B-A-A-A-B-A-A-A-B-A-A-A-B-A-A-A-B-A-",
+   "A-B-A-A-B-A-A-B-A-B-A-A-B-A-A-B-A-B-A-A-B-A-A-B-",
+   "B-A-A-B-B-B-A-A-B-A-A-B-B-B-A-A-B-A-A-B-B-B-A-A-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-",
+   "A-A-D-A-A-D-D-A-D-D-A-A-D-A-A-D-D-A-D-D-A-A-D-A-",
+   "A-D-A-A-D-D-A-D-D-A-A-D-D-D-A-A-D-D-A-D-D-A-A-D-",
+   "D-A-A-D-D-A-D-D-A-A-D-D-D-D-D-A-A-D-D-A-D-D-A-A-",
+   "A-A-C-C-A-C-C-A-A-A-A-C-C-C-A-A-A-A-C-C-A-C-C-A-",
+   "A-C-C-A-C-C-A-A-C-C-A-A-C-A-A-C-C-A-A-C-C-A-C-C-",
+   "C-C-A-C-C-A-A-A-C-C-C-A-C-A-C-C-C-A-A-A-C-C-A-C-",
+   "F-E-F-E-E-E-F-E-E-F-F-E-F-E-F-F-E-E-F-E-E-E-F-E-",
+   "F-E-F-E-E-F-F-F-E-E-E-F-E-F-E-E-E-F-F-F-E-E-F-E-",
+   "B-A-B-A-B-B-B-B-B-B-B-A-A-A-B-B-B-B-B-B-B-A-B-A-",
+   "F-E-F-E-E-F-F-F-E-E-E-F-E-F-E-E-E-F-F-F-E-E-F-E-",
+   "F-E-F-E-E-E-F-E-E-F-F-E-F-E-F-F-E-E-F-E-E-E-F-E-",
+   "C-C-A-C-C-A-A-A-C-C-C-A-C-A-C-C-C-A-A-A-C-C-A-C-",
+   "A-C-C-A-C-C-A-A-C-C-A-A-C-A-A-C-C-A-A-C-C-A-C-C-",
+   "A-A-C-C-A-C-C-A-A-A-A-C-C-C-A-A-A-A-C-C-A-C-C-A-",
+   "D-A-A-D-D-A-D-D-A-A-D-D-D-D-D-A-A-D-D-A-D-D-A-A-",
+   "A-D-A-A-D-D-A-D-D-A-A-D-D-D-A-A-D-D-A-D-D-A-A-D-",
+   "A-A-D-A-A-D-D-A-D-D-A-A-D-A-A-D-D-A-D-D-A-A-D-A-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-",
+   "B-A-A-B-B-B-A-A-B-A-A-B-B-B-A-A-B-A-A-B-B-B-A-A-",
+   "A-B-A-A-B-A-A-B-A-B-A-A-B-A-A-B-A-B-A-A-B-A-A-B-",
+   "A-A-B-A-A-A-B-A-A-A-B-A-A-A-B-A-A-A-B-A-A-A-B-A-",
+   "B-A-A-B-A-B-A-A-B-A-A-B-A-B-A-A-B-A-A-B-A-B-A-A-",
+   "B-B-A-A-B-A-A-B-B-B-A-A-B-A-A-B-B-B-A-A-B-A-A-B-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-A-"
+  ],
+  "C": [
+   "DkA-A-A-A-A-DkA-A-A-A-A-DkA-A-A-A-A-DkA-A-A-A-A-",
+   "A-D-A-A-A-D-D-D-A-A-A-D-D-D-A-A-A-D-D-D-A-A-A-D-",
+   "A-A-D-A-A-A-D-A-A-A-D-DxD-A-A-A-D-A-A-A-D-A-",
+   "D-A-A-D-A-A-A-A-A-D-D-D-D-D-A-A-A-A-A-D-A-A-",
+   "D-D-A-A-D-A-A-A-D-D-AxD-D-A-A-A-D-A-A-D-",
+   "A-C-C-A-A-C-A-C-C-A-A-A-C-C-A-C-A-A-C-C-",
+   "A-A-C-C-A-A-C-C-A-AxA-C-C-A-A-C-C-A-",
+   "A-C-C-A-A-C-C-A-A-A-A-A-C-C-A-A-C-C-",
+   "C-C-A-A-C-C-A-A-CxA-A-C-C-A-A-C-",
+   "C-A-A-C-C-A-A-C-C-C-A-A-C-C-A-A-",
+   "E-E-F-F-E-E-F-FxF-E-E-F-F-E-",
+   "E-F-F-E-E-F-F-F-F-F-E-E-F-F-",
+   "F-F-E-E-F-F-ExF-F-E-E-F-",
+   "F-E-E-F-F-E-E-E-F-F-E-E-",
+   "A-A-B-B-A-AxA-B-B-A-",
+   "A-B-B-A-A-A-A-A-B-B-",
+   "B-B-A-A-BxA-A-B-",
+   "B-A-A-B-B-B-A-A-",
+   "A-A-D-DxD-A-",
+   "A-D-D-D-D-D-",
+   "A-D-DxD-",
+   "A-D-D-D-",
+   "A-Dx"
+  ]
+ }
+}

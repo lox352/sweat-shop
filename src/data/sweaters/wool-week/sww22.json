@@ -1,0 +1,127 @@
+{
+ "id": "sww22-bonnie-isle-hat",
+ "year": 2022,
+ "name": "Bonnie Isle Hat",
+ "designer": "Linda Shearer",
+ "credit": "© Linda Shearer",
+ "patternUrl": "https://www.ravelry.com/patterns/library/bonnie-isle-hat",
+ "colourway": {
+  "name": "Colourway 1",
+  "shades": {
+   "A": {
+    "name": "Granite",
+    "hex": "#c1c1b5",
+    "wool": "jamieson-s-of-shetland-spindrift-122"
+   },
+   "B": {
+    "name": "Stonewash",
+    "hex": "#41565b",
+    "wool": "jamieson-s-of-shetland-spindrift-677"
+   },
+   "C": {
+    "name": "Dove",
+    "hex": "#707476",
+    "wool": "jamieson-s-of-shetland-spindrift-630"
+   },
+   "D": {
+    "name": "Oxford",
+    "hex": "#4b4a47",
+    "wool": "jamieson-s-of-shetland-spindrift-123"
+   },
+   "E": {
+    "name": "Natural White",
+    "hex": "#eae5c6",
+    "wool": "jamieson-s-of-shetland-spindrift-104"
+   }
+  }
+ },
+ "gauge": {
+  "stitches": 32,
+  "rounds": 36
+ },
+ "charts": {
+  "A": [
+   "A-ApA-ApA-ApA-ApA-Ap",
+   "B-ApB-ApB-ApB-ApB-Ap",
+   "B-ApB-ApB-ApB-ApB-Ap",
+   "B-ApB-ApB-ApB-ApB-Ap",
+   "A-A-A-A-A-A-A-A-A-A-",
+   "A-A-C-C-C-A-A-C-C-C-",
+   "C-C-A-A-A-C-C-A-A-A-",
+   "C-C-A-A-A-C-C-A-A-A-",
+   "A-A-C-C-C-A-A-C-C-C-",
+   "A-A-A-A-A-A-A-A-A-A-",
+   "B-ApB-ApB-ApB-ApB-Ap",
+   "B-ApB-ApB-ApB-ApB-Ap",
+   "B-ApB-ApB-ApB-ApB-Ap"
+  ],
+  "B": [
+   "A-A-A-A-A-A-A-A-A-A-A-A-",
+   "D-D-A-A-A-D-D-D-A-A-A-D-",
+   "A-A-D-A-D-A-A-A-D-A-D-A-",
+   "D-A-A-D-A-A-D-A-A-D-A-A-",
+   "A-A-D-A-D-A-A-A-D-A-D-A-",
+   "D-D-A-A-A-D-D-D-A-A-A-D-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-",
+   "C-C-C-C-C-C-C-C-C-C-C-C-",
+   "E-E-E-C-E-E-E-E-E-C-E-E-",
+   "E-E-C-C-C-E-E-E-C-C-C-E-",
+   "E-C-C-E-C-C-E-C-C-E-C-C-",
+   "C-E-C-C-E-C-C-E-C-C-E-C-",
+   "C-C-E-E-C-C-C-C-E-E-C-C-",
+   "C-C-C-C-C-C-C-C-C-C-C-C-"
+  ],
+  "C": [
+   "A-A-A-A-A-A-A-A-A-A-A-A-A-",
+   "B-A-A-A-A-B-B-B-B-A-A-A-A-",
+   "A-A-A-A-B-A-B-B-A-B-A-A-A-",
+   "B-A-A-B-A-A-B-B-A-A-B-A-A-",
+   "A-A-B-B-B-A-B-B-A-B-B-B-A-",
+   "C-E-E-C-E-E-C-C-E-E-C-E-E-",
+   "E-C-E-E-E-E-C-C-E-E-E-E-C-",
+   "C-E-E-E-E-E-C-C-E-E-E-E-E-",
+   "A-C-A-A-C-C-C-C-C-C-A-A-C-",
+   "D-A-A-A-A-A-D-D-A-A-A-A-A-",
+   "A-D-A-A-A-D-A-A-D-A-A-A-D-",
+   "D-A-A-A-A-A-D-D-A-A-A-A-A-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-A-"
+  ],
+  "D": [
+   "C-C-C-C-C-C-C-C-C-C-C-C-",
+   "E-E-E-C-E-E-E-E-E-C-E-E-",
+   "E-E-C-C-C-E-E-E-C-C-C-E-",
+   "E-C-C-E-C-C-E-C-C-E-C-C-",
+   "C-E-C-C-E-C-C-E-C-C-E-C-",
+   "C-C-E-E-C-C-C-C-E-E-C-C-",
+   "C-C-C-C-C-C-C-C-C-C-C-C-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-",
+   "D-D-A-A-A-D-D-D-A-A-A-D-",
+   "A-A-D-A-D-A-A-A-D-A-D-A-",
+   "D-A-A-D-A-A-D-A-A-D-A-A-",
+   "A-A-D-A-D-A-A-A-D-A-D-A-",
+   "D-D-A-A-A-D-D-D-A-A-A-D-",
+   "A-A-A-A-A-A-A-A-A-A-A-A-"
+  ],
+  "E": [
+   "B-B-B-B-B-B-B-B-B-B-B-B-B-B-B-B-",
+   "B-B-B-B-B-B-B-B-B-B-B-B-B-B-B-B-",
+   "B-A-A-A-B-A-A-A-B-A-A-A-B-A-A-A-",
+   "A-B-A-A-A-A-A-B-B-B-A-A-A-A-A-B-",
+   "B-A-B-A-A-A-A-BxA-A-A-A-B-A-",
+   "A-B-A-A-A-A-B-B-B-A-A-A-A-B-",
+   "C-A-A-A-A-A-CxA-A-A-A-A-",
+   "C-A-A-A-A-C-C-C-A-A-A-A-",
+   "C-E-E-E-E-CxE-E-E-E-",
+   "C-E-E-E-C-C-C-E-E-E-",
+   "D-E-E-E-DxE-E-E-",
+   "D-E-E-D-D-D-E-E-",
+   "D-A-A-DxA-A-",
+   "B-A-B-B-B-A-",
+   "B-A-BxA-",
+   "A-B-B-B-",
+   "A-Bx",
+   "A-B-",
+   "Bk"
+  ]
+ }
+}

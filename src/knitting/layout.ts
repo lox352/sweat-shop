@@ -267,6 +267,53 @@ const indexOf = (stitches: Stitch[], rounds: number[][]): Map<number, Stitch> =>
 };
 
 /**
+ * The make-ones of a round above the anchor, each given a column of its own.
+ *
+ * Below the round a chart is anchored on, a make-one keeps the column the
+ * round above gave it and the round below simply has nothing under it. Above
+ * it there is no column for it yet: it is a stitch made out of nothing, where
+ * the knitting has come back up after coming in - a sleeve wider again for a
+ * band with a wide repeat. So, like the stitches let in at an underarm, it is
+ * given a new column of its own, in the gap beside the stitch it is worked
+ * after, and the columns past it move along one; the column is empty all the
+ * way down, as a make-one's always is. `shift` moves every column past the
+ * one given along by one.
+ */
+const letInMakeOnes = (
+  round: number[],
+  byId: Map<number, Stitch>,
+  column: Map<number, number>,
+  shift: (after: number) => void,
+  way: number,
+) => {
+  round.forEach((id, k) => {
+    if (column.has(id)) return;
+    const stitch = byId.get(id);
+    if (stitch?.type !== "m1" || isSecondLoop(stitch, byId)) return;
+    const near = (step: number) => {
+      for (let j = k + step; j >= 0 && j < round.length; j += step) {
+        const at = column.get(round[j]);
+        if (at !== undefined) return at;
+      }
+      return undefined;
+    };
+    const before = near(-1);
+    const after = near(1);
+    let at: number;
+    if (before !== undefined) {
+      // Just past the stitch it is worked after, the way the round runs.
+      shift(way === 1 ? before : before - 1);
+      at = way === 1 ? before + 1 : before;
+    } else if (after !== undefined) {
+      // The first of its round: just before the stitch after it.
+      shift(way === 1 ? after - 1 : after);
+      at = way === 1 ? after : after + 1;
+    } else return;
+    column.set(id, at);
+  });
+};
+
+/**
  * Lay a piece out flat as a chart: every stitch over the stitches it was
  * worked into, and under the stitches worked into it.
  *
@@ -309,25 +356,45 @@ export const layOut = (
 ): ChartLayout => {
   const byId = indexOf(stitches, rounds);
   const widest = rounds.reduce((most, round) => Math.max(most, round.length), 0);
-  const anchor = rounds.findIndex((round) => round.length === widest);
+  /*
+   * The widest round anchors the chart, as long as every whole round below
+   * it is no wider than the one above: a yoke, growing to its divide. A
+   * piece that comes in and out again - a body narrowed for one band and
+   * widened for the next - is laid out from its first round up instead,
+   * every stitch over what it was worked into and a column of its own for
+   * every make-one.
+   */
+  const whole = rounds.map((_, index) => index).filter((index) => kinds[index] !== "right" && kinds[index] !== "wrong");
+  const widestAt = rounds.findIndex((round) => round.length === widest);
+  const growing = whole.every((index, k) => k === 0 || index > widestAt || rounds[index].length >= rounds[whole[k - 1]].length);
+  const anchor = growing ? widestAt : 0;
   const column = new Map<number, number>();
 
   // Which way across the chart a round is worked: right to left, as a chart is read, but for a row worked back.
   const way = (index: number) => (kinds[index] === "wrong" ? -1 : 1);
 
-  if (anchor >= 0) {
+  if (anchor >= 0 && rounds.length > 0) {
+    const across = rounds[anchor].length;
     rounds[anchor].forEach((id, index) =>
-      column.set(id, way(anchor) === 1 ? index + 1 : widest - index),
+      column.set(id, way(anchor) === 1 ? index + 1 : across - index),
     );
   }
 
-  // Upwards from the anchor: over what it was worked into.
+  // Upwards from the anchor: over what it was worked into, and a make-one in a column of its own.
+  let width = anchor >= 0 && rounds.length > 0 ? rounds[anchor].length : 0;
+  const shift = (after: number) => {
+    column.forEach((at, id) => {
+      if (at > after) column.set(id, at + 1);
+    });
+    width++;
+  };
   for (let index = anchor + 1; index < rounds.length; index++) {
-    for (const family of familiesOf(rounds[index], byId)) {
+    for (const family of familiesOf(rounds[index], byId, true)) {
       const below = columnsOf(family.below, column);
       const lean = leanOf(family, byId);
-      if (below.length > 0) place(family.above, pick(below, widest, lean), lean, column, way(index));
+      if (below.length > 0) place(family.above, pick(below, width, lean), lean, column, way(index));
     }
+    letInMakeOnes(rounds[index], byId, column, shift, way(index));
   }
 
   // And downwards: under whatever was worked into it, in the order the round above took them.
@@ -352,7 +419,7 @@ export const layOut = (
     });
   });
   const rows = rounds.map((_, index) => index + 1);
-  return { cells, rows: rounds.length, columns: widest, roundRows: rows };
+  return { cells, rows: rounds.length, columns: width, roundRows: rows };
 };
 
 /**
@@ -469,13 +536,27 @@ export const layOutSweater = (
       const at = over ?? madeAt.get(id);
       if (at !== undefined) column.set(id, at);
     }
-    // Up the piece, each stitch over what it was worked into.
+    /*
+     * Up the piece, each stitch over what it was worked into, and a make-one
+     * in a column of its own - every column past it, in every piece, moving
+     * along one.
+     */
+    const shiftAll = (after: number) => {
+      const along = (at: number) => (at > after ? at + 1 : at);
+      cells.forEach((cell, id) => {
+        if (cell.column > after) cells.set(id, { ...cell, column: cell.column + 1 });
+      });
+      column.forEach((at, id) => column.set(id, along(at)));
+      madeAt.forEach((at, id) => madeAt.set(id, along(at)));
+      columns++;
+    };
     for (let k = 1; k < indices.length; k++) {
-      for (const family of familiesOf(rounds[indices[k]], byId)) {
+      for (const family of familiesOf(rounds[indices[k]], byId, true)) {
         const below = columnsOf(family.below, column);
         const lean = leanOf(family, byId);
         if (below.length > 0) place(family.above, pick(below, columns, lean), lean, column);
       }
+      letInMakeOnes(rounds[indices[k]], byId, column, shiftAll, 1);
     }
     indices.forEach((index) => {
       const row = rowOf[index];

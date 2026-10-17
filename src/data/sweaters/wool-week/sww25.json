@@ -1,0 +1,95 @@
+{
+ "id": "sww25-aal-ower-toorie",
+ "year": 2025,
+ "name": "Aal Ower Toorie",
+ "designer": "Rachel Hunter, for the Shetland Guild of Spinners, Knitters, Weavers and Dyers",
+ "credit": "© Shetland Guild of Spinners, Knitters, Weavers and Dyers",
+ "patternUrl": "https://www.ravelry.com/patterns/library/aal-ower-toorie",
+ "colourway": {
+  "name": "Vintage",
+  "shades": {
+   "A": {
+    "name": "Moorit",
+    "hex": "#725c49",
+    "wool": "jamieson-s-of-shetland-spindrift-108"
+   },
+   "B": {
+    "name": "Eesit",
+    "hex": "#d7cdb3",
+    "wool": "jamieson-s-of-shetland-spindrift-105"
+   },
+   "C": {
+    "name": "Sapphire",
+    "hex": "#4679a7",
+    "wool": "jamieson-s-of-shetland-spindrift-676"
+   },
+   "D": {
+    "name": "Daffodil",
+    "hex": "#e5c84a",
+    "wool": "jamieson-s-of-shetland-spindrift-390"
+   },
+   "E": {
+    "name": "Madder",
+    "hex": "#891e25",
+    "wool": "jamieson-s-of-shetland-spindrift-587"
+   },
+   "F": {
+    "name": "Natural White",
+    "hex": "#eae5c6",
+    "wool": "jamieson-s-of-shetland-spindrift-104"
+   },
+   "G": {
+    "name": "Moss",
+    "hex": "#515e36",
+    "wool": "jamieson-s-of-shetland-spindrift-147"
+   },
+   "H": {
+    "name": "Nutmeg",
+    "hex": "#d4724f",
+    "wool": "jamieson-s-of-shetland-spindrift-1200"
+   }
+  }
+ },
+ "gauge": {
+  "stitches": 34,
+  "rounds": 36
+ },
+ "charts": {
+  "A": [
+   "A-B-A-A-A-A-A-B-B-B-B-B-A-A-A-A-A-B-",
+   "B-A-A-A-A-A-B-B-B-B-B-B-B-A-A-A-A-A-",
+   "A-B-A-A-A-B-B-B-B-A-B-B-B-B-A-A-A-B-",
+   "C-C-C-C-D-D-C-D-D-C-D-D-C-D-D-C-C-C-",
+   "C-C-C-D-D-D-D-C-D-C-D-C-D-D-D-D-C-C-",
+   "E-E-F-F-F-E-F-F-E-E-E-F-F-E-F-F-F-E-",
+   "E-F-F-F-E-E-E-F-E-F-E-F-E-E-E-F-F-F-",
+   "E-E-F-F-F-E-F-F-E-E-E-F-F-E-F-F-F-E-",
+   "C-C-C-D-D-D-D-C-D-C-D-C-D-D-D-D-C-C-",
+   "C-C-C-C-D-D-C-D-D-C-D-D-C-D-D-C-C-C-",
+   "A-B-A-A-A-B-B-B-B-A-B-B-B-B-A-A-A-B-",
+   "B-A-A-A-A-A-B-B-B-B-B-B-B-A-A-A-A-A-",
+   "A-B-A-A-A-A-A-B-B-B-B-B-A-A-A-A-A-B-",
+   "G-G-H-G-H-G-G-G-H-H-H-G-G-G-H-G-H-G-",
+   "H-G-G-H-G-G-G-G-G-H-G-G-G-G-G-H-G-G-",
+   "G-G-H-G-H-G-G-G-H-H-H-G-G-G-H-G-H-G-"
+  ],
+  "B": [
+   "G-G-H-G-H-G-G-H-HsH-G-G-H-G-H-G-",
+   "H-G-G-H-G-G-G-G-H-G-G-G-G-H-G-G-",
+   "G-G-H-G-H-G-G-HsG-G-H-G-H-G-",
+   "A-B-A-A-A-A-A-B-A-A-A-A-A-B-",
+   "B-A-A-A-A-A-BsA-A-A-A-A-",
+   "A-B-A-A-A-B-B-B-A-A-A-B-",
+   "C-C-C-C-D-DsD-C-C-C-",
+   "C-C-C-D-D-D-D-D-C-C-",
+   "E-E-F-F-FsF-F-E-",
+   "E-F-F-F-E-F-F-F-",
+   "E-F-F-FsF-F-",
+   "C-D-D-D-D-D-",
+   "C-C-DsC-",
+   "B-C-B-C-",
+   "A-Bs",
+   "Ak"
+  ]
+ }
+}
