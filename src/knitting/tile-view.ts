@@ -171,10 +171,11 @@ class Axis {
    * And the layer only as near there as leaves the box, `from` along the
    * sheet and `size` long, inside the chart once the lines arrive, as its
    * scroll will have to at rest: never back past `lowest`, where its scroll
-   * is nought, nor on past the chart's far edge, line 0.
+   * is nought, nor on past the chart's far edge, line 0, and the `room` the
+   * box scrolls on beyond it.
    */
-  keepBox(from: number, size: number, lowest: number) {
-    const highest = Math.max(lowest, this.target.start[0] - size);
+  keepBox(from: number, size: number, lowest: number, room = 0) {
+    const highest = Math.max(lowest, this.target.start[0] + room - size);
     this.targetShift = from - Math.min(Math.max(from - this.targetShift, lowest), highest);
   }
 
@@ -381,7 +382,10 @@ export class TileView {
         this.columnMap = mapOf(this.liveColumns!);
         const to = columnPlaces(this.columnMap, cell);
         if (fresh) this.columns.reset(to);
-        else this.columns.retarget(to, this.columnHeld(wasColumns));
+        else {
+          this.columns.retarget(to, this.columnHeld(wasColumns));
+          this.keepColumnsInBox();
+        }
         columns = true;
       }
       const rowsMoved = this.liveRows!.moveTo(this.onScreen(view().x));
@@ -547,6 +551,27 @@ export class TileView {
     if (this.target !== undefined || this.point) return;
     const top = this.sheet.offsetTop;
     this.rows.keepBox(this.scroller.scrollTop - top, this.scroller.clientHeight, -top);
+  }
+
+  /**
+   * And the columns, always but while zoomed about a point: the box stays
+   * inside the chart as the columns move, however those between the line
+   * held and an edge open or close. Above all, the chart's right-hand edge -
+   * column 1, and the round numbers beside it - is never carried into the
+   * box, as it would be when columns close between it and a stitch held
+   * still near it: the box can't be scrolled past that edge, so there would
+   * be nothing in the gap, and the box would only be put right at rest, by a
+   * scroll a phone can lose. A chart narrower than the box has nothing to
+   * scroll, and is left as it is.
+   */
+  private keepColumnsInBox() {
+    if (this.point) return;
+    const size = this.scroller.clientWidth;
+    // The chart, its round numbers, and the box's own padding past them.
+    const room = gutter(this.content!.cell) + (parseFloat(getComputedStyle(this.scroller).paddingRight) || 0);
+    if (this.columns.target.start[0] + room < size) return;
+    const left = this.sheet.offsetLeft;
+    this.columns.keepBox(this.scroller.scrollLeft - left, size, -left, room);
   }
 
   /** The line under `at` along `order`, by where lines are drawn now, or the nearest to it that `shows`. */
