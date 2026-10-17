@@ -482,6 +482,27 @@ test("a raglan divides as its pattern says: its markers off either side of each 
   await expect.poll(edge).toBe(true);
 });
 
+test("the chart finds the stitch again if the browser leaves it elsewhere as a short row ends, but not if you scroll away", async ({ page }) => {
+  // Short row 3 of Paul Klee's M1, its thirteen stitches still to knit; then the turn, with its long panel.
+  await knittedTo(page, 2364, klee);
+  await page.getByRole("button", { name: /^Knit 13 in / }).click();
+  await expect(page.getByRole("button", { name: "Turned: carry on" })).toBeVisible();
+  // As a phone's browser has been seen to while the chart turns over and the panel grows: the chart's window left
+  // somewhere else, with nothing touched.
+  await page.locator(".chart-scroll").evaluate((box) => {
+    box.scrollLeft = 0;
+    box.scrollTop = 0;
+  });
+  await expect(page.locator(".chart-next")).toBeInViewport();
+  // A scroll of your own stays where you take it.
+  await page.waitForTimeout(1200);
+  const box = await page.locator(".chart-scroll").boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.wheel(-4000, -4000);
+  await page.waitForTimeout(1200);
+  await expect(page.locator(".chart-next")).not.toBeInViewport();
+});
+
 test("a rib is worked as its pattern words it, and bound off in pattern", async ({ page }) => {
   await knittedTo(page, kleeBeforeRib, klee);
   await expect(page.getByRole("button", { name: /^\(K1, p1\) x 118 in / })).toBeVisible();
