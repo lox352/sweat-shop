@@ -126,12 +126,23 @@ const countFor = (w: number, want: number, now: number, growing: boolean): numbe
 };
 
 /**
+ * How far behind a growing yoke may fall - for how many rounds, and by what
+ * part of its count - before it increases in pattern rather than wait for a
+ * round between strips.
+ */
+const STRAIN = { rounds: 8, behind: 0.25 };
+
+/**
  * Rounds worked on whole repeats, at the count `want` asks for: shaping where
  * a round is plain or one colour, in pattern where a band must change and
- * cannot wait. The last round leaves `last(count)`.
+ * cannot wait. A yoke that goes STRAIN rounds of one band unshaped while it
+ * falls well behind increases in pattern too: otherwise a tall band
+ * at the neck, as 2026's is when the newest year comes first, is a tube where
+ * the yoke should spread. The last round leaves `last(count)`.
  */
 const tiled = (w: Writer, rows: Row[], start: number, want: (i: number) => number, growing: boolean, last: (n: number) => number): number => {
   let count = start;
+  let since = 0;
   rows.forEach((r, i) => {
     const repeat = isPlain(r) ? (rows.slice(i).find((x) => !isPlain(x)) as ChartRow | undefined)?.w ?? 1 : r.w;
     const shapeable = isPlain(r) || rowIsSolid(r);
@@ -139,6 +150,8 @@ const tiled = (w: Writer, rows: Row[], start: number, want: (i: number) => numbe
     if (i === rows.length - 1) to = last(count);
     else if (shapeable) to = countFor(repeat, want(i), count, growing);
     else if (count % repeat !== 0) to = countFor(repeat, count, count, growing);
+    else if (growing && since >= STRAIN.rounds && want(i) >= count * (1 + STRAIN.behind) && want(i) >= count + repeat) to = countFor(repeat, want(i), count, growing);
+    since = to === count ? since + 1 : 0;
     if (to !== count && shapeable) w.shape(slotOfRound(r), count, to);
     else if (to !== count) w.transition(r as ChartRow, count, to);
     else if (isPlain(r)) w.plain(plainSlot(r.year, r.plain));

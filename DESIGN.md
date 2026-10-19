@@ -280,8 +280,9 @@ share is in `src/data/sweaters/wool-week/strips/`.
   plain round, which carries any shaping, then its cut, padded with plain
   rounds.
 - **The knitting** (`knit.ts`). The yoke and body keep every repeat whole,
-  and change count only in plain or one-colour rounds, or in a round of the
-  pattern with its increases spread through it. The body matches all round;
+  and change count in plain or one-colour rounds; in a round of the pattern,
+  its increases spread through it, only where the repeat changes or a tall
+  band would otherwise leave the yoke a quarter narrower than it should be. The body matches all round;
   the sleeves taper at a seam under the arm, the seam stitch chosen to break
   the floats either side of it.
 - **The colourways** (`colours.ts`, from `colourways.json`, which
