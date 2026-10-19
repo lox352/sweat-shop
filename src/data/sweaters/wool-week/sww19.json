@@ -134,5 +134,227 @@
    "A-Fk",
    "Fk"
   ]
- }
+ },
+ "colourways": [
+  {
+   "id": "jamieson-smith",
+   "name": "Colourway 1",
+   "brand": "Jamieson & Smith",
+   "yarn": "2ply Jumper Weight",
+   "url": "https://www.shetlandwoolbrokers.co.uk",
+   "wool": "jamieson-smith-2ply-jumper-weight",
+   "ballMetres": 115,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Light Marled Blue Green",
+     "code": "1280",
+     "hex": "#93a092",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-1280"
+    },
+    "B": {
+     "name": "Brown",
+     "code": "80",
+     "hex": "#452c29",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-80"
+    },
+    "C": {
+     "name": "Bright Purple Mix",
+     "code": "FC56",
+     "hex": "#4e3858",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-fc56"
+    },
+    "D": {
+     "name": "Light Turquoise",
+     "code": "75",
+     "hex": "#75bfc7",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-75"
+    },
+    "E": {
+     "name": "Pale Lemon",
+     "code": "96",
+     "hex": "#ead293",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-96"
+    },
+    "F": {
+     "name": "Bleached/Optic White",
+     "code": "1",
+     "hex": "#f0efe4",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-1"
+    },
+    "G": {
+     "name": "Light Grey Green Mix",
+     "code": "FC62",
+     "hex": "#839882",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-fc62"
+    }
+   }
+  },
+  {
+   "id": "foula",
+   "name": "Colourway 2",
+   "brand": "Foula Wool",
+   "yarn": "Jumper Weight",
+   "url": "https://www.foulawool.co.uk",
+   "ballMetres": 90,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Moorit",
+     "hex": "#6b472b",
+     "source": "approximate"
+    },
+    "B": {
+     "name": "Black",
+     "hex": "#2a2724",
+     "source": "approximate"
+    },
+    "C": {
+     "name": "Mioget",
+     "hex": "#c9a961",
+     "source": "approximate"
+    },
+    "D": {
+     "name": "Grey",
+     "hex": "#8c8a85",
+     "source": "approximate"
+    },
+    "E": {
+     "name": "Light Grey",
+     "hex": "#c2c0ba",
+     "source": "approximate"
+    },
+    "F": {
+     "name": "White",
+     "hex": "#efe9dd",
+     "source": "approximate"
+    },
+    "G": {
+     "name": "Fawn",
+     "hex": "#b9a488",
+     "source": "approximate"
+    }
+   }
+  },
+  {
+   "id": "jamiesons",
+   "name": "Colourway 3",
+   "brand": "Jamieson's of Shetland",
+   "yarn": "Spindrift",
+   "url": "https://www.jamiesonsofshetland.co.uk",
+   "wool": "jamieson-s-of-shetland-spindrift",
+   "ballMetres": 105,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Twilight",
+     "code": "175",
+     "hex": "#7e8596",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-175"
+    },
+    "B": {
+     "name": "Grouse",
+     "code": "235",
+     "hex": "#3c312a",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-235"
+    },
+    "C": {
+     "name": "Moss",
+     "code": "147",
+     "hex": "#515e36",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-147"
+    },
+    "D": {
+     "name": "Dewdrop",
+     "code": "720",
+     "hex": "#acc0b7",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-720"
+    },
+    "E": {
+     "name": "Mist",
+     "code": "180",
+     "hex": "#b1abaf",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-180"
+    },
+    "F": {
+     "name": "White",
+     "code": "304",
+     "hex": "#f1f1e7",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-304"
+    },
+    "G": {
+     "name": "Autumn",
+     "code": "998",
+     "hex": "#866b3d",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-998"
+    }
+   }
+  },
+  {
+   "id": "uradale",
+   "name": "Colourway 4",
+   "brand": "Uradale Yarns",
+   "yarn": "Jumper Weight Organic Yarn",
+   "url": "https://www.uradale.com",
+   "wool": "uradale-yarns-2ply-jumper-weight",
+   "ballMetres": 173,
+   "ballGrams": 50,
+   "shades": {
+    "A": {
+     "name": "Forget-me-not",
+     "hex": "#90b9e6",
+     "source": "approximate"
+    },
+    "B": {
+     "name": "Bilberry Heath",
+     "hex": "#564e97",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-bilberry-heath"
+    },
+    "C": {
+     "name": "Sea Pink",
+     "hex": "#d991a2",
+     "source": "approximate"
+    },
+    "D": {
+     "name": "Speedwell",
+     "hex": "#5fccff",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-speedwell"
+    },
+    "E": {
+     "name": "Ling Heath",
+     "hex": "#ac5284",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-ling-heath"
+    },
+    "F": {
+     "name": "Flukkra (natural white)",
+     "hex": "#eef0e2",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-flukkra-natural-white"
+    },
+    "G": {
+     "name": "Sundew Heath",
+     "hex": "#9ebf72",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-sundew-heath"
+    }
+   }
+  }
+ ]
 }

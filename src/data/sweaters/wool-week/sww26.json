@@ -149,5 +149,294 @@
    "A-A-ApAp",
    "A-A-ApAp"
   ]
+ },
+ "colourways": [
+  {
+   "id": "sea-anemone",
+   "name": "Sea Anemone",
+   "brand": "Jamieson's of Shetland",
+   "yarn": "Spindrift",
+   "url": "https://www.jamiesonsofshetland.co.uk",
+   "wool": "jamieson-s-of-shetland-spindrift",
+   "ballMetres": 105,
+   "ballGrams": 25,
+   "part": "1-2",
+   "shades": {
+    "A": {
+     "name": "Port Wine",
+     "code": "293",
+     "hex": "#382229",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-293"
+    },
+    "B": {
+     "name": "Cloud",
+     "code": "764",
+     "hex": "#b6d2d5",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-764"
+    },
+    "C": {
+     "name": "Pacific",
+     "code": "763",
+     "hex": "#576375",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-763"
+    },
+    "D": {
+     "name": "Orchid",
+     "code": "547",
+     "hex": "#d1c0c0",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-547"
+    },
+    "E": {
+     "name": "Gentian",
+     "code": "710",
+     "hex": "#302f4f",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-710"
+    },
+    "F": {
+     "name": "Lilac",
+     "code": "620",
+     "hex": "#bbb3c4",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-620"
+    }
+   }
+  },
+  {
+   "id": "funky",
+   "name": "Funky",
+   "brand": "Jamieson & Smith",
+   "yarn": "2ply Jumper Weight",
+   "url": "https://www.shetlandwoolbrokers.co.uk",
+   "wool": "jamieson-smith-2ply-jumper-weight",
+   "ballMetres": 115,
+   "ballGrams": 25,
+   "part": "1-2",
+   "shades": {
+    "A": {
+     "name": "Dark Purple Mix",
+     "code": "FC14",
+     "hex": "#443f4d",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-fc14"
+    },
+    "B": {
+     "name": "Salmon Pink",
+     "code": "9144",
+     "hex": "#cb5246",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-9144"
+    },
+    "C": {
+     "name": "Aubergine",
+     "code": "134",
+     "hex": "#9e4463",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-134"
+    },
+    "D": {
+     "name": "Bright Orange",
+     "code": "73",
+     "hex": "#d54400",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-73"
+    },
+    "E": {
+     "name": "Dark Red Mix",
+     "code": "FC13",
+     "hex": "#351818",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-fc13"
+    },
+    "F": {
+     "name": "Bright Turquoise",
+     "code": "71",
+     "hex": "#4cd9cc",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-71"
+    }
+   }
+  },
+  {
+   "id": "heddery-hills",
+   "name": "Heddery Hills",
+   "brand": "Uradale Yarns",
+   "yarn": "2ply Jumper Weight",
+   "url": "https://www.uradale.com",
+   "wool": "uradale-yarns-2ply-jumper-weight",
+   "ballMetres": 86,
+   "ballGrams": 25,
+   "part": "3-4",
+   "shades": {
+    "A": {
+     "name": "Clover Heath",
+     "hex": "#6eaf89",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-clover-heath"
+    },
+    "B": {
+     "name": "Sea Pink Heath",
+     "hex": "#edbee0",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-sea-pink-heath"
+    },
+    "C": {
+     "name": "Meadowsweet",
+     "hex": "#fdde9a",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-meadowsweet"
+    },
+    "D": {
+     "name": "Moss",
+     "hex": "#d1d67c",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-moss"
+    }
+   }
+  },
+  {
+   "id": "nostalgia",
+   "name": "Nostalgia",
+   "brand": "Foula Wool",
+   "yarn": "2ply",
+   "url": "https://www.foulawool.co.uk",
+   "ballMetres": 89,
+   "ballGrams": 25,
+   "part": "3-4",
+   "shades": {
+    "A": {
+     "name": "Shetland Black",
+     "hex": "#2e2a28",
+     "source": "approximate"
+    },
+    "B": {
+     "name": "Grey",
+     "hex": "#8d8b86",
+     "source": "approximate"
+    },
+    "C": {
+     "name": "Natural White",
+     "hex": "#efe9dd",
+     "source": "approximate"
+    },
+    "D": {
+     "name": "Moiget",
+     "hex": "#c8a35e",
+     "source": "approximate"
+    }
+   }
+  }
+ ],
+ "printings": {
+  "3-4": {
+   "Body": [
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "BAAAAABBAAAABAAABAAABAAAABBAAAAA",
+    "BBAABAABBAABBBABBBABBBAABBAABAAB",
+    "ABBAAAAABBAABABABABABAABBAAAAABB",
+    "AABBAABAABBAABBBABBBAABBAABAABBA",
+    "CCACCAAAAACCAACACACAACCAAAAACCAC",
+    "CCCACCAACAACCAACCCAACCAACAACCACC",
+    "CCCAACCAAAAACCAACAACCAAAAACCAACC",
+    "CCAAAACCAACAACCAAACCAACAACCAAAAC",
+    "AABBBAABBAAAAABBABBAAAAABBAABBBA",
+    "ABBBBBAABBAABAABBBAABAABBAABBBBB",
+    "ABBBBBAAABBAAAAABAAAAABBAAABBBBB",
+    "AABBBAAAAABBAABAAABAABBAAAAABBBA",
+    "DDAAADDDAAADDAAAAAAADDAAADDDAAAD",
+    "DDDADDDDDAAADDAADAADDAAADDDDDADD",
+    "DDDADDDDDAAAADDAAADDAAAADDDDDADD",
+    "DDAAADDDAAAAAADDADDAAAAAADDDAAAD",
+    "AACCCAAACCCAAAACCCAAAACCCAAACCCA",
+    "ACCCCCACCCCCAAAACAAAACCCCCACCCCC",
+    "ACCCCCACCCCCAAAACAAAACCCCCACCCCC",
+    "AACCCAAACCCAAAACCCAAAACCCAAACCCA",
+    "DDAAADDDAAAAAADDADDAAAAAADDDAAAD",
+    "DDDADDDDDAAAADDAAADDAAAADDDDDADD",
+    "DDDADDDDDAAADDAADAADDAAADDDDDADD",
+    "DDAAADDDAAADDAAAAAAADDAAADDDAAAD",
+    "AABBBAAAAABBAABAAABAABBAAAAABBBA",
+    "ABBBBBAAABBAAAAABAAAAABBAAABBBBB",
+    "ABBBBBAABBAABAABBBAABAABBAABBBBB",
+    "AABBBAABBAAAAABBABBAAAAABBAABBBA",
+    "CCAAAACCAACAACCAAACCAACAACCAAAAC",
+    "CCCAACCAAAAACCAACAACCAAAAACCAACC",
+    "CCCACCAACAACCAACCCAACCAACAACCACC",
+    "CCACCAAAAACCAACCCCCAACCAAAAACCAC",
+    "AABBAABAABBAABBBABBBAABBAABAABBA",
+    "ABBAAAAABBAABBBAAABBBAABBAAAAABB",
+    "BBAABAABBAABBBABABABBBAABBAABAAB",
+    "DAAAAADDAADDDAAADAAADDDAADDAAAAA",
+    "AADAADDAADDDADADDDADADDDAADDAADA",
+    "AAAADDAADDDAAADDADDAAADDDAADDAAA"
+   ],
+   "Crown": [
+    "AADDAADDDADADDAAADDADADDDAADDA",
+    "DDDAADDDAAADDADADADDAAADDDAADD",
+    "BAABBBABABBAAABAAABBABABBBAA",
+    "AABBBAAABBABABBBABABBAAABBBA",
+    "ABBABABBAAABBABBAAABBABABB",
+    "ACAAACCACACCAAACCACACCAAAC",
+    "ACACCAAACCACACACCAAACCAC",
+    "ACCCACACCAAACAAACCACACCC",
+    "ABAAABBABABBBABABBAAAB",
+    "ABBABBAAABBABBAAABBABB",
+    "ABBBABABBAAABBABABBB",
+    "AADAAADDADADADDAAADA",
+    "AADADDAAADAAADDADA",
+    "AADDDADADDDADADDDA",
+    "AADAAADDADDAAADA",
+    "AADDADDAAADDADDA",
+    "AABBBABABABBBA",
+    "AAABAAABAAABAA",
+    "AABBABBBABBA",
+    "AAACCCACCCAA",
+    "AAACAAACAA",
+    "AAACCACCAA",
+    "AAABBBAA",
+    "AAAABAAA",
+    "AAAAAA",
+    "AAAAAA",
+    "AAAA",
+    "AAAA",
+    "AA"
+   ],
+   "Rib": [
+    "BBBB",
+    "BBBB",
+    "BBBB"
+   ],
+   "Hem": [
+    "BBBB",
+    "BBBB",
+    "BBBB",
+    "BBBB",
+    "CCCC",
+    "CCCC",
+    "CCCC",
+    "CCCC",
+    "DDDD",
+    "DDDD",
+    "DDDD",
+    "DDDD",
+    "DDDD",
+    "DDDD",
+    "DDDD",
+    "DDDD",
+    "CCCC",
+    "CCCC",
+    "CCCC",
+    "CCCC",
+    "BBBB",
+    "BBBB",
+    "BBBB",
+    "BBBB"
+   ]
+  }
  }
 }

@@ -117,5 +117,177 @@
    "A-D-D-D-",
    "A-Dx"
   ]
- }
+ },
+ "colourways": [
+  {
+   "id": "jamieson-smith",
+   "name": "Colourway 1",
+   "brand": "Jamieson & Smith",
+   "yarn": "2ply Jumper Weight",
+   "url": "https://www.shetlandwoolbrokers.co.uk",
+   "wool": "jamieson-smith-2ply-jumper-weight",
+   "ballMetres": 115,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Bleached/Optic White",
+     "code": "1",
+     "hex": "#f0efe4",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-1"
+    },
+    "B": {
+     "name": "Cool Mid Purple",
+     "code": "123",
+     "hex": "#ac5c97",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-123"
+    },
+    "C": {
+     "name": "Bright Green Mix",
+     "code": "1282",
+     "hex": "#779669",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-1282"
+    },
+    "D": {
+     "name": "Mid Purple Blue",
+     "code": "FC37",
+     "hex": "#394574",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-fc37"
+    },
+    "E": {
+     "name": "Mid Marled Pink",
+     "code": "1283",
+     "hex": "#d28184",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-1283"
+    }
+   }
+  },
+  {
+   "id": "uradale",
+   "name": "Colourway 2",
+   "brand": "Uradale Yarns",
+   "yarn": "2ply Jumper Weight",
+   "url": "https://www.uradale.com",
+   "wool": "uradale-yarns-2ply-jumper-weight",
+   "ballMetres": 86,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Juniper Heath",
+     "hex": "#4061b1",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-juniper-heath"
+    },
+    "B": {
+     "name": "Speedwell",
+     "hex": "#5fccff",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-speedwell"
+    },
+    "C": {
+     "name": "Tormentil Heath",
+     "hex": "#d3a94e",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-tormentil-heath"
+    },
+    "D": {
+     "name": "Speedwell Heath",
+     "hex": "#83c0e6",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-speedwell-heath"
+    },
+    "E": {
+     "name": "Moss",
+     "hex": "#d1d67c",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-moss"
+    }
+   }
+  },
+  {
+   "id": "shetland-handspun",
+   "name": "Colourway 3",
+   "brand": "Shetland Handspun",
+   "yarn": "Handspun 2ply, sold as a kit by the metre",
+   "url": "https://www.shetlandhandspun.com",
+   "shades": {
+    "A": {
+     "name": "Silver",
+     "hex": "#d6d0c4",
+     "source": "approximate"
+    },
+    "B": {
+     "name": "Onion/Cochineal",
+     "hex": "#b5702f",
+     "source": "approximate"
+    },
+    "C": {
+     "name": "Logwood",
+     "hex": "#7d8894",
+     "source": "approximate"
+    },
+    "D": {
+     "name": "Moorit",
+     "hex": "#6b4a30",
+     "source": "approximate"
+    },
+    "E": {
+     "name": "Logwood/Onion",
+     "hex": "#7d7449",
+     "source": "approximate"
+    }
+   }
+  },
+  {
+   "id": "jamiesons",
+   "name": "Colourway 4",
+   "brand": "Jamieson's of Shetland",
+   "yarn": "Spindrift",
+   "url": "https://www.jamiesonsofshetland.co.uk",
+   "wool": "jamieson-s-of-shetland-spindrift",
+   "ballMetres": 105,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Cosmos",
+     "code": "1340",
+     "hex": "#222325",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-1340"
+    },
+    "B": {
+     "name": "Spice",
+     "code": "526",
+     "hex": "#c63d45",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-526"
+    },
+    "C": {
+     "name": "Pacific",
+     "code": "763",
+     "hex": "#576375",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-763"
+    },
+    "D": {
+     "name": "Madder",
+     "code": "587",
+     "hex": "#891e25",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-587"
+    },
+    "E": {
+     "name": "Foxglove",
+     "code": "273",
+     "hex": "#875373",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-273"
+    }
+   }
+  }
+ ]
 }

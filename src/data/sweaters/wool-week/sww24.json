@@ -120,5 +120,143 @@
    "E-E-A-E-",
    "E-As"
   ]
- }
+ },
+ "colourways": [
+  {
+   "id": "jamiesons",
+   "name": "Colourway 1",
+   "brand": "Jamieson's of Shetland",
+   "yarn": "2ply Jumper Weight (Spindrift)",
+   "url": "https://www.jamiesonsofshetland.co.uk",
+   "wool": "jamieson-s-of-shetland-spindrift",
+   "ballMetres": 105,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Pot-Pourri",
+     "code": "603",
+     "hex": "#af8f93",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-603"
+    },
+    "B": {
+     "name": "Purple Heather",
+     "code": "239",
+     "hex": "#5f323a",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-239"
+    },
+    "C": {
+     "name": "Foxglove",
+     "code": "273",
+     "hex": "#875373",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-273"
+    },
+    "D": {
+     "name": "Prairie",
+     "code": "812",
+     "hex": "#4b6637",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-812"
+    },
+    "E": {
+     "name": "Earth",
+     "code": "227",
+     "hex": "#393629",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-227"
+    }
+   }
+  },
+  {
+   "id": "jamieson-smith",
+   "name": "Colourway 2",
+   "brand": "Jamieson & Smith",
+   "yarn": "2ply Jumper Weight",
+   "url": "https://www.shetlandwoolbrokers.co.uk",
+   "wool": "jamieson-smith-2ply-jumper-weight",
+   "ballMetres": 115,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Dark Navy",
+     "code": "36",
+     "hex": "#24222a",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-36"
+    },
+    "B": {
+     "name": "Bright Pink",
+     "code": "8",
+     "hex": "#ff6566",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-8"
+    },
+    "C": {
+     "name": "Bright Orange",
+     "code": "73",
+     "hex": "#d54400",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-73"
+    },
+    "D": {
+     "name": "Light Blue",
+     "code": "14",
+     "hex": "#9ac4de",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-14"
+    },
+    "E": {
+     "name": "Purpley Blue",
+     "code": "131",
+     "hex": "#5966b6",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-131"
+    }
+   }
+  },
+  {
+   "id": "uradale",
+   "name": "Colourway 3",
+   "brand": "Uradale",
+   "yarn": "2ply Jumper Weight, organic",
+   "url": "https://www.uradale.com",
+   "wool": "uradale-yarns-2ply-jumper-weight",
+   "ballMetres": 86,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Moorit (Shetland brown)",
+     "hex": "#4a3930",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-moorit-shetland-brown"
+    },
+    "B": {
+     "name": "Glansin (light grey)",
+     "hex": "#ebeae8",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-glansin-light-grey"
+    },
+    "C": {
+     "name": "Beremeal (mid fawn)",
+     "hex": "#dfd4d5",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-beremeal-mid-fawn"
+    },
+    "D": {
+     "name": "Aetmeal (light fawn)",
+     "hex": "#f6efe3",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-aetmeal-light-fawn"
+    },
+    "E": {
+     "name": "Flukkra (natural white)",
+     "hex": "#eef0e2",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-flukkra-natural-white"
+    }
+   }
+  }
+ ]
 }

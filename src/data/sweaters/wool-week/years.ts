@@ -37,9 +37,30 @@ export interface Year {
   colourway: { name: string; shades: Record<string, { name: string; hex: string; wool?: string }> };
   gauge: { stitches: number; rounds: number };
   charts: Record<string, string[]>;
+  /** Every colourway the hat publishes, for the strip samplers' collections. */
+  colourways: PublishedColourway[];
+  /**
+   * A chart drawn in parts, as 2026's are, cast in another pair of colourways'
+   * yarns: the same cells, the yarn letters alone, keyed by the pair.
+   */
+  printings?: Record<string, Record<string, string[]>>;
 }
 
-export const years: Year[] = [sww14, sww15, sww16, sww17, sww18, sww19, sww20, sww21, sww22, sww23, sww24, sww25, sww26];
+export interface PublishedColourway {
+  id: string;
+  name: string;
+  brand: string;
+  yarn: string;
+  url: string;
+  wool?: string;
+  ballMetres?: number;
+  ballGrams?: number;
+  /** Which printing of a chart drawn in parts it knits from. */
+  part?: string;
+  shades: Record<string, { name: string; code?: string; hex: string; source: "library" | "approximate"; wool?: string }>;
+}
+
+export const years: Year[] = [sww14, sww15, sww16, sww17, sww18, sww19, sww20, sww21, sww22, sww23, sww24, sww25, sww26] as Year[];
 
 export const yearOf = (year: number): Year => {
   const found = years.find((one) => one.year === year);

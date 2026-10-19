@@ -113,5 +113,217 @@
    "B-A-AsA-",
    "A-As"
   ]
- }
+ },
+ "colourways": [
+  {
+   "id": "jamieson-smith",
+   "name": "Jamieson & Smith",
+   "brand": "Jamieson & Smith",
+   "yarn": "Jumper Weight",
+   "url": "https://www.shetlandwoolbrokers.co.uk",
+   "wool": "jamieson-smith-2ply-jumper-weight",
+   "ballMetres": 115,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Dark Navy",
+     "code": "36",
+     "hex": "#24222a",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-36"
+    },
+    "B": {
+     "name": "Dark Green Grey",
+     "code": "FC46",
+     "hex": "#6d6850",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-fc46"
+    },
+    "C": {
+     "name": "Mid Fawn Green Mix",
+     "code": "FC64",
+     "hex": "#957b66",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-fc64"
+    },
+    "D": {
+     "name": "Dark Fawn",
+     "code": "78",
+     "hex": "#af8067",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-78"
+    },
+    "E": {
+     "name": "Lavender",
+     "code": "FC21",
+     "hex": "#8e787f",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-fc21"
+    }
+   }
+  },
+  {
+   "id": "jamiesons",
+   "name": "Jamieson's of Shetland",
+   "brand": "Jamieson's of Shetland",
+   "yarn": "Spindrift",
+   "url": "https://www.jamiesonsofshetland.co.uk",
+   "wool": "jamieson-s-of-shetland-spindrift",
+   "ballMetres": 105,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Oxford",
+     "code": "123",
+     "hex": "#4b4a47",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-123"
+    },
+    "B": {
+     "name": "Damask",
+     "code": "567",
+     "hex": "#9e6a6f",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-567"
+    },
+    "C": {
+     "name": "Fog",
+     "code": "272",
+     "hex": "#c0afa0",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-272"
+    },
+    "D": {
+     "name": "White",
+     "code": "304",
+     "hex": "#f1f1e7",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-304"
+    },
+    "E": {
+     "name": "Rye",
+     "code": "140",
+     "hex": "#d3d2af",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-140"
+    }
+   }
+  },
+  {
+   "id": "uradale",
+   "name": "Uradale Yarns",
+   "brand": "Uradale Yarns",
+   "yarn": "Jumper Weight",
+   "url": "https://www.uradale.com",
+   "wool": "uradale-yarns-2ply-jumper-weight",
+   "ballGrams": 50,
+   "shades": {
+    "A": {
+     "name": "Graeff (Shetland black)",
+     "hex": "#352c2c",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-graeff-shetland-black"
+    },
+    "B": {
+     "name": "Flukkra (natural white)",
+     "hex": "#eef0e2",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-flukkra-natural-white"
+    },
+    "C": {
+     "name": "Beremeal (mid fawn)",
+     "hex": "#dfd4d5",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-beremeal-mid-fawn"
+    },
+    "D": {
+     "name": "Speedwell",
+     "hex": "#5fccff",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-speedwell"
+    },
+    "E": {
+     "name": "Moss Heath",
+     "hex": "#cdc391",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-moss-heath"
+    }
+   }
+  },
+  {
+   "id": "jamiesons-dk",
+   "name": "Jamieson's of Shetland",
+   "brand": "Jamieson's of Shetland",
+   "yarn": "DK",
+   "url": "https://www.jamiesonsofshetland.co.uk",
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Oxford",
+     "code": "123",
+     "hex": "#4b4a47",
+     "source": "approximate"
+    },
+    "B": {
+     "name": "Damask",
+     "code": "567",
+     "hex": "#9e6a6f",
+     "source": "approximate"
+    },
+    "C": {
+     "name": "Fog",
+     "code": "272",
+     "hex": "#c0afa0",
+     "source": "approximate"
+    },
+    "D": {
+     "name": "White",
+     "code": "304",
+     "hex": "#f1f1e7",
+     "source": "approximate"
+    },
+    "E": {
+     "name": "Rye",
+     "code": "140",
+     "hex": "#d3d2af",
+     "source": "approximate"
+    }
+   }
+  },
+  {
+   "id": "uradale-dk",
+   "name": "Uradale Yarns",
+   "brand": "Uradale Yarns",
+   "yarn": "DK",
+   "url": "https://www.uradale.com",
+   "ballGrams": 50,
+   "shades": {
+    "A": {
+     "name": "Graeff (Shetland black)",
+     "hex": "#352c2c",
+     "source": "approximate"
+    },
+    "B": {
+     "name": "Flukkra (natural white)",
+     "hex": "#eef0e2",
+     "source": "approximate"
+    },
+    "C": {
+     "name": "Beremeal (mid fawn)",
+     "hex": "#dfd4d5",
+     "source": "approximate"
+    },
+    "D": {
+     "name": "Speedwell",
+     "hex": "#5fccff",
+     "source": "approximate"
+    },
+    "E": {
+     "name": "Moss Heath",
+     "hex": "#cdc391",
+     "source": "approximate"
+    }
+   }
+  }
+ ]
 }

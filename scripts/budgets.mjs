@@ -23,9 +23,12 @@ const kb = 1024;
 /*
  * The page's was 170KB, and the site had grown to exactly that; the Wool Week
  * Sampler's thirteen hats' charts, and the grader that fits them to a size,
- * are another 14KB of it.
+ * are another 14KB of it. The five strip samplers, side by side to choose
+ * between, are 16KB more: their planning and knitting, and every colourway
+ * the hats were published in. Once one is chosen the others go, and this can
+ * come back down.
  */
-const budgets = { page: 200 * kb, stage: 260 * kb, settled: 300 * kb };
+const budgets = { page: 220 * kb, stage: 260 * kb, settled: 300 * kb };
 
 const files = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>

@@ -10,10 +10,12 @@
  * can be taken out again in one commit - the hat site's two-file rule, kept.
  *
  * What comes over is what the sampler knits from: every chart but 2026's
- * band of lettering, a cell a slot letter and a mark; and its first
- * colourway's colours, which is what each year's yarns are mapped onto the
- * sampler's from (see wool-week/ladder.ts). Charts drawn in a ground and a
- * motif, as 2026's are, are cast in that first colourway's yarns.
+ * band of lettering, a cell a slot letter and a mark; its first colourway's
+ * colours, which is what each year's yarns are mapped onto the sampler's
+ * from (see wool-week/ladder.ts); and every colourway it publishes, for the
+ * strip samplers' collections (see wool-week/strips). Charts drawn in a
+ * ground and a motif, as 2026's are, are cast in that first colourway's
+ * yarns, and again in each other pair's, under `printings`.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -78,6 +80,24 @@ for (const file of fs.readdirSync(scratch).filter((f) => /^sww\d\d.*\.ts$/.test(
     gauge: { stitches: hat.sizes[0].stitchesPer10cm, rounds: hat.sizes[0].roundsPer10cm },
     charts,
   };
+  // Every colourway, as published.
+  year.colourways = hat.colourways.map((c) => ({
+    id: c.id,
+    name: c.name,
+    brand: c.brand,
+    yarn: c.yarn,
+    url: c.url,
+    ...(c.wool ? { wool: c.wool } : {}),
+    ...(c.ballMetres ? { ballMetres: c.ballMetres } : {}),
+    ...(c.ballGrams ? { ballGrams: c.ballGrams } : {}),
+    ...(c.part ? { part: c.part } : {}),
+    shades: Object.fromEntries(c.shades.map((s) => [s.slot, { name: s.name, ...(s.code ? { code: s.code } : {}), hex: s.hex, source: s.source, ...(s.wool ? { wool: s.wool } : {}) }])),
+  }));
+  // A chart drawn in parts, cast in each other printing's yarns: the same cells, other slots.
+  const others = [...new Set(hat.colourways.map((c) => c.part).filter((p) => p && p !== part))];
+  if (others.length) {
+    year.printings = Object.fromEntries(others.map((other) => [other, Object.fromEntries(hat.charts.filter((chart) => chart.parts?.[other] && chart.id !== "Brim").map((chart) => [chart.id, chart.rows.map((row, index) => row.map((cell) => (cell.slot === "ground" ? chart.parts[other][index][0] : cell.slot === "motif" ? chart.parts[other][index][1] : cell.slot)).join(""))]))]));
+  }
   const name = `sww${String(hat.year).slice(2)}.json`;
   fs.writeFileSync(path.join(out, name), JSON.stringify(year, null, 1) + "\n");
   console.log(name, Object.keys(charts).join(" "));

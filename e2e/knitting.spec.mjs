@@ -97,7 +97,7 @@ test("the design and its projects work without WebGL, and nothing fetches the so
   page.context().on("request", request => { if (/solver/i.test(request.url())) physics.push(request.url()); });
   await page.goto("");
   const links = await page.locator(".design-card").evaluateAll(nodes => nodes.map(node => node.href));
-  expect(links).toHaveLength(3);
+  expect(links).toHaveLength(8);
   await page.goto(links[0]);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByRole("button", { name: "Start knitting this", exact: true })).toBeVisible();

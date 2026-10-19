@@ -42,6 +42,14 @@ const nameFor = (slots: SlotId[]): string =>
     ? `Yarn ${slots[0]}`
     : `Yarns ${slots.slice(0, -1).join(", ")} and ${slots[slots.length - 1]}`;
 
+/**
+ * "A + C + G" on the ball's chip - or, where a ball does a great many yarns,
+ * as one of the Wool Week strip samplers' does every hat's darkest, the
+ * first and how many more, the whole list in its title.
+ */
+const chipFor = (slots: SlotId[]): string =>
+  slots.length > 3 ? `${slots[0]} + ${slots.length - 1} more` : slots.join(" + ");
+
 const WoolList: React.FC<WoolListProps> = ({
   colourway,
   metres,
@@ -71,8 +79,9 @@ const WoolList: React.FC<WoolListProps> = ({
               <span
                 className="shade-chip"
                 style={{ background: ball.yarn.hex, color: inkOn(ball.yarn.hex) }}
+                title={ball.slots.length > 3 ? ball.slots.join(" + ") : undefined}
               >
-                {ball.slots.join(" + ")}
+                {chipFor(ball.slots)}
               </span>
               <span className="wool-row-what">
                 <strong>{ball.yarn.name}</strong>

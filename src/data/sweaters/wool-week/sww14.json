@@ -91,5 +91,359 @@
    "A-A-A-A-",
    "A-As"
   ]
- }
+ },
+ "colourways": [
+  {
+   "id": "js-1",
+   "name": "Colour 1",
+   "brand": "Jamieson & Smith",
+   "yarn": "2ply Jumper Weight",
+   "url": "https://www.shetlandwoolbrokers.co.uk",
+   "wool": "jamieson-smith-2ply-jumper-weight",
+   "ballMetres": 115,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Moorit",
+     "code": "4",
+     "hex": "#834f3d",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-4"
+    },
+    "B": {
+     "name": "Light Fawn",
+     "code": "202",
+     "hex": "#c9c0a4",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-202"
+    },
+    "C": {
+     "name": "Dark Grey",
+     "code": "54",
+     "hex": "#5c5b57",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-54"
+    },
+    "D": {
+     "name": "Natural White",
+     "code": "1A",
+     "hex": "#efe8c9",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-1a"
+    },
+    "E": {
+     "name": "Dyed Shetland Black",
+     "code": "5",
+     "hex": "#614030",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-5"
+    }
+   }
+  },
+  {
+   "id": "js-2",
+   "name": "Colour 2",
+   "brand": "Jamieson & Smith",
+   "yarn": "2ply Jumper Weight",
+   "url": "https://www.shetlandwoolbrokers.co.uk",
+   "wool": "jamieson-smith-2ply-jumper-weight",
+   "ballMetres": 115,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Medium Green",
+     "code": "118",
+     "hex": "#5f9251",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-118"
+    },
+    "B": {
+     "name": "Mustard Yellow",
+     "code": "28",
+     "hex": "#e5ac35",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-28"
+    },
+    "C": {
+     "name": "Dark Red",
+     "code": "9113",
+     "hex": "#ac262e",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-9113"
+    },
+    "D": {
+     "name": "Natural White",
+     "code": "1A",
+     "hex": "#efe8c9",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-1a"
+    },
+    "E": {
+     "name": "Navy",
+     "code": "21",
+     "hex": "#293e6a",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-21"
+    }
+   }
+  },
+  {
+   "id": "js-3",
+   "name": "Colour 3",
+   "brand": "Jamieson & Smith",
+   "yarn": "2ply Jumper Weight",
+   "url": "https://www.shetlandwoolbrokers.co.uk",
+   "wool": "jamieson-smith-2ply-jumper-weight",
+   "ballMetres": 115,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Light Grey",
+     "code": "203",
+     "hex": "#a7a89f",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-203"
+    },
+    "B": {
+     "name": "Medium Green",
+     "code": "118",
+     "hex": "#5f9251",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-118"
+    },
+    "C": {
+     "name": "Natural White",
+     "code": "1A",
+     "hex": "#efe8c9",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-1a"
+    },
+    "D": {
+     "name": "Navy",
+     "code": "21",
+     "hex": "#293e6a",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-21"
+    },
+    "E": {
+     "name": "Mustard Yellow",
+     "code": "28",
+     "hex": "#e5ac35",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-28"
+    }
+   }
+  },
+  {
+   "id": "jamiesons-1",
+   "name": "Colour 1",
+   "brand": "Jamieson's of Shetland",
+   "yarn": "Spindrift",
+   "url": "https://www.jamiesonsofshetland.co.uk",
+   "wool": "jamieson-s-of-shetland-spindrift",
+   "ballMetres": 105,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Moorit",
+     "code": "108",
+     "hex": "#725c49",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-108"
+    },
+    "B": {
+     "name": "Eesit",
+     "code": "105",
+     "hex": "#d7cdb3",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-105"
+    },
+    "C": {
+     "name": "Shaela",
+     "code": "102",
+     "hex": "#625d54",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-102"
+    },
+    "D": {
+     "name": "Natural White",
+     "code": "104",
+     "hex": "#eae5c6",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-104"
+    },
+    "E": {
+     "name": "Shetland Black",
+     "code": "101",
+     "hex": "#2d2824",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-101"
+    }
+   }
+  },
+  {
+   "id": "jamiesons-2",
+   "name": "Colour 2",
+   "brand": "Jamieson's of Shetland",
+   "yarn": "Spindrift",
+   "url": "https://www.jamiesonsofshetland.co.uk",
+   "wool": "jamieson-s-of-shetland-spindrift",
+   "ballMetres": 105,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Leaf",
+     "code": "788",
+     "hex": "#2c4828",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-788"
+    },
+    "B": {
+     "name": "Gold",
+     "code": "289",
+     "hex": "#cfb151",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-289"
+    },
+    "C": {
+     "name": "Maroon",
+     "code": "595",
+     "hex": "#571a22",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-595"
+    },
+    "D": {
+     "name": "White",
+     "code": "304",
+     "hex": "#f1f1e7",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-304"
+    },
+    "E": {
+     "name": "Prussian",
+     "code": "726",
+     "hex": "#373e59",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-726"
+    }
+   }
+  },
+  {
+   "id": "jamiesons-3",
+   "name": "Colour 3",
+   "brand": "Jamieson's of Shetland",
+   "yarn": "Spindrift",
+   "url": "https://www.jamiesonsofshetland.co.uk",
+   "wool": "jamieson-s-of-shetland-spindrift",
+   "ballMetres": 105,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Granite",
+     "code": "122",
+     "hex": "#c1c1b5",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-122"
+    },
+    "B": {
+     "name": "Maroon",
+     "code": "595",
+     "hex": "#571a22",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-595"
+    },
+    "C": {
+     "name": "White",
+     "code": "304",
+     "hex": "#f1f1e7",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-304"
+    },
+    "D": {
+     "name": "Prussian",
+     "code": "726",
+     "hex": "#373e59",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-726"
+    },
+    "E": {
+     "name": "Gold",
+     "code": "289",
+     "hex": "#cfb151",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-289"
+    }
+   }
+  },
+  {
+   "id": "organic-fawn",
+   "name": "Organic · Fawn",
+   "brand": "Shetland Organics",
+   "yarn": "Organic Jumper Weight",
+   "url": "https://www.shetlandorganics.com",
+   "ballGrams": 50,
+   "shades": {
+    "A": {
+     "name": "Moorit",
+     "hex": "#4a3930",
+     "source": "approximate"
+    },
+    "B": {
+     "name": "Fawn",
+     "hex": "#b9a488",
+     "source": "approximate"
+    },
+    "C": {
+     "name": "Dark Grey",
+     "hex": "#605753",
+     "source": "approximate"
+    },
+    "D": {
+     "name": "Flukkra (white)",
+     "hex": "#eef0e2",
+     "source": "approximate"
+    },
+    "E": {
+     "name": "Shetland Black",
+     "hex": "#352c2c",
+     "source": "approximate"
+    }
+   }
+  },
+  {
+   "id": "organic-silver",
+   "name": "Organic · Silver",
+   "brand": "Shetland Organics",
+   "yarn": "Organic Jumper Weight",
+   "url": "https://www.shetlandorganics.com",
+   "ballGrams": 50,
+   "shades": {
+    "A": {
+     "name": "Moorit",
+     "hex": "#4a3930",
+     "source": "approximate"
+    },
+    "B": {
+     "name": "Silver",
+     "hex": "#9b9893",
+     "source": "approximate"
+    },
+    "C": {
+     "name": "Dark Grey",
+     "hex": "#605753",
+     "source": "approximate"
+    },
+    "D": {
+     "name": "Flukkra (white)",
+     "hex": "#eef0e2",
+     "source": "approximate"
+    },
+    "E": {
+     "name": "Shetland Black",
+     "hex": "#352c2c",
+     "source": "approximate"
+    }
+   }
+  }
+ ]
 }

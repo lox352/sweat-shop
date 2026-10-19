@@ -107,5 +107,171 @@
    "A-D-D-D-",
    "A-As"
   ]
- }
+ },
+ "colourways": [
+  {
+   "id": "jamieson-smith",
+   "name": "Colourway 1",
+   "brand": "Jamieson & Smith",
+   "yarn": "2ply Jumper Weight",
+   "url": "https://www.shetlandwoolbrokers.co.uk",
+   "wool": "jamieson-smith-2ply-jumper-weight",
+   "ballMetres": 115,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Marled Brown Mix",
+     "code": "FC58",
+     "hex": "#886555",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-fc58"
+    },
+    "B": {
+     "name": "Blue Mix",
+     "code": "FC39",
+     "hex": "#40778e",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-fc39"
+    },
+    "C": {
+     "name": "Bright Grass Green",
+     "code": "FC11",
+     "hex": "#678322",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-fc11"
+    },
+    "D": {
+     "name": "Grey Fawn",
+     "code": "2",
+     "hex": "#ebd8b6",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-2"
+    },
+    "E": {
+     "name": "Light Fawn",
+     "code": "202",
+     "hex": "#c9c0a4",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-202"
+    }
+   }
+  },
+  {
+   "id": "shetland-organics",
+   "name": "Colourway 2",
+   "brand": "Shetland Organics",
+   "yarn": "Shetland Organic Jumper Weight",
+   "url": "https://www.shetlandorganics.com",
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Shetland Black",
+     "hex": "#443721",
+     "source": "approximate"
+    },
+    "B": {
+     "name": "Moorit",
+     "hex": "#60441b",
+     "source": "approximate"
+    },
+    "C": {
+     "name": "Fawn",
+     "hex": "#9a7f55",
+     "source": "approximate"
+    },
+    "D": {
+     "name": "Mid Grey",
+     "hex": "#9b9186",
+     "source": "approximate"
+    },
+    "E": {
+     "name": "White",
+     "hex": "#e1d4bf",
+     "source": "approximate"
+    }
+   }
+  },
+  {
+   "id": "jamiesons",
+   "name": "Colourway 3",
+   "brand": "Jamieson's of Shetland",
+   "yarn": "Shetland Spindrift",
+   "url": "https://www.jamiesonsofshetland.co.uk",
+   "wool": "jamieson-s-of-shetland-spindrift",
+   "ballMetres": 105,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Purple Heather",
+     "code": "239",
+     "hex": "#5f323a",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-239"
+    },
+    "B": {
+     "name": "Osprey",
+     "code": "238",
+     "hex": "#7d6965",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-238"
+    },
+    "C": {
+     "name": "Titanic",
+     "code": "151",
+     "hex": "#5d7477",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-151"
+    },
+    "D": {
+     "name": "Dewdrop",
+     "code": "720",
+     "hex": "#acc0b7",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-720"
+    },
+    "E": {
+     "name": "Pebble",
+     "code": "127",
+     "hex": "#d2cfbb",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-127"
+    }
+   }
+  },
+  {
+   "id": "naturally-dyed",
+   "name": "Colourway 4",
+   "brand": "Spindrift Crafts",
+   "yarn": "Naturally dyed 2ply Jumper Weight",
+   "url": "https://www.spindriftcrafts.com",
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Woad and Marigold",
+     "hex": "#7d8897",
+     "source": "approximate"
+    },
+    "B": {
+     "name": "Madder 1",
+     "hex": "#cc4a2b",
+     "source": "approximate"
+    },
+    "C": {
+     "name": "Madder 2",
+     "hex": "#f48e58",
+     "source": "approximate"
+    },
+    "D": {
+     "name": "Woad",
+     "hex": "#786551",
+     "source": "approximate"
+    },
+    "E": {
+     "name": "Willow Bark",
+     "hex": "#d6d9d8",
+     "source": "approximate"
+    }
+   }
+  }
+ ]
 }

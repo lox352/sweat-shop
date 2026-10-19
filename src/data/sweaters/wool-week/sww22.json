@@ -123,5 +123,227 @@
    "A-B-",
    "Bk"
   ]
- }
+ },
+ "colourways": [
+  {
+   "id": "jamiesons",
+   "name": "Colourway 1",
+   "brand": "Jamieson's of Shetland",
+   "yarn": "Spindrift",
+   "url": "https://www.jamiesonsofshetland.co.uk",
+   "wool": "jamieson-s-of-shetland-spindrift",
+   "ballMetres": 105,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Granite",
+     "code": "122",
+     "hex": "#c1c1b5",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-122"
+    },
+    "B": {
+     "name": "Stonewash",
+     "code": "677",
+     "hex": "#41565b",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-677"
+    },
+    "C": {
+     "name": "Dove",
+     "code": "630",
+     "hex": "#707476",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-630"
+    },
+    "D": {
+     "name": "Oxford",
+     "code": "123",
+     "hex": "#4b4a47",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-123"
+    },
+    "E": {
+     "name": "Natural White",
+     "code": "104",
+     "hex": "#eae5c6",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-104"
+    }
+   }
+  },
+  {
+   "id": "jamieson-smith",
+   "name": "Colourway 2",
+   "brand": "Jamieson & Smith",
+   "yarn": "2ply Jumper Weight",
+   "url": "https://www.shetlandwoolbrokers.co.uk",
+   "wool": "jamieson-smith-2ply-jumper-weight",
+   "ballMetres": 115,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Dark Teal Blue",
+     "code": "FC41",
+     "hex": "#1b4159",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-fc41"
+    },
+    "B": {
+     "name": "Egg Yolk Yellow",
+     "code": "91",
+     "hex": "#db8c00",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-91"
+    },
+    "C": {
+     "name": "Marled Peachy Orange",
+     "code": "1281",
+     "hex": "#b48958",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-1281"
+    },
+    "D": {
+     "name": "Pale Lemon",
+     "code": "96",
+     "hex": "#ead293",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-96"
+    },
+    "E": {
+     "name": "Dark Red",
+     "code": "9113",
+     "hex": "#ac262e",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-9113"
+    }
+   }
+  },
+  {
+   "id": "uradale",
+   "name": "Colourway 3",
+   "brand": "Uradale Yarns",
+   "yarn": "2ply Jumper Weight",
+   "url": "https://www.uradale.com",
+   "wool": "uradale-yarns-2ply-jumper-weight",
+   "ballMetres": 86,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Aetmeal (light fawn)",
+     "hex": "#f6efe3",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-aetmeal-light-fawn"
+    },
+    "B": {
+     "name": "Roanberry Meal",
+     "hex": "#ff5425",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-roanberry-meal"
+    },
+    "C": {
+     "name": "Roanberry Heath",
+     "hex": "#fa7657",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-roanberry-heath"
+    },
+    "D": {
+     "name": "Graeff (Shetland black)",
+     "hex": "#352c2c",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-graeff-shetland-black"
+    },
+    "E": {
+     "name": "Flukkra (natural white)",
+     "hex": "#eef0e2",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-flukkra-natural-white"
+    }
+   }
+  },
+  {
+   "id": "laxdale",
+   "name": "Colourway 4",
+   "brand": "Laxdale Yarn",
+   "yarn": "2ply Jumper Weight",
+   "url": "https://www.laxdaleyarn.com",
+   "wool": "laxdale-yarn-2ply-jumper-weight",
+   "ballMetres": 90,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Fern",
+     "hex": "#3b4533",
+     "source": "library",
+     "wool": "laxdale-2ply-fern"
+    },
+    "B": {
+     "name": "Lichen",
+     "hex": "#ffcc5b",
+     "source": "library",
+     "wool": "laxdale-2ply-lichen"
+    },
+    "C": {
+     "name": "Buttermilk",
+     "hex": "#fdcd6d",
+     "source": "library",
+     "wool": "laxdale-2ply-buttermilk"
+    },
+    "D": {
+     "name": "Winter Sky",
+     "hex": "#e6f5ff",
+     "source": "library",
+     "wool": "laxdale-2ply-winter-sky"
+    },
+    "E": {
+     "name": "Artichoke",
+     "hex": "#888367",
+     "source": "library",
+     "wool": "laxdale-2ply-artichoke"
+    }
+   }
+  },
+  {
+   "id": "aister-oo",
+   "name": "Colourway 5",
+   "brand": "Aister Oo",
+   "yarn": "2ply Jumper Weight",
+   "url": "https://www.mackenziesfarmshop.co.uk",
+   "wool": "aister-oo-2ply-jumper-weight",
+   "ballMetres": 71,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Moonshine",
+     "hex": "#e5f5d9",
+     "source": "library",
+     "wool": "aister-oo-2ply-jumper-weight-moonshine"
+    },
+    "B": {
+     "name": "Cluve",
+     "hex": "#f6c9cc",
+     "source": "library",
+     "wool": "aister-oo-2ply-jumper-weight-cluve"
+    },
+    "C": {
+     "name": "Holsas",
+     "hex": "#904d7f",
+     "source": "library",
+     "wool": "aister-oo-2ply-jumper-weight-holsas"
+    },
+    "D": {
+     "name": "Midsetter",
+     "hex": "#4055b4",
+     "source": "library",
+     "wool": "aister-oo-2ply-jumper-weight-midsetter"
+    },
+    "E": {
+     "name": "Blinnd Moorie",
+     "hex": "#c6d2d4",
+     "source": "library",
+     "wool": "aister-oo-2ply-jumper-weight-blinnd-moorie"
+    }
+   }
+  }
+ ]
 }
