@@ -91,5 +91,203 @@
    "A-Bs",
    "Ak"
   ]
- }
+ },
+ "colourways": [
+  {
+   "id": "vintage",
+   "name": "Vintage",
+   "brand": "Jamieson's of Shetland",
+   "yarn": "2ply Jumper Weight (Spindrift)",
+   "url": "https://www.jamiesonsofshetland.co.uk",
+   "wool": "jamieson-s-of-shetland-spindrift",
+   "ballMetres": 105,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Moorit",
+     "code": "108",
+     "hex": "#725c49",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-108"
+    },
+    "B": {
+     "name": "Eesit",
+     "code": "105",
+     "hex": "#d7cdb3",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-105"
+    },
+    "C": {
+     "name": "Sapphire",
+     "code": "676",
+     "hex": "#4679a7",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-676"
+    },
+    "D": {
+     "name": "Daffodil",
+     "code": "390",
+     "hex": "#e5c84a",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-390"
+    },
+    "E": {
+     "name": "Madder",
+     "code": "587",
+     "hex": "#891e25",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-587"
+    },
+    "F": {
+     "name": "Natural White",
+     "code": "104",
+     "hex": "#eae5c6",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-104"
+    },
+    "G": {
+     "name": "Moss",
+     "code": "147",
+     "hex": "#515e36",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-147"
+    },
+    "H": {
+     "name": "Nutmeg",
+     "code": "1200",
+     "hex": "#d4724f",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-1200"
+    }
+   }
+  },
+  {
+   "id": "kaleyard",
+   "name": "Kaleyard",
+   "brand": "Jamieson & Smith",
+   "yarn": "2ply Jumper Weight",
+   "url": "https://www.shetlandwoolbrokers.co.uk",
+   "wool": "jamieson-smith-2ply-jumper-weight",
+   "ballMetres": 115,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Bright Purple Mix",
+     "code": "FC56",
+     "hex": "#4e3858",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-fc56"
+    },
+    "B": {
+     "name": "Mustard Yellow",
+     "code": "28",
+     "hex": "#e5ac35",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-28"
+    },
+    "C": {
+     "name": "Light Purple Mix",
+     "code": "FC9",
+     "hex": "#614a60",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-fc9"
+    },
+    "D": {
+     "name": "Medium Yellow",
+     "code": "66",
+     "hex": "#ffe377",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-66"
+    },
+    "E": {
+     "name": "Bright Pink Mix",
+     "code": "FC22",
+     "hex": "#b95a82",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-fc22"
+    },
+    "F": {
+     "name": "Pale Lemon",
+     "code": "96",
+     "hex": "#ead293",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-96"
+    },
+    "G": {
+     "name": "Dark Green",
+     "code": "82",
+     "hex": "#3a5d5a",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-82"
+    },
+    "H": {
+     "name": "Dark Teal",
+     "code": "141",
+     "hex": "#619289",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-141"
+    }
+   }
+  },
+  {
+   "id": "shetland-naturals",
+   "name": "Shetland Naturals",
+   "brand": "Uradale",
+   "yarn": "2ply Jumper Weight, organic",
+   "url": "https://www.uradale.com",
+   "wool": "uradale-yarns-2ply-jumper-weight",
+   "ballMetres": 86,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Graeff (Shetland black)",
+     "hex": "#352c2c",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-graeff-shetland-black"
+    },
+    "B": {
+     "name": "Laebrak (dark grey)",
+     "hex": "#605753",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-laebrak-dark-grey"
+    },
+    "C": {
+     "name": "Graeff (Shetland black)",
+     "hex": "#352c2c",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-graeff-shetland-black"
+    },
+    "D": {
+     "name": "Glansin (light grey)",
+     "hex": "#ebeae8",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-glansin-light-grey"
+    },
+    "E": {
+     "name": "Moorit (Shetland brown)",
+     "hex": "#4a3930",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-moorit-shetland-brown"
+    },
+    "F": {
+     "name": "Flukkra (natural white)",
+     "hex": "#eef0e2",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-flukkra-natural-white"
+    },
+    "G": {
+     "name": "Graeff (Shetland black)",
+     "hex": "#352c2c",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-graeff-shetland-black"
+    },
+    "H": {
+     "name": "Glansin (light grey)",
+     "hex": "#ebeae8",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-glansin-light-grey"
+    }
+   }
+  }
+ ]
 }

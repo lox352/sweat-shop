@@ -82,5 +82,81 @@
    "D-DkD-DkD-DkD-DkD-Dk",
    "DkDkDkDkDk"
   ]
- }
+ },
+ "colourways": [
+  {
+   "id": "jamiesons",
+   "name": "Jamieson's Heather Aran",
+   "brand": "Jamieson's of Shetland",
+   "yarn": "Heather Aran",
+   "url": "https://www.jamiesonsofshetland.co.uk",
+   "wool": "jamieson-s-of-shetland-heather-aran",
+   "ballGrams": 50,
+   "shades": {
+    "A": {
+     "name": "Autumn",
+     "code": "998",
+     "hex": "#896d45",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-heather-aran-998"
+    },
+    "B": {
+     "name": "Natural White",
+     "code": "104",
+     "hex": "#f2efdd",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-heather-aran-104"
+    },
+    "C": {
+     "name": "Shetland Black",
+     "code": "101",
+     "hex": "#37312c",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-heather-aran-101"
+    },
+    "D": {
+     "name": "Highland Mist",
+     "code": "1390",
+     "hex": "#9aa6aa",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-heather-aran-1390"
+    }
+   }
+  },
+  {
+   "id": "jamieson-smith",
+   "name": "Jamieson & Smith Worsted Aran",
+   "brand": "Jamieson & Smith",
+   "yarn": "Worsted Aran",
+   "url": "https://www.shetlandwoolbrokers.co.uk",
+   "wool": "jamieson-smith-shetland-aran-worsted",
+   "ballGrams": 50,
+   "shades": {
+    "A": {
+     "name": "Peat",
+     "hex": "#56302c",
+     "source": "library",
+     "wool": "jamieson-smith-shetland-aran-worsted-peat"
+    },
+    "B": {
+     "name": "Snaa White",
+     "hex": "#e8e0b8",
+     "source": "library",
+     "wool": "jamieson-smith-shetland-aran-worsted-snaa-white"
+    },
+    "C": {
+     "name": "Coll Black",
+     "hex": "#363636",
+     "source": "library",
+     "wool": "jamieson-smith-shetland-aran-worsted-coll-black"
+    },
+    "D": {
+     "name": "Silver Grey",
+     "hex": "#938c7d",
+     "source": "library",
+     "wool": "jamieson-smith-shetland-aran-worsted-silver-grey"
+    }
+   }
+  }
+ ]
 }

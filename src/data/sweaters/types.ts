@@ -411,6 +411,11 @@ export interface SweaterPattern {
    */
   rules?: { colours?: number; float?: number };
   /**
+   * Its sizes knit different cuts of its patterns, so a size may leave some
+   * of the design's yarns out: a small one has room for less of each.
+   */
+  slotsVaryBySize?: boolean;
+  /**
    * Each time the design's knitting has changed under projects already
    * saved against it, oldest first. A project's progress is the id of the
    * last stitch it worked, so steps added before that stitch move it on: a

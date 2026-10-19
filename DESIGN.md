@@ -256,6 +256,55 @@ everything it knits from is in `src/data/sweaters/wool-week/` (see
   in the Baa-ble Hat's sheep - and are caught behind the work, as the hats'
   patterns say; one round of the Shwook Hat is in three colours.
 
+## The strip samplers
+
+Five designs side by side, to choose between: the same thirteen hats, each
+cut to a strip of about the same height, laid out five ways. Each is one
+file, `src/data/sweaters/wool-week-strips-*.ts`, which is a call to
+`stripSampler` with a name, a story and a layout and nothing more; all they
+share is in `src/data/sweaters/wool-week/strips/`.
+
+| File | Layout |
+| --- | --- |
+| `wool-week-strips-lined-newest.ts` | Thirteen strips down yoke and body, 2026 at the neck; the sleeves knit the body's strips round for round and carry 2014 on to the cuff |
+| `wool-week-strips-lined-oldest.ts` | The same, 2014 at the neck, 2026 carried on down the sleeve |
+| `wool-week-strips-once-oldest.ts` | Each year once: three round the yoke, five down the body, five down the sleeves, oldest first |
+| `wool-week-strips-once-newest.ts` | The same, newest first |
+| `wool-week-strips-once-easiest.ts` | Each year once, where it is easiest to knit (`easiestOrder` in `plan.ts`) |
+
+- **The cuts** (`cuts.ts`). Each hat cut into building blocks - a motif, and
+  the symmetrical additions it can take - and, where a chart mirrors about a
+  row, cropped evenly about it. A strip takes the cut nearest its height.
+- **The plan** (`plan.ts`). Thirteen strips, each within five per cent of
+  its piece's average, give or take the round it is rounded to; a strip is a
+  plain round, which carries any shaping, then its cut, padded with plain
+  rounds.
+- **The knitting** (`knit.ts`). The yoke and body keep every repeat whole,
+  and change count in plain or one-colour rounds; in a round of the pattern,
+  its increases spread through it, only where the repeat changes or a tall
+  band would otherwise leave the yoke a quarter narrower than it should be. The body matches all round;
+  the sleeves taper at a seam under the arm, the seam stitch chosen to break
+  the floats either side of it.
+- **The colourways** (`colours.ts`, from `colourways.json`, which
+  `scripts/strip-colourways.mjs` works out). Six-yarn ladders that every
+  hat's lights and darks go onto; a bag of twelve with each year in its own;
+  each hat as its designer first knitted it; and eight collections of the
+  hats' own published colourways, chosen to go together. Each family is one
+  entry in `families`. Each yarn of each hat is its own slot, "14A" or
+  "26DA" (see `slots.ts`), so a colourway is a yarn for every slot, and a
+  ball of wool can do many.
+
+### Keeping one
+
+To keep one and lose the others: delete the other files and their lines in
+`src/data/sweaters/index.ts`, and their settled sizes,
+`src/data/sweaters/settled/<id>--*.json`, and their entries in
+`scripts/settlement-manifest.json`; then take the e2e test's count of designs
+down. Whatever only the others used can go after: `once` and `easiestOrder`
+in `plan.ts` if no "once" layout is left, `onward` and `lined` if no lined
+one is; a colourway family by its entry in `families`. Then lower the page's
+budget in `scripts/budgets.mjs` again.
+
 ## The chart's views
 
 Every stitch on a chart stands over the stitches it was worked into, so a

@@ -58,5 +58,103 @@
    "A-B-AkA-B-Ak",
    "A-B-B-A-B-B-"
   ]
- }
+ },
+ "colourways": [
+  {
+   "id": "jamieson-smith",
+   "name": "Colourway 1",
+   "brand": "Jamieson & Smith",
+   "yarn": "2ply Jumper Weight",
+   "url": "https://www.shetlandwoolbrokers.co.uk",
+   "wool": "jamieson-smith-2ply-jumper-weight",
+   "ballMetres": 115,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Blue Mix",
+     "code": "FC39",
+     "hex": "#40778e",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-fc39"
+    },
+    "B": {
+     "name": "Dark Azure Blue",
+     "code": "142",
+     "hex": "#1e68a0",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-142"
+    },
+    "C": {
+     "name": "Dark Teal Blue",
+     "code": "FC41",
+     "hex": "#1b4159",
+     "source": "library",
+     "wool": "jamieson-smith-2ply-jumper-weight-fc41"
+    }
+   }
+  },
+  {
+   "id": "jamiesons",
+   "name": "Colourway 2",
+   "brand": "Jamieson's of Shetland",
+   "yarn": "Shetland Spindrift",
+   "url": "https://www.jamiesonsofshetland.co.uk",
+   "wool": "jamieson-s-of-shetland-spindrift",
+   "ballMetres": 105,
+   "ballGrams": 25,
+   "shades": {
+    "A": {
+     "name": "Mirry Dancers",
+     "code": "1400",
+     "hex": "#232321",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-1400"
+    },
+    "B": {
+     "name": "Wren",
+     "code": "246",
+     "hex": "#998266",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-246"
+    },
+    "C": {
+     "name": "Burnt Ochre",
+     "code": "423",
+     "hex": "#b68f49",
+     "source": "library",
+     "wool": "jamieson-s-of-shetland-spindrift-423"
+    }
+   }
+  },
+  {
+   "id": "uradale",
+   "name": "Colourway 3",
+   "brand": "Uradale Yarns",
+   "yarn": "Organic Jumper Weight, undyed",
+   "url": "https://www.uradale.com",
+   "wool": "uradale-yarns-2ply-jumper-weight",
+   "ballMetres": 173,
+   "ballGrams": 50,
+   "shades": {
+    "A": {
+     "name": "Aetmeal (light fawn)",
+     "hex": "#f6efe3",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-aetmeal-light-fawn"
+    },
+    "B": {
+     "name": "Beremeal (mid fawn)",
+     "hex": "#dfd4d5",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-beremeal-mid-fawn"
+    },
+    "C": {
+     "name": "Moorit (Shetland brown)",
+     "hex": "#4a3930",
+     "source": "library",
+     "wool": "uradale-yarns-2ply-jumper-weight-moorit-shetland-brown"
+    }
+   }
+  }
+ ]
 }
