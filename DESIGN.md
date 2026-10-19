@@ -205,105 +205,80 @@ everything Hamefarin does and a good deal more.
   each colour read off the pattern and matched to the nearest Jamieson's
   Spindrift shade.
 
-## The Wool Week Sampler
+## The Wool Week samplers
 
-Every Shetland Wool Week hat from 2014 to 2026 in one top-down jumper, in the
-order they came out. Its file is `src/data/sweaters/wool-week-sampler.ts`, and
-everything it knits from is in `src/data/sweaters/wool-week/` (see
-`WOOL-WEEK.md` for where the charts came from).
-
-- **The years, in date order.** 2014 to 2016 round the yoke, 2017 to 2021
-  down the body, 2022 to 2026 down both sleeves, which match. Knitted from the
-  neck down, that is the order they are knitted in, too.
-- **Every motif in every size.** Each hat is cut into its motifs and its
-  extras: its peeries, the stripes between its bands, the rows where its
-  chart repeats or mirrors itself, and its crown. Every size knits every
-  motif; the extras are what grade it.
-  - Two charts are each other upside down, 2022's B and D and 2024's B and
-    D: one is the motif, the other an extra.
-  - 2016's houses come twice in the hat, 2018's dancers three times; once is
-    the motif.
-- **Turned, so every picture stands up.** A chart knitted top down comes out
-  turned through half a circle, so each hat's charts are turned before they
-  are knitted: the sheep, houses, boat and ram stand the right way up on the
-  jumper as worn. Turned, not mirrored, so nothing is back to front.
-- **Flat bands round a cone.** Each band is knitted at a whole number of its
-  repeats - the multiple nearest what the jumper wants there - and the count
-  changes in a plain round between bands. A yoke grows, a body stays near the
-  chest, a sleeve tapers; a wide repeat on a sleeve may bring it back up a
-  little, as 2023's flowers do, as a hat's body comes up for its widest band.
-- **The crowns as shaping.** A hat's crown is a run of decreases. Worked from
-  its point outwards, each decrease turned into its increase, a slice of it
-  is a yoke's increase that sits as it does on the hat, point upwards; worked
-  as the hat works it, it tapers a sleeve, its point towards the cuff. The
-  grader cuts a slice of a whole number of wedges wherever one fits the
-  shaping a size needs, so the bigger sizes carry more of the hats' crowns.
-- **One ladder of colours.** Thirteen hats are knitted in sixty-odd yarns
-  between them, and the jumper in ten: a ladder from darkest to lightest,
-  each hat's yarns put onto it in their own order of lightness. Any colourway
-  that keeps the ladder in order keeps every hat's lights and darks, row by
-  row, and where a hat's row relies on hue rather than lightness - 2016's
-  brown and blue houses - its colourway keeps those two apart as well. Its
-  four colourways are the hats' consensus, rung by rung; 2025's Vintage,
-  carried onto every other year; a brighter one; and Uradale's naturals and
-  heathers.
-- **Measurements.** Hamefarin's, but the yoke a centimetre and a half deeper
-  and the body three and a half longer: a sampler of thirteen hats is a long
-  jumper, and that is what lets the smallest size carry every motif. Knitted
-  at 32 stitches and 38 rounds to 10cm.
-- **What it asks of a knitter.** The charts are knitted as their designers
-  drew them, so a few floats are longer than seven stitches - twelve at most,
-  in the Baa-ble Hat's sheep - and are caught behind the work, as the hats'
-  patterns say; one round of the Shwook Hat is in three colours.
-
-## The strip samplers
-
-Five designs side by side, to choose between: the same thirteen hats, each
-cut to a strip of about the same height, laid out five ways. Each is one
-file, `src/data/sweaters/wool-week-strips-*.ts`, which is a call to
-`stripSampler` with a name, a story and a layout and nothing more; all they
-share is in `src/data/sweaters/wool-week/strips/`.
+Every Shetland Wool Week hat from 2014 to 2026 in one top-down jumper, two
+ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
+`stripSampler` with a name, a story and a layout; all they share is in
+`src/data/sweaters/wool-week/strips/`, and the hats' charts are in
+`src/data/sweaters/wool-week/` (see `WOOL-WEEK.md` for where they came from).
 
 | File | Layout |
 | --- | --- |
-| `wool-week-strips-lined-newest.ts` | Thirteen strips down yoke and body, 2026 at the neck; the sleeves knit the body's strips round for round and carry 2014 on to the cuff |
-| `wool-week-strips-lined-oldest.ts` | The same, 2014 at the neck, 2026 carried on down the sleeve |
-| `wool-week-strips-once-oldest.ts` | Each year once: three round the yoke, five down the body, five down the sleeves, oldest first |
-| `wool-week-strips-once-newest.ts` | The same, newest first |
-| `wool-week-strips-once-easiest.ts` | Each year once, where it is easiest to knit (`easiestOrder` in `plan.ts`) |
+| `wool-week-strips-once-oldest.ts` | **Each Year Once.** 2014 to 2016 round the yoke, 2017 to 2021 down the body, 2022 to 2026 down both sleeves, each year as full as its piece has room for (`refit.ts`) |
+| `wool-week-strips-lined-oldest.ts` | **Thirteen Strips.** All thirteen years from the neck to the hem, each in a strip of about the same height; the sleeves knit the body's strips round for round and carry 2026 on to the cuff (`lined` in `plan.ts`) |
 
-- **The cuts** (`cuts.ts`). Each hat cut into building blocks - a motif, and
-  the symmetrical additions it can take - and, where a chart mirrors about a
-  row, cropped evenly about it. A strip takes the cut nearest its height.
-- **The plan** (`plan.ts`). Thirteen strips, each within five per cent of
-  its piece's average, give or take the round it is rounded to; a strip is a
-  plain round, which carries any shaping, then its cut, padded with plain
+- **Turned, so every picture stands up.** Knitted from the neck down, a
+  hat's chart is read from its top row: the sheep, houses, boat and ram stand
+  the right way up on the jumper as worn, and the lettering reads.
+- **The cuts** (`cuts.ts`). Each hat cut into building blocks: a motif, and
+  the symmetrical additions it can take, and, where a chart mirrors about a
+  row, cropped evenly about it.
+- **Thirteen Strips' plan.** Every strip within five per cent of its piece's
+  average, give or take the round it is rounded to: a plain round, which
+  carries any shaping, then the cut nearest its height, padded with plain
   rounds.
+- **Each Year Once's plan** (`refit.ts`), by these rules:
+  - A plain round outside a pattern carries on a neighbouring pattern's
+    background, the commonest yarn in the three rows nearest that edge,
+    never a colour from elsewhere. Padding carries on its own strip's; a
+    round between two strips takes the stronger neighbour's, or, where one
+    neighbour's edge row is already plain, the other's.
+  - A pattern's own plain first or last row is its increase round, so no
+    round goes beside it. Where neither neighbour has one, one plain round
+    goes between them.
+  - A cut's plain edge rows are kept or dropped in pairs, so a band is
+    framed alike top and bottom: the houses, 2018's dancers, 2020's stars.
+  - Where a cut skips part of the hat between two of its parts, a plain
+    round goes between them: 2014's two stars, which the hat parts with a
+    peerie, and 2019's boat and sheep.
+  - Spare rounds go to patterned edges first, up to two each, strongest
+    background first: sky above the boats, ground under the sheep.
+  - Each year's cuts are a ladder from fullest down, and a piece takes the
+    trims in a set order until it fits: on the yoke 2014's outer rows, then
+    the sheep's sky and field, two rows to one; on the body 2020's outer
+    peeries, 2018's plain rows, then a row off each side of 2017 and of 2018.
+    The sleeves start mid-ladder and spend their spare rounds upwards.
 - **The knitting** (`knit.ts`). The yoke and body keep every repeat whole,
-  and change count in plain or one-colour rounds; in a round of the pattern,
-  its increases spread through it, only where the repeat changes or a tall
-  band would otherwise leave the yoke a quarter narrower than it should be. The body matches all round;
-  the sleeves taper at a seam under the arm, the seam stitch chosen to break
-  the floats either side of it.
+  and change count in plain or one-colour rounds; in a round of the
+  pattern, its increases spread through it, only where the repeat changes or
+  a tall band would otherwise leave the yoke a quarter narrower than it
+  should be. The body matches all round; the sleeves taper at a seam under
+  the arm, the seam stitch chosen to break the floats either side of it.
 - **The colourways** (`colours.ts`, from `colourways.json`, which
-  `scripts/strip-colourways.mjs` works out). Six-yarn ladders that every
-  hat's lights and darks go onto; a bag of twelve with each year in its own;
-  each hat as its designer first knitted it; and eight collections of the
-  hats' own published colourways, chosen to go together. Each family is one
-  entry in `families`. Each yarn of each hat is its own slot, "14A" or
-  "26DA" (see `slots.ts`), so a colourway is a yarn for every slot, and a
-  ball of wool can do many.
-
-### Keeping one
-
-To keep one and lose the others: delete the other files and their lines in
-`src/data/sweaters/index.ts`, and their settled sizes,
-`src/data/sweaters/settled/<id>--*.json`, and their entries in
-`scripts/settlement-manifest.json`; then take the e2e test's count of designs
-down. Whatever only the others used can go after: `once` and `easiestOrder`
-in `plan.ts` if no "once" layout is left, `onward` and `lined` if no lined
-one is; a colourway family by its entry in `families`. Then lower the page's
-budget in `scripts/budgets.mjs` again.
+  `scripts/strip-colourways.mjs` works out). Each yarn of each hat is its own
+  slot, "14A" or "26DA" (see `slots.ts`), so a colourway is a yarn for every
+  slot, and a ball of wool can do many. Each family is one entry in
+  `families`:
+  - **Light and dark grounds.** Four palettes - Aa ae colour classic and
+    undyed, Simmer dim, Each year its own - each with a light yoke and dark
+    below, all dark, all light, or light and dark by turns. A light year's
+    ground goes to the palette's lightest yarn, a dark year's to its
+    darkest, and the hat's other yarns keep their order of lightness over
+    the rest. A hat built of separate two-colour bands, 2025 and 2026, has a
+    ground for every band, and they go light or dark together.
+  - **Ladders.** Six yarns that every hat's lights and darks go onto, as the
+    hat has them; Licht an mirk turns every other year over; Simmer dim
+    lightens away from the neck.
+  - **Each year its own**, a bag of twelve; **as the designers knitted
+    them**; and eight collections of the hats' own published colourways,
+    chosen to go together.
+- **Measurements.** Hamefarin's, but the yoke a centimetre and a half deeper
+  and the body three and a half longer: thirteen hats make a long jumper.
+  Knitted at 32 stitches and 38 rounds to 10cm.
+- **What it asks of a knitter.** The charts are knitted as their designers
+  drew them, so some floats are long, and are caught behind the work; one
+  round of the Shwook Hat is in three colours.
 
 ## The chart's views
 

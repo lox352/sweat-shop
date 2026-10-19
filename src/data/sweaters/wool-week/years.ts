@@ -1,4 +1,3 @@
-import type { Chart, ChartCell, ChartSymbol } from "../types";
 import sww14 from "./sww14.json";
 import sww15 from "./sww15.json";
 import sww16 from "./sww16.json";
@@ -14,13 +13,15 @@ import sww25 from "./sww25.json";
 import sww26 from "./sww26.json";
 
 /**
- * The Shetland Wool Week hats, 2014 to 2026, as the sampler knits from them.
+ * The Shetland Wool Week hats, 2014 to 2026, as the samplers knit from them.
  *
  * Each year is one file beside this one, brought over from the hat site by
  * scripts/import-wool-week.mjs, and one line below: take both out and the
- * year is gone. A file holds what the sampler needs and no more - the hat's
- * charts, cell for cell, and its first colourway, which is what its yarns are mapped onto the sampler's
- * from (see ladder.ts). No written instructions come over, only charts.
+ * year is gone. A file holds what the samplers need and no more - the hat's
+ * charts, cell for cell, its first colourway, which is what its yarns are
+ * put onto the samplers' palettes from (see scripts/strip-colourways.mjs),
+ * and every colourway it was published in. No written instructions come
+ * over, only charts.
  *
  * A chart is stored as the hat site stores it: bottom row first, each row
  * the stitches worked in that round, right to left. Each cell is two
@@ -66,30 +67,4 @@ export const yearOf = (year: number): Year => {
   const found = years.find((one) => one.year === year);
   if (!found) throw new Error(`no Wool Week hat for ${year}`);
   return found;
-};
-
-const marks: Record<string, ChartSymbol | undefined> = {
-  "-": undefined,
-  p: "purl",
-  t: "k1tbl",
-  k: "k2tog",
-  s: "s2kp",
-  x: "sk2p",
-};
-
-/** One of a year's charts, in the hat's own yarns: `name` is what the sampler calls it. */
-export const hatChart = (year: number, chart: string, id: string, name: string): Chart => {
-  const rows = yearOf(year).charts[chart];
-  if (!rows) throw new Error(`${year} has no chart ${chart}`);
-  return {
-    id,
-    name,
-    rows: rows.map((row) =>
-      (row.match(/../g) ?? []).map((pair): ChartCell => {
-        const symbol = marks[pair[1]];
-        if (!(pair[1] in marks)) throw new Error(`${year} ${chart}: mark "${pair[1]}"`);
-        return symbol ? { slot: pair[0], symbol } : { slot: pair[0] };
-      }),
-    ),
-  };
 };

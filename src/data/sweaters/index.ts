@@ -1,12 +1,8 @@
 import { SweaterPattern } from "./types";
 import hamefarin from "./hamefarin";
 import paulKlee from "./paul-klee";
-import woolWeekSampler from "./wool-week-sampler";
-import stripsLinedNewest from "./wool-week-strips-lined-newest";
 import stripsLinedOldest from "./wool-week-strips-lined-oldest";
 import stripsOnceOldest from "./wool-week-strips-once-oldest";
-import stripsOnceNewest from "./wool-week-strips-once-newest";
-import stripsOnceEasiest from "./wool-week-strips-once-easiest";
 
 /**
  * Every design the site knows about.
@@ -17,13 +13,9 @@ import stripsOnceEasiest from "./wool-week-strips-once-easiest";
 export const sweaters: SweaterPattern[] = [
   hamefarin,
   paulKlee,
-  woolWeekSampler,
-  // The strip samplers, one file each: see wool-week/strips.
-  stripsLinedNewest,
-  stripsLinedOldest,
+  // The Wool Week samplers, one file each: see wool-week/strips.
   stripsOnceOldest,
-  stripsOnceNewest,
-  stripsOnceEasiest,
+  stripsLinedOldest,
 ];
 
 export const sweaterById = (id: string): SweaterPattern | undefined =>

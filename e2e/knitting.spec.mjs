@@ -97,7 +97,7 @@ test("the design and its projects work without WebGL, and nothing fetches the so
   page.context().on("request", request => { if (/solver/i.test(request.url())) physics.push(request.url()); });
   await page.goto("");
   const links = await page.locator(".design-card").evaluateAll(nodes => nodes.map(node => node.href));
-  expect(links).toHaveLength(8);
+  expect(links).toHaveLength(4);
   await page.goto(links[0]);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByRole("button", { name: "Start knitting this", exact: true })).toBeVisible();
@@ -436,22 +436,20 @@ test("a bought design comes in every size it is written for, by its own wool, ev
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 });
 
-test("the Wool Week Sampler knits every hat from 2014 to 2026, each in its own band, in one ladder of yarns", async ({ page }) => {
-  await page.goto("#/sweater/wool-week-sampler");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Wool Week Sampler");
+test("Each Year Once knits every hat from 2014 to 2026 once, the yoke's first, the sleeves' last", async ({ page }) => {
+  await page.goto("#/sweater/wool-week-strips-once-oldest");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Each Year Once, oldest at the neck");
   await expect(page.getByText("Hazel Tindall", { exact: false }).first()).toBeVisible();
   await expect(page.locator(".size-option")).toHaveCount(8);
-  // Ten yarns, darkest to lightest, whichever colourway.
-  await expect(page.locator(".wool-row")).toHaveCount(10);
-  // Knitting it: the yoke's first band is the Shwook Hat's, its sheep the Baa-ble Hat's, a sleeve's last band the Birsie Beanny's.
-  const sampler = { sweaterId: "wool-week-sampler", sizeId: "m", colourwayId: "aa-da-years" };
+  // Knitting it in a medium: the yoke begins with the Shwook Hat and has the Crofthoose Hat's houses; a sleeve ends with the Birsie Beanny.
+  const sampler = { sweaterId: "wool-week-strips-once-oldest", sizeId: "m", colourwayId: "classic-light-yoke" };
   const onChart = (what) => page.getByRole("img", { name: new RegExp(`You are on .*: ${what}`) });
-  await knittedTo(page, 3056, sampler);
-  await expect(onChart("2014 Shwook Hat, chart C")).toBeVisible();
-  await knittedTo(page, 11704, sampler);
-  await expect(onChart("2015 Baa-ble Hat, the sheep")).toBeVisible();
-  await knittedTo(page, 90454, sampler);
-  await expect(onChart("2026 Birsie Beanny, the lattice")).toBeVisible();
+  await knittedTo(page, 2267, sampler);
+  await expect(onChart("2014 Shwook Hat")).toBeVisible();
+  await knittedTo(page, 15815, sampler);
+  await expect(onChart("2016 Crofthoose Hat")).toBeVisible();
+  await knittedTo(page, 91383, sampler);
+  await expect(onChart("2026 Birsie Beanny, sleeve")).toBeVisible();
   await expect(page.locator(".chart-page")).toHaveAttribute("data-view", "held-sleeve-left");
 });
 

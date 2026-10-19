@@ -211,14 +211,17 @@ export const cutsOf = (year: number): Cut[] => {
       options.push({ label: `Cropped to ${to - from + 1}`, parts: [[chart, from, to]], neat: neat.includes(from) });
     }
   }
-  return options.map((o) => {
-    const rows = o.parts.flatMap(([c, a, b]) => lettersOf(year, c).slice(a - 1, b));
-    let a = 0;
-    let b = rows.length;
-    while (a < b && solid(rows[a])) a++;
-    while (b > a && solid(rows[b - 1])) b--;
-    return { ...o, height: rows.length, core: b - a, edgeBottom: a, edgeTop: rows.length - b };
-  });
+  return options.map((o) => measured(year, o));
+};
+
+/** A cut of a year with its heights worked out: all its rows, and those between its one-colour edge rounds. */
+export const measured = (year: number, o: Option & { neat: boolean }): Cut => {
+  const rows = o.parts.flatMap(([c, a, b]) => lettersOf(year, c).slice(a - 1, b));
+  let a = 0;
+  let b = rows.length;
+  while (a < b && solid(rows[a])) a++;
+  while (b > a && solid(rows[b - 1])) b--;
+  return { ...o, height: rows.length, core: b - a, edgeBottom: a, edgeTop: rows.length - b };
 };
 
 /** The cut whose height comes nearest `motif` rounds, by plain rounds added or one-colour edge rounds taken off. */

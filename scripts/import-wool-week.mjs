@@ -1,6 +1,6 @@
 /**
  * Bring the Shetland Wool Week hats' charts over from the hat site, one file
- * a year, for the Wool Week Sampler.
+ * a year, for the Wool Week samplers.
  *
  *     node --experimental-strip-types scripts/import-wool-week.mjs ../wool-week
  *
@@ -9,11 +9,11 @@
  * lands in src/data/sweaters/wool-week/<id>.json and nowhere else, so a year
  * can be taken out again in one commit - the hat site's two-file rule, kept.
  *
- * What comes over is what the sampler knits from: every chart but 2026's
+ * What comes over is what the samplers knit from: every chart but 2026's
  * band of lettering, a cell a slot letter and a mark; its first colourway's
- * colours, which is what each year's yarns are mapped onto the sampler's
- * from (see wool-week/ladder.ts); and every colourway it publishes, for the
- * strip samplers' collections (see wool-week/strips). Charts drawn in a
+ * colours, which is what each year's yarns are put onto the samplers'
+ * palettes from (see scripts/strip-colourways.mjs); and every colourway it
+ * publishes, for the samplers' collections (see wool-week/strips). Charts drawn in a
  * ground and a motif, as 2026's are, are cast in that first colourway's
  * yarns, and again in each other pair's, under `printings`.
  */

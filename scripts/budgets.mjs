@@ -21,14 +21,12 @@ import { gzipSync } from "node:zlib";
 
 const kb = 1024;
 /*
- * The page's was 170KB, and the site had grown to exactly that; the Wool Week
- * Sampler's thirteen hats' charts, and the grader that fits them to a size,
- * are another 14KB of it. The five strip samplers, side by side to choose
- * between, are 16KB more: their planning and knitting, and every colourway
- * the hats were published in. Once one is chosen the others go, and this can
- * come back down.
+ * The page's was 170KB, and the site had grown to exactly that. The two Wool
+ * Week samplers bring it to 195KB: thirteen hats' charts and every colourway
+ * they were published in, and the planning, knitting and palettes that make
+ * a jumper of them.
  */
-const budgets = { page: 220 * kb, stage: 260 * kb, settled: 300 * kb };
+const budgets = { page: 210 * kb, stage: 260 * kb, settled: 300 * kb };
 
 const files = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>

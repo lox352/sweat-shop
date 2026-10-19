@@ -1,22 +1,21 @@
-import { yearOf } from "../years";
-import { type Cut, type CutRow, choose, cutsOf, groundOf, lettersOf, patterns, patternOf, solid, topDown } from "./cuts";
+import { type Cut, type CutRow, choose, cutsOf, groundOf, patterns, patternOf, topDown } from "./cuts";
+import { refit } from "./refit";
 
 /**
  * Where each year goes on a strip sampler, and how many rounds it has.
  *
- * Two kinds of layout:
+ * Two layouts:
  * - **Lined up**: all thirteen years from the neck to the hem, and the same
  *   strips again down each sleeve, round for round, so they line up when the
  *   arms hang down; the last year carries on down the sleeve, through the
- *   rest of its hat's sequence, to the cuff.
- * - **Each year once**: some years round the yoke, some down the body, the
- *   rest down both sleeves, in date order either way or in whatever order is
- *   easiest to knit.
- *
- * Either way every strip is within five percent of its piece's average
- * height, to the nearest round: one plain round (where any shaping goes) and
- * a cut of the year's pattern, with plain rounds in its ground to make up the
- * height, or its one-colour edge rounds taken off.
+ *   rest of its hat's sequence, to the cuff. Every strip is within five
+ *   percent of its piece's average height, to the nearest round: one plain
+ *   round (where any shaping goes) and a cut of the year's pattern, with
+ *   plain rounds in its ground to make up the height, or its one-colour edge
+ *   rounds taken off.
+ * - **Each year once, refitted**: 2014 to 2016 round the yoke, 2017 to 2021
+ *   down the body, 2022 to 2026 down both sleeves, each cut as full as there
+ *   is room for; see refit.ts.
  */
 
 export const gauge = { stitches: 3.2, rounds: 3.8 };
@@ -51,9 +50,7 @@ export interface Plan {
   onward?: { year: number; pattern: number; plain: number };
 }
 
-export type Layout =
-  | { kind: "lined"; newestFirst: boolean }
-  | { kind: "once"; order: "oldest" | "newest" | "easiest" };
+export type Layout = { kind: "lined"; newestFirst: boolean } | { kind: "refit" };
 
 const years = patterns.map((p) => p.year);
 
@@ -216,108 +213,8 @@ export const splitOf = (size: Measured) => {
   return best!;
 };
 
-// Pictures: a motif that reads as a thing, so a part-repeat at a seam shows.
-const PICTURES = new Set([2015, 2016, 2019, 2022, 2023, 2024]);
-
-/** What makes a year easy or hard to place: its repeat, whether it is a picture, and its longest run with nowhere to increase. */
-export const traitsOf = (year: number, height: number) => {
-  const cut = choose(cutsOf(year), height - 1);
-  const rows = topDown(year, cut.parts);
-  let run = 0;
-  let longest = 0;
-  rows.forEach((r, i) => {
-    const flat = solid(lettersOf(year, r.chart)[r.row - 1]);
-    const boundary = i > 0 && rows[i - 1].chart !== r.chart;
-    run = flat || boundary ? 0 : run + 1;
-    longest = Math.max(longest, run);
-  });
-  return { cut, w: Math.max(...rows.map((r) => r.w)), longest, picture: PICTURES.has(year) };
-};
-
-/**
- * The easiest order: every way of sharing the years between the pieces is
- * scored, and the cheapest kept. The yoke wants patterns with one-colour
- * rounds close together, to take its increases; the sleeves want all-over
- * patterns, which don't mind a part-repeat at the seam; pictures, which need
- * their whole repeat, go on the body. Then narrow repeats sit near the neck
- * and at the cuff, and down the body light and dark grounds take turns.
- */
-export const easiestOrder = (size: Measured) => {
-  const sp = splitOf(size);
-  const t = Object.fromEntries(years.map((y) => [y, traitsOf(y, Math.round(sp.T))]));
-  const body = Math.max(4, Math.round((size.chestCm * gauge.stitches) / 4) * 4);
-  const cost = (y: number, piece: "yoke" | "body" | "sleeve") => {
-    const x = t[y];
-    if (piece === "yoke") return Math.max(0, x.longest - 8) + x.w / 40;
-    if (piece === "sleeve") return x.picture ? 3 + 6 * Math.min(1, x.w / 30) : x.w / 40;
-    return body % x.w === 0 ? 0 : 0.5;
-  };
-  const combos = (arr: number[], k: number): number[][] => {
-    if (k === 0) return [[]];
-    if (arr.length < k) return [];
-    const [first, ...rest] = arr;
-    return [...combos(rest, k - 1).map((c) => [first, ...c]), ...combos(rest, k)];
-  };
-  let best: { c: number; yoke: number[]; body: number[]; sleeve: number[] } | undefined;
-  for (const yoke of combos(years, sp.k)) {
-    const rest = years.filter((y) => !yoke.includes(y));
-    for (const bodyYears of combos(rest, sp.m)) {
-      const sleeve = rest.filter((y) => !bodyYears.includes(y));
-      const c =
-        yoke.reduce((s, y) => s + cost(y, "yoke"), 0) +
-        bodyYears.reduce((s, y) => s + cost(y, "body"), 0) +
-        sleeve.reduce((s, y) => s + cost(y, "sleeve"), 0);
-      if (!best || c < best.c) best = { c, yoke, body: bodyYears, sleeve };
-    }
-  }
-  const lum = (hex: string) => {
-    const n = parseInt(hex.slice(1), 16);
-    return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
-  };
-  const lightGround = (y: number) => {
-    const shades = yearOf(y).colourway.shades;
-    const g = groundOf(y, t[y].cut.parts);
-    const all = Object.values(shades).map((s) => lum(s.hex));
-    return lum(shades[g].hex) > all.reduce((a, b) => a + b, 0) / all.length;
-  };
-  const light = best!.body.filter(lightGround);
-  const dark = best!.body.filter((y) => !lightGround(y));
-  const bodyOrder: number[] = [];
-  let flip = light.length >= dark.length;
-  while (light.length || dark.length) {
-    const from = (flip && light.length) || !dark.length ? light : dark;
-    bodyOrder.push(from.shift()!);
-    flip = !flip;
-  }
-  return {
-    yoke: [...best!.yoke].sort((a, b) => t[a].w - t[b].w || a - b),
-    body: bodyOrder,
-    sleeve: [...best!.sleeve].sort((a, b) => t[b].w - t[a].w || a - b),
-    traits: t,
-  };
-};
-
-const once = (size: Measured, order: "oldest" | "newest" | "easiest"): Plan => {
-  const sp = splitOf(size);
-  const byDate = order === "newest" ? [...years].reverse() : years;
-  const which =
-    order === "easiest"
-      ? easiestOrder(size)
-      : { yoke: byDate.slice(0, sp.k), body: byDate.slice(sp.k, sp.k + sp.m), sleeve: byDate.slice(sp.k + sp.m) };
-  const strips = { yoke: settle(which.yoke, sp.yoke), body: settle(which.body, sp.body), sleeve: settle(which.sleeve, sp.sleeve) };
-  return {
-    strips,
-    rows: {
-      yoke: strips.yoke.flatMap((s) => roundsOf(s).rows),
-      body: strips.body.flatMap((s) => roundsOf(s).rows),
-      sleeve: strips.sleeve.flatMap((s) => roundsOf(s).rows),
-    },
-    depth: { yoke: sp.yoke, body: sp.body, sleeve: sp.sleeve },
-  };
-};
-
-export const planOf = (size: Measured, layout: Layout): Plan =>
-  layout.kind === "lined" ? lined(size, layout.newestFirst) : once(size, layout.order);
+export const planOf = (size: Measured, layout: Layout, sizeId: string): Plan =>
+  layout.kind === "lined" ? lined(size, layout.newestFirst) : refit(size, sizeId);
 
 /** Where each year's strip sits, for the colourways that shade or alternate by place: 0 at the neck to 1, and its turn. */
 export const placesOf = (plan: Plan): Record<number, { frac: number; parity: number }> => {
