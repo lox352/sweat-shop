@@ -2,7 +2,7 @@ import type { Chart, Colourway, Size, SweaterPattern } from "../../types";
 import { yearOf, years } from "../years";
 import { colourwaysFor } from "./colours";
 import { knit, type Knitted } from "./knit";
-import { type Layout, type Measured, gauge, placesOf, planOf } from "./plan";
+import { type Layout, type Measured, gauge, planOf } from "./plan";
 import { allSlots, letterOf, yearOfSlot } from "./slots";
 
 /**
@@ -19,9 +19,8 @@ import { allSlots, letterOf, yearOfSlot } from "./slots";
 
 /*
  * The sizes: Hamefarin's finished measurements, the yoke a centimetre and a
- * half deeper and the body three and a half longer, as the Wool Week
- * Sampler's - which leaves room for thirteen strips, and makes a sleeve about
- * one strip longer than the body.
+ * half deeper and the body three and a half longer - which leaves room for
+ * thirteen strips, and makes a sleeve about one strip longer than the body.
  */
 export const measured: { id: string; label: string; toFitChestCm: number; finished: Measured }[] = [
   { id: "xs", label: "XS", toFitChestCm: 76, finished: { chestCm: 86, neckCm: 44, yokeDepthCm: 20.5, bodyLengthCm: 38.5, upperArmCm: 29, sleeveLengthCm: 43, cuffCm: 19 } },
@@ -46,7 +45,7 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
   const knitted = new Map<string, Knitted>();
   const knittedOf = (size: (typeof measured)[number]): Knitted => {
     let found = knitted.get(size.id);
-    if (!found) knitted.set(size.id, (found = knit(size.finished, planOf(size.finished, layout), `${id}-`, size.id)));
+    if (!found) knitted.set(size.id, (found = knit(size.finished, planOf(size.finished, layout, size.id), `${id}-`, size.id)));
     return found;
   };
   let colourways: Colourway[] | undefined;
@@ -79,8 +78,8 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
     slots: allSlots,
     slotRoles: Object.fromEntries(allSlots.map((slot) => [slot, `${yearOfSlot(slot)} ${yearOf(yearOfSlot(slot)).name}, yarn ${letterOf(slot)}`])),
     slotsVaryBySize: true,
-    // Other people's charts, knitted as they drew them: floats of up to twelve, and one round of the Shwook Hat in three colours.
-    rules: { colours: 3, float: 12 },
+    // Other people's charts, knitted as they drew them: floats as long as they come, caught behind the work, and one round of the Shwook Hat in three colours.
+    rules: { colours: 3, float: Infinity },
     tensions: { rib: { stitch: 0.9 } },
     stitchNotes: {
       m1: {
@@ -95,8 +94,8 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
       return [...new Map([...knitted.values()].flatMap((k) => k.charts).map((c) => [c.id, c])).values()];
     },
     get colourways(): Colourway[] {
-      // Two colourways shade or alternate by where the years sit: size M's layout says where.
-      return (colourways ??= colourwaysFor(placesOf(planOf(measured[2].finished, layout))));
+      // Some colourways shade, alternate or set grounds by where the years sit: size M's layout says where.
+      return (colourways ??= colourwaysFor(planOf(measured[2].finished, layout, measured[2].id)));
     },
     sizes,
   };

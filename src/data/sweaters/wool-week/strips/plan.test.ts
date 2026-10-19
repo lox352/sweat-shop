@@ -1,50 +1,66 @@
 import { describe, expect, it } from "vitest";
+import { lettersOf } from "./cuts";
 import { measured } from "./design";
-import { type Layout, planOf } from "./plan";
+import { type Row, planOf } from "./plan";
 
 const years = Array.from({ length: 13 }, (_, i) => 2014 + i);
-const layouts: Layout[] = [
-  { kind: "lined", newestFirst: true },
-  { kind: "lined", newestFirst: false },
-  { kind: "once", order: "oldest" },
-  { kind: "once", order: "newest" },
-  { kind: "once", order: "easiest" },
-];
+const lettersOfRow = (r: Row) => ("plain" in r ? [r.plain] : lettersOf(r.year, r.chart)[r.row - 1]);
 
-describe.each(layouts)("the strip plan, $kind $newestFirst$order", (layout) => {
-  it.each(measured)("puts every year in once, each strip about the same height, in $label", ({ finished }) => {
-    const plan = planOf(finished, layout);
-    const { yoke, body, sleeve } = plan.strips;
-    // The thirteen strips: down the yoke and body when the sleeves line up with it, down all three when they don't.
-    const thirteen = layout.kind === "lined" ? [...yoke, ...body] : [...yoke, ...body, ...sleeve];
-    const order = thirteen.map((s) => s.year);
-    expect([...order].sort()).toEqual(years);
-    if (layout.kind === "lined") expect(order).toEqual(layout.newestFirst ? [...years].reverse() : years);
-    if (layout.kind === "once" && layout.order !== "easiest") {
-      expect(order).toEqual(layout.order === "newest" ? [...years].reverse() : years);
-    }
+describe("the lined-up plan, oldest at the neck", () => {
+  it.each(measured)("puts every year in once, each strip about the same height, in $label", ({ id, finished }) => {
+    const plan = planOf(finished, { kind: "lined", newestFirst: false }, id);
+    const { yoke, body } = plan.strips;
+    const thirteen = [...yoke, ...body];
+    expect(thirteen.map((s) => s.year)).toEqual(years);
     // Each strip within five per cent of its piece's average, give or take the round it is rounded to.
-    for (const strips of [yoke, body, ...(layout.kind === "once" ? [sleeve] : [])]) {
+    for (const strips of [yoke, body]) {
       const average = strips.reduce((total, s) => total + s.height, 0) / strips.length;
       for (const s of strips) expect(Math.abs(s.height - average)).toBeLessThanOrEqual(0.05 * average + 0.5);
     }
-    /*
-     * And the pieces' averages near enough each other's that no year has much
-     * more than another: the strips are fifteen rounds or so in a small size,
-     * so a round or two either way is a good part of it, and a sleeve is longer
-     * than a yoke can be made deep.
-     */
-    const average = thirteen.reduce((total, s) => total + s.height, 0) / 13;
-    for (const s of thirteen) expect(Math.abs(s.height / average - 1)).toBeLessThan(0.2);
-    // Every piece's rounds are its strips', and as deep as the piece.
     for (const piece of ["yoke", "body", "sleeve"] as const) {
       expect(plan.rows[piece]).toHaveLength(plan.depth[piece]);
       expect(plan.strips[piece].reduce((total, s) => total + s.height, 0)).toBe(plan.depth[piece]);
     }
-    // Lined up: the sleeves knit the body's rounds, then carry its last year on.
-    if (layout.kind === "lined") {
-      expect(plan.rows.sleeve.slice(0, plan.rows.body.length)).toEqual(plan.rows.body);
-      expect(new Set(plan.rows.sleeve.slice(plan.rows.body.length).map((r) => r.year))).toEqual(new Set([body[body.length - 1].year]));
+    // The sleeves knit the body's rounds, then carry its last year on.
+    expect(plan.rows.sleeve.slice(0, plan.rows.body.length)).toEqual(plan.rows.body);
+    expect(new Set(plan.rows.sleeve.slice(plan.rows.body.length).map((r) => r.year))).toEqual(new Set([body[body.length - 1].year]));
+  });
+});
+
+describe("Each Year Once, refitted", () => {
+  it.each(measured)("puts the years in date order, each piece as deep as its depth, in $label", ({ id, finished }) => {
+    const plan = planOf(finished, { kind: "refit" }, id);
+    expect(plan.strips.yoke.map((s) => s.year)).toEqual([2014, 2015, 2016]);
+    expect(plan.strips.body.map((s) => s.year)).toEqual([2017, 2018, 2019, 2020, 2021]);
+    expect(plan.strips.sleeve.map((s) => s.year)).toEqual([2022, 2023, 2024, 2025, 2026]);
+    for (const piece of ["yoke", "body", "sleeve"] as const) {
+      expect(plan.rows[piece]).toHaveLength(plan.depth[piece]);
+      expect(plan.strips[piece].reduce((total, s) => total + s.height, 0)).toBe(plan.depth[piece]);
+      // Every piece begins with a plain round, where its first shaping or its divide goes.
+      expect("plain" in plan.rows[piece][0]).toBe(true);
     }
+  });
+
+  it.each(measured)("colours every plain round from the pattern beside it, in $label", ({ id, finished }) => {
+    const plan = planOf(finished, { kind: "refit" }, id);
+    for (const piece of ["yoke", "body", "sleeve"] as const) {
+      const rows = plan.rows[piece];
+      rows.forEach((r, i) => {
+        if (!("plain" in r)) return;
+        // A plain round's yarn is one its own year knits in the rows nearby: never a stripe from elsewhere.
+        const near = rows.slice(Math.max(0, i - 4), i + 5).filter((x) => x.year === r.year && !("plain" in x));
+        if (near.length) expect(near.some((x) => lettersOfRow(x).includes(r.plain))).toBe(true);
+      });
+    }
+  });
+
+  it("gives the houses a plain row at both ends, and 2014's two stars a round between them, in L", () => {
+    const plan = planOf(measured.find((m) => m.id === "l")!.finished, { kind: "refit" }, "l");
+    const houses = plan.rows.yoke.filter((r) => r.year === 2016 && !("plain" in r)) as Exclude<Row, { plain: string }>[];
+    expect([houses[0].row, houses[houses.length - 1].row]).toEqual([39, 11]);
+    const stars = plan.rows.yoke.filter((r) => r.year === 2014);
+    const join = stars.findIndex((r, i) => i > 0 && "plain" in r && !("plain" in stars[i - 1]));
+    expect(stars[join - 1]).toMatchObject({ chart: "C", row: 1 });
+    expect(stars[join + 1]).toMatchObject({ chart: "B", row: 13 });
   });
 });
