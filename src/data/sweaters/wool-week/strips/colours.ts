@@ -1,8 +1,7 @@
 import type { Colourway, Shade } from "../../types";
 import { yearOf } from "../years";
 import data from "./colourways.json";
-import { lettersOf } from "./cuts";
-import { type Plan, placesOf } from "./plan";
+import { type Plan, groundsOf, placesOf } from "./plan";
 import { allSlots, letterOf, yearOfSlot } from "./slots";
 
 /**
@@ -93,16 +92,9 @@ const lum = (hex: string) => {
  */
 const banded: Record<number, string[]> = { 2025: ["A", "D", "F", "G"], 2026: ["B", "D", "E"] };
 
-/** Each year's grounds, from a plan's rounds: see banded. */
-const groundsOf = (plan: Plan): Record<number, string[]> => {
-  const count: Record<number, Map<string, number>> = {};
-  for (const r of [...plan.rows.yoke, ...plan.rows.body, ...plan.rows.sleeve]) {
-    const letters = "plain" in r ? [r.plain] : lettersOf(r.year, r.chart)[r.row - 1].slice(0, r.w);
-    const n = (count[r.year] ??= new Map());
-    for (const l of letters) n.set(l, (n.get(l) ?? 0) + 1 / letters.length);
-  }
-  return Object.fromEntries(Object.entries(count).map(([y, n]) => [y, banded[+y] ?? [[...n].sort((a, b) => b[1] - a[1])[0][0]]]));
-};
+/** Each year's grounds: its commonest yarn (see plan's groundsOf), or a banded hat's every band's. */
+const groundsFor = (plan: Plan): Record<number, string[]> =>
+  Object.fromEntries(Object.entries(groundsOf(plan)).map(([y, g]) => [y, banded[+y] ?? [g]]));
 
 /**
  * Where a year's yarns go on a palette of `top + 1` places, darkest first, for a light or dark ground:
@@ -223,6 +215,6 @@ export const families: Family[] = [
 
 /** Every colourway of a strip sampler, from its plan in one size: where its years sit, and their grounds. */
 export const colourwaysFor = (plan: Plan): Colourway[] => {
-  const layout: Layout = { places: placesOf(plan), yoke: new Set(plan.strips.yoke.map((s) => s.year)), grounds: groundsOf(plan) };
+  const layout: Layout = { places: placesOf(plan), yoke: new Set(plan.strips.yoke.map((s) => s.year)), grounds: groundsFor(plan) };
   return families.flatMap((f) => f.colourways(layout));
 };

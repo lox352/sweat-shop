@@ -270,7 +270,9 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     Hat's sheep stay white sheep whatever the year: their bodies the lightest
     yarn, their faces the darkest, the sky a night sky in a dark year and a
     middle yarn in a light one. All dark, in Aa ae colour classic, is the
-    default.
+    default. In every colourway the neck, hem and cuffs are ribbed in the
+    ground of the strip beside them, so a dark strip has a dark rib and a
+    light strip a light one.
   - **Ladders.** Six yarns that every hat's lights and darks go onto, as the
     hat has them; Licht an mirk turns every other year over; Simmer dim
     lightens away from the neck.

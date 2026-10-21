@@ -45,6 +45,19 @@ describe.each([eachYearOnce, thirteenStrips])("the light and dark colourways of 
     expect(clashes.slice(0, 5)).toEqual([]);
   });
 
+  // Simmer dim works within four rungs, too few to give a year's ground an end of its own, so it is left out.
+  it.each(grounded.filter((c) => /-(dark|light)$/.test(c.id) && !c.id.startsWith("simmer")).map((c) => [c.name, c] as const))("knits every rib in its strip's ground, in %s", (_, colourway) => {
+    // The neck, hem and cuffs each in the ground of the strip beside them: the year's darkest yarn all dark, its lightest all light.
+    const light = colourway.id.endsWith("-light");
+    const lum = (slot: string) => { const n = parseInt(colourway.shades.find((s) => s.slot === slot)!.hex.slice(1), 16); return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255); };
+    const ribs = design.sizes.find((s) => s.id === "m")!.sections.flatMap((s) => s.rounds).filter((r) => "fabric" in r && r.fabric === "rib" && "slot" in r).map((r) => (r as { slot: string }).slot);
+    expect(new Set(ribs).size).toBeGreaterThan(0);
+    for (const rib of new Set(ribs)) {
+      const year = colourway.shades.filter((s) => yearOfSlot(s.slot) === yearOfSlot(rib)).map((s) => lum(s.slot));
+      expect(lum(rib)).toBe(light ? Math.max(...year) : Math.min(...year));
+    }
+  });
+
   it("puts every ground of a dark year on the palette's darkest yarn, in Aa ae colour: classic", () => {
     const dark = design.colourways.find((c) => c.id === "classic-dark")!;
     // 2026's bands: B, D and E are its grounds, and all go to Admiral Navy.
