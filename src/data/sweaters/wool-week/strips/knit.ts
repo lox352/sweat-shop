@@ -2,7 +2,7 @@ import type { Chart, ChartCell, RoundSpec, Section } from "../../types";
 import { decreaseEvenly, increaseEvenly } from "../../writing";
 import { yearOf } from "../years";
 import { lettersOf, solid } from "./cuts";
-import { gauge, ribs, type Measured, type Plan, type Row } from "./plan";
+import { gauge, groundsOf, ribs, type Measured, type Plan, type Row } from "./plan";
 import { letterOf, plainSlot, slotsOfRow } from "./slots";
 
 /**
@@ -169,12 +169,12 @@ export const knit = (size: Measured, plan: Plan, prefix: string, sizeId: string)
   const upperArm = nearest(size.upperArmCm * g.stitches, 2);
   const cuff = nearest(size.cuffCm * g.stitches, 4);
   const yokeTotal = body - 2 * underarm + 2 * (upperArm - underarm);
-  // A year's darkest yarn among those its strips knit, for the ribs.
-  const allRows = [...plan.rows.yoke, ...plan.rows.body, ...plan.rows.sleeve];
-  const darkestOfYear = (year: number) => darkest([...new Set(allRows.filter((r) => r.year === year).flatMap((r) => (isPlain(r) ? [plainSlot(r.year, r.plain)] : tileOf(r))))]);
+  // Each rib in the ground of the strip beside it, so a dark strip has a dark rib and a light one a light rib, whatever the colourway.
+  const grounds = groundsOf(plan);
+  const groundOfYear = (year: number) => plainSlot(year, grounds[year]);
 
   /* ---------------------------------------------------------------- yoke */
-  const neckSlot = darkestOfYear(plan.rows.yoke[0].year);
+  const neckSlot = groundOfYear(plan.rows.yoke[0].year);
   const yoke = new Writer(prefix);
   const first = Math.round(neck * 1.25);
   const n = plan.rows.yoke.length;
@@ -198,7 +198,7 @@ export const knit = (size: Measured, plan: Plan, prefix: string, sizeId: string)
   const bodyWriter = new Writer(prefix);
   const hemCount = nearest(body, 4);
   const lastBodyYear = plan.rows.body[plan.rows.body.length - 1].year;
-  const hemSlot = darkestOfYear(lastBodyYear);
+  const hemSlot = groundOfYear(lastBodyYear);
   tiled(bodyWriter, plan.rows.body, body, () => body, false, () => hemCount);
   const bodySpecs: RoundSpec[] = [
     {
@@ -271,7 +271,7 @@ export const knit = (size: Measured, plan: Plan, prefix: string, sizeId: string)
     start = i;
   }
   if (count !== cuff) throw new Error(`a sleeve tapered to ${count}, not ${cuff}`);
-  const cuffSlot = darkestOfYear(rows[L - 1].year);
+  const cuffSlot = groundOfYear(rows[L - 1].year);
   const sleeveSection = (piece: string, label: string): Section => ({
     label,
     piece,

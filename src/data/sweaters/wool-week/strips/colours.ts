@@ -1,8 +1,7 @@
 import type { Colourway, Shade } from "../../types";
 import { yearOf } from "../years";
 import data from "./colourways.json";
-import { lettersOf } from "./cuts";
-import { type Plan, placesOf } from "./plan";
+import { type Plan, groundsOf, placesOf } from "./plan";
 import { allSlots, letterOf, yearOfSlot } from "./slots";
 
 /**
@@ -93,16 +92,9 @@ const lum = (hex: string) => {
  */
 const banded: Record<number, string[]> = { 2025: ["A", "D", "F", "G"], 2026: ["B", "D", "E"] };
 
-/** Each year's grounds, from a plan's rounds: see banded. */
-const groundsOf = (plan: Plan): Record<number, string[]> => {
-  const count: Record<number, Map<string, number>> = {};
-  for (const r of [...plan.rows.yoke, ...plan.rows.body, ...plan.rows.sleeve]) {
-    const letters = "plain" in r ? [r.plain] : lettersOf(r.year, r.chart)[r.row - 1].slice(0, r.w);
-    const n = (count[r.year] ??= new Map());
-    for (const l of letters) n.set(l, (n.get(l) ?? 0) + 1 / letters.length);
-  }
-  return Object.fromEntries(Object.entries(count).map(([y, n]) => [y, banded[+y] ?? [[...n].sort((a, b) => b[1] - a[1])[0][0]]]));
-};
+/** Each year's grounds: its commonest yarn (see plan's groundsOf), or a banded hat's every band's. */
+const groundsFor = (plan: Plan): Record<number, string[]> =>
+  Object.fromEntries(Object.entries(groundsOf(plan)).map(([y, g]) => [y, banded[+y] ?? [g]]));
 
 /**
  * Where a year's yarns go on a palette of `top + 1` places, darkest first, for a light or dark ground:
@@ -121,24 +113,37 @@ const placed = (rank: Record<string, number>, grounds: string[], light: boolean,
   };
 };
 
+/*
+ * A picture whose colours mean something keeps them, light year or dark: 2015's sheep are white sheep,
+ * so their bodies (B) take the palette's lightest yarn and their faces and legs (C) its darkest. The sky
+ * (D) goes dark in a dark year, a night sky, and to the middle in a light one, never above the sheep; the
+ * field (A) sits between. Each letter's place is a fraction of the way from darkest to lightest.
+ */
+const pictures: Record<number, (light: boolean) => Record<string, number>> = {
+  2015: (light) => ({ B: 1, C: 0, A: 0.6, D: light ? 0.4 : 0 }),
+};
+
 /** Light or dark grounds year by year on one palette: each year's letters to a Spindrift yarn. */
 const grounded = (palette: string, layout: Layout, light: (year: number) => boolean) => {
   const maps = new Map<number, (letter: string) => string>();
   return (year: number, letter: string): string => {
     if (!maps.has(year)) {
       const grounds = layout.grounds[year];
+      const picture = pictures[year]?.(light(year));
+      const where = (rank: Record<string, number>, top: number) =>
+        picture ? (l: string) => Math.round(picture[l] * top) : placed(rank, grounds, light(year), top);
       if (palette === "own") {
         const mine = own[year];
         const codes = [...new Set(Object.values(mine))].sort((a, b) => lum(yarns[a].hex) - lum(yarns[b].hex));
         const rank = Object.fromEntries(Object.entries(mine).map(([l, c]) => [l, codes.indexOf(c)]));
-        const at = placed(rank, grounds, light(year), codes.length - 1);
+        const at = where(rank, codes.length - 1);
         maps.set(year, (l) => codes[at(l)]);
       } else {
         // Simmer dim works within its four rungs, a step lighter the further the year from the neck.
         const simmer = palette === "simmer";
         const rank = rungs[simmer ? "simmer" : palette][year];
         const base = simmer ? Math.round(layout.places[year].frac * 2) : 0;
-        const at = placed(rank, grounds, light(year), simmer ? 3 : 5);
+        const at = where(rank, simmer ? 3 : 5);
         maps.set(year, (l) => String(ladders[palette][base + at(l)]));
       }
     }
@@ -152,9 +157,10 @@ const palettes: [id: string, name: string][] = [
   ["simmer", "Simmer dim"],
   ["own", "Each year its own"],
 ];
+// The first is a design's default: Aa ae colour: classic, all dark.
 const modes: [id: string, name: string, light: (year: number, layout: Layout) => boolean][] = [
-  ["light-yoke", "light yoke, dark below", (y, l) => l.yoke.has(y)],
   ["dark", "all dark", () => false],
+  ["light-yoke", "light yoke, dark below", (y, l) => l.yoke.has(y)],
   ["light", "all light", () => true],
   ["turns", "light and dark by turns", (y) => (y - 2014) % 2 === 0],
 ];
@@ -209,6 +215,6 @@ export const families: Family[] = [
 
 /** Every colourway of a strip sampler, from its plan in one size: where its years sit, and their grounds. */
 export const colourwaysFor = (plan: Plan): Colourway[] => {
-  const layout: Layout = { places: placesOf(plan), yoke: new Set(plan.strips.yoke.map((s) => s.year)), grounds: groundsOf(plan) };
+  const layout: Layout = { places: placesOf(plan), yoke: new Set(plan.strips.yoke.map((s) => s.year)), grounds: groundsFor(plan) };
   return families.flatMap((f) => f.colourways(layout));
 };

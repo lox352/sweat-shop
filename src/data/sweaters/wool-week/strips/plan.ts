@@ -1,4 +1,4 @@
-import { type Cut, type CutRow, choose, cutsOf, groundOf, patterns, patternOf, topDown } from "./cuts";
+import { type Cut, type CutRow, choose, cutsOf, groundOf, lettersOf, patterns, patternOf, topDown } from "./cuts";
 import { refit } from "./refit";
 
 /**
@@ -231,4 +231,19 @@ export const placesOf = (plan: Plan): Record<number, { frac: number; parity: num
     plan.strips.sleeve.forEach((s, i) => (out[s.year] = { frac: (k + i) / span, parity: k + i + 1 }));
   }
   return out;
+};
+
+/**
+ * Each year's ground: the commonest of its hat's yarns over the plan's rounds, each round's yarns sharing
+ * one round between them. The colourways set a year light or dark by it, and the ribs are knitted in it.
+ */
+export const groundsOf = (plan: Plan): Record<number, string> => {
+  const count = new Map<number, Map<string, number>>();
+  for (const r of [...plan.rows.yoke, ...plan.rows.body, ...plan.rows.sleeve]) {
+    const letters = "plain" in r ? [r.plain] : lettersOf(r.year, r.chart)[r.row - 1].slice(0, r.w);
+    if (!count.has(r.year)) count.set(r.year, new Map());
+    const n = count.get(r.year)!;
+    for (const l of letters) n.set(l, (n.get(l) ?? 0) + 1 / letters.length);
+  }
+  return Object.fromEntries([...count].map(([y, n]) => [y, [...n].sort((a, b) => b[1] - a[1])[0][0]]));
 };

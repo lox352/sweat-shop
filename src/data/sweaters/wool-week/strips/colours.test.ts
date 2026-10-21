@@ -10,8 +10,21 @@ describe.each([eachYearOnce, thirteenStrips])("the light and dark colourways of 
 
   it("has every palette with every way of setting its grounds", () => {
     expect(grounded.map((c) => c.id)).toEqual(
-      ["classic", "undyed", "simmer", "own"].flatMap((p) => ["light-yoke", "dark", "light", "turns"].map((m) => `${p}-${m}`)),
+      ["classic", "undyed", "simmer", "own"].flatMap((p) => ["dark", "light-yoke", "light", "turns"].map((m) => `${p}-${m}`)),
     );
+    // All dark, in Aa ae colour: classic, is the design's default.
+    expect(design.colourways[0].id).toBe("classic-dark");
+  });
+
+  it.each(grounded.map((c) => [c.name, c] as const))("knits the Baa-ble Hat's sheep as white sheep, in %s", (_, colourway) => {
+    // Their bodies (B) the lightest of the year's yarns, well clear of the sky (D) and the field (A); their faces and legs (C) the darkest,
+    // which a night sky may share - the two never meet.
+    const hexOf = (letter: string) => colourway.shades.find((s) => s.slot === `15${letter}`)!.hex;
+    const lum = (hex: string) => { const n = parseInt(hex.slice(1), 16); return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255); };
+    const [sheep, faces, sky, field] = ["B", "C", "D", "A"].map((l) => lum(hexOf(l)));
+    expect(sheep).toBeGreaterThan(Math.max(sky, field) + 25);
+    expect(faces).toBeLessThanOrEqual(sky);
+    expect(faces).toBeLessThan(field);
   });
 
   it.each(grounded.map((c) => [c.name, c] as const))("never knits two yarns that meet in a round in one, in %s", (_, colourway) => {
@@ -30,6 +43,19 @@ describe.each([eachYearOnce, thirteenStrips])("the light and dark colourways of 
       }
     }
     expect(clashes.slice(0, 5)).toEqual([]);
+  });
+
+  // Simmer dim works within four rungs, too few to give a year's ground an end of its own, so it is left out.
+  it.each(grounded.filter((c) => /-(dark|light)$/.test(c.id) && !c.id.startsWith("simmer")).map((c) => [c.name, c] as const))("knits every rib in its strip's ground, in %s", (_, colourway) => {
+    // The neck, hem and cuffs each in the ground of the strip beside them: the year's darkest yarn all dark, its lightest all light.
+    const light = colourway.id.endsWith("-light");
+    const lum = (slot: string) => { const n = parseInt(colourway.shades.find((s) => s.slot === slot)!.hex.slice(1), 16); return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255); };
+    const ribs = design.sizes.find((s) => s.id === "m")!.sections.flatMap((s) => s.rounds).filter((r) => "fabric" in r && r.fabric === "rib" && "slot" in r).map((r) => (r as { slot: string }).slot);
+    expect(new Set(ribs).size).toBeGreaterThan(0);
+    for (const rib of new Set(ribs)) {
+      const year = colourway.shades.filter((s) => yearOfSlot(s.slot) === yearOfSlot(rib)).map((s) => lum(s.slot));
+      expect(lum(rib)).toBe(light ? Math.max(...year) : Math.min(...year));
+    }
   });
 
   it("puts every ground of a dark year on the palette's darkest yarn, in Aa ae colour: classic", () => {
