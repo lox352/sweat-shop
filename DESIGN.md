@@ -266,7 +266,11 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     ground goes to the palette's lightest yarn, a dark year's to its
     darkest, and the hat's other yarns keep their order of lightness over
     the rest. A hat built of separate two-colour bands, 2025 and 2026, has a
-    ground for every band, and they go light or dark together.
+    ground for every band, and they go light or dark together. The Baa-ble
+    Hat's sheep stay white sheep whatever the year: their bodies the lightest
+    yarn, their faces the darkest, the sky a night sky in a dark year and a
+    middle yarn in a light one. All dark, in Aa ae colour classic, is the
+    default.
   - **Ladders.** Six yarns that every hat's lights and darks go onto, as the
     hat has them; Licht an mirk turns every other year over; Simmer dim
     lightens away from the neck.

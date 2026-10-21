@@ -10,8 +10,21 @@ describe.each([eachYearOnce, thirteenStrips])("the light and dark colourways of 
 
   it("has every palette with every way of setting its grounds", () => {
     expect(grounded.map((c) => c.id)).toEqual(
-      ["classic", "undyed", "simmer", "own"].flatMap((p) => ["light-yoke", "dark", "light", "turns"].map((m) => `${p}-${m}`)),
+      ["classic", "undyed", "simmer", "own"].flatMap((p) => ["dark", "light-yoke", "light", "turns"].map((m) => `${p}-${m}`)),
     );
+    // All dark, in Aa ae colour: classic, is the design's default.
+    expect(design.colourways[0].id).toBe("classic-dark");
+  });
+
+  it.each(grounded.map((c) => [c.name, c] as const))("knits the Baa-ble Hat's sheep as white sheep, in %s", (_, colourway) => {
+    // Their bodies (B) the lightest of the year's yarns, well clear of the sky (D) and the field (A); their faces and legs (C) the darkest,
+    // which a night sky may share - the two never meet.
+    const hexOf = (letter: string) => colourway.shades.find((s) => s.slot === `15${letter}`)!.hex;
+    const lum = (hex: string) => { const n = parseInt(hex.slice(1), 16); return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255); };
+    const [sheep, faces, sky, field] = ["B", "C", "D", "A"].map((l) => lum(hexOf(l)));
+    expect(sheep).toBeGreaterThan(Math.max(sky, field) + 25);
+    expect(faces).toBeLessThanOrEqual(sky);
+    expect(faces).toBeLessThan(field);
   });
 
   it.each(grounded.map((c) => [c.name, c] as const))("never knits two yarns that meet in a round in one, in %s", (_, colourway) => {

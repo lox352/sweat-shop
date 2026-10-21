@@ -121,24 +121,37 @@ const placed = (rank: Record<string, number>, grounds: string[], light: boolean,
   };
 };
 
+/*
+ * A picture whose colours mean something keeps them, light year or dark: 2015's sheep are white sheep,
+ * so their bodies (B) take the palette's lightest yarn and their faces and legs (C) its darkest. The sky
+ * (D) goes dark in a dark year, a night sky, and to the middle in a light one, never above the sheep; the
+ * field (A) sits between. Each letter's place is a fraction of the way from darkest to lightest.
+ */
+const pictures: Record<number, (light: boolean) => Record<string, number>> = {
+  2015: (light) => ({ B: 1, C: 0, A: 0.6, D: light ? 0.4 : 0 }),
+};
+
 /** Light or dark grounds year by year on one palette: each year's letters to a Spindrift yarn. */
 const grounded = (palette: string, layout: Layout, light: (year: number) => boolean) => {
   const maps = new Map<number, (letter: string) => string>();
   return (year: number, letter: string): string => {
     if (!maps.has(year)) {
       const grounds = layout.grounds[year];
+      const picture = pictures[year]?.(light(year));
+      const where = (rank: Record<string, number>, top: number) =>
+        picture ? (l: string) => Math.round(picture[l] * top) : placed(rank, grounds, light(year), top);
       if (palette === "own") {
         const mine = own[year];
         const codes = [...new Set(Object.values(mine))].sort((a, b) => lum(yarns[a].hex) - lum(yarns[b].hex));
         const rank = Object.fromEntries(Object.entries(mine).map(([l, c]) => [l, codes.indexOf(c)]));
-        const at = placed(rank, grounds, light(year), codes.length - 1);
+        const at = where(rank, codes.length - 1);
         maps.set(year, (l) => codes[at(l)]);
       } else {
         // Simmer dim works within its four rungs, a step lighter the further the year from the neck.
         const simmer = palette === "simmer";
         const rank = rungs[simmer ? "simmer" : palette][year];
         const base = simmer ? Math.round(layout.places[year].frac * 2) : 0;
-        const at = placed(rank, grounds, light(year), simmer ? 3 : 5);
+        const at = where(rank, simmer ? 3 : 5);
         maps.set(year, (l) => String(ladders[palette][base + at(l)]));
       }
     }
@@ -152,9 +165,10 @@ const palettes: [id: string, name: string][] = [
   ["simmer", "Simmer dim"],
   ["own", "Each year its own"],
 ];
+// The first is a design's default: Aa ae colour: classic, all dark.
 const modes: [id: string, name: string, light: (year: number, layout: Layout) => boolean][] = [
-  ["light-yoke", "light yoke, dark below", (y, l) => l.yoke.has(y)],
   ["dark", "all dark", () => false],
+  ["light-yoke", "light yoke, dark below", (y, l) => l.yoke.has(y)],
   ["light", "all light", () => true],
   ["turns", "light and dark by turns", (y) => (y - 2014) % 2 === 0],
 ];
