@@ -1,0 +1,15 @@
+{
+  "2014": { "ground": ["B"], "middle": ["A", "C", "E"], "figure": ["D"] },
+  "2015": { "ground": ["D", "A"], "figure": ["B", "C"], "pins": { "B": "lightest", "C": "darkest" } },
+  "2016": { "ground": ["E", "D"], "figure": ["A", "B", "C"] },
+  "2017": { "ground": ["A"], "figure": ["B", "C"] },
+  "2018": { "ground": ["A"], "figure": ["B", "C", "D", "E"] },
+  "2019": { "ground": ["D", "G", "C"], "figure": ["F", "B", "E", "A"], "pins": { "F": "lightest" } },
+  "2020": { "ground": ["A"], "figure": ["B", "C", "D", "E"] },
+  "2021": { "ground": ["A", "E"], "figure": ["B", "C", "D", "F"] },
+  "2022": { "ground": ["A", "E"], "figure": ["B", "C", "D"] },
+  "2023": { "ground": ["A"], "figure": ["B", "C", "D", "E", "F"] },
+  "2024": { "ground": ["A"], "figure": ["B", "C", "D", "E"] },
+  "2025": { "ground": ["A", "C", "E", "G"], "figure": ["B", "D", "F", "H"] },
+  "2026": { "ground": ["B", "D", "F"], "figure": ["A", "C", "E"] }
+}

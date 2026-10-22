@@ -13,7 +13,7 @@ import {
 } from "../helpers/projects";
 import { countedAt, sweaterStitches, yokeRounds } from "../knitting/useSweater";
 import { positionOf, totals } from "../knitting/progress";
-import { colourwayLabel, paletteOf } from "../knitting/palette";
+import { colourwayLabel, paletteOf, trimmed } from "../knitting/palette";
 import PageLayout from "./ui/PageLayout";
 import Button from "./ui/Button";
 import Dialog from "./ui/Dialog";
@@ -42,8 +42,7 @@ const describe = (project: Project) => {
   const { index } = countedAt(sweater, built, project.progress);
   const counts = totals(index, project.progress);
   const position = positionOf(stitches, project.progress, index);
-  const colourway =
-    sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0];
+  const colourway = trimmed(sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0], project.trim);
   return { sweater, counts, position, colourway, size, stitches, yoke: yokeRounds(built) };
 };
 

@@ -29,6 +29,9 @@ export const slotsOfRow = (year: number, chart: string, row: number): string[] =
 export const letterOf = (slot: string, printing?: string): string =>
   slot.length === 4 ? (printing && printing !== "1-2" ? slot[3] : slot[2]) : slot[2];
 
+/** The ribbing's slot - the neck, the hem and the cuffs - which is no hat's: see colours. */
+export const trimSlot = "trim";
+
 export const yearOfSlot = (slot: string): number => 2000 + Number(slot.slice(0, 2));
 
 /** Every slot any cut of any year knits, in year order. */

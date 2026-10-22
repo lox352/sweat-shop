@@ -1,9 +1,9 @@
-import type { Chart, Colourway, Size, SweaterPattern } from "../../types";
+import type { Chart, Size, SweaterPattern } from "../../types";
 import { yearOf, years } from "../years";
-import { colourwaysFor } from "./colours";
+import { colourways } from "./colours";
 import { knit, type Knitted } from "./knit";
 import { type Layout, type Measured, gauge, planOf } from "./plan";
-import { allSlots, letterOf, yearOfSlot } from "./slots";
+import { allSlots, letterOf, trimSlot, yearOfSlot } from "./slots";
 
 /**
  * A strip sampler: every Shetland Wool Week hat from 2014 to 2026, each in a
@@ -48,7 +48,6 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
     if (!found) knitted.set(size.id, (found = knit(size.finished, planOf(size.finished, layout, size.id), `${id}-`, size.id)));
     return found;
   };
-  let colourways: Colourway[] | undefined;
   const sizes: Size[] = measured.map((size) => ({
     ...size,
     stitchesPer10cm: gauge.stitches * 10,
@@ -75,8 +74,12 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
       { id: "sleeve-left", label: "Left sleeve" },
       { id: "sleeve-right", label: "Right sleeve" },
     ],
-    slots: allSlots,
-    slotRoles: Object.fromEntries(allSlots.map((slot) => [slot, `${yearOfSlot(slot)} ${yearOf(yearOfSlot(slot)).name}, yarn ${letterOf(slot)}`])),
+    slots: [...allSlots, trimSlot],
+    slotRoles: {
+      ...Object.fromEntries(allSlots.map((slot) => [slot, `${yearOfSlot(slot)} ${yearOf(yearOfSlot(slot)).name}, yarn ${letterOf(slot)}`])),
+      [trimSlot]: "The neck, waist and wrist ribbing",
+    },
+    trim: { slot: trimSlot, label: "Trim", note: "The neck, waist and wrist ribbing, in any yarn of the palette." },
     slotsVaryBySize: true,
     // Other people's charts, knitted as they drew them: floats as long as they come, caught behind the work, and one round of the Shwook Hat in three colours.
     rules: { colours: 3, float: Infinity },
@@ -101,10 +104,7 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
     get charts(): Chart[] {
       return [...new Map([...knitted.values()].flatMap((k) => k.charts).map((c) => [c.id, c])).values()];
     },
-    get colourways(): Colourway[] {
-      // Some colourways shade, alternate or set grounds by where the years sit: size M's layout says where.
-      return (colourways ??= colourwaysFor(planOf(measured[2].finished, layout, measured[2].id)));
-    },
+    colourways,
     sizes,
   };
 };

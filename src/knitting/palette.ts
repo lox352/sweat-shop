@@ -63,6 +63,19 @@ export const paletteOf = (colourway: Colourway, overrides: Overrides = {}): Pale
   return out;
 };
 
+/** How a trim is chosen and stored: by its wool, or failing that its shade number or name. */
+export const trimIdOf = (shade: Shade): string => shade.wool ?? shade.code ?? shade.name;
+
+/**
+ * A colourway with its trim changed to one of its own trims, where the
+ * design has one and the choice is still among them; otherwise as it is.
+ */
+export const trimmed = (colourway: Colourway, trim: string | undefined): Colourway => {
+  const choice = trim === undefined ? undefined : colourway.trims?.find((t) => trimIdOf(t) === trim);
+  if (!choice) return colourway;
+  return { ...colourway, shades: colourway.shades.map((s) => (s.slot === choice.slot ? choice : s)) };
+};
+
 const fallback: Yarn = { name: "unknown", hex: "#cccccc", approximate: true };
 
 export const yarnFor = (palette: Palette, slot: string): Yarn => palette[slot] ?? fallback;

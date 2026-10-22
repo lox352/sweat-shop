@@ -1,6 +1,6 @@
 import React, { RefObject, useEffect, useMemo, useRef, useState } from "react";
-import type { Colourway } from "../data/sweaters/types";
-import { ownBalls, paletteOf, type Overrides, type Palette } from "../knitting/palette";
+import type { Colourway, SweaterPattern } from "../data/sweaters/types";
+import { inkOn, ownBalls, paletteOf, trimIdOf, type Overrides, type Palette } from "../knitting/palette";
 import BodyStrip from "./BodyStrip";
 import { bodyRounds, stitchScale, usePainting } from "./bodyPicture";
 import type { Body } from "./ColourPreview";
@@ -149,6 +149,48 @@ const DockingStrip: React.FC<{ body: Body; palette: Palette; until?: RefObject<E
 };
 
 /**
+ * The trim, chosen among the colourway's own yarns: the one it gives first,
+ * marked, and any other of its palette. Part of the colourway rather than
+ * wool of the knitter's own, so starting from another colourway resets it.
+ */
+const TrimChoice: React.FC<{ trim: NonNullable<SweaterPattern["trim"]>; colourway: Colourway; onTrim: (trim: string) => void }> = ({
+  trim,
+  colourway,
+  onTrim,
+}) => {
+  const current = colourway.shades.find((s) => s.slot === trim.slot);
+  return (
+    <div className="trim-choice" role="group" aria-label={trim.label}>
+      <p className="colourway-starts-title">
+        <strong>{trim.label}</strong>
+        {trim.note ? ` · ${trim.note}` : ""}
+      </p>
+      <div className="trim-options">
+        {colourway.trims!.map((option) => {
+          const id = trimIdOf(option);
+          const chosen = current !== undefined && trimIdOf(current) === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              className="trim-option"
+              aria-pressed={chosen}
+              onClick={() => onTrim(id)}
+              title={`${option.name}${option.code ? ` (${option.code})` : ""}`}
+            >
+              <span className="trim-swatch" style={{ background: option.hex, color: inkOn(option.hex) }} aria-hidden="true">
+                {chosen ? "✓" : ""}
+              </span>
+              <span>{option.name}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+/**
  * The sweater's colours: there is only ever the knitter's own colourway.
  *
  * The design's colourways are starting points. Choosing one sets every
@@ -163,9 +205,12 @@ const ColourwayChoice: React.FC<{
   palette: Palette;
   body: Body;
   onStartFrom: (colourwayId: string) => void;
+  /** The design's trim, where it has one, and choosing among the colourway's: see SweaterPattern.trim. */
+  trim?: SweaterPattern["trim"];
+  onTrim?: (trim: string) => void;
   /** Where choosing the wool ends, and the strip stops being the banner. */
   until?: RefObject<Element>;
-}> = ({ colourways, colourway, overrides, palette, body, onStartFrom, until }) => {
+}> = ({ colourways, colourway, overrides, palette, body, onStartFrom, trim, onTrim, until }) => {
   const [asking, setAsking] = useState<Colourway>();
   const own = ownBalls(colourway, overrides);
   const choose = (option: Colourway) => {
@@ -197,6 +242,9 @@ const ColourwayChoice: React.FC<{
           </button>
         ))}
       </div>
+      {trim && onTrim && colourway.trims && colourway.trims.length > 1 && (
+        <TrimChoice trim={trim} colourway={colourway} onTrim={onTrim} />
+      )}
       <Dialog
         open={asking !== undefined}
         title={`Start again from ${asking?.name ?? ""}?`}

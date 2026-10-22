@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { sweaterById } from "../data/sweaters";
 import { SlotId, Size } from "../data/sweaters/types";
 import { defaultSize, useSweater } from "../knitting/useSweater";
-import { ballsOf, paletteOf, type Overrides } from "../knitting/palette";
+import { ballsOf, paletteOf, trimmed, type Overrides } from "../knitting/palette";
 import { totals } from "../knitting/progress";
 import { metresFor } from "../knitting/yardage";
 import { chartPath, startProject } from "../helpers/projects";
@@ -96,6 +96,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
       defaultSize(sweater).id,
   );
   const [colourwayId, setColourwayId] = useState(sweater.colourways[0].id);
+  const [trim, setTrim] = useState<string>();
   /*
    * The wool a knitter has chosen for themselves, over the colourway they
    * started from. Starting again from another of the design's clears it.
@@ -105,7 +106,10 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
   const choicesRef = useRef<HTMLElement>(null);
   const { stitches, rounds, index, yoke } = useSweater(sweater, size.id);
 
-  const colourway = sweater.colourways.find((c) => c.id === colourwayId) ?? sweater.colourways[0];
+  const colourway = useMemo(
+    () => trimmed(sweater.colourways.find((c) => c.id === colourwayId) ?? sweater.colourways[0], trim),
+    [sweater, colourwayId, trim],
+  );
   const palette = useMemo(() => paletteOf(colourway, own), [colourway, own]);
   const metres = useMemo(() => metresFor(size, stitches, rounds), [size, stitches, rounds]);
   const counts = totals(index, 0);
@@ -130,7 +134,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
 
   // A project is made only now, so browsing designs never leaves one behind.
   const start = () => {
-    const project = startProject(sweater.id, size.id, colourway.id, own);
+    const project = startProject(sweater.id, size.id, colourway.id, own, trim);
     navigate(chartPath(project.id, true));
   };
 
@@ -177,8 +181,11 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
           body={body}
           onStartFrom={(id) => {
             setColourwayId(id);
+            setTrim(undefined);
             setOwn({});
           }}
+          trim={sweater.trim}
+          onTrim={setTrim}
           until={choicesRef}
         />
 

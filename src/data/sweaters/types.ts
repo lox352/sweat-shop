@@ -93,6 +93,13 @@ export interface Colourway {
   ballMetres?: number;
   ballGrams?: number;
   shades: Shade[];
+  /**
+   * The yarns the trim may be knitted in instead of its own, where the
+   * design has a trim (see SweaterPattern.trim): each a shade of that slot.
+   * Choosing one is part of choosing the colourway, not wool of the
+   * knitter's own.
+   */
+  trims?: Shade[];
 }
 
 /**
@@ -390,6 +397,12 @@ export interface SweaterPattern {
   slots: SlotId[];
   /** What each slot is for, in a word or two, where it is clear. */
   slotRoles?: Partial<Record<SlotId, string>>;
+  /**
+   * A slot a knitter chooses separately from the rest of the colourway,
+   * among the colourway's own trims: the ribbing at the neck, waist and
+   * wrists, say.
+   */
+  trim?: { slot: SlotId; label: string; note?: string };
   sizes: Size[];
   colourways: Colourway[];
   charts: Chart[];
