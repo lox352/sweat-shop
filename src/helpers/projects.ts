@@ -22,6 +22,8 @@ export interface Project {
   sweaterId: string;
   sizeId: string;
   colourwayId: string;
+  /** The trim chosen among the colourway's own, by its wool: see SweaterPattern.trim. */
+  trim?: string;
   shades?: Overrides;
   /** Id of the last stitch worked. 0 means nothing knitted yet. */
   progress: number;
@@ -92,6 +94,7 @@ const isProject = (value: unknown): value is Project => {
     (typeof date === "string" && Number.isFinite(Date.parse(date)));
   if (!validDate(candidate.startedAt) || !validDate(candidate.updatedAt) ||
     (candidate.name !== undefined && typeof candidate.name !== "string") ||
+    (candidate.trim !== undefined && typeof candidate.trim !== "string") ||
     (candidate.version !== undefined && candidate.version !== currentVersion) ||
     (candidate.revision !== undefined && !(Number.isSafeInteger(candidate.revision) && candidate.revision >= 0))) return false;
   if (candidate.shades !== undefined) {
@@ -203,6 +206,8 @@ export const startProject = (
   colourwayId: string,
   /** Any wool chosen before starting, on the design's own page. */
   shades: Overrides = {},
+  /** And any trim. */
+  trim?: string,
 ): Project => {
   const revision = currentRevision(sweaterId);
   return writeProject({
@@ -211,6 +216,7 @@ export const startProject = (
     sweaterId,
     sizeId,
     colourwayId,
+    ...(trim ? { trim } : {}),
     shades: Object.keys(shades).length > 0 ? shades : undefined,
     progress: 0,
     ...(revision > 0 ? { revision } : {}),

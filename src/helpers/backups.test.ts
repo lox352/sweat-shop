@@ -48,3 +48,13 @@ it("forgets a project's knitting times when the project is deleted", () => {
   deleteProject(p.id);
   expect(readLog(p.id)).toEqual([]);
 });
+
+it("carries a project's trim with it, and refuses one that is not a string", () => {
+  const sampler = sweaters.find((x) => x.trim)!;
+  startProject(sampler.id, "m", sampler.colourways[0].id, {}, "jamieson-s-of-shetland-spindrift-104");
+  const [copy] = restoreBackup(parseBackup(backupText()));
+  expect(copy.trim).toBe("jamieson-s-of-shetland-spindrift-104");
+  const broken = JSON.parse(backupText());
+  broken.projects[0].trim = 104;
+  expect(() => parseBackup(JSON.stringify(broken))).toThrow();
+});

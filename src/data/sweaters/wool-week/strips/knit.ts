@@ -3,8 +3,9 @@ import { decreaseEvenly, increaseEvenly } from "../../writing";
 import { yearOf } from "../years";
 import { lettersOf, solid } from "./cuts";
 import type { Fan } from "./fans";
-import { gauge, groundsOf, ribs, type Measured, type Plan, type Row } from "./plan";
-import { letterOf, plainSlot, slotsOfRow } from "./slots";
+import { gauge, ribs, type Measured, type Plan, type Row } from "./plan";
+import roleData from "./roles.json";
+import { letterOf, plainSlot, slotsOfRow, trimSlot } from "./slots";
 
 /**
  * A strip sampler's plan, knitted: its sections, charts and stated counts.
@@ -23,6 +24,9 @@ import { letterOf, plainSlot, slotsOfRow } from "./slots";
  *   and its repeats meet part-way at the seam. So each sleeve strip is one
  *   chart the width of the whole round, its decreases charted at the seam.
  */
+
+/** Each hat's yarns as ground, figure or middle: see scripts/strip-colourways.mjs. */
+const roles = roleData as Record<string, { ground: string[] }>;
 
 const nearest = (v: number, m: number) => Math.max(m, Math.round(v / m) * m);
 
@@ -260,12 +264,11 @@ export const knit = (size: Measured, plan: Plan, prefix: string, sizeId: string)
   const upperArm = nearest(size.upperArmCm * g.stitches, 2);
   const cuff = nearest(size.cuffCm * g.stitches, 4);
   const yokeTotal = body - 2 * underarm + 2 * (upperArm - underarm);
-  // Each rib in the ground of the strip beside it, so a dark strip has a dark rib and a light one a light rib, whatever the colourway.
-  const grounds = groundsOf(plan);
-  const groundOfYear = (year: number) => plainSlot(year, grounds[year]);
+  // The ribs in the trim, which a colourway gives the palette's ground and a knitter may change (see colours); the back neck's short rows in the first hat's ground.
+  const firstYear = plan.rows.yoke[0].year;
+  const neckSlot = plainSlot(firstYear, roles[firstYear].ground[0]);
 
   /* ---------------------------------------------------------------- yoke */
-  const neckSlot = groundOfYear(plan.rows.yoke[0].year);
   const yoke = new Writer(prefix);
   const first = Math.round(neck * 1.25);
   const n = plan.rows.yoke.length;
@@ -275,9 +278,9 @@ export const knit = (size: Measured, plan: Plan, prefix: string, sizeId: string)
   const target = (i: number) => first + (yokeTotal - first) * Math.min(1, (i + 4) / n);
   const yokeEnd = tiled(yoke, plan.rows.yoke.slice(fanRounds), fannedTo, (i) => target(i + fanRounds), true, (now) => (nearest(yokeTotal, 4) >= now ? nearest(yokeTotal, 4) : Math.ceil(now / 4) * 4));
   const yokeSpecs: RoundSpec[] = [
-    { type: "castOn", count: neck, slot: neckSlot, fabric: "rib", check: "neck" },
+    { type: "castOn", count: neck, slot: trimSlot, fabric: "rib", check: "neck" },
     { type: "join" },
-    { type: "rounds", count: ribs.neck, slot: neckSlot, sequence: ["k", "p"], fabric: "rib" },
+    { type: "rounds", count: ribs.neck, slot: trimSlot, sequence: ["k", "p"], fabric: "rib" },
     { type: "needles", to: "main" },
     { type: "shortRows", first: Math.round(neck * 0.16), extend: Math.round(neck * 0.05), pairs: 3, slot: neckSlot },
     ...yoke.done(),
@@ -291,8 +294,6 @@ export const knit = (size: Measured, plan: Plan, prefix: string, sizeId: string)
   /* ---------------------------------------------------------------- body */
   const bodyWriter = new Writer(prefix);
   const hemCount = nearest(body, 4);
-  const lastBodyYear = plan.rows.body[plan.rows.body.length - 1].year;
-  const hemSlot = groundOfYear(lastBodyYear);
   tiled(bodyWriter, plan.rows.body, body, () => body, false, () => hemCount);
   const bodySpecs: RoundSpec[] = [
     {
@@ -309,8 +310,8 @@ export const knit = (size: Measured, plan: Plan, prefix: string, sizeId: string)
     },
     ...bodyWriter.done(),
     { type: "needles", to: "rib" },
-    { type: "rounds", count: ribs.hem, slot: hemSlot, sequence: ["k", "k", "p", "p"], fabric: "rib", check: "hem" },
-    { type: "bindOff", slot: hemSlot, fabric: "rib", sequence: ["k", "k", "p", "p"] },
+    { type: "rounds", count: ribs.hem, slot: trimSlot, sequence: ["k", "k", "p", "p"], fabric: "rib", check: "hem" },
+    { type: "bindOff", slot: trimSlot, fabric: "rib", sequence: ["k", "k", "p", "p"] },
   ];
 
   /* ------------------------------------------------------------- sleeves */
@@ -365,7 +366,6 @@ export const knit = (size: Measured, plan: Plan, prefix: string, sizeId: string)
     start = i;
   }
   if (count !== cuff) throw new Error(`a sleeve tapered to ${count}, not ${cuff}`);
-  const cuffSlot = groundOfYear(rows[L - 1].year);
   const sleeveSection = (piece: string, label: string): Section => ({
     label,
     piece,
@@ -373,8 +373,8 @@ export const knit = (size: Measured, plan: Plan, prefix: string, sizeId: string)
       { type: "piece", held: piece, before: underarm / 2, after: underarm / 2, slot: slotOfRound(rows[0]), check: `${piece}:top` },
       ...sleeveSpecs,
       { type: "needles", to: "rib" },
-      { type: "rounds", count: ribs.cuff, slot: cuffSlot, sequence: ["k", "k", "p", "p"], fabric: "rib", check: `${piece}:cuff` },
-      { type: "bindOff", slot: cuffSlot, fabric: "rib", sequence: ["k", "k", "p", "p"] },
+      { type: "rounds", count: ribs.cuff, slot: trimSlot, sequence: ["k", "k", "p", "p"], fabric: "rib", check: `${piece}:cuff` },
+      { type: "bindOff", slot: trimSlot, fabric: "rib", sequence: ["k", "k", "p", "p"] },
     ],
   });
 

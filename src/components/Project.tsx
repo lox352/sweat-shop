@@ -4,7 +4,7 @@ import { sweaterById } from "../data/sweaters";
 import { SlotId } from "../data/sweaters/types";
 import { useSweater, viewChart } from "../knitting/useSweater";
 import type { ChartView } from "../knitting/views";
-import { colourwayLabel, paletteOf, yarnFor } from "../knitting/palette";
+import { colourwayLabel, paletteOf, trimmed, yarnFor } from "../knitting/palette";
 import { totals, positionOf, currentRun, whereYouAre, roundNames, roundWhats } from "../knitting/progress";
 import { keyEntryAt } from "../knitting/stitch-key";
 import { faceAfter, holdsIn, needleChangesIn, turnsIn } from "../knitting/chart-marks";
@@ -210,7 +210,11 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
 
   const setColourway = useCallback((colourwayId: string) => {
     // Starting again from one of the design's: every yarn becomes its own.
-    change(current => ({ ...current, colourwayId, shades: undefined }));
+    change(current => ({ ...current, colourwayId, shades: undefined, trim: undefined }));
+  }, [change]);
+
+  const setTrim = useCallback((trim: string) => {
+    change(current => ({ ...current, trim }));
   }, [change]);
 
   const setShade = useCallback((slots: SlotId[], chosen: Chosen | undefined) => {
@@ -282,6 +286,7 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
       undo={undo}
       canUndo={history.length > 0}
       setColourway={setColourway}
+      setTrim={setTrim}
       setShade={setShade}
     />
   );
@@ -297,6 +302,7 @@ const ProjectView: React.FC<{
   undo: () => void;
   canUndo: boolean;
   setColourway: (id: string) => void;
+  setTrim: (trim: string) => void;
   setShade: (slots: SlotId[], chosen: Chosen | undefined) => void;
 }> = ({
   view,
@@ -308,6 +314,7 @@ const ProjectView: React.FC<{
   undo,
   canUndo,
   setColourway,
+  setTrim,
   setShade,
 }) => {
   const sweater = sweaterById(sweaterId)!;
@@ -334,7 +341,10 @@ const ProjectView: React.FC<{
     />
   );
 
-  const colourway = sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0];
+  const colourway = useMemo(
+    () => trimmed(sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0], project.trim),
+    [sweater, project.colourwayId, project.trim],
+  );
   const palette = useMemo(() => paletteOf(colourway, project.shades), [colourway, project.shades]);
   const metres = useMemo(() => metresFor(size, stitches, rounds), [size, stitches, rounds]);
 
@@ -563,6 +573,8 @@ const ProjectView: React.FC<{
           palette={palette}
           body={body}
           onStartFrom={setColourway}
+          trim={sweater.trim}
+          onTrim={setTrim}
           until={choicesRef}
         />
         <WoolList

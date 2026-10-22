@@ -274,27 +274,35 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
 - **The colourways** (`colours.ts`, from `colourways.json`, which
   `scripts/strip-colourways.mjs` works out). Each yarn of each hat is its own
   slot, "14A" or "26DA" (see `slots.ts`), so a colourway is a yarn for every
-  slot, and a ball of wool can do many. Each family is one entry in
-  `families`:
-  - **Light and dark grounds.** Four palettes - Aa ae colour classic and
-    undyed, Simmer dim, Each year its own - each with a light yoke and dark
-    below, all dark, all light, or light and dark by turns. A light year's
-    ground goes to the palette's lightest yarn, a dark year's to its
-    darkest, and the hat's other yarns keep their order of lightness over
-    the rest. A hat built of separate two-colour bands, 2025 and 2026, has a
-    ground for every band, and they go light or dark together. The Baa-ble
-    Hat's sheep stay white sheep whatever the year: their bodies the lightest
-    yarn, their faces the darkest, the sky a night sky in a dark year and a
-    middle yarn in a light one. All dark, in Aa ae colour classic, is the
-    default. In every colourway the neck, hem and cuffs are ribbed in the
-    ground of the strip beside them, so a dark strip has a dark rib and a
-    light strip a light one.
-  - **Ladders.** Six yarns that every hat's lights and darks go onto, as the
-    hat has them; Licht an mirk turns every other year over; Simmer dim
-    lightens away from the neck.
-  - **Each year its own**, a bag of twelve; **as the designers knitted
-    them**; and eight collections of the hats' own published colourways,
-    chosen to go together.
+  slot, and a ball of wool can do many. A colourway is a palette, all dark or
+  all light:
+  - **Six palettes**, each a few Spindrift yarns after a knitting tradition -
+    Shetland naturals; Indigo, madder and white (early Fair Isle); Fawn and
+    grey, 1920s; Vintage allover, 1930s (the Aal Ower Toorie's own yarns);
+    Black and white (Selbu, Setesdal, the Faroes); and Marius - in two
+    families, lights and darks, the first of each the ground, with perhaps
+    some middle shades and an accent. All dark in Shetland naturals is the
+    default.
+  - **Ground and figure.** Each hat's yarns are read by what its charts
+    depict (`roles.json`): the ground behind, the figure drawn on it, and,
+    in the Shwook Hat, a middle that stands between the two. All light puts
+    the ground on the palette's lights and the figure on its darks; all dark
+    the other way round. Then each hat's yarns go onto the palette's the
+    cheapest way that keeps every two yarns that meet in a round apart - 20
+    L* between ground and figure, 8 between two grounds or two figures, as
+    Fair Isle shades a ground - and keeps the hat's order of contrast, gives
+    its rarest touches the accent, and shares the palette out over the
+    years. Going by roles rather than the commonest yarn matters where a hat
+    has several grounds (2016, 2019, 2021, 2022, 2025, 2026) and where the
+    figure is the commonest yarn - the Roadside Beanie's sheep.
+  - **Pictures pin colours.** Sheep are white: the Baa-ble Hat's bodies and
+    the Roadside Beanie's sheep the palette's lightest yarn, the Baa-ble
+    Hat's faces its darkest, whatever the grounds.
+  - **The trim.** The neck, waist and wrist ribbing is its own slot,
+    `trim`, which a colourway gives the palette's ground. A knitter may
+    choose it separately among all the palette's yarns (`Colourway.trims`,
+    `SweaterPattern.trim`); the project keeps the choice, and starting from
+    another colourway resets it.
 - **Measurements.** Hamefarin's, but the yoke a centimetre and a half deeper
   and the body three and a half longer: thirteen hats make a long jumper.
   Knitted at 32 stitches and 38 rounds to 10cm.
