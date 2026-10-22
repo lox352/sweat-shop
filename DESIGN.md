@@ -241,7 +241,9 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     framed alike top and bottom: the houses, 2018's dancers, 2020's stars.
   - Where a cut skips part of the hat between two of its parts, a plain
     round goes between them: 2014's two stars, which the hat parts with a
-    peerie, and 2019's boat and sheep.
+    peerie, and 2019's boat and sheep. In L, rather than lose a row of
+    either star, the two stars meet with no round between, and the first
+    star's tips are the yoke's first round, taking the neck's increases.
   - Spare rounds go to patterned edges first, up to two each, strongest
     background first: sky above the boats, ground under the sheep.
   - Each year's cuts are a ladder from fullest down, and a piece takes the
@@ -253,7 +255,21 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
   and change count in plain or one-colour rounds; in a round of the
   pattern, its increases spread through it, only where the repeat changes or
   a tall band would otherwise leave the yoke a quarter narrower than it
-  should be. The body matches all round; the sleeves taper at a seam under
+  should be.
+- **Each Year Once's 2014 bands** (`fans.ts`). The Shwook Hat's star bands
+  have no one-colour row to increase in, so they fan out as they go, size by
+  size as `fans` sets down. Each increase doubles a column of the band with
+  a symmetric single increase, one stitch made into two (charted as a KFB
+  and its second loop; the key suggests a Twincrease). Columns are doubled
+  in mirror-image pairs either side of a mirror line, or singly on one, the
+  same in every repeat, so every repeat stays a mirror image and the yoke
+  stays alike all round. Every increase is on the band's background, with
+  that yarn below it: the lighter yarn of each row in the 24-stitch band,
+  the darker in the 28-stitch band. A band that starts on more stitches,
+  with no plain round before it, starts with its make-ones mirrored on its
+  background too. The steps were found by a search over each size's plan
+  keeping the yoke near its target; through these bands it now stays within
+  about 3 to 10% of it, where it fell a fifth behind before. The body matches all round; the sleeves taper at a seam under
   the arm, the seam stitch chosen to break the floats either side of it.
 - **The colourways** (`colours.ts`, from `colourways.json`, which
   `scripts/strip-colourways.mjs` works out). Each yarn of each hat is its own

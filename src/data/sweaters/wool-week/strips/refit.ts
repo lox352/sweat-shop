@@ -1,4 +1,5 @@
 import { type Part, groundOf, lettersOf, measured, topDown } from "./cuts";
+import { fans } from "./fans";
 import { type Measured, type Plan, type Row, type Strip, splitOf } from "./plan";
 
 /**
@@ -14,7 +15,8 @@ import { type Measured, type Plan, type Row, type Strip, splitOf } from "./plan"
  * 2. A pattern's own plain first or last row is its increase round: no round
  *    goes beside it. Where neither neighbour has one, one plain round goes
  *    between them; each piece begins with one, and the body and sleeves end
- *    with one.
+ *    with one - save a yoke whose first cut says it opens the yoke itself,
+ *    its first row taking the neck's increases (see knit's yoke fans).
  * 3. A cut's plain edge rows are kept or dropped in pairs, so a band is
  *    framed alike top and bottom.
  * 4. Where a cut skips part of the hat between two of its parts - 2014's two
@@ -37,12 +39,14 @@ interface State {
   parts: Part[];
   /** A plain round between the hat's parts j - 1 and j, for each j: rule 4. */
   joins?: number[];
+  /** First in its piece, it begins the piece itself, with no plain round above: rule 2. */
+  opens?: boolean;
 }
 interface Ladder {
   year: number;
   states: State[];
 }
-const st = (label: string, parts: Part[], joins: number[] = []): State => ({ label, parts, joins });
+const st = (label: string, parts: Part[], joins: number[] = [], opens = false): State => ({ label, parts, joins, opens });
 
 /* The years' ladders: the fullest first, then each trim in the order it is taken. */
 
@@ -54,7 +58,8 @@ const y2014 = (cut: "C21" | "B26" | "P30"): Ladder => ({
       : cut === "B26"
         ? [
             st("Both stars, a round between", [["B", 1, 13], ["C", 1, 13]], [1]),
-            st("Both stars, outer rows off, a round between", [["B", 2, 13], ["C", 1, 12]], [1]),
+            // Two rounds fewer: the stars meet, and the first star's tips are the yoke's first round.
+            st("Both stars, meeting, opening the yoke", [["B", 1, 13], ["C", 1, 13]], [], true),
           ]
         : [
             st("Both stars, peerie between", [["B", 1, 13], ["A", 1, 4], ["C", 1, 13]]),
@@ -216,7 +221,7 @@ const between = (strips: Placed[], total: number, ends: Ends) => {
     if (upper.plain && !lower.plain) return { year: b!.year, plain: lower.letter };
     return lower.share > upper.share ? { year: b!.year, plain: lower.letter } : { year: a!.year, plain: upper.letter };
   };
-  const rounds: (R | null)[] = [ends.top ? roundBetween(null, strips[0]) : null];
+  const rounds: (R | null)[] = [ends.top && !strips[0].state.opens ? roundBetween(null, strips[0]) : null];
   for (let i = 1; i < strips.length; i++) rounds.push(roundBetween(strips[i - 1], strips[i]));
   rounds.push(ends.bottom ? roundBetween(strips[strips.length - 1], null) : null);
   const used = strips.reduce((t, s) => t + s.rounds.length, 0) + rounds.filter(Boolean).length;
@@ -301,5 +306,6 @@ export const refit = (size: Measured, sizeId: string): Plan => {
     strips: { yoke: y.strips, body: b.strips, sleeve: s.strips },
     rows: { yoke: y.rows.map(toRow), body: b.rows.map(toRow), sleeve: s.rows.map(toRow) },
     depth: { yoke: sp.yoke, body: sp.body, sleeve: sp.sleeve },
+    fans: fans[sizeId],
   };
 };
