@@ -54,6 +54,15 @@
   color: var(--ink-soft);
 }
 
+/* A design's colourways in groups, each its tradition's name above it. */
+.colourway-family-title {
+  margin: 0.8rem 0 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
 /* The pattern's colourways, smaller: starting points rather than choices. */
 .colourway-starts {
   margin-top: 0.4rem;

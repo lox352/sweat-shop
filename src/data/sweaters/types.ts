@@ -90,6 +90,8 @@ export interface Colourway {
   id: string;
   /** As the design names it. */
   name: string;
+  /** Where the design has many, the group the picker shows it in: a knitting tradition. */
+  family?: string;
   brand: string;
   yarn: string;
   /** Which range of the yarn library it is knitted in, for the picker. */

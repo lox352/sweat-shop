@@ -22,10 +22,22 @@ describe.each([eachYearOnce, thirteenStrips])("the colourways of $name", (design
   // Every chart of size M, knitted: its sections are read before its charts.
   void design.sizes.find((s) => s.id === "m")!.sections;
 
-  it("has six palettes, each all dark and all light, all dark in Shetland naturals first", () => {
+  it("has fifteen palettes, each all dark and all light, all dark in Shetland naturals first", () => {
     expect(design.colourways.map((c) => c.id)).toEqual(
-      ["naturals", "early", "twenties", "vintage", "selbu", "marius"].flatMap((p) => [`${p}-dark`, `${p}-light`]),
+      ["naturals", "early", "twenties", "vintage", "lopi", "selbu", "marius", "bohus", "muhu", "latvia", "andes", "sanquhar", "buggiflooer", "anemone", "classic"].flatMap((p) => [
+        `${p}-dark`,
+        `${p}-light`,
+      ]),
     );
+  });
+
+  it("groups its colourways by tradition, each group together", () => {
+    const families = design.colourways.map((c) => c.family);
+    expect(families.every(Boolean)).toBe(true);
+    // Each tradition's colourways one after another, never split.
+    const runs = families.filter((f, i) => f !== families[i - 1]);
+    expect(new Set(runs).size).toBe(runs.length);
+    expect(runs[0]).toBe("Shetland and Fair Isle");
   });
 
   it.each(design.colourways.map((c) => [c.name, c] as const))("knits the sheep white, in %s", (_, colourway) => {
@@ -48,8 +60,8 @@ describe.each([eachYearOnce, thirteenStrips])("the colourways of $name", (design
             const [a, b] = [slots[i], slots[j]];
             // Slots of one hat's yarn - 2026's two printings - are meant to share.
             if (yearOfSlot(a) === yearOfSlot(b) && letterOf(a) === letterOf(b)) continue;
-            // Twenty L* between a ground and its figure, eight between two grounds or two figures, as a ground is shaded.
-            const need = roleOf(a) === roleOf(b) ? 8 : 20;
+            // Twenty L* between a ground and its figure (Bohus's soft heathers seventeen), eight between two grounds or two figures, as a ground is shaded.
+            const need = roleOf(a) === roleOf(b) ? 8 : colourway.id.startsWith("bohus-") ? 17 : 20;
             if (Math.abs(L.get(a)! - L.get(b)!) < need) close.push(`${chart.id}: ${a} and ${b}`);
           }
         }
