@@ -444,11 +444,11 @@ test("Each Year Once knits every hat from 2014 to 2026 once, the yoke's first, t
   // Knitting it in a medium: the yoke begins with the Shwook Hat and has the Crofthoose Hat's houses; a sleeve ends with the Birsie Beanny.
   const sampler = { sweaterId: "wool-week-strips-once-oldest", sizeId: "m", colourwayId: "classic-light-yoke" };
   const onChart = (what) => page.getByRole("img", { name: new RegExp(`You are on .*: ${what}`) });
-  await knittedTo(page, 2267, sampler);
+  await knittedTo(page, 3000, sampler);
   await expect(onChart("2014 Shwook Hat")).toBeVisible();
-  await knittedTo(page, 15815, sampler);
+  await knittedTo(page, 17500, sampler);
   await expect(onChart("2016 Crofthoose Hat")).toBeVisible();
-  await knittedTo(page, 91383, sampler);
+  await knittedTo(page, 92900, sampler);
   await expect(onChart("2026 Birsie Beanny, sleeve")).toBeVisible();
   await expect(page.locator(".chart-page")).toHaveAttribute("data-view", "held-sleeve-left");
 });

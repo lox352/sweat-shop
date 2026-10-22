@@ -36,8 +36,9 @@ describe("Each Year Once, refitted", () => {
     for (const piece of ["yoke", "body", "sleeve"] as const) {
       expect(plan.rows[piece]).toHaveLength(plan.depth[piece]);
       expect(plan.strips[piece].reduce((total, s) => total + s.height, 0)).toBe(plan.depth[piece]);
-      // Every piece begins with a plain round, where its first shaping or its divide goes.
-      expect("plain" in plan.rows[piece][0]).toBe(true);
+      // Every piece begins with a plain round, where its first shaping or its divide goes - save L's yoke, opened by its first star's tips.
+      if (piece === "yoke" && id === "l") expect(plan.rows.yoke[0]).toMatchObject({ year: 2014, chart: "C", row: 13 });
+      else expect("plain" in plan.rows[piece][0]).toBe(true);
     }
   });
 
@@ -54,13 +55,14 @@ describe("Each Year Once, refitted", () => {
     }
   });
 
-  it("gives the houses a plain row at both ends, and 2014's two stars a round between them, in L", () => {
+  it("gives the houses a plain row at both ends, and 2014's two stars whole and meeting, in L", () => {
     const plan = planOf(measured.find((m) => m.id === "l")!.finished, { kind: "refit" }, "l");
     const houses = plan.rows.yoke.filter((r) => r.year === 2016 && !("plain" in r)) as Exclude<Row, { plain: string }>[];
     expect([houses[0].row, houses[houses.length - 1].row]).toEqual([39, 11]);
-    const stars = plan.rows.yoke.filter((r) => r.year === 2014);
-    const join = stars.findIndex((r, i) => i > 0 && "plain" in r && !("plain" in stars[i - 1]));
-    expect(stars[join - 1]).toMatchObject({ chart: "C", row: 1 });
-    expect(stars[join + 1]).toMatchObject({ chart: "B", row: 13 });
+    // Every row of both stars, the first star's tips the yoke's first round and no round between them; and the sheep whole.
+    const stars = plan.rows.yoke.filter((r) => r.year === 2014).map((r) => ("plain" in r ? "plain" : `${r.chart}${r.row}`));
+    expect(stars).toEqual([...Array.from({ length: 13 }, (_, i) => `C${13 - i}`), ...Array.from({ length: 13 }, (_, i) => `B${13 - i}`)]);
+    const sheep = plan.rows.yoke.filter((r) => r.year === 2015 && !("plain" in r)) as Exclude<Row, { plain: string }>[];
+    expect(sheep.map((r) => r.row)).toEqual(Array.from({ length: 25 }, (_, i) => 25 - i));
   });
 });
