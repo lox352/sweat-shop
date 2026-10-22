@@ -281,8 +281,22 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
   columns that ran into the stars below, now grow only near their foot. The
   body keeps every repeat whole, and changes count in plain or one-colour
   rounds, or spread through a round of the pattern where the repeat
-  changes. The sleeves taper at a seam under the arm, the seam stitch chosen
-  to break the floats either side of it.
+  changes.
+- **The sleeves** (`knit.ts`, `shaping.ts`). Seamless where a band can be,
+  seamed on the inner arm where it can't: every round within 10% of a straight
+  taper from the upper arm to the cuff. A seamless band is on whole repeats,
+  narrowing between bands or where a doubled background column ends - one
+  whose ancestors, from the top of the band down, are all background. A band
+  that can't stay within the tolerance so is seamed: centred on the arm, its
+  repeats meeting part-way at a seam stitch on the inner arm (chosen to break
+  the floats either side of it), two decreases at a time either side, and
+  slid round, the same all through the band, to the offset that leaves the
+  least foreground touching the seam. Seamed rounds cost the search far more
+  than any departure within the tolerance, so it seams as few as it can, and
+  a sleeve never widens. Strictly seamless sleeves are impossible in most
+  sizes: with whole repeats and a falling count, the bands' repeats compound
+  from the cuff up - 2026's 32-stitch lattice, 2025's 18, the ram's 20, the
+  flower's 34 - past the stitches the sleeve starts with.
 - **The colourways** (`colours.ts`, from `colourways.json`, which
   `scripts/strip-colourways.mjs` works out). Each yarn of each hat is its own
   slot, "14A" or "26DA" (see `slots.ts`), so a colourway is a yarn for every

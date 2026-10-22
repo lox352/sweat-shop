@@ -45,7 +45,7 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
   const knitted = new Map<string, Knitted>();
   const knittedOf = (size: (typeof measured)[number]): Knitted => {
     let found = knitted.get(size.id);
-    if (!found) knitted.set(size.id, (found = knit(size.finished, planOf(size.finished, layout, size.id), `${id}-`, size.id)));
+    if (!found) knitted.set(size.id, (found = knit(size.finished, planOf(size.finished, layout, size.id), `${id}-`)));
     return found;
   };
   const sizes: Size[] = measured.map((size) => ({
