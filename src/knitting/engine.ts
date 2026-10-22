@@ -226,6 +226,15 @@ export const sizeOf = (pattern: SweaterPattern, sizeId?: string): Size => {
   return size;
 };
 
+/**
+ * A stitch knitted from a chart cell that only spaces the pattern out (see
+ * ChartCell.spacer), for a picture of the sweater to leave out. Kept as a plain
+ * mark on the stitch, not a field of the Stitch type: that type is part of
+ * what a settled sweater is keyed on, and the mark is no part of its shape.
+ */
+const markSpacer = (stitch: Stitch) => Object.assign(stitch, { spacer: true });
+export const isSpacer = (stitch: Stitch | undefined): boolean => !!(stitch as { spacer?: true } | undefined)?.spacer;
+
 export const buildSweater = (
   pattern: SweaterPattern,
   sizeId?: string,
@@ -258,7 +267,7 @@ export const buildSweater = (
 
   const round = (
     label: string,
-    work: { type: StitchType; slot: string }[],
+    work: { type: StitchType; slot: string; spacer?: true }[],
     fabric?: string,
     borrow?: number,
     /** Markers placed or taken off part way round: see MarkerAt. */
@@ -267,9 +276,10 @@ export const buildSweater = (
     const { width, rise } = fabricOf(pattern, roundHeight, fabric);
     needles.startRound(label, width, rise, borrow ?? borrowFor(work[0]?.type));
     const at = (after: number) => markers.filter((one) => one.after === after).forEach(marker);
-    work.forEach(({ type, slot }, index) => {
+    work.forEach(({ type, slot, spacer }, index) => {
       at(index);
-      needles.knit(type, slot);
+      const stitch = needles.knit(type, slot);
+      if (spacer) markSpacer(stitch);
     });
     at(work.length);
     needles.endRound();
@@ -349,9 +359,9 @@ export const buildSweater = (
                   `not go into the ${needles.count} stitches on the needle`,
               );
             }
-            const work: { type: StitchType; slot: string }[] = [];
+            const work: { type: StitchType; slot: string; spacer?: true }[] = [];
             for (let repeat = 0; repeat < repeats; repeat++) {
-              cells.forEach((cell) => work.push({ type: stitchFor(cell), slot: cell.slot }));
+              cells.forEach((cell) => work.push(cell.spacer ? { type: stitchFor(cell), slot: cell.slot, spacer: true } : { type: stitchFor(cell), slot: cell.slot }));
             }
             round(
               `${chart.name ?? `Chart ${chart.id}`}, row ${row}`,

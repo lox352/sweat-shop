@@ -23,6 +23,12 @@ import { slotsOfRow } from "./slots";
  *   solved on its rounds reversed, and each change of count is worked in the
  *   round below it: a doubled column then ends where its ancestors, from the
  *   top of its unit down, are all background.
+ * - **Seamless where it can be.** A narrowing piece keeps every round within
+ *   a tolerance of its target. A band that can't, on whole repeats, is knitted
+ *   with a seam instead: centred on the arm, its repeats meeting part-way at a
+ *   seam stitch, two decreases at a time either side of it. Seamed rounds cost
+ *   the search far more than any departure from the target within the
+ *   tolerance, so it seams as few as it can, and the piece never widens.
  *
  * The counts are chosen by a search over the whole piece, keeping each round
  * as near its target as it can, never more than 12% over it.
@@ -74,8 +80,8 @@ export const unitsOf = (rows: Row[]): Unit[] => {
   for (let i = 0; i < rows.length; ) {
     const key = keyOf(rows[i], i);
     let j = i + 1;
-    // A unit runs on while its rounds are the same quantum's, in order down its chart.
-    while (j < rows.length && keyOf(rows[j], j) === key && !isPlain(rows[j]) && (rows[j] as ChartRow).row === (rows[j - 1] as ChartRow).row - 1) j++;
+    // A unit runs on while its rounds are the same quantum's, in order through its chart: down it, or up it for a piece solved the other way up.
+    while (j < rows.length && keyOf(rows[j], j) === key && !isPlain(rows[j]) && Math.abs((rows[j] as ChartRow).row - (rows[j - 1] as ChartRow).row) === 1) j++;
     const idx = Array.from({ length: j - i }, (_, k) => i + k);
     if (key.startsWith("solid")) units.push({ rows: idx, solid: true, w: 1, tiles: [], bg: [], slots: [] });
     else {
@@ -115,6 +121,8 @@ export interface Step {
   map?: number[];
   /** For a unit's round, how many repeats. */
   reps?: number;
+  /** A band with a seam on the inner arm (see above), its round the whole count. */
+  seam?: boolean;
 }
 
 export interface Target {
@@ -124,6 +132,8 @@ export interface Target {
   to: number;
   /** Round i's target. */
   want: (i: number) => number;
+  /** For a narrowing piece: how far, as a part of it, any round may be from its target. */
+  tolerance?: number;
 }
 
 const CAP = 5;
@@ -135,6 +145,8 @@ interface Layout {
   dup: Dup;
   /** Extra stitches it adds to a repeat. */
   extra: number;
+  /** Not a layout of repeats: the band seamed. */
+  seam?: boolean;
 }
 
 /**
@@ -182,6 +194,11 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
     return layouts[id];
   };
   const none = layoutOf([]);
+  const seamed: Layout = { id: layouts.length, dup: [], extra: 0, seam: true };
+  layouts.push(seamed);
+  layoutIds.set("seam", seamed.id);
+  /** What a seamed round costs: more than any round within the tolerance, so a band is seamed only where it must be. */
+  const SEAM = 0.05;
 
   const lookMemo = new Map<number, number>();
   const look = (k: number, p: number, L: Layout): number => {
@@ -260,11 +277,10 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
       const last = i === n - 1;
       const want = t.want(i);
       const moves: Move[] = [];
-      // The first round of a narrowing piece, reversed, is the cuff's: its count stays.
+      // The first round of a narrowing piece, reversed, is just above the cuff: a change here is worked below the piece, in a round before the rib.
       const fixed = reversed && i === 0;
       if (u.solid) {
-        if (fixed) moves.push({ m: c, L: none, reps: 0, kind: "same" });
-        else if (last && !reversed) {
+        if (last && !reversed) {
           if (t.to >= c) moves.push({ m: t.to, L: none, reps: 0, kind: t.to > c ? "change" : "same" });
         } else {
           const lo = Math.max(c, 0.92 * want);
@@ -286,17 +302,20 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
         for (const L0 of starts) {
           const ww = u.w + L0.extra;
           const reps = new Set<number>();
-          if (fixed) {
-            if (c % ww === 0) reps.add(c / ww);
-          } else {
-            const lo = Math.max(c, 0.9 * want);
-            const hi = Math.min(1.5 * c, 1.12 * want);
-            for (let r = Math.ceil(lo / ww); r <= Math.floor(hi / ww); r++) reps.add(r);
-            if (!reps.size) reps.add(Math.ceil(c / ww));
-            if (c % ww === 0) reps.add(c / ww);
-          }
+          const lo = Math.max(c, 0.9 * want);
+          const hi = Math.min(1.5 * c, 1.12 * want);
+          for (let r = Math.ceil(lo / ww); r <= Math.floor(hi / ww); r++) reps.add(r);
+          // Narrowing, a wide repeat may have to go on as few as it can.
+          if (!reps.size || reversed) reps.add(Math.ceil(c / ww));
+          if (c % ww === 0) reps.add(c / ww);
           for (const r of reps) if (r * ww >= c) moves.push({ m: r * ww, L: L0, reps: r, kind: r * ww > c ? "change" : "same" });
         }
+        // Or, narrowing, the band seamed: on its count, or near its target.
+        if (reversed) for (const m of new Set([c, c + 1, c + 2, Math.round(want)])) if (m >= c) moves.push({ m, L: seamed, reps: 0, kind: m > c ? "change" : "same" });
+      } else if (L.seam) {
+        // A seamed band narrows two stitches at a time, either side of its seam.
+        moves.push({ m: c, L, reps: 0, kind: "same" });
+        if (since >= 1) moves.push({ m: c + 2, L, reps: 0, kind: "change" });
       } else {
         moves.push({ m: c, L, reps, kind: "same" });
         if (since >= 2) {
@@ -310,7 +329,10 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
       res = { cost: Infinity };
       for (const mv of moves) {
         if (mv.m > 1.5 * c || (mv.m > c && mv.m > 1.125 * want && !last)) continue;
-        let pen = dev(mv.m, i);
+        // Narrowing, every round within the tolerance of its target; the round above the cuff may differ from it, worked in a round before the rib.
+        if (reversed && !fixed && Math.abs(mv.m - want) > (t.tolerance ?? 0.1) * want) continue;
+        let pen = dev(mv.m, i) + (mv.L.seam ? SEAM : 0);
+        if (fixed && mv.m > c) pen += 0.01;
         if (mv.m > c) pen += 0.0015;
         // Increase rounds close together crowd their make-ones: two rounds between them where the target allows.
         if (mv.m > c && since < 2) pen += 0.004 * (2 - since);
@@ -335,7 +357,7 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
   for (let b: Best | undefined = root; b?.move; b = memo.get(b.next!)) {
     const { m, L, reps, kind } = b.move;
     const u = units[unitAt[steps.length]];
-    steps.push(u.solid ? { count: m, kind } : { count: m, kind, map: mapOf(u.w, L.dup), reps });
+    steps.push(u.solid ? { count: m, kind } : L.seam ? { count: m, kind, seam: true } : { count: m, kind, map: mapOf(u.w, L.dup), reps });
   }
   return steps;
 };
@@ -396,12 +418,14 @@ export const growing = (rows: Row[], t: Target): Step[] => search(rows, t, false
 
 /**
  * A piece that narrows from the top down, a sleeve: each round's count and
- * layout. `t.from` is the count it starts from, `t.to` the count of its last
- * round exactly; `t.want(i)` is round i's target, from the top.
+ * layout, seamless band by band where it can be. `t.from` is the count it
+ * starts from and `t.to` its cuff's; its last round may be on more, taken in a
+ * round before the rib, but never fewer. `t.want(i)` is round i's target,
+ * from the top.
  */
 export const narrowing = (rows: Row[], t: Target): Step[] => {
   const n = rows.length;
-  const steps = search([...rows].reverse(), { from: t.to, to: t.from, want: (i) => t.want(n - 1 - i) }, true).reverse();
+  const steps = search([...rows].reverse(), { from: t.to, to: t.from, want: (i) => t.want(n - 1 - i), tolerance: t.tolerance }, true).reverse();
   // Reversed, a change was the round above's: it's worked in the round below, from the count above to its own.
   return steps.map((s, i) => ({ ...s, kind: i === 0 ? (s.count !== t.from ? "change" : "same") : steps[i - 1].kind }));
 };

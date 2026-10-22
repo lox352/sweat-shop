@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { measured } from "./design";
 import { gauge, planOf, type Layout } from "./plan";
-import { growing, mapOf, type Step, unitsOf } from "./shaping";
+import { growing, mapOf, narrowing, type Step, unitsOf } from "./shaping";
 
 const nearest = (v: number, m: number) => Math.max(m, Math.round(v / m) * m);
 
@@ -83,5 +83,60 @@ describe("a yoke grown by its quanta", () => {
     const at = steps.map((s, i) => (s.count > (i ? steps[i - 1].count : neck) ? i : -1)).filter((i) => i >= 0);
     // No doubling round straight after another increase.
     at.forEach((i, k) => k && steps[i].kind === "double" && expect(i - at[k - 1], `round ${i + 1}`).toBeGreaterThan(2));
+  });
+});
+
+/** A size's sleeve as knit shapes it: its rounds, its straight taper, and the steps the search takes. */
+const sleeveOf = (finished: (typeof measured)[number]["finished"], layout: Layout, id: string) => {
+  const rows = planOf(finished, layout, id).rows.sleeve;
+  const top = nearest(finished.upperArmCm * gauge.stitches, 2);
+  const cuff = nearest(finished.cuffCm * gauge.stitches, 4);
+  const L = rows.length;
+  const from = Math.min(6, Math.floor(L / 6));
+  const want = (i: number) => top - (top - cuff) * Math.min(1, Math.max(0, (i - from + 0.5) / (L - from - 3)));
+  return { rows, top, cuff, want, steps: narrowing(rows, { from: top, to: cuff, want, tolerance: 0.1 }) };
+};
+
+describe("a sleeve narrowed by its quanta, seamless where it can be", () => {
+  it.each(cases)("keeps every round within 10% of its taper, never widens, and ends on its cuff: $kind, $label", ({ id, finished, layout }) => {
+    const { top, cuff, want, steps } = sleeveOf(finished, layout, id);
+    let count = top;
+    steps.forEach((s, i) => {
+      expect(s.count, `round ${i + 1}`).toBeLessThanOrEqual(count);
+      expect(Math.abs(s.count - want(i)) / want(i), `round ${i + 1}`).toBeLessThanOrEqual(0.1 + 1e-9);
+      count = s.count;
+    });
+    expect(count).toBe(cuff);
+  });
+
+  it.each(cases)("knits each band all seamless or all seamed, a seamless one on whole repeats: $kind, $label", ({ id, finished, layout }) => {
+    const { rows, steps } = sleeveOf(finished, layout, id);
+    for (const u of unitsOf(rows)) {
+      if (u.solid) continue;
+      expect(new Set(u.rows.map((i) => !!steps[i].seam)).size, `the band at round ${u.rows[0] + 1}`).toBe(1);
+      if (steps[u.rows[0]].seam) continue;
+      const pairOf = new Map(u.slots.flatMap((s) => s.map((x) => [x, s] as const)));
+      for (const i of u.rows) {
+        const n = copies(steps[i]);
+        expect(steps[i].count % steps[i].map!.length).toBe(0);
+        for (const [x, k] of n) for (const y of pairOf.get(x)!) expect(n.get(y), `round ${i + 1}, columns ${x} and ${y}`).toBe(k);
+      }
+    }
+  });
+
+  it.each(cases)("ends a doubled column only where everything above it in its band is background: $kind, $label", ({ id, finished, layout }) => {
+    const { rows, steps } = sleeveOf(finished, layout, id);
+    for (const u of unitsOf(rows)) {
+      if (u.solid || steps[u.rows[0]].seam) continue;
+      u.rows.forEach((i, p) => {
+        for (const [x, k] of copies(steps[i])) {
+          if (k < 2) continue;
+          // A copy here has its ancestors in every round of the band above: all background.
+          for (let q = 0; q <= p; q++) expect(u.bg[q][x], `round ${i + 1}, column ${x}, its band's round ${q + 1}`).toBe(true);
+          // And a band never gains a copy as it goes down.
+          if (p) expect(copies(steps[i - 1]).get(x) ?? 1, `round ${i + 1}, column ${x}`).toBeGreaterThanOrEqual(k);
+        }
+      });
+    }
   });
 });
