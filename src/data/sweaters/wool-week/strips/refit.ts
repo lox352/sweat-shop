@@ -1,5 +1,4 @@
 import { type Part, groundOf, lettersOf, measured, topDown } from "./cuts";
-import { fans } from "./fans";
 import { type Measured, type Plan, type Row, type Strip, splitOf } from "./plan";
 
 /**
@@ -16,7 +15,7 @@ import { type Measured, type Plan, type Row, type Strip, splitOf } from "./plan"
  *    goes beside it. Where neither neighbour has one, one plain round goes
  *    between them; each piece begins with one, and the body and sleeves end
  *    with one - save a yoke whose first cut says it opens the yoke itself,
- *    its first row taking the neck's increases (see knit's yoke fans).
+ *    its first row taking the neck's increases (see shaping).
  * 3. A cut's plain edge rows are kept or dropped in pairs, so a band is
  *    framed alike top and bottom.
  * 4. Where a cut skips part of the hat between two of its parts - 2014's two
@@ -306,6 +305,5 @@ export const refit = (size: Measured, sizeId: string): Plan => {
     strips: { yoke: y.strips, body: b.strips, sleeve: s.strips },
     rows: { yoke: y.rows.map(toRow), body: b.rows.map(toRow), sleeve: s.rows.map(toRow) },
     depth: { yoke: sp.yoke, body: sp.body, sleeve: sp.sleeve },
-    fans: fans[sizeId],
   };
 };

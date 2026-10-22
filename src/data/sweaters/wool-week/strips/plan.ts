@@ -1,5 +1,4 @@
 import { type Cut, type CutRow, choose, cutsOf, groundOf, patterns, patternOf, topDown } from "./cuts";
-import type { Fan } from "./fans";
 import { refit } from "./refit";
 
 /**
@@ -49,8 +48,6 @@ export interface Plan {
   depth: { yoke: number; body: number; sleeve: number };
   /** For a lined-up layout: how the last year carries on down the sleeve. */
   onward?: { year: number; pattern: number; plain: number };
-  /** How the yoke grows through its first rounds, where the layout says: see fans. */
-  fans?: Fan[];
 }
 
 export type Layout = { kind: "lined"; newestFirst: boolean } | { kind: "refit" };

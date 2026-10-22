@@ -1,0 +1,407 @@
+import type { Row } from "./plan";
+import { background, quantumOf } from "./quanta";
+import { slotsOfRow } from "./slots";
+
+/**
+ * Shaping a piece by its quanta (see quanta.ts): how the count goes, round by
+ * round, so that it follows a target without altering any foreground.
+ *
+ * - **Units.** A piece's rounds are cut into units: a quantum as far as the
+ *   piece has it - with its aligned frames, where they're kept - or a round
+ *   all of one yarn. Each unit is laid out afresh on its own count: a whole
+ *   number of its repeat, some of the repeat's columns doubled, the same in
+ *   every repeat.
+ * - **Between units** the count changes freely: make-ones anywhere in a round
+ *   of one yarn, or spread through the first round of the unit after.
+ * - **Inside a unit** a column may be doubled at a round where no foreground
+ *   stitch is in its chain of descendants - where it is background from that
+ *   round to the unit's last. In a mirror image it is doubled with its mirror
+ *   partner. A column is never doubled within two columns of one already
+ *   doubled, and rounds that increase are kept apart where the target allows.
+ * - **Decreases** are the same problem the other way up: worked from the
+ *   bottom up, a piece that narrows going down grows. So a narrowing piece is
+ *   solved on its rounds reversed, and each change of count is worked in the
+ *   round below it: a doubled column then ends where its ancestors, from the
+ *   top of its unit down, are all background.
+ *
+ * The counts are chosen by a search over the whole piece, keeping each round
+ * as near its target as it can, never more than 12% over it.
+ */
+
+type ChartRow = Exclude<Row, { plain: string }>;
+const isPlain = (r: Row): r is { year: number; plain: string } => "plain" in r;
+
+/** A chart row's slots on its repeat, as knitted: right to left. */
+export const tileOf = (r: ChartRow): string[] => slotsOfRow(r.year, r.chart, r.row).slice(0, r.w).reverse();
+
+export interface Unit {
+  /** Its rounds, as indices into the piece's rows. */
+  rows: number[];
+  /** A round all of one yarn. */
+  solid: boolean;
+  /** The repeat all its rounds share, in stitches. */
+  w: number;
+  /** Each round's repeat, as knitted. */
+  tiles: string[][];
+  /** Each round's stitches, as knitted: background or not. */
+  bg: boolean[][];
+  /** The columns that are doubled together: a column with its mirror partner, or one on a mirror line, or alone. */
+  slots: number[][];
+}
+
+const periodOf = (tiles: string[][]): number => {
+  const w = tiles[0].length;
+  for (let p = 1; p < w; p++) if (w % p === 0 && tiles.every((t) => t.every((c, j) => c === t[j % p]))) return p;
+  return w;
+};
+
+/** A repeat's mirror lines, doubled so that a line between two stitches is a whole number. */
+const axesOf = (tiles: string[][], p: number): number[] => {
+  const out: number[] = [];
+  for (let a2 = 0; a2 < 2 * p; a2++) if (tiles.every((t) => t.every((c, x) => c === t[(((a2 - x) % p) + p) % p]))) out.push(a2);
+  return out;
+};
+
+/** The piece's rounds as units. */
+export const unitsOf = (rows: Row[]): Unit[] => {
+  const keyOf = (r: Row, i: number): string => {
+    if (isPlain(r) || new Set(tileOf(r)).size === 1) return `solid${i}`;
+    const q = quantumOf(r.year, r.chart, r.row);
+    if (!q) return `alone${i}`;
+    return q.aligned ? `${r.year}${r.chart}:${q.group}` : `${r.year}${r.chart}:${q.from}-${q.to}`;
+  };
+  const units: Unit[] = [];
+  for (let i = 0; i < rows.length; ) {
+    const key = keyOf(rows[i], i);
+    let j = i + 1;
+    // A unit runs on while its rounds are the same quantum's, in order down its chart.
+    while (j < rows.length && keyOf(rows[j], j) === key && !isPlain(rows[j]) && (rows[j] as ChartRow).row === (rows[j - 1] as ChartRow).row - 1) j++;
+    const idx = Array.from({ length: j - i }, (_, k) => i + k);
+    if (key.startsWith("solid")) units.push({ rows: idx, solid: true, w: 1, tiles: [], bg: [], slots: [] });
+    else {
+      const rs = idx.map((k) => rows[k] as ChartRow);
+      const full = rs.map(tileOf);
+      const w = periodOf(full);
+      const tiles = full.map((t) => t.slice(0, w));
+      let axes = axesOf(tiles, w);
+      // 2014's 28-stitch stars are a mirror image but for a pair of dots in their middle row: mirrored as the rest are.
+      if (!axes.length && rs[0].year === 2014) axes = axesOf(tiles.filter((_, k) => rs[k].row !== 7), w);
+      const mirror = (x: number) => (axes.length ? (((axes[0] - x) % w) + w) % w : x);
+      const bg = rs.map((r) => Array.from({ length: w }, (_, q) => background(r.year, r.chart, r.row, r.w - 1 - q)));
+      const slots = [...new Map(Array.from({ length: w }, (_, x) => [Math.min(x, mirror(x)), [...new Set([x, mirror(x)])].sort((a, b) => a - b)])).values()];
+      units.push({ rows: idx, solid: false, w, tiles, bg, slots });
+    }
+    i = j;
+  }
+  return units;
+};
+
+/** Doubled columns: how many extra copies of each. */
+type Dup = [x: number, extra: number][];
+const keyOfDup = (d: Dup) => d.map(([x, k]) => `${x}.${k}`).join(",");
+
+/** A repeat with columns doubled: each column, as many times as it now has. */
+export const mapOf = (w: number, dup: Dup): number[] => {
+  const extra = new Map(dup);
+  return Array.from({ length: w }, (_, x) => Array<number>(1 + (extra.get(x) ?? 0)).fill(x)).flat();
+};
+
+export interface Step {
+  /** The count the round leaves. */
+  count: number;
+  /** How the round is worked: as it stands; a change of count in a round of one yarn or through a unit's first round; or columns doubled. */
+  kind: "same" | "change" | "double";
+  /** For a unit's round, its repeat: the unit's columns, doubled ones repeated. */
+  map?: number[];
+  /** For a unit's round, how many repeats. */
+  reps?: number;
+}
+
+export interface Target {
+  /** The count before the first round. */
+  from: number;
+  /** The count after the last: exactly (growing), or at most (narrowing, solved reversed). */
+  to: number;
+  /** Round i's target. */
+  want: (i: number) => number;
+}
+
+const CAP = 5;
+const KEEP = 8;
+
+/** A layout of doubled columns, kept once and named by a number, so the search can tell layouts apart cheaply. */
+interface Layout {
+  id: number;
+  dup: Dup;
+  /** Extra stitches it adds to a repeat. */
+  extra: number;
+}
+
+/**
+ * The counts and layouts for a piece that grows down its rounds. `rows` and
+ * `t` are as the search sees them: for a narrowing piece, reversed (see
+ * narrowing).
+ */
+const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
+  const n = rows.length;
+  const units = unitsOf(rows);
+  const unitAt: number[] = [];
+  const posAt: number[] = [];
+  units.forEach((u, k) => u.rows.forEach((i, p) => ((unitAt[i] = k), (posAt[i] = p))));
+  /** Is a round worked in pattern - where the count changes when it's at round i? */
+  const patterned = (i: number) => {
+    const at = reversed ? i - 1 : i;
+    return at >= 0 && at < n && !units[unitAt[at]].solid;
+  };
+  /** The first round of its unit from which a slot is background to the unit's end, or past the end if none. */
+  const clearFrom = (u: Unit, slot: number[]) => {
+    let p = u.rows.length;
+    while (p > 0 && slot.every((x) => u.bg[p - 1][x])) p--;
+    return p;
+  };
+  /** How much a doubled stitch shows: a lone stitch made two shows a lot, one in a long run little. */
+  const shows = (tile: string[], bg: boolean[], m: number[], q: number) => {
+    const w = tile.length;
+    const x = tile[q];
+    let L = 1;
+    for (let k = 1; k < w && tile[(q - k + w) % w] === x; k++) L++;
+    for (let k = 1; k < w && L < w && tile[(q + k) % w] === x; k++) L++;
+    return (bg[m[q]] ? 0.3 : 1) / L;
+  };
+
+  const layouts: Layout[] = [];
+  const layoutIds = new Map<string, number>();
+  const layoutOf = (dup: Dup): Layout => {
+    const key = keyOfDup(dup);
+    let id = layoutIds.get(key);
+    if (id === undefined) {
+      id = layouts.length;
+      layoutIds.set(key, id);
+      layouts.push({ id, dup, extra: dup.reduce((s, [, e]) => s + e, 0) });
+    }
+    return layouts[id];
+  };
+  const none = layoutOf([]);
+
+  const lookMemo = new Map<number, number>();
+  const look = (k: number, p: number, L: Layout): number => {
+    const key = (L.id * 512 + k) * 256 + p;
+    let c = lookMemo.get(key);
+    if (c !== undefined) return c;
+    const u = units[k];
+    const m = mapOf(u.w, L.dup);
+    c = 0;
+    for (let r = p; r < u.rows.length; r++) {
+      const tile = m.map((x) => u.tiles[r][x]);
+      for (let q = 1; q < m.length; q++) if (m[q - 1] === m[q]) c += shows(tile, u.bg[r], m, q);
+    }
+    lookMemo.set(key, c);
+    return c;
+  };
+  // Each unit's best slots to double: clear for the most rounds, then least seen.
+  const best = units.map((u, k) => {
+    if (u.solid) return [];
+    const scored = u.slots
+      .map((slot) => ({ slot, from: clearFrom(u, slot) }))
+      .filter((s) => s.from < u.rows.length)
+      .map((s) => ({ ...s, cost: look(k, 0, layoutOf(s.slot.map((x) => [x, 1]))) / s.slot.length }));
+    scored.sort((a, b) => a.from - b.from || a.cost - b.cost);
+    return scored.slice(0, KEEP);
+  });
+  const addMemo = new Map<number, Layout | null>();
+  const add = (L: Layout, k: number, j: number): Layout | null => {
+    const key = (L.id * 512 + k) * 16 + j;
+    let r = addMemo.get(key);
+    if (r !== undefined) return r;
+    const { slot } = best[k][j];
+    const w = units[k].w;
+    const d = new Map(L.dup);
+    r = null;
+    // Never within two columns of a column already doubled.
+    const near = slot.some((x) => L.dup.some(([y]) => Math.min((((x - y) % w) + w) % w, (((y - x) % w) + w) % w) <= 2));
+    if (!near) {
+      for (const x of slot) d.set(x, (d.get(x) ?? 0) + 1);
+      const vals = [...d.values()];
+      if (vals.every((v) => v <= 2) && vals.reduce((a, b) => a + b, 0) <= CAP * slot.length) r = layoutOf([...d].sort((a, b) => a[0] - b[0]));
+    }
+    addMemo.set(key, r);
+    return r;
+  };
+  const dev = (m: number, i: number) => {
+    const x = (m - t.want(i)) / t.want(i);
+    return x * x * (x < 0 ? 1.6 : 1);
+  };
+
+  interface Move {
+    m: number;
+    L: Layout;
+    reps: number;
+    kind: Step["kind"];
+  }
+  interface Best {
+    cost: number;
+    move?: Move;
+    next?: number;
+  }
+  const memo = new Map<number, Best>();
+  // One number for a state: its round, count, layout, repeats and rounds since an increase, in 47 bits.
+  const keyOf = (i: number, c: number, L: Layout, reps: number, since: number) => (((i * 4096 + c) * 65536 + L.id) * 512 + reps) * 4 + since;
+
+  const rec = (i: number, c: number, L: Layout, reps: number, since: number): Best => {
+    const key = keyOf(i, c, L, reps, since);
+    const hit = memo.get(key);
+    if (hit) return hit;
+    let res: Best;
+    if (i === n) res = { cost: (reversed ? c <= t.to : c === t.to) ? 0 : Infinity };
+    else {
+      const k = unitAt[i];
+      const u = units[k];
+      const p = posAt[i];
+      const last = i === n - 1;
+      const want = t.want(i);
+      const moves: Move[] = [];
+      // The first round of a narrowing piece, reversed, is the cuff's: its count stays.
+      const fixed = reversed && i === 0;
+      if (u.solid) {
+        if (fixed) moves.push({ m: c, L: none, reps: 0, kind: "same" });
+        else if (last && !reversed) {
+          if (t.to >= c) moves.push({ m: t.to, L: none, reps: 0, kind: t.to > c ? "change" : "same" });
+        } else {
+          const lo = Math.max(c, 0.92 * want);
+          const hi = Math.min(1.5 * c, 1.12 * want);
+          let cands = new Set<number>([c]);
+          for (let m = Math.ceil(lo); m <= hi; m += 2) cands.add(m);
+          // Only counts the next unit can be knitted on unchanged are worth stopping at.
+          const next = i + 1 < n ? units[unitAt[i + 1]] : undefined;
+          if (next && !next.solid) {
+            const widths = [next.w, ...best[unitAt[i + 1]].map((s) => next.w + s.slot.length)];
+            cands = new Set([...cands].filter((m) => m === c || widths.some((w) => m % w === 0)));
+            if (lo <= hi && cands.size === 1) cands.add(Math.ceil(lo / widths[0]) * widths[0]);
+          }
+          for (const m of cands) if (m >= c) moves.push({ m, L: none, reps: 0, kind: m > c ? "change" : "same" });
+        }
+      } else if (p === 0) {
+        // A unit starts afresh: on a whole number of its repeat, perhaps with a slot doubled from its first round.
+        const starts = [none, ...best[k].filter((s) => s.from === 0).map((s) => layoutOf(s.slot.map((x) => [x, 1])))];
+        for (const L0 of starts) {
+          const ww = u.w + L0.extra;
+          const reps = new Set<number>();
+          if (fixed) {
+            if (c % ww === 0) reps.add(c / ww);
+          } else {
+            const lo = Math.max(c, 0.9 * want);
+            const hi = Math.min(1.5 * c, 1.12 * want);
+            for (let r = Math.ceil(lo / ww); r <= Math.floor(hi / ww); r++) reps.add(r);
+            if (!reps.size) reps.add(Math.ceil(c / ww));
+            if (c % ww === 0) reps.add(c / ww);
+          }
+          for (const r of reps) if (r * ww >= c) moves.push({ m: r * ww, L: L0, reps: r, kind: r * ww > c ? "change" : "same" });
+        }
+      } else {
+        moves.push({ m: c, L, reps, kind: "same" });
+        if (since >= 2) {
+          best[k].forEach((s, j) => {
+            if (p < s.from) return;
+            const L1 = add(L, k, j);
+            if (L1) moves.push({ m: reps * (u.w + L1.extra), L: L1, reps, kind: "double" });
+          });
+        }
+      }
+      res = { cost: Infinity };
+      for (const mv of moves) {
+        if (mv.m > 1.5 * c || (mv.m > c && mv.m > 1.125 * want && !last)) continue;
+        let pen = dev(mv.m, i);
+        if (mv.m > c) pen += 0.0015;
+        // Increase rounds close together crowd their make-ones: two rounds between them where the target allows.
+        if (mv.m > c && since < 2) pen += 0.004 * (2 - since);
+        if (mv.m > c && mv.kind === "change" && patterned(i)) pen += 0.002;
+        if (!u.solid) {
+          if (mv.kind === "double") pen += 0.0004 * (look(k, p, mv.L) - look(k, p, L));
+          else if (p === 0 && mv.L.extra) pen += 0.0004 * look(k, 0, mv.L);
+        }
+        if (pen >= res.cost) continue;
+        const nextSince = mv.m > c ? 0 : Math.min(3, since + 1);
+        const sub = rec(i + 1, mv.m, mv.L, mv.reps, nextSince);
+        if (pen + sub.cost < res.cost) res = { cost: pen + sub.cost, move: mv, next: keyOf(i + 1, mv.m, mv.L, mv.reps, nextSince) };
+      }
+    }
+    memo.set(key, res);
+    return res;
+  };
+
+  const root = rec(0, t.from, none, 0, 3);
+  if (!Number.isFinite(root.cost)) throw new Error(`no way to shape ${n} rounds from ${t.from} to ${t.to}`);
+  const steps: Step[] = [];
+  for (let b: Best | undefined = root; b?.move; b = memo.get(b.next!)) {
+    const { m, L, reps, kind } = b.move;
+    const u = units[unitAt[steps.length]];
+    steps.push(u.solid ? { count: m, kind } : { count: m, kind, map: mapOf(u.w, L.dup), reps });
+  }
+  return steps;
+};
+
+/** The places in a repeat that are new: each copy of a column after those it had. */
+export const added = (before: number[], after: number[]): Set<number> => {
+  const fresh = new Set<number>();
+  let i = 0;
+  after.forEach((x, q) => (i < before.length && before[i] === x ? i++ : fresh.add(q)));
+  return fresh;
+};
+
+/**
+ * Where each round of a growing piece makes its new stitches, as places in
+ * the round it leaves. A doubled column's are its new copies, in every
+ * repeat; a change of count's are spread evenly - in a round of one yarn,
+ * turned to fall as far as they can from the increases of the few rounds
+ * above, the round just above counting most, so they never line up into a
+ * seam.
+ */
+export const increasesOf = (steps: Step[], from: number): number[][] => {
+  const LOOK = 4;
+  const history: number[][] = [];
+  let prev = from;
+  let before: number[] | undefined;
+  return steps.map((s) => {
+    const m = s.count;
+    const k = m - prev;
+    let at: number[] = [];
+    if (s.kind === "double" && before && s.map && s.reps) {
+      const fresh = [...added(before, s.map)];
+      at = Array.from({ length: s.reps }, (_, r) => fresh.map((q) => r * s.map!.length + q)).flat();
+    } else if (k > 0 && !s.map) {
+      const g = m / k;
+      let bestScore = -Infinity;
+      for (let o = 0; o < Math.max(1, Math.ceil(g)); o++) {
+        const pos = [...new Set(Array.from({ length: k }, (_, j) => Math.floor(o + j * g) % m))].sort((a, b) => a - b);
+        if (pos.length !== k) continue;
+        let score = Infinity;
+        history.slice(-LOOK).reverse().forEach((h, t) => {
+          for (const a of h) for (const p of pos) {
+            const d = Math.abs(p / m - a) % 1;
+            score = Math.min(score, Math.min(d, 1 - d) * m * (1 + 0.6 * t));
+          }
+        });
+        if (score > bestScore) [bestScore, at] = [score, pos];
+      }
+    } else if (k > 0) at = [...new Set(Array.from({ length: k }, (_, j) => Math.floor(((j + 0.5) * m) / k)))];
+    history.push(at.map((p) => p / m));
+    prev = m;
+    before = s.map;
+    return at;
+  });
+};
+
+/** A piece that grows from the top down, the yoke: each round's count and layout. */
+export const growing = (rows: Row[], t: Target): Step[] => search(rows, t, false);
+
+/**
+ * A piece that narrows from the top down, a sleeve: each round's count and
+ * layout. `t.from` is the count it starts from, `t.to` the count of its last
+ * round exactly; `t.want(i)` is round i's target, from the top.
+ */
+export const narrowing = (rows: Row[], t: Target): Step[] => {
+  const n = rows.length;
+  const steps = search([...rows].reverse(), { from: t.to, to: t.from, want: (i) => t.want(n - 1 - i) }, true).reverse();
+  // Reversed, a change was the round above's: it's worked in the round below, from the count above to its own.
+  return steps.map((s, i) => ({ ...s, kind: i === 0 ? (s.count !== t.from ? "change" : "same") : steps[i - 1].kind }));
+};
