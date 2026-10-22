@@ -91,7 +91,7 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
         how: "Pick up the bar between the stitches from front to back with the left needle, and knit it through the back of the loop, in the colour the chart shows.",
       },
       pickUp: { how: "Insert the needle under both legs of the next stitch cast on at the underarm, wrap the yarn and draw a loop through." },
-      // Where a band fans out (see fans), a column is doubled with one stitch made into two.
+      // Where a quantum grows inside itself (see shaping), a background column is doubled with one stitch made into two.
       kfb: {
         label: "Symmetric single increase",
         how:

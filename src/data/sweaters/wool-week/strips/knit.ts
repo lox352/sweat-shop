@@ -1,21 +1,20 @@
-import type { Chart, ChartCell, RoundSpec, Section } from "../../types";
+import type { Chart, ChartCell, RoundSpec, Section, ShapingOp } from "../../types";
 import { decreaseEvenly, increaseEvenly } from "../../writing";
 import { yearOf } from "../years";
 import { lettersOf, solid } from "./cuts";
-import type { Fan } from "./fans";
 import { gauge, ribs, type Measured, type Plan, type Row } from "./plan";
 import roleData from "./roles.json";
-import { letterOf, plainSlot, slotsOfRow, trimSlot } from "./slots";
+import { added, growing, increasesOf, tileOf } from "./shaping";
+import { letterOf, plainSlot, trimSlot } from "./slots";
 
 /**
  * A strip sampler's plan, knitted: its sections, charts and stated counts.
  *
- * - **The yoke** grows from the neck to the divide, every band on a whole
- *   number of its repeats. It may grow at any plain round, at any round of a
- *   band knitted all in one colour, and - where a band of another repeat
- *   starts with no plain round before it - in that band's first round, with
- *   its make-ones worked in pattern. A plan may say how its first rounds
- *   grow instead (see fans): bands that fan out, a column doubled at a time.
+ * - **The yoke** grows from the neck to the divide by its quanta (see
+ *   shaping.ts): each quantum on a whole number of its repeat, some of its
+ *   background columns doubled; growing in rounds of one yarn, at the start
+ *   of a quantum, and inside one by doubling a column with no foreground in
+ *   its chain of descendants.
  * - **The body** stays at the chest, every band on a whole number of its
  *   repeats, changing where it must in the same ways.
  * - **The sleeves** taper evenly, two stitches at a time either side of a
@@ -43,8 +42,6 @@ const darkest = (slots: string[]) => slots.reduce((d, s) => (lightness(s) < ligh
 
 type ChartRow = Exclude<Row, { plain: string }>;
 const isPlain = (r: Row): r is { year: number; plain: string } => "plain" in r;
-/** A chart row's slots on its repeat, as knitted: right to left. */
-const tileOf = (r: ChartRow): string[] => slotsOfRow(r.year, r.chart, r.row).slice(0, r.w).reverse();
 const rowIsSolid = (r: Row) => !isPlain(r) && solid(lettersOf(r.year, r.chart)[r.row - 1]);
 const slotOfRound = (r: Row): string => (isPlain(r) ? plainSlot(r.year, r.plain) : tileOf(r)[0]);
 
@@ -54,21 +51,28 @@ export interface Knitted {
   checks: Record<string, number>;
 }
 
-/** A band's repeat with columns doubled: each of the hat's columns, as many times as it now has. */
-const widened = (w: number, doubled: Record<number, number>): number[] =>
-  Array.from({ length: w }, (_, x) => Array<number>(1 + (doubled[x] ?? 0)).fill(x)).flat();
 /** Which columns a widened repeat doubles, for a chart's id: "6.18", or "12+" for a column doubled twice. */
 const doubling = (map: number[]): string => {
   const n = new Map<number, number>();
   for (const x of map) n.set(x, (n.get(x) ?? 0) + 1);
   return [...n].filter(([, k]) => k > 1).map(([x, k]) => `${x}${"+".repeat(k - 2)}`).join(".");
 };
-/** The places in a widened repeat that are new: each copy of a column after those it had. */
-const added = (before: number[], after: number[]): Set<number> => {
-  const fresh = new Set<number>();
-  let i = 0;
-  after.forEach((x, q) => (i < before.length && before[i] === x ? i++ : fresh.add(q)));
-  return fresh;
+/** A round's ops, its new stitches at these places in the round it leaves. */
+const madeAt = (to: number, at: number[]): ShapingOp[] => {
+  const made = new Set(at);
+  const ops: ShapingOp[] = [];
+  let run = 0;
+  for (let j = 0; j < to; j++) {
+    if (!made.has(j)) {
+      run++;
+      continue;
+    }
+    if (run) ops.push({ work: "k", times: run });
+    ops.push({ work: "m1" });
+    run = 0;
+  }
+  if (run) ops.push({ work: "k", times: run });
+  return ops;
 };
 
 /** Specs for rounds worked on a whole number of repeats, gathering a band's rows into one chart. */
@@ -82,7 +86,8 @@ class Writer {
   private flush() {
     if (!this.run) return;
     const { year, chart, w, rows, map } = this.run;
-    const id = `${this.prefix}${String(year).slice(2)}${chart}${rows[0].row}-${rows[rows.length - 1].row}w${w}${map ? `x${doubling(map)}` : ""}`;
+    const doubled = map ? doubling(map) : "";
+    const id = `${this.prefix}${String(year).slice(2)}${chart}${rows[0].row}-${rows[rows.length - 1].row}w${w}${doubled ? `x${doubled}` : ""}`;
     if (!this.charts.has(id)) {
       const cells = (r: ChartRow) => (map ? map.map((x) => tileOf(r)[x]) : tileOf(r)).map((slot) => ({ slot }));
       this.charts.set(id, { id, name: `${year} ${yearOf(year).name}`, rows: rows.map(cells) });
@@ -91,10 +96,10 @@ class Writer {
     this.run = null;
   }
 
-  /** A row of a band, at the count on the needle: on the hat's repeat, or on one widened by doubling columns. */
+  /** A row of a band, at the count on the needle: on the hat's repeat, or on its quantum's repeat, perhaps widened by doubling columns. */
   chart(r: ChartRow, map?: number[]) {
-    const wide = map && map.length !== r.w ? map : undefined;
-    const key = `${r.year}${r.chart}${r.w}${wide ? doubling(wide) : ""}`;
+    const wide = map && (map.length !== r.w || map.some((x, q) => x !== q)) ? map : undefined;
+    const key = `${r.year}${r.chart}${wide ? wide.length : r.w}${wide ? doubling(wide) : ""}`;
     const prev = this.run?.rows[this.run.rows.length - 1];
     if (this.run && (this.run.key !== key || prev!.row !== r.row + 1)) this.flush();
     if (!this.run) this.run = { key, year: r.year, chart: r.chart, w: wide ? wide.length : r.w, rows: [], map: wide };
@@ -113,16 +118,7 @@ class Writer {
     const cells: ChartCell[] = after.map((x, q) =>
       fresh.has(q) ? { slot: tile[x], symbol: "m1" } : fresh.has(q + 1) ? { slot: tile[x], symbol: "kfb" } : { slot: tile[x] },
     );
-    const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}d${doubling(before) || "0"}-${doubling(after)}`;
-    this.charts.set(id, { id, name: `${r.year} ${yearOf(r.year).name}`, rows: [cells] });
-    this.specs.push({ type: "chart", chart: id, rows: [1, 1] });
-  }
-
-  /** A band's first row on more stitches than the round below: make-ones at these columns of every repeat, in pattern. */
-  start(r: ChartRow, at: number[]) {
-    this.flush();
-    const cells: ChartCell[] = tileOf(r).map((slot, x) => (at.includes(x) ? { slot, symbol: "m1" } : { slot }));
-    const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}s${at.join(".")}`;
+    const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}w${before.length}d${doubling(before) || "0"}-${doubling(after)}`;
     this.charts.set(id, { id, name: `${r.year} ${yearOf(r.year).name}`, rows: [cells] });
     this.specs.push({ type: "chart", chart: id, rows: [1, 1] });
   }
@@ -134,25 +130,26 @@ class Writer {
     else this.specs.push({ type: "rounds", count: 1, slot });
   }
 
-  /** A plain round, or a round of one colour, that takes the count from `from` to `to`. */
-  shape(slot: string, from: number, to: number) {
+  /** A plain round, or a round of one colour, that takes the count from `from` to `to`: its new stitches at `at`, or spread evenly. */
+  shape(slot: string, from: number, to: number, at?: number[]) {
     this.flush();
-    this.specs.push({ type: "shaping", slot, ops: to > from ? increaseEvenly(from, to) : decreaseEvenly(from, to), to });
+    this.specs.push({ type: "shaping", slot, ops: at && to > from ? madeAt(to, at) : to > from ? increaseEvenly(from, to) : decreaseEvenly(from, to), to });
   }
 
   /**
    * A band's row that changes the count itself: make-ones (or k2togs) spread
    * evenly round, each new stitch knitted in the colour the pattern has there.
    */
-  transition(r: ChartRow, from: number, to: number) {
+  transition(r: ChartRow, from: number, to: number, map?: number[], places?: number[]) {
     this.flush();
-    const tile = tileOf(r);
-    // The new stitches (or the k2togs) at evenly spaced places among the round's `to`.
+    const tile = map ? map.map((x) => tileOf(r)[x]) : tileOf(r);
+    // The new stitches (or the k2togs) at these places, or evenly spaced among the round's `to`.
     const change = Math.abs(to - from);
-    const at = new Set(Array.from({ length: change }, (_, k) => Math.floor(((k + 0.5) * to) / change)));
+    const at = new Set(places ?? Array.from({ length: change }, (_, k) => Math.floor(((k + 0.5) * to) / change)));
     const symbol = to > from ? "m1" : "k2tog";
     const cells: ChartCell[] = Array.from({ length: to }, (_, j) => (at.has(j) ? { slot: tile[j % tile.length], symbol } : { slot: tile[j % tile.length] }));
-    const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}t${from}-${to}`;
+    const doubled = map ? doubling(map) : "";
+    const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}t${from}-${to}${map ? `w${map.length}${doubled ? `x${doubled}` : ""}` : ""}`;
     this.charts.set(id, { id, name: `${r.year} ${yearOf(r.year).name}`, rows: [cells] });
     this.specs.push({ type: "chart", chart: id, rows: [1, 1], repeats: 1 });
   }
@@ -213,45 +210,25 @@ const tiled = (w: Writer, rows: Row[], start: number, want: (i: number) => numbe
 };
 
 /**
- * A plan's first yoke rounds, grown as its fans say: plain rounds to their
- * counts, and bands that widen a doubled column at a time. Returns the count
- * they leave.
+ * The yoke's rounds as its quanta grow it (see shaping): from the neck to
+ * `to`, near the target. Returns the count it leaves.
  */
-const fanned = (w: Writer, rows: Row[], start: number, steps: Fan[]): number => {
-  let count = start;
-  let band = "";
-  let doubled: Record<number, number> = {};
-  steps.forEach((step, i) => {
+const grown = (w: Writer, rows: Row[], from: number, to: number, want: (i: number) => number): number => {
+  const steps = growing(rows, { from, to, want });
+  const places = increasesOf(steps, from);
+  let count = from;
+  let map: number[] | undefined;
+  steps.forEach((s, i) => {
     const r = rows[i];
-    if (isPlain(r)) {
-      if (typeof step !== "number") throw new Error(`round ${i + 1} of the yoke is plain, and its fan is not a count`);
-      if (step !== count) w.shape(plainSlot(r.year, r.plain), count, step);
-      else w.plain(plainSlot(r.year, r.plain));
-      count = step;
-      band = "";
-      return;
-    }
-    if (typeof step === "number") throw new Error(`round ${i + 1} of the yoke is ${r.year}'s chart ${r.chart}, and its fan is a count`);
-    if (`${r.year}${r.chart}` !== band) {
-      band = `${r.year}${r.chart}`;
-      doubled = {};
-    }
-    if (step && "start" in step) {
-      if (step.start - count !== (step.start / r.w) * step.at.length) throw new Error(`${r.year}'s chart ${r.chart} can't start on ${step.start} from ${count}`);
-      w.start(r, step.at);
-      count = step.start;
-      return;
-    }
-    const before = widened(r.w, doubled);
-    if (count % before.length) throw new Error(`${r.year}'s chart ${r.chart} row ${r.row} won't go on ${count} stitches`);
-    if (step && "double" in step) {
-      for (const x of step.double) doubled[x] = (doubled[x] ?? 0) + 1;
-      const after = widened(r.w, doubled);
-      w.double(r, before, after);
-      count = (count / before.length) * after.length;
-      return;
-    }
-    w.chart(r, before);
+    if (!s.map) {
+      // A round of one yarn: plain, or taking its make-ones.
+      if (s.count !== count) w.shape(slotOfRound(r), count, s.count, places[i]);
+      else w.plain(slotOfRound(r));
+    } else if (s.kind === "double") w.double(r as ChartRow, map!, s.map);
+    else if (s.count !== count) w.transition(r as ChartRow, count, s.count, s.map, places[i]);
+    else w.chart(r as ChartRow, s.map);
+    count = s.count;
+    map = s.map;
   });
   return count;
 };
@@ -272,11 +249,9 @@ export const knit = (size: Measured, plan: Plan, prefix: string, sizeId: string)
   const yoke = new Writer(prefix);
   const first = Math.round(neck * 1.25);
   const n = plan.rows.yoke.length;
-  // The yoke's first rounds as the plan's fans say, where it has them; then on, its last round leaving a multiple of four, near what the divide wants.
-  const fanRounds = plan.fans?.length ?? 0;
-  const fannedTo = plan.fans ? fanned(yoke, plan.rows.yoke.slice(0, fanRounds), neck, plan.fans) : neck;
+  // The yoke from the neck to a multiple of four nearest what the divide wants, following a target straight from a quarter more than the neck to it, four rounds before the end.
   const target = (i: number) => first + (yokeTotal - first) * Math.min(1, (i + 4) / n);
-  const yokeEnd = tiled(yoke, plan.rows.yoke.slice(fanRounds), fannedTo, (i) => target(i + fanRounds), true, (now) => (nearest(yokeTotal, 4) >= now ? nearest(yokeTotal, 4) : Math.ceil(now / 4) * 4));
+  const yokeEnd = grown(yoke, plan.rows.yoke, neck, nearest(yokeTotal, 4), target);
   const yokeSpecs: RoundSpec[] = [
     { type: "castOn", count: neck, slot: trimSlot, fabric: "rib", check: "neck" },
     { type: "join" },

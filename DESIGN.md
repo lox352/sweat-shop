@@ -251,26 +251,38 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     the sheep's sky and field, two rows to one; on the body 2020's outer
     peeries, 2018's plain rows, then a row off each side of 2017 and of 2018.
     The sleeves start mid-ladder and spend their spare rounds upwards.
-- **The knitting** (`knit.ts`). The yoke and body keep every repeat whole,
-  and change count in plain or one-colour rounds; in a round of the
-  pattern, its increases spread through it, only where the repeat changes or
-  a tall band would otherwise leave the yoke a quarter narrower than it
-  should be.
-- **Each Year Once's 2014 bands** (`fans.ts`). The Shwook Hat's star bands
-  have no one-colour row to increase in, so they fan out as they go, size by
-  size as `fans` sets down. Each increase doubles a column of the band with
-  a symmetric single increase, one stitch made into two (charted as a KFB
-  and its second loop; the key suggests a Twincrease). Columns are doubled
-  in mirror-image pairs either side of a mirror line, or singly on one, the
-  same in every repeat, so every repeat stays a mirror image and the yoke
-  stays alike all round. Every increase is on the band's background, with
-  that yarn below it: the lighter yarn of each row in the 24-stitch band,
-  the darker in the 28-stitch band. A band that starts on more stitches,
-  with no plain round before it, starts with its make-ones mirrored on its
-  background too. The steps were found by a search over each size's plan
-  keeping the yoke near its target; through these bands it now stays within
-  about 3 to 10% of it, where it fell a fifth behind before. The body matches all round; the sleeves taper at a seam under
-  the arm, the seam stitch chosen to break the floats either side of it.
+- **Quanta** (`quanta.ts`). Each hat's pattern is cut into quanta, the
+  pieces that go together and whose foreground is never altered, only
+  spaced: a band of stars, a row of sheep, a peerie. A *free* quantum can
+  be put in or left out alone; a *core* may have *frames*, borders in pairs
+  either side, both or neither, nesting outwards. Most frames drift, each a
+  quantum of its own; 2014's star borders, 2021's lattice borders and
+  2026's bands stay aligned with their core, one quantum with it. Every
+  stitch is foreground or background: by yarn, as `roles.json` reads each
+  hat; 2014's bands row by row; 2025's by its diamonds, the light yarns the
+  ground inside them and the dark outside.
+- **Shaping by quanta** (`shaping.ts`). A piece's rounds are units: a
+  quantum as far as the piece has it, or a round of one yarn. Each unit is
+  laid out on its own count, a whole number of its repeat with some columns
+  doubled, the same in every repeat. Between units the count changes freely,
+  in a round of one yarn or spread through a unit's first round. Inside one,
+  a column may be doubled, with a symmetric single increase (charted as a
+  KFB and its second loop; the key suggests a Twincrease), only where no
+  foreground is in its chain of descendants: the column below it, to the end
+  of its quantum. In a mirror image it goes with its mirror partner. Columns
+  doubled are never within two of each other, and increase rounds are kept
+  apart where the target allows. The counts come from a search over each
+  size's rounds that keeps them near the target; decreases are the same
+  search on a piece's rounds reversed, the rule then reading a column's
+  ancestors.
+- **The knitting** (`knit.ts`). The yoke grows by its quanta, from the neck
+  to the divide, within about 4 to 8% of its target where it once fell a
+  fifth behind; the 2014 stars, which the site once fanned out by doubling
+  columns that ran into the stars below, now grow only near their foot. The
+  body keeps every repeat whole, and changes count in plain or one-colour
+  rounds, or spread through a round of the pattern where the repeat
+  changes. The sleeves taper at a seam under the arm, the seam stitch chosen
+  to break the floats either side of it.
 - **The colourways** (`colours.ts`, from `colourways.json`, which
   `scripts/strip-colourways.mjs` works out). Each yarn of each hat is its own
   slot, "14A" or "26DA" (see `slots.ts`), so a colourway is a yarn for every
