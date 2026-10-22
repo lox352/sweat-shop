@@ -190,6 +190,13 @@ const TrimChoice: React.FC<{ trim: NonNullable<SweaterPattern["trim"]>; colourwa
   );
 };
 
+/** A design's colourways in its groups, in the order they first come; one group, unnamed, where it has none. */
+const groupsOf = (colourways: Colourway[]): [string | undefined, Colourway[]][] => {
+  const groups = new Map<string | undefined, Colourway[]>();
+  for (const c of colourways) groups.set(c.family, [...(groups.get(c.family) ?? []), c]);
+  return [...groups];
+};
+
 /**
  * The sweater's colours: there is only ever the knitter's own colourway.
  *
@@ -232,16 +239,21 @@ const ColourwayChoice: React.FC<{
       <p className="colourway-starts-title">
         {own > 0 ? "Start again from one of the design's" : "Start from one of the design's"}
       </p>
-      <div className="chooser colourway-starts">
-        {/* All of them, always: choosing the one you're already on changes nothing. */}
-        {colourways.map((option) => (
-          <button key={option.id} type="button" className="colourway-option" onClick={() => choose(option)}>
-            <BodyStrip {...body} palette={paletteOf(option)} className="colourway-motif" />
-            <strong>{option.name}</strong>
-            <span className="quiet">{option.brand}</span>
-          </button>
-        ))}
-      </div>
+      {/* All of them, always: choosing the one you're already on changes nothing. Grouped where the design groups them. */}
+      {groupsOf(colourways).map(([family, options]) => (
+        <div key={family ?? ""} className="colourway-family" role={family ? "group" : undefined} aria-label={family}>
+          {family && <p className="colourway-family-title">{family}</p>}
+          <div className="chooser colourway-starts">
+            {options.map((option) => (
+              <button key={option.id} type="button" className="colourway-option" onClick={() => choose(option)}>
+                <BodyStrip {...body} palette={paletteOf(option)} className="colourway-motif" />
+                <strong>{option.name}</strong>
+                <span className="quiet">{option.brand}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
       {trim && onTrim && colourway.trims && colourway.trims.length > 1 && (
         <TrimChoice trim={trim} colourway={colourway} onTrim={onTrim} />
       )}

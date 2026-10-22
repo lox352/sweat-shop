@@ -302,13 +302,18 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
   slot, "14A" or "26DA" (see `slots.ts`), so a colourway is a yarn for every
   slot, and a ball of wool can do many. A colourway is a palette, all dark or
   all light:
-  - **Six palettes**, each a few Spindrift yarns after a knitting tradition -
-    Shetland naturals; Indigo, madder and white (early Fair Isle); Fawn and
-    grey, 1920s; Vintage allover, 1930s (the Aal Ower Toorie's own yarns);
-    Black and white (Selbu, Setesdal, the Faroes); and Marius - in two
-    families, lights and darks, the first of each the ground, with perhaps
-    some middle shades and an accent. All dark in Shetland naturals is the
-    default.
+  - **Fifteen palettes**, each a few Spindrift yarns after a knitting
+    tradition, grouped in the picker by where it is from: Shetland and Fair
+    Isle (Shetland naturals; Indigo, madder and white; Fawn and grey, 1920s;
+    Vintage allover, 1930s, the Aal Ower Toorie's own yarns); North Atlantic
+    and Scandinavia (Icelandic greys; Black and white, after Selbu, Setesdal
+    and the Faroes; Marius; Bohus blues); the Baltic (Muhu brights; Latvian
+    white ground); further afield (Cochineal and indigo; Sanquhar peat and
+    gold); from the hats (Buggiflooer brights; Sea anemone); and the samplers'
+    first colours (Aa ae colour, classic). Each is two families, lights and
+    darks, the first of each the ground, with perhaps some middle shades and
+    an accent. All dark in Shetland naturals is the default. Bohus's close
+    heathered shades keep 17 L* apart where the rest keep 20.
   - **Ground and figure.** Each hat's yarns are read by what its charts
     depict (`roles.json`): the ground behind, the figure drawn on it, and,
     in the Shwook Hat, a middle that stands between the two. All light puts

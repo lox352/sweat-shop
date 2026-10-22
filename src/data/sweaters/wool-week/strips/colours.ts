@@ -10,6 +10,9 @@ import { allSlots, letterOf, trimSlot, yearOfSlot } from "./slots";
  * off both - with the ground on the palette's lights for all light and on
  * its darks for all dark.
  *
+ * Fifteen palettes, each after a knitting tradition and grouped by where it
+ * is from, so thirty colourways.
+ *
  * The neck, waist and wrist ribbing is its own slot, the trim: by default
  * the palette's ground for the colourway, and any of the palette's yarns the
  * knitter chooses (see Colourway.trims).
@@ -23,6 +26,7 @@ interface Yarn {
 }
 interface Palette {
   id: string;
+  family: string;
   name: string;
   note: string;
   yarns: string[];
@@ -59,6 +63,7 @@ export const colourways: Colourway[] = palettes.flatMap((p) =>
     return {
       id: `${p.id}-${mode}`,
       name: `${p.name}, ${label}`,
+      family: p.family,
       ...spindrift,
       shades: [
         ...allSlots.map((slot) => shadeOf(slot, maps[yearOfSlot(slot)][letterOf(slot)])),

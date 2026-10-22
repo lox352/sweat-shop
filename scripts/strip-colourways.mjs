@@ -93,39 +93,87 @@ const hats = Object.fromEntries(order.map((year) => {
 
 /* ------------------------------------------------------------- the palettes */
 /**
- * The palettes, each after a knitting tradition, in Spindrift. The first of
- * each family is that ground; the trim is any of the palette's yarns.
+ * The palettes, each after a knitting tradition, in Spindrift, grouped by
+ * where the tradition is from for the picker. The first of each family is that
+ * ground; the trim is any of the palette's yarns. T is how far apart in L* two
+ * yarns of different roles that meet must be, where a palette's tradition is
+ * softer than the usual 20: Bohus's close heathered shades.
  */
 const palettes = [
   {
-    id: "naturals", name: "Shetland naturals",
+    id: "naturals", family: "Shetland and Fair Isle", name: "Shetland naturals",
     note: "Undyed: the sheep's own colours, by their Shetland names.",
     lights: [104, 105, 106, 103], darks: [101, 108, 102], mids: [107],
   },
   {
-    id: "early", name: "Indigo, madder and white",
+    id: "early", family: "Shetland and Fair Isle", name: "Indigo, madder and white",
     note: "Early Fair Isle: natural white and moorit with imported indigo and madder and a plant-dyed yellow.",
     lights: [104, 105, 230], darks: [727, 587, 108], mids: [676],
   },
   {
-    id: "twenties", name: "Fawn and grey, 1920s",
+    id: "twenties", family: "Shetland and Fair Isle", name: "Fawn and grey, 1920s",
     note: "The Prince of Wales years: grounds of fawn or grey, the bands in blue, gold, red, green, brown and black.",
     lights: [105, 104, 289, 106], darks: [102, 101, 684, 525, 147, 108],
   },
   {
-    id: "vintage", name: "Vintage allover, 1930s",
+    id: "vintage", family: "Shetland and Fair Isle", name: "Vintage allover, 1930s",
     note: "The Aal Ower Toorie's own Vintage yarns, from the Guild's 1930s graph book, over every year.",
     lights: [105, 104, 390, 1200], darks: [108, 587, 147, 676],
   },
   {
-    id: "selbu", name: "Black and white",
+    id: "lopi", family: "North Atlantic and Scandinavia", name: "Icelandic greys",
+    note: "Lopapeysa colours: natural greys from near-white to black, a grey ground and black-and-white pattern.",
+    lights: [113, 104, 103], darks: [102, 101, 110], mids: [111],
+  },
+  {
+    id: "selbu", family: "North Atlantic and Scandinavia", name: "Black and white",
     note: "Selbu, Setesdal and the Faroes: two undyed colours, a grey only where a picture needs a third, and a touch of red.",
     lights: [104], darks: [101], mids: [103], accent: [587], midCost: 12,
   },
   {
-    id: "marius", name: "Marius: navy, white, red",
+    id: "marius", family: "North Atlantic and Scandinavia", name: "Marius: navy, white, red",
     note: "Norway's Mariusgenser of 1953, in the flag's three colours.",
     lights: [104], darks: [730], mids: [500], midCost: 1,
+  },
+  {
+    id: "bohus", family: "North Atlantic and Scandinavia", name: "Bohus blues",
+    note: "Bohus Stickning's way: many close, heathered shades of one colour, soft contrast, one small bright.",
+    lights: [655, 134, 175], darks: [160, 150, 722], accent: [1010], T: 17,
+  },
+  {
+    id: "muhu", family: "The Baltic", name: "Muhu brights",
+    note: "Estonia's Muhu island: black grounds with fluorescent pink, orange, yellow and red, and white in older pieces.",
+    lights: [104, 410], darks: [999], mids: [530, 470, 790, 500], midCost: 0,
+  },
+  {
+    id: "latvia", family: "The Baltic", name: "Latvian white ground",
+    note: "Zemgale mittens: bright bands of red, green, blue and yellow on white, or on a deep red.",
+    lights: [304, 1160], darks: [595, 684], mids: [525, 790, 684], midCost: 0,
+  },
+  {
+    id: "andes", family: "Further afield", name: "Cochineal and indigo",
+    note: "Andean chullos: cochineal reds and indigo with white and plant yellows.",
+    lights: [104, 1160], darks: [580, 727], mids: [525, 470, 805], midCost: 1,
+  },
+  {
+    id: "sanquhar", family: "Further afield", name: "Sanquhar peat and gold",
+    note: "Dumfriesshire's two-colour gloves: black and white, or brown and yellow; here the brown and yellow.",
+    lights: [289], darks: [198], mids: [1190], midCost: 12,
+  },
+  {
+    id: "buggiflooer", family: "From the hats", name: "Buggiflooer brights",
+    note: "2023's black ground with turquoise, blue, lemon and its one red round, over every year.",
+    lights: [350, 182, 660], darks: [999, 757], mids: [524], midCost: 2, accent: [524],
+  },
+  {
+    id: "anemone", family: "From the hats", name: "Sea anemone",
+    note: "2026's Sea Anemone yarns, port wine and gentian, cloud, orchid and lilac, over every year.",
+    lights: [764, 547, 620], darks: [293, 710, 763],
+  },
+  {
+    id: "classic", family: "The samplers' first colours", name: "Aa ae colour, classic",
+    note: "The six yarns the samplers were first knitted in, put on by ground and figure.",
+    lights: [104, 106, 423], darks: [727, 587, 688],
   },
 ];
 
@@ -193,7 +241,7 @@ const solve = (pal, light) => {
     const apart = (l, c) => between(l, c) && h.pairs.every(([a, b]) => {
       const o = a === l ? b : b === l ? a : null;
       if (!o || pick[o] === undefined) return true;
-      const need = role(a) === role(b) && !h.roles.pins?.[a] && !h.roles.pins?.[b] ? SAME : T;
+      const need = role(a) === role(b) && !h.roles.pins?.[a] && !h.roles.pins?.[b] ? SAME : (pal.T ?? T);
       return c !== pick[o] && Math.abs(Y[c].L - Y[pick[o]].L) >= need;
     });
     const pairCost = (l, c) => {
@@ -238,6 +286,7 @@ const written = palettes.map((pal) => {
   all.forEach(keep);
   return {
     id: pal.id,
+    family: pal.family,
     name: pal.name,
     note: pal.note,
     // The trim: any of the palette's yarns, lightest first; by default the ground's.
