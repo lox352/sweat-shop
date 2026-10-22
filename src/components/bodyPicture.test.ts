@@ -45,3 +45,20 @@ it("keeps a Paul Klee band's blocks in line to its last round, where they increa
   expect(lastRows.length).toBeGreaterThan(3);
   for (const y of lastRows) expect(slots(rows[y])).toEqual(slots(body[y - 1]));
 });
+
+it("paints a Wool Week band that doubles columns at its own repeat, each stitch under the one it was knitted into", async () => {
+  const { default: eachYearOnce } = await import("../data/sweaters/wool-week-strips-once-oldest");
+  const { stitches, rounds } = buildSweater(eachYearOnce, "m");
+  const body = bodyRounds(rounds, stitches);
+  const rows = paintedRows(body, stitches);
+  const doublings = body.flatMap((round, y) => (round.some((id) => stitches[id].type === "kfb") ? [y] : []));
+  expect(doublings.length).toBeGreaterThan(2);
+  for (const y of doublings) {
+    // The round that doubles, and the one after it, painted as wide as the band was before.
+    expect(rows[y]).toHaveLength(rows[y - 1].length);
+    expect(rows[y + 1]).toHaveLength(rows[y].length);
+    rows[y].forEach((id, x) => expect(stitches[id].links[0]).toBe(rows[y - 1][x]));
+  }
+  // Only the copies are left out, and every one of them is background: knitted in the yarn of the stitch beside it.
+  for (const round of body) round.forEach((id, i) => stitches[id].spacer && expect(stitches[id].slot).toBe(stitches[round[i - 1]].slot));
+}, 60000);

@@ -38,6 +38,16 @@ const parentOf = (stitch: Stitch | undefined): number | undefined => {
 };
 
 /**
+ * The stitches that only space a band's pattern out: a column's copies where
+ * a band has doubled it (see ChartCell.spacer). Left out of the picture, they
+ * leave each band painted at its own repeat, its motifs evenly spaced, rather
+ * than the rounds after a doubling drifting along from those before it. They
+ * are always background, so the pattern loses nothing but the extra width.
+ */
+export const spacers = (body: number[][], stitches: Stitch[]): Set<number> =>
+  new Set(body.flatMap((round) => round.filter((id) => stitches[id]?.spacer)));
+
+/**
  * The stitches a picture paints for each round, a column at a time.
  *
  * Mostly a round's own. But a round that increases is painted where the
@@ -49,9 +59,11 @@ const parentOf = (stitch: Stitch | undefined): number | undefined => {
  * the next round is wider. Painted at its own count instead, that last round
  * has its blocks shifted along under the rest of the band.
  */
-export const paintedRows = (body: number[][], stitches: Stitch[]): number[][] =>
-  body.map((round, y) => {
-    const above = body[y - 1];
+export const paintedRows = (body: number[][], stitches: Stitch[]): number[][] => {
+  const spaced = spacers(body, stitches);
+  const rows = spaced.size ? body.map((round) => round.filter((id) => !spaced.has(id))) : body;
+  return rows.map((round, y) => {
+    const above = rows[y - 1];
     if (!above || round.length <= above.length) return round;
     const grown = new Map<number, number>();
     for (const id of round) {
@@ -62,6 +74,7 @@ export const paintedRows = (body: number[][], stitches: Stitch[]): number[][] =>
     if (above.some((id) => !grown.has(id))) return round;
     return above.map((id) => grown.get(id)!);
   });
+};
 
 /**
  * Whole screen pixels a stitch, as near as they come to a strip `height`
@@ -78,8 +91,8 @@ export const stitchScale = (height: number, rows: number) => Math.max(1, Math.ro
  * - a round goes all the way round the yoke, so more of it is simply the
  * next repeat - which keeps every band at the same stitch scale however many
  * stitches its round has. The picture is repeated sideways for the same
- * reason. A round that increases is drawn in line with the round above it;
- * see `paintedRows`. Undefined where there is no canvas (a test environment).
+ * reason. A round that increases is drawn in line with the round above it,
+ * and a band that doubles columns at its own repeat; see `paintedRows`. Undefined where there is no canvas (a test environment).
  */
 export const usePainting = (body: number[][], stitches: Stitch[], palette: Palette, scale: number, highlight?: SlotId[]) =>
   useMemo(() => {

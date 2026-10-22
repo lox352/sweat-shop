@@ -53,6 +53,9 @@ export interface Knitted {
   checks: Record<string, number>;
 }
 
+/** A cell of a widened repeat: a column's later copies only space the pattern out (see ChartCell.spacer). */
+const cellOf = (slot: string, map: number[], q: number): ChartCell => (q > 0 && map[q - 1] === map[q] ? { slot, spacer: true } : { slot });
+
 /** Which columns a widened repeat doubles, for a chart's id: "6.18", or "12+" for a column doubled twice. */
 const doubling = (map: number[]): string => {
   const n = new Map<number, number>();
@@ -141,7 +144,7 @@ class Writer {
     const doubled = map ? doubling(map) : "";
     const id = `${this.prefix}${String(year).slice(2)}${chart}${rows[0].row}-${rows[rows.length - 1].row}w${w}${doubled ? `x${doubled}` : ""}`;
     if (!this.charts.has(id)) {
-      const cells = (r: ChartRow) => (map ? map.map((x) => tileOf(r)[x]) : tileOf(r)).map((slot) => ({ slot }));
+      const cells = (r: ChartRow): ChartCell[] => (map ? map.map((x, q) => cellOf(tileOf(r)[x], map, q)) : tileOf(r).map((slot) => ({ slot })));
       this.charts.set(id, { id, name: this.nameOf(year), rows: rows.map(cells) });
     }
     this.specs.push({ type: "chart", chart: id, rows: [1, rows.length] });
@@ -168,7 +171,7 @@ class Writer {
     const tile = tileOf(r);
     const fresh = added(before, after);
     const cells: ChartCell[] = after.map((x, q) =>
-      fresh.has(q) ? { slot: tile[x], symbol: "m1" } : fresh.has(q + 1) ? { slot: tile[x], symbol: "kfb" } : { slot: tile[x] },
+      fresh.has(q) ? { ...cellOf(tile[x], after, q), symbol: "m1" } : fresh.has(q + 1) ? { ...cellOf(tile[x], after, q), symbol: "kfb" } : cellOf(tile[x], after, q),
     );
     const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}w${before.length}d${doubling(before) || "0"}-${doubling(after)}`;
     this.charts.set(id, { id, name: this.nameOf(r.year), rows: [cells] });
@@ -187,7 +190,7 @@ class Writer {
     const has = new Map<number, number>();
     for (const x of after) has.set(x, (has.get(x) ?? 0) + 1);
     const cells: ChartCell[] = after.map((x, q) =>
-      has.get(x)! < had.get(x)! && after[q + 1] !== x ? { slot: tile[x], symbol: "k2tog" } : { slot: tile[x] },
+      has.get(x)! < had.get(x)! && after[q + 1] !== x ? { ...cellOf(tile[x], after, q), symbol: "k2tog" } : cellOf(tile[x], after, q),
     );
     const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}w${before.length}m${doubling(before)}-${doubling(after) || "0"}`;
     this.charts.set(id, { id, name: this.nameOf(r.year), rows: [cells] });
@@ -245,11 +248,12 @@ class Writer {
   transition(r: ChartRow, from: number, to: number, map?: number[], places?: number[]) {
     this.flush();
     const tile = map ? map.map((x) => tileOf(r)[x]) : tileOf(r);
+    const cellAt = (j: number): ChartCell => (map ? cellOf(tile[j % tile.length], map, j % tile.length) : { slot: tile[j % tile.length] });
     // The new stitches (or the k2togs) at these places, or evenly spaced among the round's `to`.
     const change = Math.abs(to - from);
     const at = new Set(places ?? Array.from({ length: change }, (_, k) => Math.floor(((k + 0.5) * to) / change)));
     const symbol = to > from ? "m1" : "k2tog";
-    const cells: ChartCell[] = Array.from({ length: to }, (_, j) => (at.has(j) ? { slot: tile[j % tile.length], symbol } : { slot: tile[j % tile.length] }));
+    const cells: ChartCell[] = Array.from({ length: to }, (_, j) => (at.has(j) ? { ...cellAt(j), symbol } : cellAt(j)));
     const doubled = map ? doubling(map) : "";
     const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}t${from}-${to}${map ? `w${map.length}${doubled ? `x${doubled}` : ""}` : ""}`;
     this.charts.set(id, { id, name: this.nameOf(r.year), rows: [cells] });

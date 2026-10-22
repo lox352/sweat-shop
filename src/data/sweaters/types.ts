@@ -36,6 +36,12 @@ export type ChartSymbol = "purl" | "k1tbl" | "k2tog" | "ssk" | "s2kp" | "sk2p" |
 export interface ChartCell {
   slot: SlotId;
   symbol?: ChartSymbol;
+  /**
+   * A stitch that only spaces the pattern out: the copy of a column a band
+   * has doubled, always background. Knitted like any other; left out of the
+   * picture of a sweater, so a band is painted at its own repeat.
+   */
+  spacer?: true;
 }
 
 export interface Chart {
