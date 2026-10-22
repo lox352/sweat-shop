@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { SlotId } from "../data/sweaters/types";
 import type { Stitch } from "../types/Stitch";
 import { consumption } from "../types/StitchType";
+import { isSpacer } from "../knitting/engine";
 import { yarnFor, type Palette } from "../knitting/palette";
 
 /**
@@ -45,7 +46,7 @@ const parentOf = (stitch: Stitch | undefined): number | undefined => {
  * are always background, so the pattern loses nothing but the extra width.
  */
 export const spacers = (body: number[][], stitches: Stitch[]): Set<number> =>
-  new Set(body.flatMap((round) => round.filter((id) => stitches[id]?.spacer)));
+  new Set(body.flatMap((round) => round.filter((id) => isSpacer(stitches[id]))));
 
 /**
  * The stitches a picture paints for each round, a column at a time.

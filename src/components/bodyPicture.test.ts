@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import paulKlee from "../data/sweaters/paul-klee";
 import hamefarin from "../data/sweaters/hamefarin";
-import { buildSweater } from "../knitting/engine";
+import { buildSweater, isSpacer } from "../knitting/engine";
 import { bodyRounds, paintedRows } from "./bodyPicture";
 
 describe.each([
@@ -60,5 +60,5 @@ it("paints a Wool Week band that doubles columns at its own repeat, each stitch 
     rows[y].forEach((id, x) => expect(stitches[id].links[0]).toBe(rows[y - 1][x]));
   }
   // Only the copies are left out, and every one of them is background: knitted in the yarn of the stitch beside it.
-  for (const round of body) round.forEach((id, i) => stitches[id].spacer && expect(stitches[id].slot).toBe(stitches[round[i - 1]].slot));
+  for (const round of body) round.forEach((id, i) => isSpacer(stitches[id]) && expect(stitches[id].slot).toBe(stitches[round[i - 1]].slot));
 }, 60000);

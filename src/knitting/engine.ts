@@ -226,6 +226,15 @@ export const sizeOf = (pattern: SweaterPattern, sizeId?: string): Size => {
   return size;
 };
 
+/**
+ * A stitch knitted from a chart cell that only spaces the pattern out (see
+ * ChartCell.spacer), for a picture of the sweater to leave out. Kept as a plain
+ * mark on the stitch, not a field of the Stitch type: that type is part of
+ * what a settled sweater is keyed on, and the mark is no part of its shape.
+ */
+const markSpacer = (stitch: Stitch) => Object.assign(stitch, { spacer: true });
+export const isSpacer = (stitch: Stitch | undefined): boolean => !!(stitch as { spacer?: true } | undefined)?.spacer;
+
 export const buildSweater = (
   pattern: SweaterPattern,
   sizeId?: string,
@@ -270,7 +279,7 @@ export const buildSweater = (
     work.forEach(({ type, slot, spacer }, index) => {
       at(index);
       const stitch = needles.knit(type, slot);
-      if (spacer) stitch.spacer = true;
+      if (spacer) markSpacer(stitch);
     });
     at(work.length);
     needles.endRound();

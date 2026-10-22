@@ -33,8 +33,6 @@ export interface Stitch {
   slot: string;
   /** Which piece it belongs to: "yoke", "body", "sleeve-left"... */
   piece: string;
-  /** Knitted from a chart cell that only spaces the pattern out: see ChartCell.spacer. */
-  spacer?: true;
   /** A picked-up stitch: the edge stitch it was drawn up out of. */
   from?: number;
   /**
