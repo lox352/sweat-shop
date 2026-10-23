@@ -201,3 +201,28 @@ export const background = (year: number, chart: string, row: number, x: number):
   if ((year === 2016 || year === 2019) && new Set(letters).size === 2 && letters.every((c) => ground.includes(c))) return true;
   return ground.includes(l);
 };
+
+/**
+ * Hats whose quanta, knitted one against the other with no plain round
+ * between, go together as the knitter settled: 2017's two zigzags, and 2019's
+ * small peerie bands and the waves the boat sails on.
+ */
+const TOGETHER: Record<number, string[]> = { 2017: ["A"], 2019: ["D", "E"] };
+
+/**
+ * Must a plain round go between these two rows of a hat, knitted one after
+ * the other? Yes where they are two quanta that don't belong together - a
+ * peerie against a band of stars, two separate bands - and neither is a round
+ * all of one yarn already: without one, the two run into each other. Not
+ * within a quantum, a core and its aligned frames, or quanta that go together.
+ */
+export const plainBetween = (year: number, a: { chart: string; row: number }, b: { chart: string; row: number }): boolean => {
+  const plain = (r: { chart: string; row: number }) => new Set(chartOf(year, r.chart)[r.row - 1]).size === 1;
+  if (plain(a) || plain(b)) return false;
+  const qa = quantumOf(year, a.chart, a.row);
+  const qb = quantumOf(year, b.chart, b.row);
+  if (!qa || !qb || qa === qb) return false;
+  if (qa.aligned && qb.aligned && qa.chart === qb.chart && qa.group === qb.group) return false;
+  const together = TOGETHER[year];
+  return !(together?.includes(a.chart) && together.includes(b.chart));
+};

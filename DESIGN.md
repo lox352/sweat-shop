@@ -227,7 +227,8 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
 - **Thirteen Strips' plan.** Every strip within five per cent of its piece's
   average, give or take the round it is rounded to: a plain round, which
   carries any shaping, then the cut nearest its height, padded with plain
-  rounds.
+  rounds. Both plans put a plain round wherever two quanta meet that don't
+  go together (see Quanta below).
 - **Each Year Once's plan** (`refit.ts`), by these rules:
   - A plain round outside a pattern carries on a neighbouring pattern's
     background, the commonest yarn in the three rows nearest that edge,
@@ -239,18 +240,19 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     goes between them.
   - A cut's plain edge rows are kept or dropped in pairs, so a band is
     framed alike top and bottom: the houses, 2018's dancers, 2020's stars.
-  - Where a cut skips part of the hat between two of its parts, a plain
-    round goes between them: 2014's two stars, which the hat parts with a
-    peerie, and 2019's boat and sheep. In L, rather than lose a row of
-    either star, the two stars meet with no round between, and the first
-    star's tips are the yoke's first round, taking the neck's increases.
+  - Where two quanta meet that don't go together, a plain round goes
+    between them, in the stronger one's background, so they don't run into
+    each other: 2014's peeries and stars, its two stars where a cut parts
+    them, 2019's boat and sheep, 2023's peeries and flowers. In L the sheep
+    give up two rows of sky and one of field to make room.
   - Spare rounds go to patterned edges first, up to two each, strongest
     background first: sky above the boats, ground under the sheep.
   - Each year's cuts are a ladder from fullest down, and a piece takes the
     trims in a set order until it fits: on the yoke 2014's outer rows, then
     the sheep's sky and field, two rows to one; on the body 2020's outer
     peeries, 2018's plain rows, then a row off each side of 2017 and of 2018.
-    The sleeves start mid-ladder and spend their spare rounds upwards.
+    A trim a later one has made room for again is given back. The sleeves
+    start mid-ladder and spend their spare rounds upwards.
 - **Quanta** (`quanta.ts`). Each hat's pattern is cut into quanta, the
   pieces that go together and whose foreground is never altered, only
   spaced: a band of stars, a row of sheep, a peerie. A *free* quantum can
@@ -260,7 +262,11 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
   2026's bands stay aligned with their core, one quantum with it. Every
   stitch is foreground or background: by yarn, as `roles.json` reads each
   hat; 2014's bands row by row; 2025's by its diamonds, the light yarns the
-  ground inside them and the dark outside.
+  ground inside them and the dark outside. Two quanta knitted one against
+  the other, neither edge a round of one yarn, need a plain round between
+  them (`plainBetween`) - save a core and its aligned frames, and the
+  quanta the knitter settled go together: 2017's zigzags, 2019's peerie
+  bands and the waves the boat sails on.
 - **Shaping by quanta** (`shaping.ts`). A piece's rounds are units: a
   quantum as far as the piece has it, or a round of one yarn. Each unit is
   laid out on its own count, a whole number of its repeat with some columns

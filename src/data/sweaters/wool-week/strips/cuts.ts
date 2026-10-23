@@ -1,4 +1,5 @@
 import { yearOf } from "../years";
+import { plainBetween } from "./quanta";
 
 /**
  * Each hat's body pattern as the building blocks of a strip: the ways it can
@@ -214,15 +215,23 @@ export const cutsOf = (year: number): Cut[] => {
   return options.map((o) => measured(year, o));
 };
 
-/** A cut of a year with its heights worked out: all its rows, and those between its one-colour edge rounds. */
+/**
+ * A cut of a year with its heights worked out: all its rows, and those between
+ * its one-colour edge rounds - each with the plain rounds that must go between
+ * two of its quanta that meet (see quanta's plainBetween).
+ */
 export const measured = (year: number, o: Option & { neat: boolean }): Cut => {
   const rows = o.parts.flatMap(([c, a, b]) => lettersOf(year, c).slice(a - 1, b));
   let a = 0;
   let b = rows.length;
   while (a < b && solid(rows[a])) a++;
   while (b > a && solid(rows[b - 1])) b--;
-  return { ...o, height: rows.length, core: b - a, edgeBottom: a, edgeTop: rows.length - b };
+  const seams = seamsOf(year, topDown(year, o.parts)).length;
+  return { ...o, height: rows.length + seams, core: b - a + seams, edgeBottom: a, edgeTop: rows.length - b };
 };
+
+/** Where a cut's rows, from the top down, need a plain round put between them: before each of these. */
+export const seamsOf = (year: number, rows: CutRow[]): number[] => rows.flatMap((r, k) => (k > 0 && plainBetween(year, rows[k - 1], r) ? [k] : []));
 
 /** The cut whose height comes nearest `motif` rounds, by plain rounds added or one-colour edge rounds taken off. */
 export const choose = (cuts: Cut[], motif: number, wantLonger = false): Cut => {

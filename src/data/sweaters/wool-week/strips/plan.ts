@@ -1,4 +1,4 @@
-import { type Cut, type CutRow, choose, cutsOf, groundOf, patterns, patternOf, topDown } from "./cuts";
+import { type Cut, type CutRow, choose, cutsOf, groundOf, patterns, patternOf, seamsOf, topDown } from "./cuts";
 import { refit } from "./refit";
 
 /**
@@ -96,10 +96,11 @@ const settle = (years: number[], total: number): Strip[] => {
 };
 
 /**
- * A strip's rounds: its plain round, then its cut, with plain rounds to make
- * up the height - first where the repeat changes inside it, then shared above
- * and below, or all above when `last`, so that its pattern runs straight on
- * into a sleeve's longer version.
+ * A strip's rounds: its plain round, then its cut, a plain round wherever two
+ * of its quanta meet that don't go together (see quanta's plainBetween), and
+ * plain rounds to make up the height - first where the repeat changes inside
+ * it, then shared above and below, or all above when `last`, so that its
+ * pattern runs straight on into a sleeve's longer version.
  */
 const roundsOf = (strip: Strip, last = false): { rows: Row[]; kept: CutRow[] } => {
   const rows: Row[] = [];
@@ -112,7 +113,8 @@ const roundsOf = (strip: Strip, last = false): { rows: Row[]; kept: CutRow[] } =
   }
   const flat = topDown(strip.year, strip.cut.parts);
   const kept = flat.slice(trimTop, flat.length - trimBottom);
-  const joins = kept.filter((r, k) => k > 0 && r.w !== kept[k - 1].w).length;
+  const seams = new Set(seamsOf(strip.year, kept));
+  const joins = kept.filter((r, k) => k > 0 && r.w !== kept[k - 1].w && !seams.has(k)).length;
   let atJoins = Math.min(joins, pad);
   const rest = pad - atJoins;
   const above = last ? rest : Math.floor(rest / 2);
@@ -121,7 +123,8 @@ const roundsOf = (strip: Strip, last = false): { rows: Row[]; kept: CutRow[] } =
   };
   plain(1 + above);
   kept.forEach((r, k) => {
-    if (k > 0 && r.w !== kept[k - 1].w && atJoins > 0) {
+    if (seams.has(k)) plain(1);
+    else if (k > 0 && r.w !== kept[k - 1].w && atJoins > 0) {
       plain(1);
       atJoins--;
     }
