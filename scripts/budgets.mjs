@@ -24,9 +24,10 @@ const kb = 1024;
  * The page's was 170KB, and the site had grown to exactly that. The two Wool
  * Week samplers bring it to 195KB: thirteen hats' charts and every colourway
  * they were published in, and the planning, knitting and palettes that make
- * a jumper of them.
+ * a jumper of them. Their nine many-colour palettes, tens of yarns each,
+ * bring it to 211KB.
  */
-const budgets = { page: 210 * kb, stage: 260 * kb, settled: 300 * kb };
+const budgets = { page: 220 * kb, stage: 260 * kb, settled: 300 * kb };
 
 const files = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>

@@ -1,6 +1,6 @@
 import type { Row } from "./plan";
 import { background, quantumOf } from "./quanta";
-import { slotsOfRow } from "./slots";
+import { bandSlotsOfRow } from "./slots";
 
 /**
  * Shaping a piece by its quanta (see quanta.ts): how the count goes, round by
@@ -37,8 +37,8 @@ import { slotsOfRow } from "./slots";
 type ChartRow = Exclude<Row, { plain: string }>;
 const isPlain = (r: Row): r is { year: number; plain: string } => "plain" in r;
 
-/** A chart row's slots on its repeat, as knitted: right to left. */
-export const tileOf = (r: ChartRow): string[] => slotsOfRow(r.year, r.chart, r.row).slice(0, r.w).reverse();
+/** A chart row's slots on its repeat, as knitted: right to left, each marked for its place in a shaded band where the row has one. */
+export const tileOf = (r: ChartRow): string[] => bandSlotsOfRow(r.year, r.chart, r.row, r.band).slice(0, r.w).reverse();
 
 export interface Unit {
   /** Its rounds, as indices into the piece's rows. */

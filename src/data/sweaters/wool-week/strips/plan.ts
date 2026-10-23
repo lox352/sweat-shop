@@ -1,5 +1,6 @@
 import { type Cut, type CutRow, choose, cutsOf, groundOf, patterns, patternOf, seamsOf, topDown } from "./cuts";
 import { refit } from "./refit";
+import type { Band } from "./slots";
 
 /**
  * Where each year goes on a strip sampler, and how many rounds it has.
@@ -31,8 +32,12 @@ export interface Measured {
   cuffCm: number;
 }
 
-/** A round of a strip before any counts: plain in one of the year's yarns, or a row of one of its charts. */
-export type Row = { year: number; plain: string } | ({ year: number } & CutRow);
+/**
+ * A round of a strip before any counts: plain in one of the year's yarns, or
+ * a row of one of its charts - and, once a piece is being knitted, where that
+ * row stands in its band (see knit's banded).
+ */
+export type Row = { year: number; plain: string } | ({ year: number; band?: Band } & CutRow);
 
 export interface Strip {
   year: number;

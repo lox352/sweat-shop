@@ -1,5 +1,6 @@
 import type { Colourway, Shade } from "../../types";
 import data from "./colourways.json";
+import roleData from "./roles.json";
 import { allSlots, letterOf, trimSlot, yearOfSlot } from "./slots";
 
 /**
@@ -11,7 +12,12 @@ import { allSlots, letterOf, trimSlot, yearOfSlot } from "./slots";
  * its darks for all dark.
  *
  * Fifteen palettes, each after a knitting tradition and grouped by where it
- * is from, so thirty colourways.
+ * is from, so thirty colourways; then nine of many colours, tens of yarns
+ * each, every one built on a single idea - a path round the colour circle,
+ * Shetland's places, undyed grounds, Fair Isle shading and more. One of them
+ * shades its bands, giving each round of a band its own shades of ground and
+ * figure (see slots' bandSlotsOfRow); every other colourway knits a shaded
+ * slot in its yarn's own colour.
  *
  * The neck, waist and wrist ribbing is its own slot, the trim: by default
  * the palette's ground for the colourway, and any of the palette's yarns the
@@ -33,8 +39,22 @@ interface Palette {
   light: { ground: string; maps: Record<string, Record<string, string>> };
   dark: { ground: string; maps: Record<string, Record<string, string>> };
 }
+/** A many-colour palette: one colourway, light or dark grounds as its idea has them. */
+interface Many {
+  id: string;
+  family: string;
+  name: string;
+  note: string;
+  mode: "light" | "dark";
+  trim: string;
+  trims: string[];
+  maps: Record<string, Record<string, string>>;
+  /** For a palette that shades its bands, each year's yarns for each shade of its slots. */
+  shading?: Record<string, { G: string[]; F: string[]; h: string[]; m: string[]; c: string }>;
+}
 const yarns = data.yarns as Record<string, Yarn>;
 const palettes = data.palettes as Palette[];
+const many = data.many as Many[];
 
 const spindrift = {
   brand: "Jamieson's of Shetland",
@@ -56,8 +76,23 @@ const modes = [
   ["light", "all light"],
 ] as const;
 
-/** Every colourway of a strip sampler: each palette, all dark then all light. */
-export const colourways: Colourway[] = palettes.flatMap((p) =>
+/** A palette's yarn for a slot: the hat's yarn's, or for a shaded slot in a palette that shades, that shade's. */
+const codeFor = (maps: Many["maps"], slot: string, shading?: Many["shading"]): string => {
+  const year = yearOfSlot(slot);
+  const letter = letterOf(slot);
+  const own = maps[year][letter];
+  const shade = slot.split("/")[1];
+  const S = shading?.[year];
+  // The pinned sheep and their faces keep their yarn whatever the round.
+  if (!shade || !S || (roleData as Record<string, { pins?: Record<string, string> }>)[year]?.pins?.[letter]) return own;
+  if (shade === "c") return S.c;
+  const i = Number(shade.slice(1));
+  return { g: S.G, h: S.h, f: S.F, m: S.m }[shade[0] as "g" | "h" | "f" | "m"][i];
+};
+
+/** Every colourway of a strip sampler: each palette, all dark then all light; then the many-colour palettes. */
+export const colourways: Colourway[] = [
+  ...palettes.flatMap((p) =>
   modes.map(([mode, label]): Colourway => {
     const { ground, maps } = p[mode];
     return {
@@ -65,11 +100,19 @@ export const colourways: Colourway[] = palettes.flatMap((p) =>
       name: `${p.name}, ${label}`,
       family: p.family,
       ...spindrift,
-      shades: [
-        ...allSlots.map((slot) => shadeOf(slot, maps[yearOfSlot(slot)][letterOf(slot)])),
-        shadeOf(trimSlot, ground),
-      ],
+      shades: [...allSlots.map((slot) => shadeOf(slot, codeFor(maps, slot))), shadeOf(trimSlot, ground)],
       trims: p.yarns.map((code) => shadeOf(trimSlot, code)),
     };
   }),
-);
+  ),
+  ...many.map(
+    (p): Colourway => ({
+      id: `${p.id}-${p.mode}`,
+      name: p.name,
+      family: p.family,
+      ...spindrift,
+      shades: [...allSlots.map((slot) => shadeOf(slot, codeFor(p.maps, slot, p.shading))), shadeOf(trimSlot, p.trim)],
+      trims: p.trims.map((code) => shadeOf(trimSlot, code)),
+    }),
+  ),
+];

@@ -63,6 +63,30 @@ export const paletteOf = (colourway: Colourway, overrides: Overrides = {}): Pale
   return out;
 };
 
+/**
+ * The yarn slots a knitter reads, without the shades some designs give a
+ * slot round by round ("14D/f2" is yarn 14D): each once, in order.
+ */
+export const shownSlots = (slots: SlotId[]): SlotId[] => [...new Set(slots.map((slot) => slot.split("/")[0]))];
+
+/** Slots named for a key: "14A", "14A + 14C", or past a few, the first and how many more. */
+export const slotNames = (slots: SlotId[]): string => {
+  const shown = shownSlots(slots);
+  return shown.length > 3 ? `${shown[0]} + ${shown.length - 1} more` : shown.join(" + ");
+};
+
+/** A design's slots by the yarn each is in a palette, each yarn once, in the order its first slot comes. */
+export const keyOf = (slots: SlotId[], palette: Palette): { slots: SlotId[]; yarn: Yarn }[] => {
+  const out: { slots: SlotId[]; yarn: Yarn }[] = [];
+  for (const slot of slots) {
+    const yarn = yarnFor(palette, slot);
+    const seen = out.find((entry) => entry.yarn.name === yarn.name && entry.yarn.hex === yarn.hex);
+    if (seen) seen.slots.push(slot);
+    else out.push({ slots: [slot], yarn });
+  }
+  return out;
+};
+
 /** How a trim is chosen and stored: by its wool, or failing that its shade number or name. */
 export const trimIdOf = (shade: Shade): string => shade.wool ?? shade.code ?? shade.name;
 

@@ -5,6 +5,15 @@ import { knit, type Knitted } from "./knit";
 import { type Layout, type Measured, gauge, planOf } from "./plan";
 import { allSlots, letterOf, trimSlot, yearOfSlot } from "./slots";
 
+/** What a shaded slot is in its round, for its name: ", ground, shade 2 of a band". */
+const shadeLabel = (slot: string): string => {
+  const shade = slot.split("/")[1];
+  if (!shade) return "";
+  if (shade === "c") return ", a band's centre round";
+  const what = { g: "ground", h: "second ground", f: "figure", m: "second figure" }[shade[0] as "g" | "h" | "f" | "m"];
+  return `, ${what}, shade ${Number(shade.slice(1)) + 1} of a band`;
+};
+
 /**
  * A strip sampler: every Shetland Wool Week hat from 2014 to 2026, each in a
  * strip of about the same length, laid out one way. Each layout is one design
@@ -76,7 +85,7 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
     ],
     slots: [...allSlots, trimSlot],
     slotRoles: {
-      ...Object.fromEntries(allSlots.map((slot) => [slot, `${yearOfSlot(slot)} ${yearOf(yearOfSlot(slot)).name}, yarn ${letterOf(slot)}`])),
+      ...Object.fromEntries(allSlots.map((slot) => [slot, `${yearOfSlot(slot)} ${yearOf(yearOfSlot(slot)).name}, yarn ${letterOf(slot)}${shadeLabel(slot)}`])),
       [trimSlot]: "The neck, waist and wrist ribbing",
     },
     trim: { slot: trimSlot, label: "Trim", note: "The neck, waist and wrist ribbing, in any yarn of the palette." },
