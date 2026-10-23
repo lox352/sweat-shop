@@ -51,7 +51,8 @@ it("paints a Wool Week band that doubles columns at its own repeat, each stitch 
   const { stitches, rounds } = buildSweater(eachYearOnce, "m");
   const body = bodyRounds(rounds, stitches);
   const rows = paintedRows(body, stitches);
-  const doublings = body.flatMap((round, y) => (round.some((id) => stitches[id].type === "kfb") ? [y] : []));
+  // A doubling round: its new stitches make-ones, each a copy beside its twin.
+  const doublings = body.flatMap((round, y) => (round.some((id) => stitches[id].type === "m1" && isSpacer(stitches[id])) ? [y] : []));
   expect(doublings.length).toBeGreaterThan(2);
   for (const y of doublings) {
     // The round that doubles, and the one after it, painted as wide as the band was before.
@@ -68,9 +69,9 @@ it("paints a Wool Week band begun on more stitches on its own layout, not in lin
   const { stitches, rounds } = buildSweater(eachYearOnce, "xs");
   const body = bodyRounds(rounds, stitches);
   const rows = paintedRows(body, stitches);
-  // A patterned round that grows by make-ones spread through it, none a KFB's second loop: a band's first row.
+  // A patterned round that grows by make-ones spread through it, not copies beside a twin: a band's first row.
   const begun = body.flatMap((round, y) =>
-    y > 0 && round.length > body[y - 1].length && new Set(round.map((id) => stitches[id].slot)).size > 1 && round.some((id, i) => stitches[id].type === "m1" && stitches[round[i - 1]]?.type !== "kfb") ? [y] : [],
+    y > 0 && round.length > body[y - 1].length && new Set(round.map((id) => stitches[id].slot)).size > 1 && round.some((id) => stitches[id].type === "m1" && !isSpacer(stitches[id])) ? [y] : [],
   );
   expect(begun.length).toBeGreaterThan(1);
   // Painted as it is, every stitch of it, so it lines up with the rest of its band below it.

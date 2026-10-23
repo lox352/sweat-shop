@@ -261,7 +261,7 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
   quantum of its own; 2014's star borders, 2021's lattice borders and
   2026's bands stay aligned with their core, one quantum with it. Every
   stitch is foreground or background: by yarn, as `roles.json` reads each
-  hat; 2014's bands row by row; 2025's by its diamonds, the light yarns the
+  hat; 2014's bands row by row, the stars' light yarns their motif; 2025's by its diamonds, the light yarns the
   ground inside them and the dark outside. Two quanta knitted one against
   the other, neither edge a round of one yarn, need a plain round between
   them (`plainBetween`) - save a core and its aligned frames, and the
@@ -272,9 +272,8 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
   laid out on its own count, a whole number of its repeat with some columns
   doubled, the same in every repeat. Between units the count changes freely,
   in a round of one yarn or spread through a unit's first round. Inside one,
-  a column may be doubled, with a symmetric single increase (charted as a
-  KFB and its second loop; the key suggests a Twincrease), only where no
-  foreground is in its chain of descendants: the column below it, to the end
+  a column may be doubled, with a make-one beside it in its yarn, only where
+  no foreground is in its chain of descendants: the column below it, to the end
   of its quantum. In a mirror image it goes with its mirror partner. Columns
   doubled are never within two of each other, and increase rounds are kept
   apart where the target allows. The counts come from a search over each

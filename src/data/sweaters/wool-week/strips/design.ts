@@ -91,14 +91,6 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
         how: "Pick up the bar between the stitches from front to back with the left needle, and knit it through the back of the loop, in the colour the chart shows.",
       },
       pickUp: { how: "Insert the needle under both legs of the next stitch cast on at the underarm, wrap the yarn and draw a loop through." },
-      // Where a quantum grows inside itself (see shaping), a background column is doubled with one stitch made into two.
-      kfb: {
-        label: "Symmetric single increase",
-        how:
-          "Make two stitches out of the one below, leaning apart equally, both in the colour the chart shows - " +
-          "Assia Brill's Twincrease does it exactly. A knit front and back makes the same two stitches, with a " +
-          "purl bump under the second, and will do.",
-      },
     },
     // Every chart of every size knitted so far, once each. A size is knitted before its charts are looked for, as its sections are read first.
     get charts(): Chart[] {

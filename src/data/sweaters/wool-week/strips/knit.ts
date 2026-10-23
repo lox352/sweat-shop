@@ -163,15 +163,14 @@ class Writer {
 
   /**
    * A band's row that doubles columns of its repeat, the same in every repeat:
-   * each new stitch knitted out of the stitch below its twin, a KFB and its
-   * second loop - one stitch made into two.
+   * each new stitch a make-one beside its twin, knitted in the twin's yarn.
    */
   double(r: ChartRow, before: number[], after: number[]) {
     this.flush();
     const tile = tileOf(r);
     const fresh = added(before, after);
     const cells: ChartCell[] = after.map((x, q) =>
-      fresh.has(q) ? { ...cellOf(tile[x], after, q), symbol: "m1" } : fresh.has(q + 1) ? { ...cellOf(tile[x], after, q), symbol: "kfb" } : cellOf(tile[x], after, q),
+      fresh.has(q) ? { ...cellOf(tile[x], after, q), symbol: "m1" } : cellOf(tile[x], after, q),
     );
     const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}w${before.length}d${doubling(before) || "0"}-${doubling(after)}`;
     this.charts.set(id, { id, name: this.nameOf(r.year), rows: [cells] });
