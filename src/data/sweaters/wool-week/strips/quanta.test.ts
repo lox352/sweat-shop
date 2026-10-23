@@ -38,6 +38,10 @@ describe("the hats' quanta", () => {
     const b12 = letters(2014, "B", 12);
     b12.forEach((l, x) => expect(background(2014, "B", 12, x)).toBe(l === "C"));
     expect(b12).toContain("D");
+    // 2014's stars: the light yarns are the motif, holding the points of the stars, the dark around them the ground.
+    letters(2014, "C", 5).forEach((l, x) => expect(background(2014, "C", 5, x)).toBe(l !== "D"));
+    letters(2014, "C", 7).forEach((l, x) => expect(background(2014, "C", 7, x)).toBe(l === "E"));
+    letters(2014, "B", 7).forEach((l, x) => expect(background(2014, "B", 7, x)).toBe(l === "A"));
     // The 2014 peerie is dark on the hat's light ground.
     letters(2014, "A", 2).forEach((l, x) => expect(background(2014, "A", 2, x)).toBe(l === "B"));
     // 2019's sheep, in white, are foreground.

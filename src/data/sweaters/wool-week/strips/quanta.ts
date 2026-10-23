@@ -183,9 +183,10 @@ export const background = (year: number, chart: string, row: number, x: number):
   const l = letters[x % letters.length];
   const edge = row <= 3 || row >= 11;
   if (year === 2014) {
-    // The stars on one yarn, their borders' points and sprinkles on another; the peerie on the hat's ground.
-    if (chart === "C") return l === (edge ? "A" : "D");
-    if (chart === "B") return l === (edge ? "C" : "B");
+    // The stars' light yarns are their motif, the points of the stars, on the dark around them; their borders'
+    // points and sprinkles on the borders' ground; the peerie on the hat's ground.
+    if (chart === "C") return edge ? l === "A" : l !== "D";
+    if (chart === "B") return edge ? l === "C" : l !== "B" && l !== "D";
     return l === "B";
   }
   if (year === 2025) {
