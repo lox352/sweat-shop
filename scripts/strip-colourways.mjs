@@ -275,6 +275,254 @@ const solve = (pal, light) => {
   return maps;
 };
 
+/* ------------------------------------------------- many-colour palettes */
+/**
+ * Nine palettes of tens of yarns each, one organising idea apiece: a path
+ * round the colour circle, the same after dark, Shetland's places, undyed
+ * grounds, Fair Isle shading, the hats' own hues, Bohus's close tones,
+ * Muhu's brights and the seasons. Every hat's yarns go on by what they draw
+ * - ground or figure, by the site's foreground map, 2014's by the hat's own
+ * light and dark since its yarns change role from band to band - each within
+ * its lightness band, nearest a target (its own hat's colour unless the
+ * palette sets one), from the palette's pool where it has one, and every two
+ * that meet in a round 20 L* apart (17 in the Bohus heathers). The sheep stay
+ * Natural White with Black faces, so nothing lighter than Natural White goes
+ * in. Fair Isle shading also gives each band's rounds their own shades: see
+ * `shading` and the slots' shade variants (strips/slots.ts).
+ */
+const stock = spindrift.filter((s) => !s.soldOut && s.code !== "304").map((s) => ({ ...s, lab: lab(s.hex) }));
+const yarnOf = (code) => {
+  const found = stock.find((s) => s.code === String(code));
+  if (!found) throw new Error(`no Spindrift ${code} in stock`);
+  return found;
+};
+const many = (codes) => codes.map(yarnOf);
+const chroma = (l) => Math.hypot(l.a, l.b);
+const ROLE_2014 = { B: "ground", D: "ground", A: "figure", C: "figure", E: "figure" };
+const roleIn = (year, l) => (year === 2014 ? ROLE_2014[l] ?? "figure" : hats[year].roleOf[l]);
+const pinOf = (year, l) => roles[year].pins?.[l];
+const pinned = (year) => Object.keys(roles[year].pins ?? {}).length > 0;
+const darkYear = (year) => Object.values(roles[year].pins ?? {}).includes("lightest") || year === 2023;
+const partnersOf = (year, l) => hats[year].pairs.filter((p) => p.includes(l)).map((p) => (p[0] === l ? p[1] : p[0]));
+const hueTarget = (deg, C, L) => ({ L, a: C * Math.cos((deg * Math.PI) / 180), b: C * Math.sin((deg * Math.PI) / 180) });
+
+const nearestIn = (target, ok, avoid = [], list = stock, extra) => {
+  let best = null, bestK = Infinity;
+  for (const s of list) {
+    if (!ok(s)) continue;
+    let k = Math.hypot(s.lab.a - target.a, s.lab.b - target.b) + 0.35 * Math.abs(s.lab.L - target.L) + (extra ? extra(s) : 0);
+    if (avoid.some((o) => o.code === s.code)) k += 1000;
+    else if (avoid.some((o) => Math.abs(o.lab.L - s.lab.L) < 6)) k += 25;
+    if (k < bestK) { bestK = k; best = s; }
+  }
+  return best;
+};
+
+const assign = ({ bands, target, pools, apartBy = 20, spread = 0 }) => {
+  const maps = {};
+  const uses = new Map();
+  const extra = spread ? (s) => spread * (uses.get(s.code) ?? 0) : undefined;
+  order.forEach((year, yi) => {
+    const h = hats[year];
+    const dark = darkYear(year);
+    const seq = [...h.letters].sort((a, b) => (pinOf(year, b) ? 1 : 0) - (pinOf(year, a) ? 1 : 0) || partnersOf(year, b).length - partnersOf(year, a).length);
+    const m = {};
+    const used = { ground: [], middle: [], figure: [] };
+    const apart = (l, c) => partnersOf(year, l).every((o) => !m[o] || Math.abs(m[o].lab.L - c.L) >= apartBy);
+    for (const l of seq) {
+      const pin = pinOf(year, l);
+      if (pin === "lightest") { m[l] = yarnOf(104); continue; }
+      if (pin === "darkest") { m[l] = yarnOf(999); continue; }
+      const role = roleIn(year, l);
+      const band = bands(role, dark, year);
+      const inBand = (c) => c.L >= band.lo && c.L <= band.hi && chroma(c) >= (band.cmin ?? 0) && chroma(c) <= (band.cmax ?? 999);
+      const t0 = target ? target(year, yi, l, role, used[role].length, dark) : h.colour[l];
+      const t = { ...t0, L: Math.min(band.hi, Math.max(band.lo, t0.L)) };
+      const pool = pools?.(year, role, dark);
+      const ex = role === "ground" ? undefined : extra;
+      const pick = (pool && nearestIn(t, (s) => apart(l, s.lab), used[role], pool, ex))
+        ?? nearestIn(t, (s) => inBand(s.lab) && apart(l, s.lab), used[role], stock, ex)
+        ?? nearestIn(t, (s) => apart(l, s.lab), used[role])
+        ?? nearestIn(t, (s) => inBand(s.lab), used[role]);
+      m[l] = pick;
+      used[role].push(pick);
+      uses.set(pick.code, (uses.get(pick.code) ?? 0) + 1);
+    }
+    maps[year] = Object.fromEntries(Object.entries(m).map(([l, c]) => [l, c.code]));
+  });
+  return maps;
+};
+
+const lightBands = (lo) => (role, dark) =>
+  dark
+    ? role === "ground" ? { lo: 26, hi: 48, cmax: 40 } : role === "middle" ? { lo: 45, hi: 62, cmin: 12 } : { lo: 62, hi: 92, cmax: 50 }
+    : role === "ground" ? { lo, hi: 96, cmax: 26 } : role === "middle" ? { lo: 44, hi: 66, cmin: 12 } : { lo: 8, hi: 44, cmax: 50 };
+// A path round the colour circle, a step a year; middles lean towards the next year's hue to bridge the bands.
+const pathTarget = (hues) => (year, yi, l, role, k, dark) => {
+  const h = hues[yi] + (role === "middle" ? (hues[yi + 1] ?? hues[yi] + 26) - hues[yi] : 0);
+  const C = role === "ground" ? (dark ? 14 : 6) : role === "middle" ? 34 : 28;
+  const L = role === "ground" ? (dark ? 38 - 6 * k : 88 - 6 * k) : role === "middle" ? 55 : dark ? 78 - 7 * k : 32 - 7 * k;
+  return hueTarget(h, C, L);
+};
+
+const LAND = {
+  2014: [[104, 120, 183], [880, 198, 1190, 118], [429]],
+  2015: [[286, 319, 812, 147], [1130, 375, 104], [425]],
+  2016: [[375, 183, 179], [587, 150, 815, 880], [1160]],
+  2017: [[135, 764, 768], [150, 1020, 258, 688], [760]],
+  2018: [[113, 768, 1390], [1270, 150, 789, 160], [617]],
+  2019: [[688, 258, 1020, 292], [770, 1130, 375, 104], [470]],
+  2020: [[547, 153, 268], [1270, 596, 239, 1290], [562]],
+  2021: [[1390, 120, 113], [640, 677, 123, 102], [1010]],
+  2022: [[768, 104, 764], [258, 1020, 292, 150], [790]],
+  2023: [[117, 198, 101, 880], [1160, 182, 929, 555, 350], [524]],
+  2024: [[183, 121, 114], [239, 1290, 815, 880], [616]],
+  2025: [[104, 120, 121, 183], [676, 587, 147, 1200], [1160]],
+  2026: [[764, 620, 120], [293, 710, 1290, 633], [616]],
+};
+const NAT_LIGHT = many([104, 120, 183, 114, 106, 121]);
+const NAT_DARK = many([102, 118, 117, 101]);
+const MUHU_FIG = many([530, 570, 540, 555, 562, 550, 581, 470, 308, 271, 435, 478, 462, 500, 524, 526, 425, 1160, 410, 104, 400]);
+const MUHU_HUES = [352, 48, 22, 80];
+const SEASON = [[250, 8], [230, 12], [205, 14], [160, 22], [130, 26], [100, 30], [350, 24], [75, 32], [60, 32], [45, 36], [30, 34], [345, 26], [315, 22]];
+// Fair Isle shading: for each year a ground ramp and a figure ramp, edge of the band to its centre, and a bright for centre rounds.
+const SHADES = {
+  2014: { G: [106, 183, 120, 104], F: [1190, 880, 198, 970], M: 423 },
+  2015: { G: [286, 319, 812, 147], F: [1130, 274, 768, 104], M: 425 },
+  2016: { G: [342, 183, 179, 343], F: [572, 587, 595, 293], M: 790 },
+  2017: { G: [760, 135, 764, 104], F: [685, 684, 727, 730], M: 676 },
+  2018: { G: [320, 113, 768, 104], F: [610, 1300, 599, 598], M: 425 },
+  2019: { G: [688, 258, 1020, 292], F: [770, 929, 135, 764], M: 470 },
+  2020: { G: [153, 555, 547, 268], F: [812, 788, 800, 820], M: 530 },
+  2021: { G: [180, 620, 547, 104], F: [726, 710, 727, 730], M: 665 },
+  2022: { G: [320, 113, 768, 104], F: [258, 1020, 292, 820], M: 1140 },
+  2023: { G: [102, 123, 126, 999], F: [425, 1160, 182, 350], M: 470 },
+  2024: { G: [153, 555, 547, 268], F: [1190, 880, 198, 970], M: 616 },
+  2025: { G: [121, 183, 120, 104], F: [676, 684, 727, 730], M: 587 },
+  2026: { G: [620, 547, 764, 104], F: [633, 1260, 1290, 293], M: 616 },
+};
+
+// 2025's allover already shades itself, its diamonds' light ground inside and dark outside both in every row: it keeps its own yarns, one each.
+const UNSHADED = [2025];
+
+/** The shaded palette's yarn for each shade variant of each year's slots: see slots.ts. */
+const shadingOf = () =>
+  Object.fromEntries(order.filter((year) => !UNSHADED.includes(year)).map((year) => {
+    const S = SHADES[year];
+    const G = many(S.G), F = many(S.F), M = yarnOf(S.M);
+    const L = (y) => y.lab.L;
+    // A second ground in a round: the ramp's shade farthest from the first, still 20 off the figure.
+    const h = G.map((g, i) => {
+      const others = G.filter((_, j) => j !== i).sort((p, q) => Math.abs(L(q) - L(g)) - Math.abs(L(p) - L(g)));
+      return (others.find((o) => Math.abs(L(o) - L(F[i])) >= 20) ?? others[0]).code;
+    });
+    // A second figure: the bright where it stands 20 off the ground and 8 off the first figure, else the figure ramp's farthest shade.
+    const m = F.map((f, i) => {
+      if (Math.abs(L(M) - L(G[i])) >= 20 && Math.abs(L(M) - L(f)) >= 8) return M.code;
+      const others = F.filter((_, j) => j !== i).sort((p, q) => Math.abs(L(q) - L(f)) - Math.abs(L(p) - L(f)));
+      return (others.find((o) => Math.abs(L(o) - L(G[i])) >= 20) ?? others[0]).code;
+    });
+    // The centre round's figure: the bright, where it stands 20 off the centre's ground.
+    const c = Math.abs(L(M) - L(G[3])) >= 20 ? M.code : F[3].code;
+    return [year, { G: S.G.map(String), F: S.F.map(String), h, m, c }];
+  }));
+const shadedMaps = () => {
+  const own = assign({ bands: lightBands(74) });
+  return Object.fromEntries(order.map((year) => [year, UNSHADED.includes(year) ? own[year] : Object.fromEntries(hats[year].letters.map((l) => {
+    const pin = pinOf(year, l);
+    if (pin) return [l, pin === "lightest" ? "104" : "999"];
+    return [l, String(roleIn(year, l) === "ground" ? SHADES[year].G[0] : SHADES[year].F[0])];
+  }))]));
+};
+
+const manyPalettes = [
+  {
+    id: "journey", mode: "light", name: "Colour journey", trim: 198,
+    note: "One step round the colour circle each year, from 2014's peat browns through gold, moss, sea, blue and heather to madder at the cuffs: related hues at every join, pale near-natural grounds, heathered figures.",
+    maps: () => assign({ bands: lightBands(76), target: pathTarget(order.map((_, i) => 45 + 26 * i)) }),
+  },
+  {
+    id: "night-journey", mode: "dark", name: "Night journey", trim: 999,
+    note: "The same walk round the colour circle after dark, from midnight blue through violet, rose, madder, ochre and moss: deep grounds, lit figures, the sheep on dusk so their faces show.",
+    maps: () => assign({
+      bands: (role, dark, year) => pinned(year)
+        ? role === "ground" ? { lo: 34, hi: 48 } : role === "middle" ? { lo: 52, hi: 64, cmin: 10 } : { lo: 66, hi: 92 }
+        : role === "ground" ? { lo: 10, hi: 34, cmax: 34 } : role === "middle" ? { lo: 44, hi: 62, cmin: 12 } : { lo: 62, hi: 92, cmax: 48 },
+      target: (year, yi, l, role, k) => {
+        const h = 230 + 26 * yi + (role === "middle" ? 26 : 0);
+        if (role === "ground") return hueTarget(h, 12, (pinned(year) ? 42 : 22) - 5 * k);
+        return role === "middle" ? hueTarget(h, 30, 54) : hueTarget(h, 26, 82 - 6 * k);
+      },
+    }),
+  },
+  {
+    id: "landscape", mode: "light", name: "Shetland landscape", trim: 102,
+    note: "Each year a place - peat bank, hill park, crofts, the voe, simmer dim, roadside, heather and thrift, drystone dyke, cliffs, buggiflooers, heather moor, the allover and the shore - in soft heathers on natural or pale grounds.",
+    maps: () => assign({ bands: lightBands(72), pools: (year, role) => many(LAND[year][role === "ground" ? 0 : role === "middle" ? 2 : 1]) }),
+  },
+  {
+    id: "undyed-grounds", mode: "light", name: "Undyed grounds, dyed figures", trim: 118,
+    note: "The Shetland Museum's rule, that there is always a natural however many dyed shades go in: every ground the sheep's own colour, every figure a dyed shade near its own hat's.",
+    maps: () => assign({
+      bands: (role, dark) =>
+        dark ? role === "middle" ? { lo: 45, hi: 62, cmin: 22, cmax: 55 } : role === "ground" ? { lo: 10, hi: 45, cmax: 18 } : { lo: 62, hi: 92, cmin: 22, cmax: 55 }
+          : role === "middle" ? { lo: 45, hi: 66, cmin: 22, cmax: 55 } : role === "ground" ? { lo: 66, hi: 96, cmax: 18 } : { lo: 8, hi: 45, cmin: 22, cmax: 55 },
+      pools: (year, role, dark) => (role === "ground" ? (year === 2023 ? many([101, 117]) : dark ? NAT_DARK : NAT_LIGHT) : null),
+    }),
+  },
+  {
+    id: "shaded", mode: "light", name: "Shaded Fair Isle", trim: 727, shaded: true,
+    note: "Fair Isle's own way with many colours: in every band the ground steps through four shades of one family and the pattern four of another, edge to centre and back, a bright in the centre round of every deep band. 2025's allover, which shades itself, keeps its own yarns.",
+    maps: shadedMaps,
+  },
+  {
+    id: "hats-hues", mode: "light", name: "The hats' own hues", trim: 102,
+    note: "Every band in its own hat's hues, set on one plan of pale grounds and deep figures, the sheep and the Buggiflooer on dark: each band like its hat, every round legible.",
+    maps: () => assign({ bands: lightBands(74) }),
+  },
+  {
+    id: "bohus-heathers", mode: "light", name: "Bohus heathers", trim: 160,
+    note: "After Bohus Stickning: many close heathered blues, blue-greys and lilacs, mid-light grounds and deeper figures, a small warm surprise in the middles, and the softest contrast here.",
+    maps: () => assign({
+      apartBy: 17, spread: 6,
+      bands: (role, dark) =>
+        dark ? role === "ground" ? { lo: 30, hi: 46 } : role === "middle" ? { lo: 48, hi: 62 } : { lo: 64, hi: 92 }
+          : role === "ground" ? { lo: 58, hi: 82, cmax: 24 } : role === "middle" ? { lo: 44, hi: 62 } : { lo: 18, hi: 46, cmax: 36 },
+      pools: (year, role, dark) =>
+        dark
+          ? role === "ground" ? many([150, 162, 168, 1020, 750]) : role === "middle" ? many([665, 616, 540, 628]) : many([655, 135, 764, 104, 620, 929, 770])
+          : role === "ground" ? many([134, 655, 130, 1390, 135, 274, 620, 764, 760, 929, 615, 617, 770])
+            : role === "middle" ? many([1010, 665, 616, 540, 628, 136])
+            : many([160, 150, 162, 168, 726, 1020, 633, 722, 677, 684, 685, 750, 258]),
+    }),
+  },
+  {
+    id: "muhu-stockings", mode: "dark", name: "Muhu stockings", trim: 999,
+    note: "After Muhu's island stockings, which went from black, faded red and white to near-neon pink and orange in a generation: black grounds, pink, orange, coral and gold figures, the sheep on raspberry so their faces show.",
+    maps: () => assign({
+      spread: 14,
+      bands: (role, dark, year) => (role === "ground" ? (pinned(year) ? { lo: 28, hi: 42 } : { lo: 4, hi: 22 }) : { lo: 45, hi: 92 }),
+      pools: (year, role) => (role === "ground" ? (pinned(year) ? many([1260, 633]) : many([999, 1340, 101, 126])) : role === "middle" ? many([400, 104, 182, 350]) : MUHU_FIG),
+      target: (year, yi, l, role, k) =>
+        role === "ground" ? hueTarget(0, 0, pinned(year) ? 34 : 12) : role === "middle" ? hueTarget(95, 30, 88) : hueTarget(MUHU_HUES[(yi + k) % 4], 62, 60 + 6 * (k % 3)),
+    }),
+  },
+  {
+    id: "seasons", mode: "light", name: "Shetland seasons", trim: 102,
+    note: "The jumper as a year: a winter yoke of grey, ice blue and white, a body from spring greens into summer pinks and golds, autumn sleeves of ochre, rust, madder and heather.",
+    maps: () => assign({
+      bands: lightBands(76),
+      target: (year, yi, l, role, k, dark) => {
+        const [h, c] = SEASON[yi];
+        const nh = (SEASON[yi + 1] ?? SEASON[yi])[0];
+        const C = role === "ground" ? (dark ? 14 : 5) : role === "middle" ? c + 6 : c;
+        const L = role === "ground" ? (dark ? 38 - 6 * k : 88 - 6 * k) : role === "middle" ? 55 : dark ? 78 - 7 * k : 32 - 7 * k;
+        return hueTarget(role === "middle" ? nh : h, C, L);
+      },
+    }),
+  },
+];
+
 const yarns = {};
 const keep = (code) => {
   const c = byCode(code);
@@ -296,5 +544,18 @@ const written = palettes.map((pal) => {
   };
 });
 
-fs.writeFileSync(out, JSON.stringify({ yarns, palettes: written }) + "\n");
-console.log(`wrote ${path.relative(root, out)}: ${Object.keys(yarns).length} yarns, ${written.length} palettes`);
+const writtenMany = manyPalettes.map((pal) => {
+  const maps = pal.maps();
+  const shading = pal.shaded ? shadingOf() : undefined;
+  const codes = new Set([String(pal.trim), ...Object.values(maps).flatMap((m) => Object.values(m))]);
+  if (shading) for (const s of Object.values(shading)) for (const c of [...s.G, ...s.F, ...s.h, ...s.m, s.c]) codes.add(String(c));
+  codes.forEach(keep);
+  // The trim: the palette's own, then the years' main grounds and its darkest yarns, lightest first, a dozen at most.
+  const mains = order.map((year) => maps[year][roles[year].ground[0]]);
+  const darkest = [...codes].sort((a, b) => lightness(a) - lightness(b)).slice(0, 4);
+  const trims = [...new Set([String(pal.trim), ...mains, ...darkest])].slice(0, 12).sort((a, b) => lightness(b) - lightness(a));
+  return { id: pal.id, family: "Many colours", name: pal.name, note: pal.note, mode: pal.mode, trim: String(pal.trim), trims, maps, ...(shading ? { shading } : {}) };
+});
+
+fs.writeFileSync(out, JSON.stringify({ yarns, palettes: written, many: writtenMany }) + "\n");
+console.log(`wrote ${path.relative(root, out)}: ${Object.keys(yarns).length} yarns, ${written.length} palettes, ${writtenMany.length} many-colour palettes`);

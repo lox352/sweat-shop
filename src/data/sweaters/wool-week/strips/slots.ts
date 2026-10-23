@@ -1,4 +1,6 @@
 import { lettersOf, patterns, topDown } from "./cuts";
+import { background } from "./quanta";
+import roleData from "./roles.json";
 
 /**
  * The strip samplers' yarn slots: one for each yarn of each hat, named for
@@ -25,17 +27,79 @@ export const slotsOfRow = (year: number, chart: string, row: number): string[] =
   return first.map((letter, i) => yy(year) + letter + other[i]);
 };
 
+/**
+ * Where a round stands in its band, for a palette that shades its bands as
+ * Fair Isle does: `step` 0 at the band's edges to 3 at its centre, and
+ * whether it is the centre round of a band deep enough to make one special.
+ */
+export interface Band {
+  step: number;
+  centre: boolean;
+}
+
+/**
+ * A slot as it stands in a round of a shaded band: the hat's yarn, then "/"
+ * and what it is in that round with the round's step - "g" the round's main
+ * ground, "h" a second ground, "f" its main figure, "m" another figure, each
+ * 0 to 3 - or "c", the one figure of a centre round. "14D/f2". A palette that
+ * shades gives each its own yarn; every other gives them all its yarn for the
+ * slot itself, so the knitting is the same whatever the colourway.
+ */
+export const SHADE_VARIANTS = [..."ghfm"].flatMap((k) => [0, 1, 2, 3].map((i) => `${k}${i}`)).concat("c");
+
+/** The hat's yarn a slot is, without any shade: "14D" for "14D/f2". */
+export const baseSlot = (slot: string): string => slot.split("/")[0];
+
 /** The hat's own letter for a slot, in a printing: "1-2" or "3-4" for 2026. */
-export const letterOf = (slot: string, printing?: string): string =>
-  slot.length === 4 ? (printing && printing !== "1-2" ? slot[3] : slot[2]) : slot[2];
+export const letterOf = (slot: string, printing?: string): string => {
+  const base = baseSlot(slot);
+  return base.length === 4 ? (printing && printing !== "1-2" ? base[3] : base[2]) : base[2];
+};
+
+const pins = (year: number): Record<string, string> => (roleData as Record<string, { pins?: Record<string, string> }>)[year]?.pins ?? {};
+const shaded = new Map<string, string[]>();
+
+/**
+ * A row of a hat chart as slots in a round of a shaded band: each yarn
+ * marked for what it is in this row - ground or figure by the foreground map,
+ * main or not by how much of the row it is (the pinned sheep and their faces
+ * aside) - and the round's place in the band. Without a band, the plain slots.
+ */
+export const bandSlotsOfRow = (year: number, chart: string, row: number, band?: Band): string[] => {
+  const slots = slotsOfRow(year, chart, row);
+  if (!band) return slots;
+  const key = `${year}${chart}${row}:${band.step}${band.centre ? "c" : ""}`;
+  const hit = shaded.get(key);
+  if (hit) return hit;
+  const letters = lettersOf(year, chart)[row - 1];
+  const tally = new Map<string, [number, number]>();
+  letters.forEach((l, x) => {
+    const t = tally.get(l) ?? [0, 0];
+    t[background(year, chart, row, x) ? 0 : 1]++;
+    tally.set(l, t);
+  });
+  const ranked = [...tally.keys()].filter((l) => !pins(year)[l]).sort((a, b) => tally.get(b)![0] + tally.get(b)![1] - (tally.get(a)![0] + tally.get(a)![1]));
+  const isGround = (l: string) => tally.get(l)![0] >= tally.get(l)![1];
+  const grounds = ranked.filter(isGround);
+  const figures = ranked.filter((l) => !isGround(l));
+  const kind = (l: string): string => {
+    if (isGround(l)) return `${grounds.indexOf(l) <= 0 ? "g" : "h"}${band.step}`;
+    // A centre round's one figure takes the bright; a centre round of two figures shades as any other.
+    if (band.centre && figures.length === 1 && figures[0] === l && grounds.length) return "c";
+    return `${figures.indexOf(l) <= 0 ? "f" : "m"}${band.step}`;
+  };
+  const out = slots.map((slot, x) => `${slot}/${kind(letters[x])}`);
+  shaded.set(key, out);
+  return out;
+};
 
 /** The ribbing's slot - the neck, the hem and the cuffs - which is no hat's: see colours. */
 export const trimSlot = "trim";
 
 export const yearOfSlot = (slot: string): number => 2000 + Number(slot.slice(0, 2));
 
-/** Every slot any cut of any year knits, in year order. */
-export const allSlots: string[] = (() => {
+/** Every hat's yarn any cut of any year knits, in year order. */
+export const baseSlots: string[] = (() => {
   const seen = new Set<string>();
   for (const p of patterns) {
     const parts = [...p.options.flatMap((o) => o.parts), ...(p.full ?? [])];
@@ -44,6 +108,9 @@ export const allSlots: string[] = (() => {
   }
   return [...seen].sort();
 })();
+
+/** Every slot any cut of any year knits: each hat's yarn, then its shades in a shaded band. */
+export const allSlots: string[] = baseSlots.flatMap((slot) => [slot, ...SHADE_VARIANTS.map((v) => `${slot}/${v}`)]);
 
 /** The commonest slot of a hat's yarn letter, for a round knitted plain in it. */
 export const plainSlot = (year: number, letter: string): string => {

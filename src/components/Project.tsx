@@ -4,7 +4,7 @@ import { sweaterById } from "../data/sweaters";
 import { SlotId } from "../data/sweaters/types";
 import { useSweater, viewChart } from "../knitting/useSweater";
 import type { ChartView } from "../knitting/views";
-import { colourwayLabel, paletteOf, trimmed, yarnFor } from "../knitting/palette";
+import { colourwayLabel, keyOf, paletteOf, slotNames, trimmed } from "../knitting/palette";
 import { totals, positionOf, currentRun, whereYouAre, roundNames, roundWhats } from "../knitting/progress";
 import { keyEntryAt } from "../knitting/stitch-key";
 import { faceAfter, holdsIn, needleChangesIn, turnsIn } from "../knitting/chart-marks";
@@ -465,10 +465,10 @@ const ProjectView: React.FC<{
             holdRegions={holdRegions}
           />
           <ul className="chart-key">
-            {sweater.slots.map((slot) => (
-              <li key={slot}>
-                <span className="swatch" style={{ background: yarnFor(palette, slot).hex }} />
-                {slot} · {yarnFor(palette, slot).name}
+            {keyOf(sweater.slots, palette).map(({ slots, yarn }) => (
+              <li key={slots[0]}>
+                <span className="swatch" style={{ background: yarn.hex }} />
+                {slotNames(slots)} · {yarn.name}
               </li>
             ))}
           </ul>

@@ -18,17 +18,43 @@ const roleOf = (slot: string): string => {
   return r.ground.includes(l) ? "ground" : r.middle?.includes(l) ? "middle" : "figure";
 };
 
+const MANY = ["journey-light", "night-journey-dark", "landscape-light", "undyed-grounds-light", "shaded-light", "hats-hues-light", "bohus-heathers-light", "muhu-stockings-dark", "seasons-light"];
+
 describe.each([eachYearOnce, thirteenStrips])("the colourways of $name", (design) => {
   // Every chart of size M, knitted: its sections are read before its charts.
   void design.sizes.find((s) => s.id === "m")!.sections;
+  // The fifteen palettes after the traditions, each all dark and all light.
+  const traditions = design.colourways.filter((c) => !MANY.includes(c.id));
+  const many = design.colourways.filter((c) => MANY.includes(c.id));
 
-  it("has fifteen palettes, each all dark and all light, all dark in Shetland naturals first", () => {
-    expect(design.colourways.map((c) => c.id)).toEqual(
-      ["naturals", "early", "twenties", "vintage", "lopi", "selbu", "marius", "bohus", "muhu", "latvia", "andes", "sanquhar", "buggiflooer", "anemone", "classic"].flatMap((p) => [
+  it("has fifteen palettes, each all dark and all light, all dark in Shetland naturals first; then nine of many colours", () => {
+    expect(design.colourways.map((c) => c.id)).toEqual([
+      ...["naturals", "early", "twenties", "vintage", "lopi", "selbu", "marius", "bohus", "muhu", "latvia", "andes", "sanquhar", "buggiflooer", "anemone", "classic"].flatMap((p) => [
         `${p}-dark`,
         `${p}-light`,
       ]),
-    );
+      ...MANY,
+    ]);
+  });
+
+  it.each(many.map((c) => [c.name, c] as const))("knits tens of yarns, in %s", (_, colourway) => {
+    const used = new Set(colourway.shades.filter((s) => s.slot !== trimSlot).map((s) => s.code));
+    expect(used.size).toBeGreaterThanOrEqual(24);
+    expect(colourway.family).toBe("Many colours");
+  });
+
+  it("shades a band round by round in Shaded Fair Isle, and in no other colourway", () => {
+    const shadeOf = (c: (typeof design.colourways)[number], slot: string) => c.shades.find((s) => s.slot === slot)!.code;
+    const shaded = many.find((c) => c.id === "shaded-light")!;
+    // 2018's ground, from a band's edge to its centre: four shades.
+    expect(new Set([0, 1, 2, 3].map((i) => shadeOf(shaded, `18A/g${i}`))).size).toBe(4);
+    // And the charts knit those shades: some row of some chart in each step.
+    const used = new Set(design.charts.flatMap((chart) => chart.rows.flatMap((row) => row.map((cell) => cell.slot))));
+    for (const i of [0, 1, 2, 3]) expect([...used].some((slot) => slot.endsWith(`/g${i}`))).toBe(true);
+    // Every other colourway knits a shade in its yarn's own colour.
+    for (const c of design.colourways.filter((c) => c !== shaded)) {
+      for (const slot of ["18A/g0", "18A/g3", "14D/f2", "23B/c"]) expect(shadeOf(c, slot), `${c.id} ${slot}`).toBe(shadeOf(c, slot.split("/")[0]));
+    }
   });
 
   it("groups its colourways by tradition, each group together", () => {
@@ -70,7 +96,7 @@ describe.each([eachYearOnce, thirteenStrips])("the colourways of $name", (design
     expect(close.slice(0, 5)).toEqual([]);
   });
 
-  it.each(design.colourways.map((c) => [c.name, c] as const))("puts the grounds light or dark as it says, in %s", (_, colourway) => {
+  it.each(traditions.map((c) => [c.name, c] as const))("puts the grounds light or dark as it says, in %s", (_, colourway) => {
     const dark = colourway.id.endsWith("-dark");
     // Every year's ground against the figure drawn on it - not the two pictures of sheep, which stay white whatever the sky.
     for (const year of Object.keys(roles).filter((y) => y !== "2015" && y !== "2019")) {
@@ -83,10 +109,13 @@ describe.each([eachYearOnce, thirteenStrips])("the colourways of $name", (design
     }
   });
 
-  it.each(design.colourways.map((c) => [c.name, c] as const))("ribs the neck, waist and wrists in the trim, the palette's ground, in %s", (_, colourway) => {
+  it("ribs the neck, waist and wrists in the trim", () => {
     const ribs = design.sizes.flatMap((size) => size.sections.flatMap((s) => s.rounds))
       .filter((r) => "fabric" in r && r.fabric === "rib" && "slot" in r).map((r) => (r as { slot: string }).slot);
     expect(new Set(ribs)).toEqual(new Set([trimSlot]));
+  });
+
+  it.each(traditions.map((c) => [c.name, c] as const))("trims in the palette's ground, in %s", (_, colourway) => {
     // By default the yarn of the ground the most hats take.
     const trim = colourway.shades.find((s) => s.slot === trimSlot)!;
     const mains = Object.entries(roles).map(([year, r]) => colourway.shades.find((s) => s.slot.startsWith(`${year.slice(2)}${r.ground[0]}`))!.code);
@@ -94,11 +123,18 @@ describe.each([eachYearOnce, thirteenStrips])("the colourways of $name", (design
     expect(trim.code).toBe(commonest);
   });
 
-  it.each(design.colourways.map((c) => [c.name, c] as const))("offers every yarn of the palette for the trim, and changes only the trim, in %s", (_, colourway) => {
+  it.each(design.colourways.map((c) => [c.name, c] as const))("offers yarns of the palette for the trim, and changes only the trim, in %s", (_, colourway) => {
     const trims = colourway.trims!;
     const used = new Set(colourway.shades.filter((s) => s.slot !== trimSlot).map((s) => s.code));
-    // The palette's every yarn, which takes in every yarn the colourway knits.
-    for (const code of used) expect(trims.map((t) => t.code)).toContain(code);
+    const trim = colourway.shades.find((s) => s.slot === trimSlot)!;
+    if (MANY.includes(colourway.id)) {
+      // A dozen at most of its many, its own trim among them.
+      expect(trims.length).toBeLessThanOrEqual(12);
+      expect(trims.map((t) => t.code)).toContain(trim.code);
+    } else {
+      // The palette's every yarn, which takes in every yarn the colourway knits.
+      for (const code of used) expect(trims.map((t) => t.code)).toContain(code);
+    }
     expect(trims.every((t) => t.slot === trimSlot)).toBe(true);
     for (const option of trims) {
       const changed = trimmed(colourway, trimIdOf(option));

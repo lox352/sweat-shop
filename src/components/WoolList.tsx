@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Colourway, SlotId } from "../data/sweaters/types";
-import { ballsOf, inkOn, type Overrides, type Palette } from "../knitting/palette";
+import { ballsOf, inkOn, shownSlots, slotNames, type Overrides, type Palette } from "../knitting/palette";
 import YarnPicker, { type Chosen } from "./YarnPicker";
 import BodyStrip from "./BodyStrip";
 import { type Body } from "./ColourPreview";
@@ -36,19 +36,18 @@ interface WoolListProps {
   palette: Palette;
 }
 
-/** "Yarn A", or "Yarns A, C and G". */
-const nameFor = (slots: SlotId[]): string =>
-  slots.length === 1
-    ? `Yarn ${slots[0]}`
-    : `Yarns ${slots.slice(0, -1).join(", ")} and ${slots[slots.length - 1]}`;
+/** "Yarn A", or "Yarns A, C and G": a slot's shades round by round (see shownSlots) as the slot itself. */
+const nameFor = (all: SlotId[]): string => {
+  const slots = shownSlots(all);
+  return slots.length === 1 ? `Yarn ${slots[0]}` : `Yarns ${slots.slice(0, -1).join(", ")} and ${slots[slots.length - 1]}`;
+};
 
 /**
  * "A + C + G" on the ball's chip - or, where a ball does a great many yarns,
  * as one of the Wool Week strip samplers' does every hat's darkest, the
  * first and how many more, the whole list in its title.
  */
-const chipFor = (slots: SlotId[]): string =>
-  slots.length > 3 ? `${slots[0]} + ${slots.length - 1} more` : slots.join(" + ");
+const chipFor = (slots: SlotId[]): string => slotNames(slots);
 
 const WoolList: React.FC<WoolListProps> = ({
   colourway,
@@ -79,7 +78,7 @@ const WoolList: React.FC<WoolListProps> = ({
               <span
                 className="shade-chip"
                 style={{ background: ball.yarn.hex, color: inkOn(ball.yarn.hex) }}
-                title={ball.slots.length > 3 ? ball.slots.join(" + ") : undefined}
+                title={shownSlots(ball.slots).length > 3 ? shownSlots(ball.slots).join(" + ") : undefined}
               >
                 {chipFor(ball.slots)}
               </span>

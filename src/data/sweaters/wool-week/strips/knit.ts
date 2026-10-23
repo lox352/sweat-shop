@@ -4,7 +4,7 @@ import { yearOf } from "../years";
 import { lettersOf, solid } from "./cuts";
 import { gauge, ribs, type Measured, type Plan, type Row } from "./plan";
 import roleData from "./roles.json";
-import { background } from "./quanta";
+import { background, quantumOf } from "./quanta";
 import { added, growing, increasesOf, narrowing, type Step, tileOf, unitsOf } from "./shaping";
 import { letterOf, plainSlot, trimSlot } from "./slots";
 
@@ -52,6 +52,38 @@ export interface Knitted {
   charts: Chart[];
   checks: Record<string, number>;
 }
+
+/**
+ * A piece's rows, each chart row marked with its place in its band - a run of
+ * the piece's rounds in one quantum, or in one chart where no quantum claims
+ * the row: step 0 at the band's edges to 3 at its middle, and the centre round
+ * of a band seven or more rounds deep. A shaded palette gives each step its
+ * own shades (see slots' bandSlotsOfRow). Copies, so the rows the sleeves
+ * carry on from the body stay the body's.
+ */
+const banded = (rows: Row[]): Row[] => {
+  const keyOf = (r: Row) => {
+    if (isPlain(r)) return null;
+    const q = quantumOf(r.year, r.chart, r.row);
+    return q ? `${r.year}${r.chart}${q.aligned ? `g${q.group}` : `${q.from}-${q.to}`}` : `${r.year}${r.chart}`;
+  };
+  const out = rows.map((r) => (isPlain(r) ? r : { ...r }));
+  for (let i = 0; i < out.length; ) {
+    const key = keyOf(out[i]);
+    let j = i + 1;
+    if (key) while (j < out.length && keyOf(out[j]) === key) j++;
+    if (key) {
+      for (let n = i; n < j; n++) {
+        const t = j - i > 1 ? (n - i) / (j - i - 1) : 0;
+        (out[n] as ChartRow).band = { step: Math.round((1 - Math.abs(2 * t - 1)) * 3), centre: j - i >= 7 && n - i === Math.floor((j - i) / 2) };
+      }
+    }
+    i = j;
+  }
+  return out;
+};
+/** The shading of a chart's rows, for its id: each row's step, and "c" for a centre round. */
+const bandsOf = (rows: ChartRow[]): string => (rows.some((r) => r.band) ? `b${rows.map((r) => (r.band ? `${r.band.step}${r.band.centre ? "c" : ""}` : "-")).join("")}` : "");
 
 /** A cell of a widened repeat: a column's later copies only space the pattern out (see ChartCell.spacer). */
 const cellOf = (slot: string, map: number[], q: number): ChartCell => (q > 0 && map[q - 1] === map[q] ? { slot, spacer: true } : { slot });
@@ -135,14 +167,14 @@ class Writer {
     if (!this.run) return;
     const { year, chart, w, rows, map, seam } = this.run;
     if (seam !== undefined) {
-      const id = `${this.prefix}${String(year).slice(2)}${chart}${rows[0].row}-${rows[rows.length - 1].row}s${w}o${seam}`;
+      const id = `${this.prefix}${String(year).slice(2)}${chart}${rows[0].row}-${rows[rows.length - 1].row}s${w}o${seam}${bandsOf(rows)}`;
       if (!this.charts.has(id)) this.charts.set(id, { id, name: this.nameOf(year), rows: rows.map((r) => seamCells(r, w, seam)) });
       this.specs.push({ type: "chart", chart: id, rows: [1, rows.length], repeats: 1 });
       this.run = null;
       return;
     }
     const doubled = map ? doubling(map) : "";
-    const id = `${this.prefix}${String(year).slice(2)}${chart}${rows[0].row}-${rows[rows.length - 1].row}w${w}${doubled ? `x${doubled}` : ""}`;
+    const id = `${this.prefix}${String(year).slice(2)}${chart}${rows[0].row}-${rows[rows.length - 1].row}w${w}${doubled ? `x${doubled}` : ""}${bandsOf(rows)}`;
     if (!this.charts.has(id)) {
       const cells = (r: ChartRow): ChartCell[] => (map ? map.map((x, q) => cellOf(tileOf(r)[x], map, q)) : tileOf(r).map((slot) => ({ slot })));
       this.charts.set(id, { id, name: this.nameOf(year), rows: rows.map(cells) });
@@ -172,7 +204,7 @@ class Writer {
     const cells: ChartCell[] = after.map((x, q) =>
       fresh.has(q) ? { ...cellOf(tile[x], after, q), symbol: "m1" } : cellOf(tile[x], after, q),
     );
-    const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}w${before.length}d${doubling(before) || "0"}-${doubling(after)}`;
+    const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}w${before.length}d${doubling(before) || "0"}-${doubling(after)}${bandsOf([r])}`;
     this.charts.set(id, { id, name: this.nameOf(r.year), rows: [cells] });
     this.specs.push({ type: "chart", chart: id, rows: [1, 1] });
   }
@@ -191,7 +223,7 @@ class Writer {
     const cells: ChartCell[] = after.map((x, q) =>
       has.get(x)! < had.get(x)! && after[q + 1] !== x ? { ...cellOf(tile[x], after, q), symbol: "k2tog" } : cellOf(tile[x], after, q),
     );
-    const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}w${before.length}m${doubling(before)}-${doubling(after) || "0"}`;
+    const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}w${before.length}m${doubling(before)}-${doubling(after) || "0"}${bandsOf([r])}`;
     this.charts.set(id, { id, name: this.nameOf(r.year), rows: [cells] });
     this.specs.push({ type: "chart", chart: id, rows: [1, 1] });
   }
@@ -222,7 +254,7 @@ class Writer {
       const at = new Set(Array.from({ length: change }, (_, k) => Math.floor(((k + 0.5) * (to - 1)) / change)));
       row = cells.map((c, j) => (at.has(j) ? { ...c, symbol: "k2tog" } : c));
     }
-    const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}s${from}-${to}o${off}`;
+    const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}s${from}-${to}o${off}${bandsOf([r])}`;
     this.charts.set(id, { id, name: this.nameOf(r.year), rows: [row] });
     this.specs.push({ type: "chart", chart: id, rows: [1, 1], repeats: 1 });
   }
@@ -254,7 +286,7 @@ class Writer {
     const symbol = to > from ? "m1" : "k2tog";
     const cells: ChartCell[] = Array.from({ length: to }, (_, j) => (at.has(j) ? { ...cellAt(j), symbol } : cellAt(j)));
     const doubled = map ? doubling(map) : "";
-    const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}t${from}-${to}${map ? `w${map.length}${doubled ? `x${doubled}` : ""}` : ""}`;
+    const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}t${from}-${to}${map ? `w${map.length}${doubled ? `x${doubled}` : ""}` : ""}${bandsOf([r])}`;
     this.charts.set(id, { id, name: this.nameOf(r.year), rows: [cells] });
     this.specs.push({ type: "chart", chart: id, rows: [1, 1], repeats: 1 });
   }
@@ -373,7 +405,8 @@ const seamOffsets = (rows: Row[], steps: Step[], top: number): Map<number, numbe
   return out;
 };
 
-export const knit = (size: Measured, plan: Plan, prefix: string): Knitted => {
+export const knit = (size: Measured, given: Plan, prefix: string): Knitted => {
+  const plan = { ...given, rows: { yoke: banded(given.rows.yoke), body: banded(given.rows.body), sleeve: banded(given.rows.sleeve) } };
   const g = gauge;
   const neck = nearest(size.neckCm * g.stitches, 4);
   const body = nearest(size.chestCm * g.stitches, 4);

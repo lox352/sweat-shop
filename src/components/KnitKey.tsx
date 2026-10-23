@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import type { Face, Hold, NeedleChange, Turn } from "../knitting/chart-marks";
 import { Stitch } from "../types/Stitch";
-import { Palette } from "../knitting/palette";
+import { Palette, shownSlots } from "../knitting/palette";
 import { stitchKey } from "../knitting/stitch-key";
 import { KeyList } from "../knitting/ChartHelp";
 import type { StitchKeyId, StitchNote } from "../data/sweaters/types";
@@ -35,7 +35,7 @@ const FullKey: React.FC<{
       <ul className="full-key-yarns">
         {yarns.map(([slot, yarn]) => (
           <li key={slot}>
-            <span className="swatch" style={{ background: yarn.hex }} /> {slot} · {yarn.name}
+            <span className="swatch" style={{ background: yarn.hex }} /> {shownSlots([slot])[0]} · {yarn.name}
           </li>
         ))}
       </ul>

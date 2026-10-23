@@ -319,6 +319,30 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     darks, the first of each the ground, with perhaps some middle shades and
     an accent. All dark in Shetland naturals is the default. Bohus's close
     heathered shades keep 17 L* apart where the rest keep 20.
+  - **Nine of many colours**, tens of Spindrift yarns each, from the colour
+    research: lightness carries the pattern, colours change their
+    neighbours, brights go in small doses, and one organising idea holds tens
+    of colours together. Colour journey (a step round the colour circle each
+    year), Night journey (the same on dark grounds), Shetland landscape (each
+    year a place, in soft heathers), Undyed grounds with dyed figures,
+    Shaded Fair Isle, the hats' own hues, Bohus heathers, Muhu stockings (the
+    bold one, brights over the hats' tenth on purpose) and Shetland seasons.
+    Each hat's yarns go on by what they draw, 2014's by its own light and
+    dark, nearest a target within lightness bands for ground and figure,
+    every two that meet in a round 20 L* apart (Bohus 17), the sheep Natural
+    White with Black faces. Each is one colourway, its grounds light or dark
+    as its idea has them; the sheep years and the Buggiflooer turn over in
+    the light ones.
+  - **Shaded bands.** Shaded Fair Isle gives every band's rounds their own
+    shades, as Fair Isle does: the ground steps through four shades of one
+    family and the pattern four of another, edge to centre and back, and the
+    centre round of a band seven or more deep takes a bright. The knitting
+    marks each chart row with its place in its band (knit's `banded`), and a
+    row's slots carry it: "14D/f2" is 2014's yarn D as a round's main figure
+    at step 2 of 3 (`bandSlotsOfRow`). Every other colourway knits those
+    slots in the slot's own yarn, so the knitting is the same in all of them;
+    the colour keys and wool list show each yarn once. 2025's allover, which
+    shades itself, keeps its own eight yarns.
   - **Ground and figure.** Each hat's yarns are read by what its charts
     depict (`roles.json`): the ground behind, the figure drawn on it, and,
     in the Shwook Hat, a middle that stands between the two. All light puts
