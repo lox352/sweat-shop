@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { lettersOf } from "./cuts";
+import { plainBetween } from "./quanta";
 import { measured } from "./design";
 import { type Row, planOf } from "./plan";
 
@@ -36,9 +37,8 @@ describe("Each Year Once, refitted", () => {
     for (const piece of ["yoke", "body", "sleeve"] as const) {
       expect(plan.rows[piece]).toHaveLength(plan.depth[piece]);
       expect(plan.strips[piece].reduce((total, s) => total + s.height, 0)).toBe(plan.depth[piece]);
-      // Every piece begins with a plain round, where its first shaping or its divide goes - save L's yoke, opened by its first star's tips.
-      if (piece === "yoke" && id === "l") expect(plan.rows.yoke[0]).toMatchObject({ year: 2014, chart: "C", row: 13 });
-      else expect("plain" in plan.rows[piece][0]).toBe(true);
+      // Every piece begins with a plain round, where its first shaping or its divide goes.
+      expect("plain" in plan.rows[piece][0]).toBe(true);
     }
   });
 
@@ -55,14 +55,39 @@ describe("Each Year Once, refitted", () => {
     }
   });
 
-  it("gives the houses a plain row at both ends, and 2014's two stars whole and meeting, in L", () => {
+  it("gives the houses a plain row at both ends, and 2014's two stars whole with a round between, in L", () => {
     const plan = planOf(measured.find((m) => m.id === "l")!.finished, { kind: "refit" }, "l");
     const houses = plan.rows.yoke.filter((r) => r.year === 2016 && !("plain" in r)) as Exclude<Row, { plain: string }>[];
     expect([houses[0].row, houses[houses.length - 1].row]).toEqual([39, 11]);
-    // Every row of both stars, the first star's tips the yoke's first round and no round between them; and the sheep whole.
+    // Every row of both stars, a plain round above and between them; the sheep giving up two rows of sky and one of field for it.
     const stars = plan.rows.yoke.filter((r) => r.year === 2014).map((r) => ("plain" in r ? "plain" : `${r.chart}${r.row}`));
-    expect(stars).toEqual([...Array.from({ length: 13 }, (_, i) => `C${13 - i}`), ...Array.from({ length: 13 }, (_, i) => `B${13 - i}`)]);
+    expect(stars).toEqual(["plain", ...Array.from({ length: 13 }, (_, i) => `C${13 - i}`), "plain", ...Array.from({ length: 13 }, (_, i) => `B${13 - i}`)]);
     const sheep = plan.rows.yoke.filter((r) => r.year === 2015 && !("plain" in r)) as Exclude<Row, { plain: string }>[];
-    expect(sheep.map((r) => r.row)).toEqual(Array.from({ length: 25 }, (_, i) => 25 - i));
+    expect(sheep.map((r) => r.row)).toEqual(Array.from({ length: 22 }, (_, i) => 23 - i));
+  });
+});
+
+describe("a plain round between quanta that don't go together", () => {
+  const layouts = [{ kind: "lined", newestFirst: false }, { kind: "refit" }] as const;
+  it.each(layouts.flatMap((layout) => measured.map((m) => ({ ...m, layout, kind: layout.kind }))))(
+    "never knits two such rows one after the other: $kind, $label",
+    ({ id, finished, layout }) => {
+      const plan = planOf(finished, layout, id);
+      for (const piece of ["yoke", "body", "sleeve"] as const) {
+        plan.rows[piece].forEach((r, i) => {
+          const above = plan.rows[piece][i - 1];
+          if (!above || "plain" in r || "plain" in above || above.year !== r.year) return;
+          expect(plainBetween(r.year, above, r), `${piece} round ${i + 1}: ${r.year} ${above.chart}${above.row} then ${r.chart}${r.row}`).toBe(false);
+        });
+      }
+    },
+  );
+
+  it("parts the peeries from 2014's stars, in M", () => {
+    const plan = planOf(measured.find((m) => m.id === "m")!.finished, { kind: "refit" }, "m");
+    const rows = plan.rows.yoke.filter((r) => r.year === 2014).map((r) => ("plain" in r ? "plain" : `${r.chart}${r.row}`));
+    const at = (row: string) => rows.indexOf(row);
+    expect(rows[at("A1") + 1]).toBe("plain");
+    expect(rows[at("C1") + 1]).toBe("plain");
   });
 });

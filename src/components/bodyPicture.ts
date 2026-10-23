@@ -59,6 +59,12 @@ export const spacers = (body: number[][], stitches: Stitch[]): Set<number> =>
  * whose last round increases keeps its blocks in line to the end, and only
  * the next round is wider. Painted at its own count instead, that last round
  * has its blocks shifted along under the rest of the band.
+ *
+ * Not a band begun on more stitches, though, its make-ones spread through its
+ * first round and the round laid out afresh: that is the new band's first row,
+ * and painted in line with the round before it, it would drift along from the
+ * rest of its band. So only a round whose new stitches are all a KFB's second
+ * loop, or a round all of one yarn, where it makes no odds, is painted in line.
  */
 export const paintedRows = (body: number[][], stitches: Stitch[]): number[][] => {
   const spaced = spacers(body, stitches);
@@ -66,6 +72,9 @@ export const paintedRows = (body: number[][], stitches: Stitch[]): number[][] =>
   return rows.map((round, y) => {
     const above = rows[y - 1];
     if (!above || round.length <= above.length) return round;
+    const oneYarn = new Set(round.map((id) => stitches[id]?.slot)).size === 1;
+    const twinned = round.every((id, i) => stitches[id]?.type !== "m1" || stitches[round[i - 1]]?.type === "kfb");
+    if (!oneYarn && !twinned) return round;
     const grown = new Map<number, number>();
     for (const id of round) {
       const parent = parentOf(stitches[id]);

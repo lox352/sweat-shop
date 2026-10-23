@@ -62,3 +62,20 @@ it("paints a Wool Week band that doubles columns at its own repeat, each stitch 
   // Only the copies are left out, and every one of them is background: knitted in the yarn of the stitch beside it.
   for (const round of body) round.forEach((id, i) => isSpacer(stitches[id]) && expect(stitches[id].slot).toBe(stitches[round[i - 1]].slot));
 }, 60000);
+
+it("paints a Wool Week band begun on more stitches on its own layout, not in line with the round before it", async () => {
+  const { default: eachYearOnce } = await import("../data/sweaters/wool-week-strips-once-oldest");
+  const { stitches, rounds } = buildSweater(eachYearOnce, "xs");
+  const body = bodyRounds(rounds, stitches);
+  const rows = paintedRows(body, stitches);
+  // A patterned round that grows by make-ones spread through it, none a KFB's second loop: a band's first row.
+  const begun = body.flatMap((round, y) =>
+    y > 0 && round.length > body[y - 1].length && new Set(round.map((id) => stitches[id].slot)).size > 1 && round.some((id, i) => stitches[id].type === "m1" && stitches[round[i - 1]]?.type !== "kfb") ? [y] : [],
+  );
+  expect(begun.length).toBeGreaterThan(1);
+  // Painted as it is, every stitch of it, so it lines up with the rest of its band below it.
+  for (const y of begun) {
+    expect(rows[y]).toEqual(body[y].filter((id) => !isSpacer(stitches[id])));
+    expect(rows[y + 1]).toHaveLength(rows[y].length);
+  }
+}, 60000);
