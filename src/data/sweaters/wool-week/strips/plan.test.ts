@@ -48,6 +48,24 @@ describe("Each Year Once, refitted", () => {
     }
   });
 
+  it.each(measured)("frames every year in one yarn, above it and below, in $label", ({ id, finished }) => {
+    const plan = planOf(finished, { kind: "refit" }, id);
+    for (const piece of ["yoke", "body", "sleeve"] as const) {
+      const rows = plan.rows[piece];
+      for (const year of new Set(rows.map((r) => r.year))) {
+        // A year's one-colour rounds at each end: its plain rounds, and its pattern's own one-colour rows.
+        const own = rows.filter((r) => r.year === year);
+        const one = (r: Row) => new Set(lettersOfRow(r)).size === 1;
+        const ends = [...own.slice(0, own.findIndex((r) => !one(r))), ...own.slice(own.length - [...own].reverse().findIndex((r) => !one(r)))];
+        const plain = new Set(ends.filter((r) => "plain" in r).map((r) => lettersOfRow(r)[0]));
+        const charted = new Set(ends.filter((r) => !("plain" in r)).map((r) => lettersOfRow(r)[0]));
+        // All its plain rounds in one yarn, that of its pattern's own one-colour rows where it has them.
+        expect(plain.size, `${piece}, ${year}`).toBeLessThanOrEqual(1);
+        if (plain.size && charted.size) expect(charted.has([...plain][0]), `${piece}, ${year}`).toBe(true);
+      }
+    }
+  });
+
   it("gives the houses a plain row at both ends, and 2014's two stars whole with a round between, in L", () => {
     const plan = planOf(measured.find((m) => m.id === "l")!.finished, { kind: "refit" }, "l");
     const houses = plan.rows.yoke.filter((r) => r.year === 2016 && !("plain" in r)) as Exclude<Row, { plain: string }>[];
@@ -70,9 +88,10 @@ describe("both layouts", () => {
       const rows = plan.rows[piece];
       rows.forEach((r, i) => {
         if (!("plain" in r)) return;
-        // A plain round's yarn is one its own year knits in the three pattern rows nearest it either side: never a stripe from elsewhere.
+        // A plain round's yarn is one its own year knits - in Thirteen Strips, in the three pattern rows nearest it either side; in Each Year
+        // Once, which frames each year in one yarn above and below, anywhere: never a stripe from elsewhere.
         const patterned = (rs: Row[]) => rs.filter((x) => x.year === r.year && !("plain" in x));
-        const near = [...patterned(rows.slice(0, i)).slice(-3), ...patterned(rows.slice(i + 1)).slice(0, 3)];
+        const near = layout.kind === "refit" ? patterned(rows) : [...patterned(rows.slice(0, i)).slice(-3), ...patterned(rows.slice(i + 1)).slice(0, 3)];
         if (near.length) expect(near.some((x) => lettersOfRow(x).includes(r.plain))).toBe(true);
       });
     }

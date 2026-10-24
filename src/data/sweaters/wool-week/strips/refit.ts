@@ -1,5 +1,6 @@
-import { type Part, type Round, edgeOf as edge, groundOf, isPlain, measured, seamsOf, topDown } from "./cuts";
+import { type Part, type Round, edgeOf as edge, groundOf, isPlain, lettersOfRound, measured, seamsOf, topDown } from "./cuts";
 import { type Measured, type Plan, type Row, type Strip, splitOf } from "./plan";
+import roles from "./roles.json";
 
 /**
  * Each Year Once, refitted: 2014 to 2016 round the yoke, 2017 to 2021 down
@@ -29,7 +30,11 @@ import { type Measured, type Plan, type Row, type Strip, splitOf } from "./plan"
  * 7. Every year is framed alike: as many plain rounds in its own yarn above
  *    it as below - its pattern's own plain edge rows, the round between it
  *    and its neighbour where that is in its yarn, and its padding. Where one
- *    side has more, rounds go on the other, in that edge's background.
+ *    side has more, rounds go on the other.
+ * 8. And in the same yarn above as below: every plain round a year has, at
+ *    either edge, is in one yarn - its pattern's own plain edge row's, where
+ *    it has one, or else a ground both its edges knit, the one they knit
+ *    most (see frameOf).
  * 6. Each year's cuts are a ladder from fullest down; a piece starts each
  *    year at the top of its ladder and steps down the trims in a set order
  *    until it fits. The sleeves start in the middle and spend spare rounds
@@ -230,6 +235,31 @@ const leading = (rounds: R[]) => {
   return n;
 };
 
+/** How much of the three rows nearest an edge each yarn is. */
+const sharesAt = (rows: R[], top: boolean): Map<string, number> => {
+  const near = (top ? rows.slice(0, 3) : rows.slice(-3)).map(lettersOfRound);
+  const n = new Map<string, number>();
+  for (const r of near) for (const c of r) n.set(c, (n.get(c) ?? 0) + 1 / r.length / near.length);
+  return n;
+};
+
+/**
+ * Rule 8: the one yarn of a strip's plain rounds, above it and below. Its
+ * pattern's own plain edge row's, where it has one; else a ground both its
+ * edges knit, the one the edge that knits it less knits most; else the ground
+ * either edge knits most; else its top edge's background.
+ */
+const frameOf = (s: Placed): string => {
+  const ends = [s.rounds[0], s.rounds[s.rounds.length - 1]];
+  const solid = ends.find(isPlain);
+  if (solid) return lettersOfRound(solid)[0];
+  const grounds = (roles as Record<string, { ground: string[] }>)[s.year].ground;
+  const [top, bottom] = [sharesAt(s.rounds, true), sharesAt(s.rounds, false)];
+  const score = (g: string) => (top.has(g) && bottom.has(g) ? 1 + Math.min(top.get(g)!, bottom.get(g)!) : Math.max(top.get(g) ?? 0, bottom.get(g) ?? 0));
+  const best = [...grounds].sort((a, b) => score(b) - score(a))[0];
+  return best && score(best) > 0 ? best : edge(s.rounds, true).letter;
+};
+
 /** A piece's rounds and its strips, the spare rounds shared out by rule 5. */
 const build = (strips: Placed[], total: number, ends: Ends): { rows: Row[]; strips: Strip[] } => {
   const { spare, rounds, framing } = between(strips, total, ends);
@@ -252,13 +282,16 @@ const build = (strips: Placed[], total: number, ends: Ends): { rows: Row[]; stri
   }
   const rows: Row[] = [];
   const placed: Strip[] = [];
+  // Rule 8: each year's plain rounds in one yarn, the rounds between strips in their own year's.
+  const frames = new Map(strips.map((s) => [s.year, frameOf(s)]));
+  const framed = (r: R | null): R | null => (r && "plain" in r ? { year: r.year, plain: frames.get(r.year)! } : r);
   strips.forEach((s, i) => {
     const own: R[] = [];
-    if (rounds[i]) own.push(rounds[i]!);
-    for (let k = 0; k < (pads.get(`${i}true`) ?? 0); k++) own.push({ year: s.year, plain: edge(s.rounds, true).letter });
+    if (rounds[i]) own.push(framed(rounds[i])!);
+    for (let k = 0; k < (pads.get(`${i}true`) ?? 0); k++) own.push({ year: s.year, plain: frames.get(s.year)! });
     own.push(...s.rounds);
-    for (let k = 0; k < (pads.get(`${i}false`) ?? 0); k++) own.push({ year: s.year, plain: edge(s.rounds, false).letter });
-    if (i === strips.length - 1 && rounds[i + 1]) own.push(rounds[i + 1]!);
+    for (let k = 0; k < (pads.get(`${i}false`) ?? 0); k++) own.push({ year: s.year, plain: frames.get(s.year)! });
+    if (i === strips.length - 1 && rounds[i + 1]) own.push(framed(rounds[i + 1])!);
     rows.push(...own);
     placed.push({ year: s.year, height: own.length, cut: measured(s.year, { ...s.state, neat: true }), ground: groundOf(s.year, s.state.parts) });
   });
