@@ -12,7 +12,7 @@ import { allSlots, letterOf, trimSlot, yearOfSlot } from "./slots";
  * its darks for all dark.
  *
  * Fifteen palettes, each after a knitting tradition and grouped by where it
- * is from, so thirty colourways; then nine of many colours, tens of yarns
+ * is from, so thirty colourways; then thirteen of many colours, tens of yarns
  * each, every one built on a single idea - a path round the colour circle,
  * Shetland's places, undyed grounds, Fair Isle shading and more. One of them
  * shades its bands, giving each round of a band its own shades of ground and

@@ -35,7 +35,10 @@ import { bandSlotsOfRow } from "./slots";
  *   a narrower repeat than its hat's, its motifs brought closer together
  *   unaltered, by seams through its background between its foreground regions
  *   (see regions.ts); or on a wider one, a seam of background added. Such a
- *   band keeps its repeat all the way down. Padding costs more the more it
+ *   band keeps its repeat all the way down, save that a padded band may step
+ *   down to less padding part-way, as the taper narrows, wherever the
+ *   narrower round is the wider with copies of background columns left out.
+ *   Padding costs more the more it
  *   bends a region it has to cross, enough that it is used only where the band would otherwise be seamed.
  *
  * The counts are chosen by a search over the whole piece, keeping each round
@@ -143,6 +146,8 @@ export interface Step {
   seam?: boolean;
   /** A band on a narrowed or padded repeat (see regions.ts): how many stitches each repeat gains, or gives up if fewer than none. Its map is then the round's own. */
   resized?: number;
+  /** A round where a padded band steps down to less padding: the round on the wider padding, which it takes in by a k2tog of two copies of a background column. */
+  before?: number[];
 }
 
 export interface Target {
@@ -244,10 +249,37 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
   const PADDED = 0.08;
   const BENT = 0.004;
   const WIDER = 0.05;
+  const STEP = 0.004;
   const resizeCost = (k: number, L: Layout) => {
     const v = resizings[k][L.resized!];
     // Each stitch of padding costs a little more, so a band is padded no more than it needs.
     return v.w < units[k].w ? NARROWED : PADDED + BENT * (v.cost ?? 0) + WIDER * (v.w - units[k].w);
+  };
+
+  /** A band's map at a round of it, on a layout: its resizing's, or its own columns. */
+  const mapAt = (k: number, L: Layout, p: number): number[] | null =>
+    L.resized !== undefined ? resizings[k][L.resized].maps[p] : L.dup.length || L.seam ? null : Array.from({ length: units[k].w }, (_, x) => x);
+  /**
+   * Narrowing, solved reversed: may a band on layout `L` up to round p go on
+   * above it on the wider resizing `L2`? As knitted, the round below is taken
+   * in from the wider padding to the narrower: it must be the wider round with
+   * copies of columns left out, at most one of each, every one a k2tog of two
+   * background stitches under background in the round above.
+   */
+  const stepsDown = (k: number, p: number, L: Layout, L2: Layout): number[] | null => {
+    const u = units[k];
+    const small = mapAt(k, L, p - 1);
+    const big = mapAt(k, L2, p - 1);
+    const above = mapAt(k, L2, p);
+    if (!small || !big || !above || big.length <= small.length) return null;
+    const lost = new Set<number>();
+    let j = 0;
+    for (let q = 0; q < big.length; q++) {
+      if (j < small.length && big[q] === small[j]) j++;
+      else if (q > 0 && big[q] === big[q - 1] && !lost.has(big[q]) && u.bg[p - 1][big[q]] && u.bg[p][above[q]] && u.bg[p][above[q - 1]]) lost.add(big[q]);
+      else return null;
+    }
+    return j === small.length ? big : null;
   };
 
   const lookMemo = new Map<number, number>();
@@ -310,6 +342,23 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
     move?: Move;
     next?: number;
   }
+  /**
+   * A unit that runs on round its repeat changes its layout only in its first pass, as knitted, so the rest line up with it: 2025's
+   * peerie and lower core with its upper core. Narrowing, solved reversed, that pass is the last, and a change here is worked in the
+   * round below, which must be in it too.
+   */
+  const firstPass = (u: Unit, p: number) => {
+    const lastPass = u.pass[u.pass.length - 1];
+    return reversed ? u.pass[p] === lastPass && u.pass[p - 1] === lastPass : u.pass[p] === 0;
+  };
+  /** Narrowing, a band on its own repeat or a resized one going on above on a wider padding, its padding stepping down part-way, as knitted. */
+  const stepping = (k: number, p: number, L: Layout, reps: number, since: number, moves: Move[]) => {
+    if (!reversed || since < 2 || !firstPass(units[k], p)) return;
+    for (const L2 of resizedLayouts[k]) {
+      if (L2.extra > 0 && L2.extra > L.extra && stepsDown(k, p, L, L2)) moves.push({ m: reps * (units[k].w + L2.extra), L: L2, reps, kind: "double" });
+    }
+  };
+
   const memo = new Map<number, Best>();
   // One number for a state: its round, count, layout, repeats and rounds since an increase, in 47 bits.
   const keyOf = (i: number, c: number, L: Layout, reps: number, since: number) => (((i * 4096 + c) * 65536 + L.id) * 512 + reps) * 4 + since;
@@ -373,17 +422,15 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
         if (reversed) for (const m of new Set([c, c + 1, c + 2, Math.round(want)])) if (m >= c) moves.push({ m, L: seamed, reps: 0, kind: m > c ? "change" : "same" });
       } else if (L.resized !== undefined) {
         moves.push({ m: c, L, reps, kind: "same" });
+        stepping(k, p, L, reps, since, moves);
       } else if (L.seam) {
         // A seamed band narrows two stitches at a time, either side of its seam.
         moves.push({ m: c, L, reps: 0, kind: "same" });
         if (since >= 1) moves.push({ m: c + 2, L, reps: 0, kind: "change" });
       } else {
         moves.push({ m: c, L, reps, kind: "same" });
-        // A unit that runs on round its repeat changes its layout only in its first pass, as knitted, so the rest line up with it: 2025's peerie and lower core with its upper core.
-        // Narrowing, solved reversed, that pass is the last, and a change here is worked in the round below, which must be in it too.
-        const lastPass = u.pass[u.pass.length - 1];
-        const firstPass = reversed ? u.pass[p] === lastPass && u.pass[p - 1] === lastPass : u.pass[p] === 0;
-        if (since >= 2 && firstPass) {
+        if (L === none) stepping(k, p, L, reps, since, moves);
+        if (since >= 2 && firstPass(u, p)) {
           best[k].forEach((s, j) => {
             if (p < s.from) return;
             const L1 = add(L, k, j);
@@ -396,14 +443,17 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
         if (mv.m > 1.5 * c || (mv.m > c && mv.m > 1.125 * want && !last)) continue;
         // Narrowing, every round within the tolerance of its target; the round above the cuff may differ from it, worked in a round before the rib.
         if (reversed && !fixed && Math.abs(mv.m - want) > (t.tolerance ?? 0.1) * want) continue;
-        let pen = dev(mv.m, i) + (mv.L.seam ? SEAM : 0) + (mv.L.resized !== undefined && p === 0 ? resizeCost(k, mv.L) : 0);
+        // A resized layout costs where the band starts on it; a padding stepped onto part-way, what it adds and a little for the step.
+        let pen = dev(mv.m, i) + (mv.L.seam ? SEAM : 0);
+        if (mv.L.resized !== undefined && p === 0) pen += resizeCost(k, mv.L);
+        else if (mv.L.resized !== undefined && mv.L !== L) pen += STEP + Math.max(0, resizeCost(k, mv.L) - (L.resized !== undefined ? resizeCost(k, L) : 0));
         if (fixed && mv.m > c) pen += 0.01;
         if (mv.m > c) pen += 0.0015;
         // Increase rounds close together crowd their make-ones: two rounds between them where the target allows.
         if (mv.m > c && since < 2) pen += 0.004 * (2 - since);
         if (mv.m > c && mv.kind === "change" && patterned(i)) pen += 0.002;
         if (!u.solid) {
-          if (mv.kind === "double") pen += 0.0004 * (look(k, p, mv.L) - look(k, p, L));
+          if (mv.kind === "double" && mv.L.resized === undefined) pen += 0.0004 * (look(k, p, mv.L) - look(k, p, L));
           else if (p === 0 && mv.L.extra > 0 && mv.L.resized === undefined) pen += 0.0004 * look(k, 0, mv.L);
         }
         if (pen >= res.cost) continue;
@@ -419,10 +469,15 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
   const root = rec(0, t.from, none, 0, 3);
   if (!Number.isFinite(root.cost)) throw new Error(`no way to shape ${n} rounds from ${t.from} to ${t.to}`);
   const steps: Step[] = [];
+  let was: Layout = none;
   for (let b: Best | undefined = root; b?.move; b = memo.get(b.next!)) {
     const { m, L, reps, kind } = b.move;
-    const u = units[unitAt[steps.length]];
-    const v = L.resized !== undefined ? resizings[unitAt[steps.length]][L.resized] : undefined;
+    const k = unitAt[steps.length];
+    const u = units[k];
+    // A padding stepped onto part-way: the round below, as knitted, takes it in.
+    if (kind === "double" && L.resized !== undefined && posAt[steps.length] > 0) steps[steps.length - 1].before = stepsDown(k, posAt[steps.length], was, L)!;
+    was = L;
+    const v = L.resized !== undefined ? resizings[k][L.resized] : undefined;
     steps.push(
       u.solid
         ? { count: m, kind }

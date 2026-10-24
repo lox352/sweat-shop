@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { measured } from "./design";
 import { gauge, planOf, type Layout } from "./plan";
 import { growing, mapOf, narrowing, type Step, unitsOf } from "./shaping";
+import eachYearOnce from "../../wool-week-strips-once-oldest";
 
 const nearest = (v: number, m: number) => Math.max(m, Math.round(v / m) * m);
 
@@ -126,6 +127,29 @@ describe("a sleeve narrowed by its quanta, seamless where it can be", () => {
     }
   });
 
+  it.each(cases)("steps a padded band down part-way only by k2togs of two background copies: $kind, $label", ({ id, finished, layout }) => {
+    const { rows, steps } = sleeveOf(finished, layout, id);
+    for (const u of unitsOf(rows)) {
+      u.rows.forEach((i, p) => {
+        const s = steps[i];
+        if (!s.before) return;
+        // The round above was on the wider padding, whole repeats of it; this round is on as many repeats of the narrower.
+        expect(p, `round ${i + 1}`).toBeGreaterThan(0);
+        expect(steps[i - 1].count / s.before.length, `round ${i + 1}`).toBe(s.count / s.map!.length);
+        // The narrower round is the wider with copies left out, each a column's second copy, background.
+        let j = 0;
+        s.before.forEach((x, q) => {
+          if (s.map![j] === x) j++;
+          else {
+            expect(s.before![q - 1], `round ${i + 1}, column ${x}`).toBe(x);
+            expect(u.bg[p][x], `round ${i + 1}, column ${x}`).toBe(true);
+          }
+        });
+        expect(j).toBe(s.map!.length);
+      });
+    }
+  });
+
   it.each(cases)("ends a doubled column only where everything above it in its band is background: $kind, $label", ({ id, finished, layout }) => {
     const { rows, steps } = sleeveOf(finished, layout, id);
     for (const u of unitsOf(rows)) {
@@ -140,6 +164,15 @@ describe("a sleeve narrowed by its quanta, seamless where it can be", () => {
           if (p) expect(copies(steps[i - 1]).get(x) ?? 1, `round ${i + 1}, column ${x}`).toBeGreaterThanOrEqual(k);
         }
       });
+    }
+  });
+
+  it("tapers Each Year Once's sleeves to the cuff in L and XL, 2026's padding stepping down part-way", () => {
+    for (const id of ["l", "xl"]) {
+      const specs = eachYearOnce.sizes.find((size) => size.id === id)!.sections.filter((section) => section.piece === "sleeve-left").flatMap((section) => section.rounds);
+      const charts = specs.flatMap((spec) => (spec.type === "chart" ? [spec.chart] : []));
+      // A row taken in from one padding to the less: 2026's lattice from 36 stitches to 34 in L, 38 to 36 in XL.
+      expect(charts.filter((chart) => /-s-26Body\d+w\d+-\d+p\d/.test(chart)), id).toHaveLength(1);
     }
   });
 });
