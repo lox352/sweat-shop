@@ -1,4 +1,4 @@
-import { type Part, groundOf, lettersOf, measured, seamsOf, topDown } from "./cuts";
+import { type Part, type Round, edgeOf as edge, groundOf, isPlain, measured, seamsOf, topDown } from "./cuts";
 import { type Measured, type Plan, type Row, type Strip, splitOf } from "./plan";
 
 /**
@@ -168,24 +168,7 @@ const starts: Record<string, { c2014: "C21" | "B26" | "P30"; four2017: boolean; 
 };
 
 /* A round while it's being laid out: a chart row, or plain in a year's yarn. */
-type R = { year: number; chart: string; row: number; w: number } | { year: number; plain: string };
-const lettersOfRound = (r: R): string[] => ("plain" in r ? [r.plain] : lettersOf(r.year, r.chart)[r.row - 1]);
-const isPlain = (r: R) => new Set(lettersOfRound(r)).size === 1;
-
-/** A pattern's background at an edge: the commonest yarn over the three rows nearest it, how much of them it is, and whether the edge row is plain. */
-const edge = (rows: R[], top: boolean) => {
-  const near = (top ? rows.slice(0, 3) : rows.slice(-3)).map(lettersOfRound);
-  const n = new Map<string, number>();
-  let all = 0;
-  for (const r of near) {
-    for (const c of r) {
-      n.set(c, (n.get(c) ?? 0) + 1 / r.length);
-      all += 1 / r.length;
-    }
-  }
-  const [letter, count] = [...n].sort((a, b) => b[1] - a[1])[0];
-  return { letter, share: count / all, plain: isPlain(top ? rows[0] : rows[rows.length - 1]) };
-};
+type R = Round;
 
 /** A cut's rounds from the neck down, with a round wherever two quanta meet that don't go together: rule 4. */
 const roundsOfState = (year: number, s: State): R[] => {

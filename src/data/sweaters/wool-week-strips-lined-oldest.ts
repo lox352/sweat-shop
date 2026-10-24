@@ -14,6 +14,7 @@ export default stripSampler({
     "sleeves carry the same strips round for round, so they line up with the " +
     "body when the arms hang down, and the Birsie Beanny runs on down each " +
     "sleeve to the cuff. Each hat is cut to fit its strip around its own " +
-    "centre, and the sleeves taper at a seam under the arm.",
+    "centre, with as many plain rounds above it as below, and the sleeves " +
+    "taper without a seam in all but one size.",
   layout: { kind: "lined", newestFirst: false },
 });

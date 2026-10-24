@@ -22,9 +22,15 @@ describe("the lined-up plan, oldest at the neck", () => {
       expect(plan.rows[piece]).toHaveLength(plan.depth[piece]);
       expect(plan.strips[piece].reduce((total, s) => total + s.height, 0)).toBe(plan.depth[piece]);
     }
-    // The sleeves knit the body's rounds, then carry its last year on.
-    expect(plan.rows.sleeve.slice(0, plan.rows.body.length)).toEqual(plan.rows.body);
-    expect(new Set(plan.rows.sleeve.slice(plan.rows.body.length).map((r) => r.year))).toEqual(new Set([body[body.length - 1].year]));
+    // The sleeves knit the body's strips round for round, then carry its last year on, its pattern begun within a round or three of the body's:
+    // the hat's sequence runs out before the cuff, and its plain rounds are shared above and below.
+    const last = body[body.length - 1];
+    const before = plan.rows.body.length - last.height;
+    expect(plan.rows.sleeve.slice(0, before)).toEqual(plan.rows.body.slice(0, before));
+    expect(new Set(plan.rows.sleeve.slice(before).map((r) => r.year))).toEqual(new Set([last.year]));
+    const firstRow = (rows: Row[]) => rows.findIndex((r, i) => i >= before && !("plain" in r));
+    expect(firstRow(plan.rows.sleeve) - firstRow(plan.rows.body)).toBeGreaterThanOrEqual(0);
+    expect(firstRow(plan.rows.sleeve) - firstRow(plan.rows.body)).toBeLessThanOrEqual(3);
   });
 });
 
@@ -42,19 +48,6 @@ describe("Each Year Once, refitted", () => {
     }
   });
 
-  it.each(measured)("colours every plain round from the pattern beside it, in $label", ({ id, finished }) => {
-    const plan = planOf(finished, { kind: "refit" }, id);
-    for (const piece of ["yoke", "body", "sleeve"] as const) {
-      const rows = plan.rows[piece];
-      rows.forEach((r, i) => {
-        if (!("plain" in r)) return;
-        // A plain round's yarn is one its own year knits in the rows nearby: never a stripe from elsewhere.
-        const near = rows.slice(Math.max(0, i - 4), i + 5).filter((x) => x.year === r.year && !("plain" in x));
-        if (near.length) expect(near.some((x) => lettersOfRow(x).includes(r.plain))).toBe(true);
-      });
-    }
-  });
-
   it("gives the houses a plain row at both ends, and 2014's two stars whole with a round between, in L", () => {
     const plan = planOf(measured.find((m) => m.id === "l")!.finished, { kind: "refit" }, "l");
     const houses = plan.rows.yoke.filter((r) => r.year === 2016 && !("plain" in r)) as Exclude<Row, { plain: string }>[];
@@ -65,9 +58,28 @@ describe("Each Year Once, refitted", () => {
     const sheep = plan.rows.yoke.filter((r) => r.year === 2015 && !("plain" in r)) as Exclude<Row, { plain: string }>[];
     expect(sheep.map((r) => r.row)).toEqual(Array.from({ length: 19 }, (_, i) => 21 - i));
   });
+});
 
-  it.each(measured)("frames every year alike, as many plain rounds above it as below, in $label", ({ id, finished }) => {
-    const plan = planOf(finished, { kind: "refit" }, id);
+describe("both layouts", () => {
+  const layouts = [{ kind: "lined", newestFirst: false }, { kind: "refit" }] as const;
+  const cases = layouts.flatMap((layout) => measured.map((m) => ({ ...m, layout, kind: layout.kind })));
+
+  it.each(cases)("colour every plain round from the pattern beside it: $kind, $label", ({ id, finished, layout }) => {
+    const plan = planOf(finished, layout, id);
+    for (const piece of ["yoke", "body", "sleeve"] as const) {
+      const rows = plan.rows[piece];
+      rows.forEach((r, i) => {
+        if (!("plain" in r)) return;
+        // A plain round's yarn is one its own year knits in the three pattern rows nearest it either side: never a stripe from elsewhere.
+        const patterned = (rs: Row[]) => rs.filter((x) => x.year === r.year && !("plain" in x));
+        const near = [...patterned(rows.slice(0, i)).slice(-3), ...patterned(rows.slice(i + 1)).slice(0, 3)];
+        if (near.length) expect(near.some((x) => lettersOfRow(x).includes(r.plain))).toBe(true);
+      });
+    }
+  });
+
+  it.each(cases)("frame every year alike, as many plain rounds above it as below: $kind, $label", ({ id, finished, layout }) => {
+    const plan = planOf(finished, layout, id);
     for (const piece of ["yoke", "body", "sleeve"] as const) {
       const rows = plan.rows[piece];
       for (const year of new Set(rows.map((r) => r.year))) {
