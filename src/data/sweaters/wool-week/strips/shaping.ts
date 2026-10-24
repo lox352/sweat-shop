@@ -243,9 +243,11 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
   const NARROWED = 0.002;
   const PADDED = 0.08;
   const BENT = 0.004;
+  const WIDER = 0.05;
   const resizeCost = (k: number, L: Layout) => {
     const v = resizings[k][L.resized!];
-    return v.w < units[k].w ? NARROWED : PADDED + BENT * (v.cost ?? 0);
+    // Each stitch of padding costs a little more, so a band is padded no more than it needs.
+    return v.w < units[k].w ? NARROWED : PADDED + BENT * (v.cost ?? 0) + WIDER * (v.w - units[k].w);
   };
 
   const lookMemo = new Map<number, number>();

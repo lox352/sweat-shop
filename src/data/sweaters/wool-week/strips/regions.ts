@@ -294,8 +294,8 @@ const padded = (tiles: string[][], bg: boolean[][]): Narrowed | undefined => {
  * in every round, and so p rounds taller at either tip, everything outside it
  * moved out unaltered. Inside the diamond a round's edge stitches are
  * doubled; past its tips, where the lattice's lines cross, the crossing is
- * parted round the diamond's new tip, a stitch of the diamond's ground
- * between. One padding for each p from 1 to `most`, where it can be made;
+ * parted round the diamond's new tip, the diamond's ground between, each
+ * line going on as a pair of stitches a stitch on from the round before. One padding for each p from 1 to `most`, where it can be made;
  * none for a band with no such diamond.
  *
  * The diamond is found from the middle of the band's mirror line that holds
@@ -355,8 +355,15 @@ export const diamondPaddingsOf = (tiles: string[][], bg: boolean[][], most = 4):
     const maps = tiles.map((_, r) => {
       const h = half[r];
       const at = (x: number) => ((x % w) + w) % w;
-      const left = Array.from({ length: c - h - o }, (_, k) => at(o + k));
-      const right = Array.from({ length: o + w - (c + h + 1) }, (_, k) => at(c + h + 1 + k));
+      let left = Array.from({ length: c - h - o }, (_, k) => at(o + k));
+      let right = Array.from({ length: o + w - (c + h + 1) }, (_, k) => at(c + h + 1 + k));
+      if (h < 0) {
+        // Past the old tip the lattice's two lines are parted: each goes on as the pair of stitches it is made of, a stitch on from the round before,
+        // in the yarn of the line there, rather than ending in the lone stitch where they met.
+        const line = fg[r][at(c)] ? at(c) : fg[r].findIndex((f) => f);
+        left = [...left.slice(0, -2), line, line];
+        right = [line, line, ...right.slice(2)];
+      }
       let inside: number[];
       if (h >= 0) {
         const old = Array.from({ length: 2 * h + 1 }, (_, k) => at(c - h + k));
