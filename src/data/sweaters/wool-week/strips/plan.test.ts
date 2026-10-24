@@ -48,31 +48,44 @@ describe("Each Year Once, refitted", () => {
     }
   });
 
-  it.each(measured)("frames every year in one yarn, above it and below, in $label", ({ id, finished }) => {
+  it.each(measured)("frames every quantum alike, as many plain rounds above it as below, each in the background beside it, in $label", ({ id, finished }) => {
     const plan = planOf(finished, { kind: "refit" }, id);
     for (const piece of ["yoke", "body", "sleeve"] as const) {
+      for (const f of plan.frames![piece]) expect(f.above, `${piece}, ${f.year}`).toBe(f.below);
+      // Every plain round's yarn is knitted in the three pattern rows of its own year nearest it, on one side or the other: the background beside it.
       const rows = plan.rows[piece];
-      for (const year of new Set(rows.map((r) => r.year))) {
-        // A year's one-colour rounds at each end: its plain rounds, and its pattern's own one-colour rows.
-        const own = rows.filter((r) => r.year === year);
-        const one = (r: Row) => new Set(lettersOfRow(r)).size === 1;
-        const ends = [...own.slice(0, own.findIndex((r) => !one(r))), ...own.slice(own.length - [...own].reverse().findIndex((r) => !one(r)))];
-        const plain = new Set(ends.filter((r) => "plain" in r).map((r) => lettersOfRow(r)[0]));
-        const charted = new Set(ends.filter((r) => !("plain" in r)).map((r) => lettersOfRow(r)[0]));
-        // All its plain rounds in one yarn, that of its pattern's own one-colour rows where it has them.
-        expect(plain.size, `${piece}, ${year}`).toBeLessThanOrEqual(1);
-        if (plain.size && charted.size) expect(charted.has([...plain][0]), `${piece}, ${year}`).toBe(true);
-      }
+      rows.forEach((r, i) => {
+        if (!("plain" in r)) return;
+        const near = (step: number) => {
+          const out: Row[] = [];
+          for (let k = i + step; k >= 0 && k < rows.length && rows[k].year === r.year && out.length < 3; k += step) if (!("plain" in rows[k])) out.push(rows[k]);
+          return out;
+        };
+        const sides = [near(-1), near(1)].filter((x) => x.length);
+        if (sides.length) expect(sides.some((x) => x.some((y) => lettersOfRow(y).includes(r.plain))), `${piece} round ${i + 1}`).toBe(true);
+      });
     }
+  });
+
+  it("frames the peeries either side of 2014's star alike, in M", () => {
+    const plan = planOf(measured.find((m) => m.id === "m")!.finished, { kind: "refit" }, "m");
+    const rows = plan.rows.yoke.filter((r) => r.year === 2014).map((r) => ("plain" in r ? r.plain : `${r.chart}${r.row}`));
+    // A round of the peerie's background above and below each peerie, and two of the star's either side of the star.
+    expect(rows).toEqual(["B", "A4", "A3", "A2", "A1", "B", "A", "A", ...Array.from({ length: 13 }, (_, i) => `C${13 - i}`), "A", "A", "B", "A4", "A3", "A2", "A1", "B"]);
   });
 
   it("gives the houses a plain row at both ends, and 2014's two stars whole with a round between, in L", () => {
     const plan = planOf(measured.find((m) => m.id === "l")!.finished, { kind: "refit" }, "l");
     const houses = plan.rows.yoke.filter((r) => r.year === 2016 && !("plain" in r)) as Exclude<Row, { plain: string }>[];
     expect([houses[0].row, houses[houses.length - 1].row]).toEqual([39, 11]);
-    // Every row of both stars, a plain round between them, framed alike above and below; the sheep giving up rows of sky and field for it.
+    // Every row of both stars, each framed alike above and below; the sheep giving up rows of sky and field for it.
     const stars = plan.rows.yoke.filter((r) => r.year === 2014).map((r) => ("plain" in r ? "plain" : `${r.chart}${r.row}`));
-    expect(stars).toEqual(["plain", "plain", ...Array.from({ length: 13 }, (_, i) => `C${13 - i}`), "plain", ...Array.from({ length: 13 }, (_, i) => `B${13 - i}`), "plain", "plain"]);
+    expect(stars).toEqual(["plain", ...Array.from({ length: 13 }, (_, i) => `C${13 - i}`), "plain", "plain", ...Array.from({ length: 13 }, (_, i) => `B${13 - i}`), "plain"]);
+    // Each star framed in its own background: 2014's yarn A round the first, C round the second; and the sky's yarn above the sheep.
+    const plains = plan.rows.yoke.filter((r) => r.year === 2014 && "plain" in r).map((r) => ("plain" in r ? r.plain : ""));
+    expect(plains).toEqual(["A", "A", "C", "C"]);
+    const sky = plan.rows.yoke.find((r) => r.year === 2015);
+    expect(sky).toEqual({ year: 2015, plain: "D" });
     const sheep = plan.rows.yoke.filter((r) => r.year === 2015 && !("plain" in r)) as Exclude<Row, { plain: string }>[];
     expect(sheep.map((r) => r.row)).toEqual(Array.from({ length: 19 }, (_, i) => 21 - i));
   });
@@ -97,7 +110,8 @@ describe("both layouts", () => {
     }
   });
 
-  it.each(cases)("frame every year alike, as many plain rounds above it as below: $kind, $label", ({ id, finished, layout }) => {
+  // Each Year Once frames each quantum alike rather than each year (see above).
+  it.each(cases.filter((c) => c.kind === "lined"))("frame every year alike, as many plain rounds above it as below: $kind, $label", ({ id, finished, layout }) => {
     const plan = planOf(finished, layout, id);
     for (const piece of ["yoke", "body", "sleeve"] as const) {
       const rows = plan.rows[piece];

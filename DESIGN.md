@@ -250,36 +250,40 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     below, and its pattern begins up to three rounds lower than on the body.
     The sleeve may be a round longer or shorter for it.
 - **Each Year Once's plan** (`refit.ts`), by these rules:
-  - A plain round outside a pattern carries on a neighbouring pattern's
-    background, the commonest yarn in the three rows nearest that edge,
-    never a colour from elsewhere. Padding carries on its own strip's; a
-    round between two strips takes the stronger neighbour's, or, where one
-    neighbour's edge row is already plain, the other's.
+  - A plain round outside a pattern carries on the background of the
+    quantum beside it: the commonest yarn among the background stitches
+    (as `quanta.ts` reads them) of the three rows nearest that edge, never
+    a colour from elsewhere. A round between two strips is the stronger
+    neighbour's, or, where one neighbour's edge row is already plain, the
+    other's.
   - A pattern's own plain first or last row is its increase round, so no
     round goes beside it. Where neither neighbour has one, one plain round
     goes between them.
   - A cut's plain edge rows are kept or dropped in pairs, so a band is
     framed alike top and bottom: the houses, 2018's dancers, 2020's stars.
   - Where two quanta meet that don't go together, a plain round goes
-    between them, in the stronger one's background, so they don't run into
-    each other: 2014's peeries and stars, its two stars where a cut parts
-    them, 2019's boat and sheep, 2023's peeries and flowers.
-  - Every year is framed alike: as many plain rounds in its own yarn above
-    it as below - its pattern's own plain edge rows, the round between it
-    and a neighbour where that is in its yarn, and its padding. Where one
-    side has more, rounds go on the other. In L the stars get two above and
-    two below, and the sheep give up rows of sky and field to make room.
-  - And in one yarn above as below: a year's plain rounds, at both its
-    edges and the round between it and a neighbour where that is its own,
-    are all one yarn - its pattern's own one-colour edge row's where it has
-    one, or else a ground both its edges knit, the one they knit most. So
-    2026's lattice has the same ground round above and below it in every
-    size. 2015's sheep keep their sky above and their field below, the
-    hat's own rows.
-  - Spare rounds go to strips a pair at a time, one above and one below,
-    patterned strips first, up to two pairs each, strongest background
-    first; an odd one over is left out, the piece a round shorter. A cut
-    that would open a piece itself, with no plain round above for its first
+    between them, the stronger one's, so they don't run into each other:
+    2014's peeries and stars, its two stars where a cut parts them, 2019's
+    boat and sheep, 2023's peeries and flowers. Each run of rows that go
+    together is then laid out as a quantum of its own.
+  - Every quantum is framed alike: as many plain rounds above it as below -
+    its own plain edge rows, the round between it and a neighbour where
+    that is its own, and its padding - each in the background beside it. In
+    L 2014's two stars each have a round of their own background above and
+    below; 2015's sheep have the sky's yarn above them and the field's
+    below; 2026's lattice a ground round each side.
+  - And the quanta either side of a core are framed alike: 2014's peeries
+    round its star in XS to M, its two stars round a peerie in 4XL, 2023's
+    peeries round its flowers. In M each peerie has a round of its own
+    background above and below, the sheep giving up a row of sky and of
+    field to make room.
+  - Spare rounds go to quanta a pair at a time, one above and one below,
+    patterned quanta first, the least framed first, up to two pairs each,
+    the quanta either side of a core together; an odd one over is left out,
+    the piece a round shorter. A piece too tight for all this frames each
+    quantum alone, and then lets the one round between two quanta of a
+    year frame both (XS's body, round 2019's boat and sheep). A cut that
+    would open a piece itself, with no plain round above for its first
     shaping, is passed over.
   - Each year's cuts are a ladder from fullest down, and a piece takes the
     trims in a set order until it fits: on the yoke 2014's outer rows, then
@@ -345,7 +349,9 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     padded by making its diamond of sixteen balls bigger, p stitches either
     side in every round and p rounds at each tip, the lattice's lines parted
     round the new tips in their pairs, the I at its crossing left whole;
-    padded by four or more, its columns of balls spread a stitch apart.
+    padded by four or more, its columns of balls spread a stitch apart. A
+    band cropped inside its diamond's tips, as 2026's is on L's sleeve, is
+    a diamond as long as it narrows towards both its ends.
     Padding costs the search more than narrowing, and more the wider it is,
     so it is used only where a band would otherwise be seamed, and no more
     than it needs. A padded band may step down to less padding part-way, as

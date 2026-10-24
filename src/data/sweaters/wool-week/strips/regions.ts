@@ -336,8 +336,10 @@ export const diamondPaddingsOf = (tiles: string[][], bg: boolean[][], most = 4):
   const c = axes.reduce((best, a) => (size(a) > size(best) ? a : best));
   const raw = tiles.map((_, r) => span(r, c));
   const widest = raw.indexOf(Math.max(...raw));
-  // A diamond: several stitches wide at its widest, narrowing to a tip within the band.
-  if (raw[widest] < 4 || !raw.includes(0)) return [];
+  // A diamond: several stitches wide at its widest, narrowing to a tip within the band - or towards both its ends, a band cropped inside the
+  // diamond's tips, as 2026's is on L's sleeve.
+  const narrows = raw[0] <= raw[widest] - 3 && raw[raw.length - 1] <= raw[widest] - 3;
+  if (raw[widest] < 4 || !(raw.includes(0) || narrows)) return [];
   const half = raw.slice();
   // Out from the widest round each way: narrowing a stitch a round to the tip, then on below nothing.
   for (const step of [-1, 1]) {
