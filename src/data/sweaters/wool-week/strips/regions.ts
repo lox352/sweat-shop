@@ -147,13 +147,31 @@ const axesOf = (tiles: string[][]) => {
   return Array.from({ length: w }, (_, a) => a).filter((a) => tiles.every((t) => t.every((c, x) => c === t[(((a - x) % w) + w) % w])));
 };
 
+/** A background place in a round, nearest x: what a left-out stitch is knitted as. */
+const groundNear = (bg: boolean[], x: number) => {
+  for (let d = 1; d < bg.length; d++) for (const y of [x - d, x + d]) if (bg[((y % bg.length) + bg.length) % bg.length]) return ((y % bg.length) + bg.length) % bg.length;
+  return x;
+};
+
 /**
  * The ways a band can be taken in, narrowest last: for a mirror image two
  * stitches at a time, a seam and its mirror image; for any other one at a
  * time; up to `most` stitches. `tiles` and `bg` are its rounds' repeats and
- * their background, as unitsOf has them.
+ * their background, as unitsOf has them; `trims`, each round's stitches the
+ * band may leave out as background to be narrowed (see trims.ts), which it
+ * does only if that lets it narrow further.
  */
-export const narrowingsOf = (tiles: string[][], bg: boolean[][], most = 6): Narrowed[] => {
+export const narrowingsOf = (tiles: string[][], bg: boolean[][], most = 6, trims?: number[][]): Narrowed[] => {
+  const plain = narrowed(tiles, bg, most);
+  if (!trims?.some((t) => t.length)) return plain;
+  // Left out: background, and knitted as the background nearest it.
+  const cut = bg.map((row, r) => row.map((b, x) => b || trims[r].includes(x)));
+  const recolour = tiles.map((row, r) => row.map((_, x) => (trims[r].includes(x) ? groundNear(bg[r], x) : x)));
+  const trimmed = narrowed(tiles.map((row, r) => row.map((_, x) => row[recolour[r][x]])), cut, most).map((v) => ({ ...v, maps: v.maps.map((m, r) => m.map((x) => recolour[r][x])) }));
+  return trimmed.length > plain.length ? trimmed : plain;
+};
+
+const narrowed = (tiles: string[][], bg: boolean[][], most: number): Narrowed[] => {
   const w = tiles[0].length;
   let band: Band = { fg: bg.map((row) => row.map((b) => !b)), maps: tiles.map(() => Array.from({ length: w }, (_, x) => x)), tiles };
   const first = regionsOf(band.fg, w);
@@ -257,4 +275,83 @@ export const paddingOf = (tiles: string[][], bg: boolean[][]): Narrowed | undefi
     }
   }
   return undefined;
+};
+
+/**
+ * A band whose motif sits in a diamond its lattice encloses - 2026's sixteen
+ * balls - padded by making that diamond bigger: p stitches wider either side
+ * in every round, and so p rounds taller at either tip, everything outside it
+ * moved out unaltered. Inside the diamond a round's edge stitches are
+ * doubled; past its tips, where the lattice's lines cross, the crossing is
+ * parted round the diamond's new tip, a stitch of the diamond's ground
+ * between. One padding for each p from 1 to `most`, where it can be made;
+ * none for a band with no such diamond.
+ *
+ * The diamond is found from the middle of the band's mirror line that holds
+ * it, round by round: out from the middle over motif - runs of three or more
+ * stitches - and background, to the first stitch of a line, a run of one or
+ * two. From its widest round out to its tips it narrows a stitch a side a
+ * round; past them, its half-width is taken on below nothing.
+ */
+export const diamondPaddingsOf = (tiles: string[][], bg: boolean[][], most = 4): Narrowed[] => {
+  const w = tiles[0].length, H = tiles.length;
+  const fg = bg.map((row) => row.map((b) => !b));
+  if (!regionsOf(fg, w).some((g) => g.wraps)) return [];
+  // The places on a mirror line: a mirrors x to a - x, so a / 2 and, half a repeat on, a / 2 + w / 2.
+  const axes = axesOf(tiles).filter((a) => a % 2 === 0).flatMap((a) => (w % 2 ? [a / 2] : [a / 2, (a / 2 + w / 2) % w]));
+  if (!axes.length) return [];
+  // The half-width of the diamond round a middle place c, in round r: from c out to the first stitch of a line.
+  const span = (r: number, c: number) => {
+    const at = (x: number) => fg[r][((x % w) + w) % w];
+    const run = (x: number) => {
+      if (!at(x)) return 0;
+      let a = x, b = x;
+      while (b - a < w && at(a - 1)) a--;
+      while (b - a < w && at(b + 1)) b++;
+      return b - a + 1;
+    };
+    if (at(c) && run(c) <= 2) return 0;
+    let h = 0;
+    while (h < w / 2 - 1 && !(at(c + h + 1) && run(c + h + 1) <= 2)) h++;
+    return h;
+  };
+  // The mirror line holding the diamond: where, round by round, there is most of it.
+  const size = (a: number) => tiles.reduce((t, _, r) => t + span(r, a), 0);
+  const c = axes.reduce((best, a) => (size(a) > size(best) ? a : best));
+  const raw = tiles.map((_, r) => span(r, c));
+  const widest = raw.indexOf(Math.max(...raw));
+  // A diamond: several stitches wide at its widest, narrowing to a tip within the band.
+  if (raw[widest] < 4 || !raw.includes(0)) return [];
+  const half = raw.slice();
+  // Out from the widest round each way: narrowing a stitch a round to the tip, then on below nothing.
+  for (const step of [-1, 1]) {
+    let tip = false;
+    for (let r = widest + step; r >= 0 && r < H; r += step) {
+      const before = half[r - step];
+      tip = tip || before <= 0 || raw[r] > before;
+      half[r] = tip ? before - 1 : raw[r];
+    }
+  }
+  // Each round read from the place half a repeat from the diamond's middle, so the rounds stay in line wherever the diamond's edges are.
+  const o = c - Math.floor(w / 2);
+  const out: Narrowed[] = [];
+  for (let p = 1; p <= most; p++) {
+    // Past its tips a smaller padding would not reach the rounds furthest out: only bigger ones can be made.
+    if (half.some((h) => h + p < 0)) continue;
+    const maps = tiles.map((_, r) => {
+      const h = half[r];
+      const at = (x: number) => ((x % w) + w) % w;
+      const left = Array.from({ length: c - h - o }, (_, k) => at(o + k));
+      const right = Array.from({ length: o + w - (c + h + 1) }, (_, k) => at(c + h + 1 + k));
+      let inside: number[];
+      if (h >= 0) {
+        const old = Array.from({ length: 2 * h + 1 }, (_, k) => at(c - h + k));
+        inside = [...Array<number>(p).fill(old[0]), ...old, ...Array<number>(p).fill(old[old.length - 1])];
+      } else inside = Array<number>(2 * (h + p) + 1).fill(groundNear(bg[r], at(c)));
+      return [...left, ...inside, ...right];
+    });
+    if (maps.some((m) => m.length !== w + 2 * p)) break;
+    out.push({ w: w + 2 * p, maps });
+  }
+  return out;
 };

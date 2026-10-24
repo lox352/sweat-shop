@@ -476,9 +476,12 @@ export const knit = (size: Measured, given: Plan, prefix: string): Knitted => {
   /* ------------------------------------------------------------- sleeves */
   const rows = plan.rows.sleeve;
   const L = rows.length;
-  // A straight taper from the upper arm to the cuff, leaving the first few rounds and the last few at their counts.
+  // A straight taper from the upper arm to the cuff's count where the last year's band begins, and straight on from there, so that band can go round
+  // at one count - padded, if it must be (see shaping) - rather than seamed; the first few rounds left at their count.
   const from = Math.min(6, Math.floor(L / 6));
-  const span = L - from - 3;
+  let last = L - 1;
+  while (last > 0 && rows[last - 1].year === rows[L - 1].year) last--;
+  const span = Math.max(1, last - from);
   const taper = (i: number) => top - (top - cuff) * Math.min(1, Math.max(0, (i - from + 0.5) / span));
   const steps = narrowing(rows, { from: top, to: cuff, want: taper, tolerance: SLEEVE_TOLERANCE });
   const offsets = seamOffsets(rows, steps, top);

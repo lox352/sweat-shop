@@ -1,6 +1,7 @@
 import type { Row } from "./plan";
 import { background, quantumOf } from "./quanta";
-import { type Narrowed, narrowingsOf, paddingOf } from "./regions";
+import { type Narrowed, diamondPaddingsOf, narrowingsOf, paddingOf } from "./regions";
+import { TRIMS } from "./trims";
 import { bandSlotsOfRow } from "./slots";
 
 /**
@@ -223,8 +224,13 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
   // Narrowing, each band's narrower repeats and its padded one, and a layout for each; a narrowed band costs a little, so the hat's own spacing is kept where it does as well, and a padded one more, the more it bends what it crosses.
   const resizings = units.map((u): Narrowed[] => {
     if (!reversed || u.solid) return [];
-    const padded = paddingOf(u.tiles, u.bg);
-    return [...narrowingsOf(u.tiles, u.bg), ...(padded ? [padded] : [])];
+    const first = rows[u.rows[0]] as ChartRow;
+    const trims = TRIMS[`${first.year}${first.chart}`];
+    const narrower = narrowingsOf(u.tiles, u.bg, 6, trims && u.rows.map((i) => trims[(rows[i] as ChartRow).row] ?? []));
+    // A band whose motif sits in a diamond of its lattice is padded by making the diamond bigger; any other along its best seam.
+    const diamonds = diamondPaddingsOf(u.tiles, u.bg);
+    const padded = diamonds.length ? undefined : paddingOf(u.tiles, u.bg);
+    return [...narrower, ...diamonds, ...(padded ? [padded] : [])];
   });
   const resizedLayouts = resizings.map((ns, k) =>
     ns.map((v, j) => {

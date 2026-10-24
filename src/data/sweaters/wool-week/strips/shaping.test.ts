@@ -119,6 +119,8 @@ describe("a sleeve narrowed by its quanta, seamless where it can be", () => {
       for (const i of u.rows) {
         const n = copies(steps[i]);
         expect(steps[i].count % steps[i].map!.length).toBe(0);
+        // A narrowed or padded band's map is its own (see regions.ts), not doubled columns.
+        if (steps[i].resized) continue;
         for (const [x, k] of n) for (const y of pairOf.get(x)!) expect(n.get(y), `round ${i + 1}, columns ${x} and ${y}`).toBe(k);
       }
     }
@@ -127,8 +129,8 @@ describe("a sleeve narrowed by its quanta, seamless where it can be", () => {
   it.each(cases)("ends a doubled column only where everything above it in its band is background: $kind, $label", ({ id, finished, layout }) => {
     const { rows, steps } = sleeveOf(finished, layout, id);
     for (const u of unitsOf(rows)) {
-      // A padded band's copies are its padding (see regions.ts), not doubled columns.
-      if (u.solid || steps[u.rows[0]].seam || (steps[u.rows[0]].resized ?? 0) > 0) continue;
+      // A narrowed or padded band's copies are its own (see regions.ts), not doubled columns.
+      if (u.solid || steps[u.rows[0]].seam || steps[u.rows[0]].resized) continue;
       u.rows.forEach((i, p) => {
         for (const [x, k] of copies(steps[i])) {
           if (k < 2) continue;
