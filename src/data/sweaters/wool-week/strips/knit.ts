@@ -219,9 +219,11 @@ class Writer {
 
   /**
    * A band's row where doubled columns end, the same in every repeat: each a
-   * k2tog of its last two copies, both background.
+   * k2tog of its last two copies, both background. Or where a padded band
+   * steps down to less padding, part-way (see shaping), `resized` its padding
+   * after: `before` is then the row on the wider padding.
    */
-  merge(r: ChartRow, before: number[], after: number[]) {
+  merge(r: ChartRow, before: number[], after: number[], resized?: number) {
     this.flush();
     const tile = tileOf(r);
     const had = new Map<number, number>();
@@ -231,7 +233,10 @@ class Writer {
     const cells: ChartCell[] = after.map((x, q) =>
       has.get(x)! < had.get(x)! && after[q + 1] !== x ? { ...cellOf(tile[x], after, q), symbol: "k2tog" } : cellOf(tile[x], after, q),
     );
-    const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}w${before.length}m${doubling(before)}-${doubling(after) || "0"}${bandsOf([r])}`;
+    const id =
+      resized === undefined
+        ? `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}w${before.length}m${doubling(before)}-${doubling(after) || "0"}${bandsOf([r])}`
+        : `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}w${before.length}-${after.length}${resized < 0 ? `n${-resized}` : `p${resized}`}${bandsOf([r])}`;
     this.charts.set(id, { id, name: this.nameOf(r.year), rows: [cells] });
     this.specs.push({ type: "chart", chart: id, rows: [1, 1] });
   }
@@ -476,14 +481,20 @@ export const knit = (size: Measured, given: Plan, prefix: string): Knitted => {
   /* ------------------------------------------------------------- sleeves */
   const rows = plan.rows.sleeve;
   const L = rows.length;
-  // A straight taper from the upper arm to the cuff's count where the last year's band begins, and straight on from there, so that band can go round
-  // at one count - padded, if it must be (see shaping) - rather than seamed; the first few rounds left at their count.
+  // A straight taper from the upper arm to the cuff, the first few rounds left at their count. Where that would seam a band, the taper reaches the
+  // cuff's count half way down the last year's band, or where that band begins, and goes straight on from there, so the band can go round on fewer
+  // counts - its padding stepping down part-way, or at one count, padded if it must be (see shaping) - rather than seamed.
   const from = Math.min(6, Math.floor(L / 6));
   let last = L - 1;
   while (last > 0 && rows[last - 1].year === rows[L - 1].year) last--;
-  const span = Math.max(1, last - from);
-  const taper = (i: number) => top - (top - cuff) * Math.min(1, Math.max(0, (i - from + 0.5) / span));
-  const steps = narrowing(rows, { from: top, to: cuff, want: taper, tolerance: SLEEVE_TOLERANCE });
+  const shaped = (end: number) => {
+    const span = Math.max(1, end - from);
+    const taper = (i: number) => top - (top - cuff) * Math.min(1, Math.max(0, (i - from + 0.5) / span));
+    return narrowing(rows, { from: top, to: cuff, want: taper, tolerance: SLEEVE_TOLERANCE });
+  };
+  const ends = [L, Math.round((last + L) / 2), last];
+  let steps = shaped(ends[0]);
+  for (const end of ends.slice(1)) if (steps.some((s) => s.seam)) steps = shaped(end);
   const offsets = seamOffsets(rows, steps, top);
   const sleeve = new Writer(`${prefix}s-`, ", sleeve");
   let count = top;
@@ -496,7 +507,7 @@ export const knit = (size: Measured, given: Plan, prefix: string): Knitted => {
     else if (!s.map) {
       if (s.count !== count) sleeve.shape(slotOfRound(r), count, s.count, spread(s.count, count - s.count));
       else sleeve.plain(slotOfRound(r));
-    } else if (s.kind === "double" && map && s.count !== count) sleeve.merge(r as ChartRow, map, s.map);
+    } else if (s.kind === "double" && map && s.count !== count) sleeve.merge(r as ChartRow, s.before ?? map, s.map, s.before ? (s.resized ?? 0) : undefined);
     else if (s.count !== count) sleeve.transition(r as ChartRow, count, s.count, s.map, spread(s.count, count - s.count));
     else sleeve.chart(r as ChartRow, s.map, s.resized);
     count = s.count;

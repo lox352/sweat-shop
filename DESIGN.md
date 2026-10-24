@@ -316,9 +316,10 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
   changes.
 - **The sleeves** (`knit.ts`, `shaping.ts`, `regions.ts`). Seamless where a
   band can be, seamed on the inner arm where it can't: every round within 10%
-  of a straight taper from the upper arm to the cuff's count where the last
-  year's band begins, and straight on from there, so that band can go round
-  at one count. A seamless band is on whole repeats, narrowing between bands
+  of a straight taper from the upper arm to the cuff. Where that would seam a
+  band, the taper reaches the cuff's count half way down the last year's
+  band, or where it begins, and goes straight on from there, so that band
+  can go round on fewer counts. A seamless band is on whole repeats, narrowing between bands
   or where a doubled background column ends - one whose ancestors, from the
   top of the band down, are all background. A band runs on round its
   quantum's repeat, 2025's upper core, peerie and lower core one band,
@@ -340,7 +341,12 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     padded by four or more, its columns of balls spread a stitch apart.
     Padding costs the search more than narrowing, and more the wider it is,
     so it is used only where a band would otherwise be seamed, and no more
-    than it needs. Each Year Once's sleeves are seamless in every size.
+    than it needs. A padded band may step down to less padding part-way, as
+    the taper narrows, where the narrower round is the wider with copies of
+    background columns left out, each a k2tog of two background stitches
+    under background: 2026's lattice in Each Year Once's L, 36 stitches to
+    34, and XL, 38 to 36, so those sleeves taper all the way to the cuff.
+    Both samplers' sleeves are seamless in every size.
   - **Seamed bands**, where nothing else will do. A band
     that can't stay within the tolerance so is seamed: centred on the arm, its
     repeats meeting part-way at a seam stitch on the inner arm (chosen to break
