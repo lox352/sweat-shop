@@ -294,9 +294,11 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
   whose ancestors, from the top of the band down, are all background. A band
   that can't stay within the tolerance so is seamed: centred on the arm, its
   repeats meeting part-way at a seam stitch on the inner arm (chosen to break
-  the floats either side of it), two decreases at a time either side, and
-  slid round, the same all through the band, to the offset that leaves the
-  least foreground touching the seam. Seamed rounds cost the search far more
+  the floats either side of it), two decreases at a time either side. The
+  middle of its repeat sits on the top of the arm, so the pattern is square
+  on the outside and meets itself at the seam the same on both sides; of the
+  offsets within a stitch of that, the one under which the band is most
+  nearly a mirror image about the seam stitch. Seamed rounds cost the search far more
   than any departure within the tolerance, so it seams as few as it can, and
   a sleeve never widens. Strictly seamless sleeves are impossible in most
   sizes: with whole repeats and a falling count, the bands' repeats compound

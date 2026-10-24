@@ -4,7 +4,7 @@ import { yearOf } from "../years";
 import { lettersOf, solid } from "./cuts";
 import { gauge, ribs, type Measured, type Plan, type Row } from "./plan";
 import roleData from "./roles.json";
-import { background, quantumOf } from "./quanta";
+import { quantumOf } from "./quanta";
 import { added, growing, increasesOf, narrowing, type Step, tileOf, unitsOf } from "./shaping";
 import { letterOf, plainSlot, trimSlot } from "./slots";
 
@@ -375,31 +375,34 @@ const SLEEVE_TOLERANCE = 0.1;
 
 /**
  * Where each seamed band of a sleeve is slid round to, for each of its
- * rounds: the offset, the same all through the band, that leaves the least
- * foreground touching its seam stitch - the stitches either side of it - and
- * of those the nearest the band centred on the top of the arm.
+ * rounds: centred on the top of the arm, the middle of its repeat half way
+ * round from the seam, so the pattern sits square on the outside of the arm
+ * and meets itself at the seam the same on both sides. A repeat's middle can
+ * be half a stitch from its mirror line, so of the offsets within a stitch of
+ * centred, the one under which the band is most nearly a mirror image about
+ * its seam stitch.
  */
 const seamOffsets = (rows: Row[], steps: Step[], top: number): Map<number, number> => {
   const out = new Map<number, number>();
   for (const u of unitsOf(rows)) {
     if (u.solid || !steps[u.rows[0]].seam) continue;
-    const first = rows[u.rows[0]] as ChartRow;
-    const w = first.w;
+    const w = (rows[u.rows[0]] as ChartRow).w;
     const centred = Math.floor(w / 2);
-    const cut = (off: number) =>
+    // How many stitches fail to mirror their partner across the seam stitch, the round's last, within a repeat of it.
+    const unlike = (off: number) =>
       u.rows.reduce((total, i) => {
         const r = rows[i] as ChartRow;
         const before = i ? steps[i - 1].count : top;
         const to = steps[i].count;
         const N = to === before || to === before - 2 ? before : to;
-        // The stitch's column as knitted, and as the chart is stored: the seam's neighbours are the round's first stitch and its last but one.
-        const fore = (j: number) => !background(r.year, r.chart, r.row, w - 1 - ((((j - Math.floor(N / 2) + off) % w) + w) % w));
-        return total + (fore(0) ? 1 : 0) + (fore(N - 2) ? 1 : 0);
+        const tile = tileOf(r);
+        const at = (j: number) => tile[(((j - Math.floor(N / 2) + off) % w) + w) % w];
+        let n = 0;
+        for (let d = 1; d <= Math.min(w, Math.floor((N - 1) / 2)); d++) if (at(N - 1 - d) !== at(d - 1)) n++;
+        return total + n;
       }, 0);
-    const away = (off: number) => Math.min((off - centred + w) % w, (centred - off + w) % w);
-    const cuts = Array.from({ length: w }, (_, off) => cut(off));
     let best = centred;
-    for (let off = 0; off < w; off++) if (cuts[off] < cuts[best] || (cuts[off] === cuts[best] && away(off) < away(best))) best = off;
+    for (const off of [centred - 1, centred + 1]) if (unlike((off + w) % w) < unlike(best)) best = (off + w) % w;
     for (const i of u.rows) out.set(i, best);
   }
   return out;
