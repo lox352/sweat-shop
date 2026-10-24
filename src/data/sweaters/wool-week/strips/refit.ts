@@ -238,7 +238,33 @@ interface Spot {
  * rounds each quantum needs above and below to be framed alike (rule 7); and
  * what's left over.
  */
-const layout = (strips: Placed[], total: number, ends: Ends, share = false) => {
+/**
+ * How strictly a piece is framed: `mirror`, the quanta either side of a core
+ * framed alike, as well as each quantum alike above and below (rule 7); and
+ * `share`, where a piece has no room for a round each, the one round between
+ * two quanta of a strip framing both.
+ */
+interface Mode {
+  mirror: boolean;
+  share: boolean;
+}
+const STRICT: Mode = { mirror: true, share: false };
+
+/** A strip's quanta paired either side of its core: the first with the last, and so on in, where there is a core between and they are as tall. */
+const partners = (s: Placed): Map<number, number> => {
+  const m = s.blocks.length;
+  const out = new Map<number, number>();
+  if (m < 3 || m % 2 === 0) return out;
+  for (let j = 0; j < (m - 1) / 2; j++) {
+    if (s.blocks[j].length !== s.blocks[m - 1 - j].length) continue;
+    out.set(j, m - 1 - j);
+    out.set(m - 1 - j, j);
+  }
+  return out;
+};
+
+const layout = (strips: Placed[], total: number, ends: Ends, mode: Mode = STRICT) => {
+  const { share } = mode;
   const spots: Spot[] = strips.flatMap((s, i) => s.blocks.map((_, j) => ({ i, j })));
   const block = ({ i, j }: Spot) => strips[i].blocks[j];
   // The round between two quanta, or at a piece's edge beside one: which side owns it, or none where one edge is already plain. Between two
@@ -261,8 +287,18 @@ const layout = (strips: Placed[], total: number, ends: Ends, share = false) => {
   const framing = spots.map((sp, k) => {
     const above = framedBy(gaps, spots, k, k, share) + leading(block(sp));
     const below = framedBy(gaps, spots, k + 1, k, share) + leading([...block(sp)].reverse());
-    return { top: Math.max(0, below - above), bottom: Math.max(0, above - below) };
+    return { top: Math.max(0, below - above), bottom: Math.max(0, above - below), framed: Math.max(above, below) };
   });
+  // The quanta either side of a core framed alike: the less framed given rounds above and below to match the other.
+  if (mode.mirror) {
+    spots.forEach((sp, k) => {
+      const j = partners(strips[sp.i]).get(sp.j);
+      if (j === undefined) return;
+      const other = framing[spots.findIndex((x) => x.i === sp.i && x.j === j)];
+      const more = Math.max(0, other.framed - framing[k].framed);
+      framing[k] = { top: framing[k].top + more, bottom: framing[k].bottom + more, framed: framing[k].framed + more };
+    });
+  }
   const used =
     strips.reduce((t, s) => t + s.rounds.length, 0) + gaps.filter((g) => g !== undefined).length + framing.reduce((t, f) => t + f.top + f.bottom, 0);
   return { spare: total - used, spots, gaps, framing };
@@ -281,8 +317,9 @@ const framedBy = (gaps: (Spot | null | undefined)[], spots: Spot[], g: number, k
 };
 
 /** A piece's rounds and its strips, the spare rounds shared out by rule 5, each plain round in the background beside it. */
-const build = (strips: Placed[], total: number, ends: Ends, share = false): { rows: Row[]; strips: Strip[]; frames: Frame[] } => {
-  const { spare, spots, gaps, framing } = layout(strips, total, ends, share);
+const build = (strips: Placed[], total: number, ends: Ends, mode: Mode = STRICT): { rows: Row[]; strips: Strip[]; frames: Frame[] } => {
+  const { spare, spots, gaps, framing } = layout(strips, total, ends, mode);
+  const { share } = mode;
   if (spare < 0) throw new Error(`${strips.map((s) => s.year).join(", ")} will not go in ${total} rounds`);
   const block = ({ i, j }: Spot) => strips[i].blocks[j];
   // Rule 5: padding a pair at a time, patterned quanta first, the least framed first, then the strongest background; up to two pairs each.
@@ -296,12 +333,27 @@ const build = (strips: Placed[], total: number, ends: Ends, share = false): { ro
   const given = spots.map(() => 0);
   const mine = (g: number, k: number) => framedBy(gaps, spots, g, k, share);
   const framed = (k: number) => mine(k, k) + pads[k].top + leading(block(spots[k]));
-  for (let n = 0, rest = 0; n < Math.floor(spare / 2); n++) {
-    const open = patterned.filter((e) => given[e.k] < 2);
-    const e = open.length ? open.reduce((a, b) => (framed(b.k) < framed(a.k) ? b : a)) : order[rest++ % order.length];
-    given[e.k]++;
-    pads[e.k].top++;
-    pads[e.k].bottom++;
+  // The quanta either side of a core are given pairs together, so they stay framed alike.
+  const partnerOf = (k: number): number | undefined => {
+    const j = mode.mirror ? partners(strips[spots[k].i]).get(spots[k].j) : undefined;
+    return j === undefined ? undefined : spots.findIndex((x) => x.i === spots[k].i && x.j === j);
+  };
+  const cost = (k: number) => (partnerOf(k) === undefined ? 1 : 2);
+  for (let pairs = Math.floor(spare / 2), rest = 0; pairs > 0; ) {
+    const open = patterned.filter((e) => given[e.k] < 2 && cost(e.k) <= pairs);
+    let e = open.length ? open.reduce((a, b) => (framed(b.k) < framed(a.k) ? b : a)) : undefined;
+    for (let tries = 0; !e && tries < order.length; tries++) {
+      const next = order[rest++ % order.length];
+      if (cost(next.k) <= pairs) e = next;
+    }
+    if (!e) break;
+    for (const k of [e.k, partnerOf(e.k)]) {
+      if (k === undefined) continue;
+      given[k]++;
+      pads[k].top++;
+      pads[k].bottom++;
+      pairs--;
+    }
   }
   // Rule 8: every plain round in the background of the quantum it belongs to, at the edge it is on.
   const tops = spots.map((sp) => backgroundAt(block(sp), true));
@@ -347,10 +399,12 @@ const place = (ladders: Ladder[], at: number[]): Placed[] =>
  * into `ladders`), until the piece fits; then back up any a later, bigger trim
  * has made room for again.
  */
-const fit = (ladders: Ladder[], total: number, ends: Ends, trims: number[]): { placed: Placed[]; at: number[]; share: boolean } | null =>
-  fitting(ladders, total, ends, trims, false) ?? fitting(ladders, total, ends, trims, true);
+const fit = (ladders: Ladder[], total: number, ends: Ends, trims: number[]): { placed: Placed[]; at: number[]; mode: Mode } | null =>
+  fitting(ladders, total, ends, trims, STRICT) ??
+  fitting(ladders, total, ends, trims, { mirror: true, share: true }) ??
+  fitting(ladders, total, ends, trims, { mirror: false, share: true });
 
-const fitting = (ladders: Ladder[], total: number, ends: Ends, trims: number[], share: boolean): { placed: Placed[]; at: number[]; share: boolean } | null => {
+const fitting = (ladders: Ladder[], total: number, ends: Ends, trims: number[], mode: Mode): { placed: Placed[]; at: number[]; mode: Mode } | null => {
   const at = ladders.map(() => 0);
   const taken: number[] = [];
   // A cut that opens the piece itself is passed over: every piece begins with a plain round, where its first shaping or its divide goes.
@@ -359,7 +413,7 @@ const fitting = (ladders: Ladder[], total: number, ends: Ends, trims: number[], 
     while (a < ladders[i].states.length && ladders[i].states[a].opens) a++;
     return a;
   };
-  while (layout(place(ladders, at), total, ends, share).spare < 0) {
+  while (layout(place(ladders, at), total, ends, mode).spare < 0) {
     const k = trims.find((i) => next(i) < ladders[i].states.length);
     if (k === undefined) {
       return null;
@@ -370,9 +424,9 @@ const fitting = (ladders: Ladder[], total: number, ends: Ends, trims: number[], 
   for (const k of taken.slice(0, -1)) {
     const was = at[k];
     do at[k]--; while (at[k] > 0 && ladders[k].states[at[k]].opens);
-    if (ladders[k].states[at[k]].opens || layout(place(ladders, at), total, ends, share).spare < 0) at[k] = was;
+    if (ladders[k].states[at[k]].opens || layout(place(ladders, at), total, ends, mode).spare < 0) at[k] = was;
   }
-  return { placed: place(ladders, at), at, share };
+  return { placed: place(ladders, at), at, mode };
 };
 
 /** A sleeve: each year where it starts, down if too long, then up while a round or two of padding is left. */
@@ -405,10 +459,11 @@ export const refit = (size: Measured, sizeId: string): Plan => {
   // The body: trims 2020's outer peeries, 2018's plain edges, a row off each side of 2017, then of 2018, then 2017 again.
   const body = fit([y2017(start.four2017), y2018(start.three2018), y2019, y2020, y2021], sp.body, whole, [3, 1, 0, 1, 0]);
   if (!yoke || !body) throw new Error(`size ${sizeId} will not fit`);
-  const y = build(yoke.placed, sp.yoke, piece, yoke.share);
-  const b = build(body.placed, sp.body, whole, body.share);
+  const y = build(yoke.placed, sp.yoke, piece, yoke.mode);
+  const b = build(body.placed, sp.body, whole, body.mode);
   const sleeve = fitSleeve(sp.sleeve, whole);
-  const s = build(sleeve, sp.sleeve, whole, layout(sleeve, sp.sleeve, whole).spare < 0);
+  const modes: Mode[] = [STRICT, { mirror: true, share: true }, { mirror: false, share: true }];
+  const s = build(sleeve, sp.sleeve, whole, modes.find((m) => layout(sleeve, sp.sleeve, whole, m).spare >= 0) ?? modes[2]);
   return {
     strips: { yoke: y.strips, body: b.strips, sleeve: s.strips },
     rows: { yoke: y.rows.map(toRow), body: b.rows.map(toRow), sleeve: s.rows.map(toRow) },

@@ -67,6 +67,13 @@ describe("Each Year Once, refitted", () => {
     }
   });
 
+  it("frames the peeries either side of 2014's star alike, in M", () => {
+    const plan = planOf(measured.find((m) => m.id === "m")!.finished, { kind: "refit" }, "m");
+    const rows = plan.rows.yoke.filter((r) => r.year === 2014).map((r) => ("plain" in r ? r.plain : `${r.chart}${r.row}`));
+    // A round of the peerie's background above and below each peerie, and two of the star's either side of the star.
+    expect(rows).toEqual(["B", "A4", "A3", "A2", "A1", "B", "A", "A", ...Array.from({ length: 13 }, (_, i) => `C${13 - i}`), "A", "A", "B", "A4", "A3", "A2", "A1", "B"]);
+  });
+
   it("gives the houses a plain row at both ends, and 2014's two stars whole with a round between, in L", () => {
     const plan = planOf(measured.find((m) => m.id === "l")!.finished, { kind: "refit" }, "l");
     const houses = plan.rows.yoke.filter((r) => r.year === 2016 && !("plain" in r)) as Exclude<Row, { plain: string }>[];
