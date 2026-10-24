@@ -18,7 +18,7 @@ const roleOf = (slot: string): string => {
   return r.ground.includes(l) ? "ground" : r.middle?.includes(l) ? "middle" : "figure";
 };
 
-const MANY = ["journey-light", "night-journey-dark", "landscape-light", "undyed-grounds-light", "shaded-light", "hats-hues-light", "bohus-heathers-light", "muhu-stockings-dark", "seasons-light"];
+const MANY = ["journey-light", "night-journey-dark", "journey-in-step-light", "journey-gentle-light", "night-in-step-dark", "night-gentle-dark", "landscape-light", "undyed-grounds-light", "shaded-light", "hats-hues-light", "bohus-heathers-light", "muhu-stockings-dark", "seasons-light"];
 
 describe.each([eachYearOnce, thirteenStrips])("the colourways of $name", (design) => {
   // Every chart of size M, knitted: its sections are read before its charts.
@@ -27,7 +27,7 @@ describe.each([eachYearOnce, thirteenStrips])("the colourways of $name", (design
   const traditions = design.colourways.filter((c) => !MANY.includes(c.id));
   const many = design.colourways.filter((c) => MANY.includes(c.id));
 
-  it("has fifteen palettes, each all dark and all light, all dark in Shetland naturals first; then nine of many colours", () => {
+  it("has fifteen palettes, each all dark and all light, all dark in Shetland naturals first; then thirteen of many colours", () => {
     expect(design.colourways.map((c) => c.id)).toEqual([
       ...["naturals", "early", "twenties", "vintage", "lopi", "selbu", "marius", "bohus", "muhu", "latvia", "andes", "sanquhar", "buggiflooer", "anemone", "classic"].flatMap((p) => [
         `${p}-dark`,

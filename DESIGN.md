@@ -372,11 +372,14 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     darks, the first of each the ground, with perhaps some middle shades and
     an accent. All dark in Shetland naturals is the default. Bohus's close
     heathered shades keep 17 L* apart where the rest keep 20.
-  - **Nine of many colours**, tens of Spindrift yarns each, from the colour
+  - **Thirteen of many colours**, tens of Spindrift yarns each, from the colour
     research: lightness carries the pattern, colours change their
     neighbours, brights go in small doses, and one organising idea holds tens
     of colours together. Colour journey (a step round the colour circle each
-    year), Night journey (the same on dark grounds), Shetland landscape (each
+    year), Night journey (the same on dark grounds), each also in step (its
+    hue set by how far down the jumper a band sits, as Each Year Once in M
+    has it, so a body band and the sleeve band level with it share a hue)
+    and in step on half the circle, gentler; Shetland landscape (each
     year a place, in soft heathers), Undyed grounds with dyed figures,
     Shaded Fair Isle, the hats' own hues, Bohus heathers, Muhu stockings (the
     bold one, brights over the hats' tenth on purpose) and Shetland seasons.

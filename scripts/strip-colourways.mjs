@@ -365,6 +365,29 @@ const pathTarget = (hues) => (year, yi, l, role, k, dark) => {
   return hueTarget(h, C, L);
 };
 
+/*
+ * Each year's place down the jumper, 0 at the neck to 1 at the hem or cuff, as Each Year Once in M has it: the yoke the
+ * first part, then the body and the sleeves each the rest from the underarm, so a body band and the sleeve band level
+ * with it share a place. The journeys in step take their hues from it rather than from the year.
+ */
+const DEPTH = { 2014: 0.056, 2015: 0.166, 2016: 0.294, 2017: 0.421, 2018: 0.528, 2019: 0.64, 2020: 0.773, 2021: 0.921, 2022: 0.422, 2023: 0.538, 2024: 0.662, 2025: 0.794, 2026: 0.928 };
+// A journey round the colour circle by place down the jumper, from `start` through `span` degrees; middles lean a twelfth of the way on.
+const inStep = (start, span) => (year) => start + span * DEPTH[year];
+const lightJourney = (hueOf, lean) => (year, yi, l, role, k, dark) => {
+  const h = hueOf(year) + (role === "middle" ? lean : 0);
+  const C = role === "ground" ? (dark ? 14 : 6) : role === "middle" ? 34 : 28;
+  const L = role === "ground" ? (dark ? 38 - 6 * k : 88 - 6 * k) : role === "middle" ? 55 : dark ? 78 - 7 * k : 32 - 7 * k;
+  return hueTarget(h, C, L);
+};
+const nightBands = (role, dark, year) => pinned(year)
+  ? role === "ground" ? { lo: 34, hi: 48 } : role === "middle" ? { lo: 52, hi: 64, cmin: 10 } : { lo: 66, hi: 92 }
+  : role === "ground" ? { lo: 10, hi: 34, cmax: 34 } : role === "middle" ? { lo: 44, hi: 62, cmin: 12 } : { lo: 62, hi: 92, cmax: 48 };
+const nightJourney = (hueOf, lean) => (year, yi, l, role, k) => {
+  const h = hueOf(year) + (role === "middle" ? lean : 0);
+  if (role === "ground") return hueTarget(h, 12, (pinned(year) ? 42 : 22) - 5 * k);
+  return role === "middle" ? hueTarget(h, 30, 54) : hueTarget(h, 26, 82 - 6 * k);
+};
+
 const LAND = {
   2014: [[104, 120, 183], [880, 198, 1190, 118], [429]],
   2015: [[286, 319, 812, 147], [1130, 375, 104], [425]],
@@ -454,6 +477,26 @@ const manyPalettes = [
         return role === "middle" ? hueTarget(h, 30, 54) : hueTarget(h, 26, 82 - 6 * k);
       },
     }),
+  },
+  {
+    id: "journey-in-step", mode: "light", name: "Colour journey, in step", trim: 198,
+    note: "The colour journey's route, peat browns through gold, moss, sea, blue and heather to madder, each band's hue set by how far down the jumper it sits rather than by its year: the yoke takes the first part of the circle, then the body and sleeves walk the rest together from the underarm, so each body band and the sleeve band level with it share a hue.",
+    maps: () => assign({ bands: lightBands(76), target: lightJourney(inStep(45, 312), 26) }),
+  },
+  {
+    id: "journey-gentle", mode: "light", name: "Colour journey, in step, gentler", trim: 198,
+    note: "In step, on half the circle: peat browns through gold and moss to sea green. Smaller steps between neighbouring bands, so the whole jumper reads as one gradual turn.",
+    maps: () => assign({ bands: lightBands(76), target: lightJourney(inStep(45, 180), 15) }),
+  },
+  {
+    id: "night-in-step", mode: "dark", name: "Night journey, in step", trim: 999,
+    note: "The night journey's route, midnight blue through violet, rose, madder, ochre and moss to sea green, in step down the jumper: each body band and the sleeve band level with it share a hue.",
+    maps: () => assign({ bands: nightBands, target: nightJourney(inStep(230, 312), 26) }),
+  },
+  {
+    id: "night-gentle", mode: "dark", name: "Night journey, in step, gentler", trim: 999,
+    note: "In step, on half the circle: midnight blue through violet and rose to madder, deep grounds and lit figures in smaller steps.",
+    maps: () => assign({ bands: nightBands, target: nightJourney(inStep(230, 160), 13) }),
   },
   {
     id: "landscape", mode: "light", name: "Shetland landscape", trim: 102,
