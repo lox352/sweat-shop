@@ -151,7 +151,7 @@ const madeAt = (to: number, at: number[]): ShapingOp[] => {
 class Writer {
   specs: RoundSpec[] = [];
   charts = new Map<string, Chart>();
-  private run: { key: string; year: number; chart: string; w: number; rows: ChartRow[]; map?: number[]; seam?: number; maps?: number[][]; narrowed?: number } | null = null;
+  private run: { key: string; year: number; chart: string; w: number; rows: ChartRow[]; map?: number[]; seam?: number; maps?: number[][]; resized?: number } | null = null;
 
   constructor(
     private readonly prefix: string,
@@ -173,9 +173,9 @@ class Writer {
       this.run = null;
       return;
     }
-    const { maps, narrowed } = this.run;
+    const { maps, resized } = this.run;
     const doubled = map ? doubling(map) : "";
-    const id = `${this.prefix}${String(year).slice(2)}${chart}${rows[0].row}-${rows[rows.length - 1].row}w${w}${doubled ? `x${doubled}` : ""}${narrowed ? `n${narrowed}` : ""}${bandsOf(rows)}`;
+    const id = `${this.prefix}${String(year).slice(2)}${chart}${rows[0].row}-${rows[rows.length - 1].row}w${w}${doubled ? `x${doubled}` : ""}${resized ? (resized < 0 ? `n${-resized}` : `p${resized}`) : ""}${bandsOf(rows)}`;
     if (!this.charts.has(id)) {
       const cells = (r: ChartRow, k: number): ChartCell[] =>
         maps ? maps[k].map((x) => ({ slot: tileOf(r)[x] })) : map ? map.map((x, q) => cellOf(tileOf(r)[x], map, q)) : tileOf(r).map((slot) => ({ slot }));
@@ -187,15 +187,16 @@ class Writer {
 
   /**
    * A row of a band, at the count on the needle: on the hat's repeat, or on its
-   * quantum's repeat, perhaps widened by doubling columns - or narrowed by
-   * `narrowed` stitches (see regions.ts), each row then on its own columns.
+   * quantum's repeat, perhaps widened by doubling columns - or narrowed or
+   * padded by `resized` stitches (see regions.ts), each row then on its own
+   * columns.
    */
-  chart(r: ChartRow, map?: number[], narrowed?: number) {
+  chart(r: ChartRow, map?: number[], resized?: number) {
     const wide = map && (map.length !== r.w || map.some((x, q) => x !== q)) ? map : undefined;
-    const key = `${r.year}${r.chart}${wide ? wide.length : r.w}${narrowed ? `n${narrowed}` : wide ? doubling(wide) : ""}`;
+    const key = `${r.year}${r.chart}${wide ? wide.length : r.w}${resized ? `r${resized}` : wide ? doubling(wide) : ""}`;
     const prev = this.run?.rows[this.run.rows.length - 1];
     if (this.run && (this.run.key !== key || prev!.row !== r.row + 1)) this.flush();
-    if (!this.run) this.run = { key, year: r.year, chart: r.chart, w: wide ? wide.length : r.w, rows: [], map: narrowed ? undefined : wide, maps: narrowed ? [] : undefined, narrowed };
+    if (!this.run) this.run = { key, year: r.year, chart: r.chart, w: wide ? wide.length : r.w, rows: [], map: resized ? undefined : wide, maps: resized ? [] : undefined, resized };
     this.run.rows.push(r);
     this.run.maps?.push(map!);
   }
@@ -494,7 +495,7 @@ export const knit = (size: Measured, given: Plan, prefix: string): Knitted => {
       else sleeve.plain(slotOfRound(r));
     } else if (s.kind === "double" && map && s.count !== count) sleeve.merge(r as ChartRow, map, s.map);
     else if (s.count !== count) sleeve.transition(r as ChartRow, count, s.count, s.map, spread(s.count, count - s.count));
-    else sleeve.chart(r as ChartRow, s.map, s.narrowed);
+    else sleeve.chart(r as ChartRow, s.map, s.resized);
     count = s.count;
     map = s.map;
   });

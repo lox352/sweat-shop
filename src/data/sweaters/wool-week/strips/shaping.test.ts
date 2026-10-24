@@ -127,7 +127,8 @@ describe("a sleeve narrowed by its quanta, seamless where it can be", () => {
   it.each(cases)("ends a doubled column only where everything above it in its band is background: $kind, $label", ({ id, finished, layout }) => {
     const { rows, steps } = sleeveOf(finished, layout, id);
     for (const u of unitsOf(rows)) {
-      if (u.solid || steps[u.rows[0]].seam) continue;
+      // A padded band's copies are its padding (see regions.ts), not doubled columns.
+      if (u.solid || steps[u.rows[0]].seam || (steps[u.rows[0]].resized ?? 0) > 0) continue;
       u.rows.forEach((i, p) => {
         for (const [x, k] of copies(steps[i])) {
           if (k < 2) continue;

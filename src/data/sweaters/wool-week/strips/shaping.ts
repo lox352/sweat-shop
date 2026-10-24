@@ -1,6 +1,6 @@
 import type { Row } from "./plan";
 import { background, quantumOf } from "./quanta";
-import { narrowingsOf } from "./regions";
+import { type Narrowed, narrowingsOf, paddingOf } from "./regions";
 import { bandSlotsOfRow } from "./slots";
 
 /**
@@ -30,10 +30,12 @@ import { bandSlotsOfRow } from "./slots";
  *   seam stitch, two decreases at a time either side of it. Seamed rounds cost
  *   the search far more than any departure from the target within the
  *   tolerance, so it seams as few as it can, and the piece never widens.
- * - **Narrowed bands.** A narrowing piece may also knit a band on a narrower
- *   repeat than its hat's, its motifs brought closer together unaltered, by
- *   seams through its background between its foreground regions (see
- *   regions.ts). Such a band keeps its repeat all the way down.
+ * - **Narrowed and padded bands.** A narrowing piece may also knit a band on
+ *   a narrower repeat than its hat's, its motifs brought closer together
+ *   unaltered, by seams through its background between its foreground regions
+ *   (see regions.ts); or on a wider one, a seam of background added. Such a
+ *   band keeps its repeat all the way down. Padding costs more the more it
+ *   bends a region it has to cross, enough that it is used only where the band would otherwise be seamed.
  *
  * The counts are chosen by a search over the whole piece, keeping each round
  * as near its target as it can, never more than 12% over it.
@@ -138,8 +140,8 @@ export interface Step {
   reps?: number;
   /** A band with a seam on the inner arm (see above), its round the whole count. */
   seam?: boolean;
-  /** A band on a narrowed repeat (see regions.ts): how many stitches each repeat gives up. Its map is then the round's own. */
-  narrowed?: number;
+  /** A band on a narrowed or padded repeat (see regions.ts): how many stitches each repeat gains, or gives up if fewer than none. Its map is then the round's own. */
+  resized?: number;
 }
 
 export interface Target {
@@ -164,8 +166,8 @@ interface Layout {
   extra: number;
   /** Not a layout of repeats: the band seamed. */
   seam?: boolean;
-  /** The band on its repeat narrowed: which of its narrowings. */
-  narrowed?: number;
+  /** The band on its repeat narrowed or padded: which of its resizings. */
+  resized?: number;
 }
 
 /**
@@ -218,16 +220,26 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
   layoutIds.set("seam", seamed.id);
   /** What a seamed round costs: more than any round within the tolerance, so a band is seamed only where it must be. */
   const SEAM = 0.05;
-  // Narrowing, each band's narrower repeats, and a layout for each; a narrowed band costs a little, so the hat's own spacing is kept where it does as well.
-  const narrowings = units.map((u) => (reversed && !u.solid ? narrowingsOf(u.tiles, u.bg) : []));
-  const narrowedLayouts = narrowings.map((ns, k) =>
+  // Narrowing, each band's narrower repeats and its padded one, and a layout for each; a narrowed band costs a little, so the hat's own spacing is kept where it does as well, and a padded one more, the more it bends what it crosses.
+  const resizings = units.map((u): Narrowed[] => {
+    if (!reversed || u.solid) return [];
+    const padded = paddingOf(u.tiles, u.bg);
+    return [...narrowingsOf(u.tiles, u.bg), ...(padded ? [padded] : [])];
+  });
+  const resizedLayouts = resizings.map((ns, k) =>
     ns.map((v, j) => {
-      const L: Layout = { id: layouts.length, dup: [], extra: v.w - units[k].w, narrowed: j };
+      const L: Layout = { id: layouts.length, dup: [], extra: v.w - units[k].w, resized: j };
       layouts.push(L);
       return L;
     }),
   );
   const NARROWED = 0.002;
+  const PADDED = 0.08;
+  const BENT = 0.004;
+  const resizeCost = (k: number, L: Layout) => {
+    const v = resizings[k][L.resized!];
+    return v.w < units[k].w ? NARROWED : PADDED + BENT * (v.cost ?? 0);
+  };
 
   const lookMemo = new Map<number, number>();
   const look = (k: number, p: number, L: Layout): number => {
@@ -319,7 +331,7 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
           // Only counts the next unit can be knitted on unchanged are worth stopping at.
           const next = i + 1 < n ? units[unitAt[i + 1]] : undefined;
           if (next && !next.solid) {
-            const widths = [next.w, ...best[unitAt[i + 1]].map((s) => next.w + s.slot.length), ...narrowings[unitAt[i + 1]].map((v) => v.w)];
+            const widths = [next.w, ...best[unitAt[i + 1]].map((s) => next.w + s.slot.length), ...resizings[unitAt[i + 1]].map((v) => v.w)];
             cands = new Set([...cands].filter((m) => m === c || widths.some((w) => m % w === 0)));
             if (lo <= hi && cands.size === 1) cands.add(Math.ceil(lo / widths[0]) * widths[0]);
           }
@@ -339,8 +351,8 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
           if (c % ww === 0) reps.add(c / ww);
           for (const r of reps) if (r * ww >= c) moves.push({ m: r * ww, L: L0, reps: r, kind: r * ww > c ? "change" : "same" });
         }
-        // Or, narrowing, on a narrowed repeat, all the way down.
-        for (const L0 of narrowedLayouts[k]) {
+        // Or, narrowing, on a narrowed or padded repeat, all the way down.
+        for (const L0 of resizedLayouts[k]) {
           const ww = u.w + L0.extra;
           const lo = Math.max(c, 0.9 * want);
           const hi = Math.min(1.5 * c, 1.12 * want);
@@ -350,7 +362,7 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
         }
         // Or, narrowing, the band seamed: on its count, or near its target.
         if (reversed) for (const m of new Set([c, c + 1, c + 2, Math.round(want)])) if (m >= c) moves.push({ m, L: seamed, reps: 0, kind: m > c ? "change" : "same" });
-      } else if (L.narrowed !== undefined) {
+      } else if (L.resized !== undefined) {
         moves.push({ m: c, L, reps, kind: "same" });
       } else if (L.seam) {
         // A seamed band narrows two stitches at a time, either side of its seam.
@@ -375,7 +387,7 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
         if (mv.m > 1.5 * c || (mv.m > c && mv.m > 1.125 * want && !last)) continue;
         // Narrowing, every round within the tolerance of its target; the round above the cuff may differ from it, worked in a round before the rib.
         if (reversed && !fixed && Math.abs(mv.m - want) > (t.tolerance ?? 0.1) * want) continue;
-        let pen = dev(mv.m, i) + (mv.L.seam ? SEAM : 0) + (mv.L.narrowed !== undefined && p === 0 ? NARROWED : 0);
+        let pen = dev(mv.m, i) + (mv.L.seam ? SEAM : 0) + (mv.L.resized !== undefined && p === 0 ? resizeCost(k, mv.L) : 0);
         if (fixed && mv.m > c) pen += 0.01;
         if (mv.m > c) pen += 0.0015;
         // Increase rounds close together crowd their make-ones: two rounds between them where the target allows.
@@ -383,7 +395,7 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
         if (mv.m > c && mv.kind === "change" && patterned(i)) pen += 0.002;
         if (!u.solid) {
           if (mv.kind === "double") pen += 0.0004 * (look(k, p, mv.L) - look(k, p, L));
-          else if (p === 0 && mv.L.extra > 0) pen += 0.0004 * look(k, 0, mv.L);
+          else if (p === 0 && mv.L.extra > 0 && mv.L.resized === undefined) pen += 0.0004 * look(k, 0, mv.L);
         }
         if (pen >= res.cost) continue;
         const nextSince = mv.m > c ? 0 : Math.min(3, since + 1);
@@ -401,14 +413,14 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
   for (let b: Best | undefined = root; b?.move; b = memo.get(b.next!)) {
     const { m, L, reps, kind } = b.move;
     const u = units[unitAt[steps.length]];
-    const v = L.narrowed !== undefined ? narrowings[unitAt[steps.length]][L.narrowed] : undefined;
+    const v = L.resized !== undefined ? resizings[unitAt[steps.length]][L.resized] : undefined;
     steps.push(
       u.solid
         ? { count: m, kind }
         : L.seam
           ? { count: m, kind, seam: true }
           : v
-            ? { count: m, kind, map: v.maps[posAt[steps.length]], reps, narrowed: u.w - v.w }
+            ? { count: m, kind, map: v.maps[posAt[steps.length]], reps, resized: v.w - u.w }
             : { count: m, kind, map: mapOf(u.w, L.dup), reps },
     );
   }
