@@ -58,6 +58,8 @@ export interface Unit {
   bg: boolean[][];
   /** The columns that are doubled together: a column with its mirror partner, or one on a mirror line, or alone. */
   slots: number[][];
+  /** Each round's pass round its quantum's repeat: 0, then 1 once the unit has run on from its last row back to its first. */
+  pass: number[];
 }
 
 const periodOf = (tiles: string[][]): number => {
@@ -85,10 +87,18 @@ export const unitsOf = (rows: Row[]): Unit[] => {
   for (let i = 0; i < rows.length; ) {
     const key = keyOf(rows[i], i);
     let j = i + 1;
-    // A unit runs on while its rounds are the same quantum's, in order through its chart: down it, or up it for a piece solved the other way up.
-    while (j < rows.length && keyOf(rows[j], j) === key && !isPlain(rows[j]) && Math.abs((rows[j] as ChartRow).row - (rows[j - 1] as ChartRow).row) === 1) j++;
+    // A unit runs on while its rounds are the same quantum's, in order through its chart: down it, or up it for a piece solved the other way up;
+    // and on round the quantum's own repeat, from its last row back to its first, so that 2025's peerie and the cores either side of it line up.
+    const onward = (a: ChartRow, b: ChartRow) => {
+      if (Math.abs(b.row - a.row) === 1) return true;
+      const q = quantumOf(a.year, a.chart, a.row);
+      return !!q && q.to > q.from && ((a.row === q.from && b.row === q.to) || (a.row === q.to && b.row === q.from));
+    };
+    while (j < rows.length && keyOf(rows[j], j) === key && !isPlain(rows[j]) && onward(rows[j - 1] as ChartRow, rows[j] as ChartRow)) j++;
     const idx = Array.from({ length: j - i }, (_, k) => i + k);
-    if (key.startsWith("solid")) units.push({ rows: idx, solid: true, w: 1, tiles: [], bg: [], slots: [] });
+    const pass = idx.map(() => 0);
+    for (let k = 1; k < idx.length; k++) pass[k] = pass[k - 1] + (Math.abs((rows[idx[k]] as ChartRow).row - (rows[idx[k - 1]] as ChartRow).row) === 1 ? 0 : 1);
+    if (key.startsWith("solid")) units.push({ rows: idx, solid: true, w: 1, tiles: [], bg: [], slots: [], pass });
     else {
       const rs = idx.map((k) => rows[k] as ChartRow);
       const full = rs.map(tileOf);
@@ -100,7 +110,7 @@ export const unitsOf = (rows: Row[]): Unit[] => {
       const mirror = (x: number) => (axes.length ? (((axes[0] - x) % w) + w) % w : x);
       const bg = rs.map((r) => Array.from({ length: w }, (_, q) => background(r.year, r.chart, r.row, r.w - 1 - q)));
       const slots = [...new Map(Array.from({ length: w }, (_, x) => [Math.min(x, mirror(x)), [...new Set([x, mirror(x)])].sort((a, b) => a - b)])).values()];
-      units.push({ rows: idx, solid: false, w, tiles, bg, slots });
+      units.push({ rows: idx, solid: false, w, tiles, bg, slots, pass });
     }
     i = j;
   }
@@ -348,7 +358,11 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
         if (since >= 1) moves.push({ m: c + 2, L, reps: 0, kind: "change" });
       } else {
         moves.push({ m: c, L, reps, kind: "same" });
-        if (since >= 2) {
+        // A unit that runs on round its repeat changes its layout only in its first pass, as knitted, so the rest line up with it: 2025's peerie and lower core with its upper core.
+        // Narrowing, solved reversed, that pass is the last, and a change here is worked in the round below, which must be in it too.
+        const lastPass = u.pass[u.pass.length - 1];
+        const firstPass = reversed ? u.pass[p] === lastPass && u.pass[p - 1] === lastPass : u.pass[p] === 0;
+        if (since >= 2 && firstPass) {
           best[k].forEach((s, j) => {
             if (p < s.from) return;
             const L1 = add(L, k, j);
