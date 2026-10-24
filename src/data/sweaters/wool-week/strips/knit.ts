@@ -4,7 +4,7 @@ import { yearOf } from "../years";
 import { lettersOf, solid } from "./cuts";
 import { gauge, ribs, type Measured, type Plan, type Row } from "./plan";
 import roleData from "./roles.json";
-import { background, quantumOf } from "./quanta";
+import { quantumOf } from "./quanta";
 import { added, growing, increasesOf, narrowing, type Step, tileOf, unitsOf } from "./shaping";
 import { letterOf, plainSlot, trimSlot } from "./slots";
 
@@ -151,7 +151,7 @@ const madeAt = (to: number, at: number[]): ShapingOp[] => {
 class Writer {
   specs: RoundSpec[] = [];
   charts = new Map<string, Chart>();
-  private run: { key: string; year: number; chart: string; w: number; rows: ChartRow[]; map?: number[]; seam?: number } | null = null;
+  private run: { key: string; year: number; chart: string; w: number; rows: ChartRow[]; map?: number[]; seam?: number; maps?: number[][]; resized?: number } | null = null;
 
   constructor(
     private readonly prefix: string,
@@ -173,24 +173,32 @@ class Writer {
       this.run = null;
       return;
     }
+    const { maps, resized } = this.run;
     const doubled = map ? doubling(map) : "";
-    const id = `${this.prefix}${String(year).slice(2)}${chart}${rows[0].row}-${rows[rows.length - 1].row}w${w}${doubled ? `x${doubled}` : ""}${bandsOf(rows)}`;
+    const id = `${this.prefix}${String(year).slice(2)}${chart}${rows[0].row}-${rows[rows.length - 1].row}w${w}${doubled ? `x${doubled}` : ""}${resized ? (resized < 0 ? `n${-resized}` : `p${resized}`) : ""}${bandsOf(rows)}`;
     if (!this.charts.has(id)) {
-      const cells = (r: ChartRow): ChartCell[] => (map ? map.map((x, q) => cellOf(tileOf(r)[x], map, q)) : tileOf(r).map((slot) => ({ slot })));
+      const cells = (r: ChartRow, k: number): ChartCell[] =>
+        maps ? maps[k].map((x) => ({ slot: tileOf(r)[x] })) : map ? map.map((x, q) => cellOf(tileOf(r)[x], map, q)) : tileOf(r).map((slot) => ({ slot }));
       this.charts.set(id, { id, name: this.nameOf(year), rows: rows.map(cells) });
     }
     this.specs.push({ type: "chart", chart: id, rows: [1, rows.length] });
     this.run = null;
   }
 
-  /** A row of a band, at the count on the needle: on the hat's repeat, or on its quantum's repeat, perhaps widened by doubling columns. */
-  chart(r: ChartRow, map?: number[]) {
+  /**
+   * A row of a band, at the count on the needle: on the hat's repeat, or on its
+   * quantum's repeat, perhaps widened by doubling columns - or narrowed or
+   * padded by `resized` stitches (see regions.ts), each row then on its own
+   * columns.
+   */
+  chart(r: ChartRow, map?: number[], resized?: number) {
     const wide = map && (map.length !== r.w || map.some((x, q) => x !== q)) ? map : undefined;
-    const key = `${r.year}${r.chart}${wide ? wide.length : r.w}${wide ? doubling(wide) : ""}`;
+    const key = `${r.year}${r.chart}${wide ? wide.length : r.w}${resized ? `r${resized}` : wide ? doubling(wide) : ""}`;
     const prev = this.run?.rows[this.run.rows.length - 1];
     if (this.run && (this.run.key !== key || prev!.row !== r.row + 1)) this.flush();
-    if (!this.run) this.run = { key, year: r.year, chart: r.chart, w: wide ? wide.length : r.w, rows: [], map: wide };
+    if (!this.run) this.run = { key, year: r.year, chart: r.chart, w: wide ? wide.length : r.w, rows: [], map: resized ? undefined : wide, maps: resized ? [] : undefined, resized };
     this.run.rows.push(r);
+    this.run.maps?.push(map!);
   }
 
   /**
@@ -375,31 +383,34 @@ const SLEEVE_TOLERANCE = 0.1;
 
 /**
  * Where each seamed band of a sleeve is slid round to, for each of its
- * rounds: the offset, the same all through the band, that leaves the least
- * foreground touching its seam stitch - the stitches either side of it - and
- * of those the nearest the band centred on the top of the arm.
+ * rounds: centred on the top of the arm, the middle of its repeat half way
+ * round from the seam, so the pattern sits square on the outside of the arm
+ * and meets itself at the seam the same on both sides. A repeat's middle can
+ * be half a stitch from its mirror line, so of the offsets within a stitch of
+ * centred, the one under which the band is most nearly a mirror image about
+ * its seam stitch.
  */
 const seamOffsets = (rows: Row[], steps: Step[], top: number): Map<number, number> => {
   const out = new Map<number, number>();
   for (const u of unitsOf(rows)) {
     if (u.solid || !steps[u.rows[0]].seam) continue;
-    const first = rows[u.rows[0]] as ChartRow;
-    const w = first.w;
+    const w = (rows[u.rows[0]] as ChartRow).w;
     const centred = Math.floor(w / 2);
-    const cut = (off: number) =>
+    // How many stitches fail to mirror their partner across the seam stitch, the round's last, within a repeat of it.
+    const unlike = (off: number) =>
       u.rows.reduce((total, i) => {
         const r = rows[i] as ChartRow;
         const before = i ? steps[i - 1].count : top;
         const to = steps[i].count;
         const N = to === before || to === before - 2 ? before : to;
-        // The stitch's column as knitted, and as the chart is stored: the seam's neighbours are the round's first stitch and its last but one.
-        const fore = (j: number) => !background(r.year, r.chart, r.row, w - 1 - ((((j - Math.floor(N / 2) + off) % w) + w) % w));
-        return total + (fore(0) ? 1 : 0) + (fore(N - 2) ? 1 : 0);
+        const tile = tileOf(r);
+        const at = (j: number) => tile[(((j - Math.floor(N / 2) + off) % w) + w) % w];
+        let n = 0;
+        for (let d = 1; d <= Math.min(w, Math.floor((N - 1) / 2)); d++) if (at(N - 1 - d) !== at(d - 1)) n++;
+        return total + n;
       }, 0);
-    const away = (off: number) => Math.min((off - centred + w) % w, (centred - off + w) % w);
-    const cuts = Array.from({ length: w }, (_, off) => cut(off));
     let best = centred;
-    for (let off = 0; off < w; off++) if (cuts[off] < cuts[best] || (cuts[off] === cuts[best] && away(off) < away(best))) best = off;
+    for (const off of [centred - 1, centred + 1]) if (unlike((off + w) % w) < unlike(best)) best = (off + w) % w;
     for (const i of u.rows) out.set(i, best);
   }
   return out;
@@ -465,9 +476,12 @@ export const knit = (size: Measured, given: Plan, prefix: string): Knitted => {
   /* ------------------------------------------------------------- sleeves */
   const rows = plan.rows.sleeve;
   const L = rows.length;
-  // A straight taper from the upper arm to the cuff, leaving the first few rounds and the last few at their counts.
+  // A straight taper from the upper arm to the cuff's count where the last year's band begins, and straight on from there, so that band can go round
+  // at one count - padded, if it must be (see shaping) - rather than seamed; the first few rounds left at their count.
   const from = Math.min(6, Math.floor(L / 6));
-  const span = L - from - 3;
+  let last = L - 1;
+  while (last > 0 && rows[last - 1].year === rows[L - 1].year) last--;
+  const span = Math.max(1, last - from);
   const taper = (i: number) => top - (top - cuff) * Math.min(1, Math.max(0, (i - from + 0.5) / span));
   const steps = narrowing(rows, { from: top, to: cuff, want: taper, tolerance: SLEEVE_TOLERANCE });
   const offsets = seamOffsets(rows, steps, top);
@@ -484,7 +498,7 @@ export const knit = (size: Measured, given: Plan, prefix: string): Knitted => {
       else sleeve.plain(slotOfRound(r));
     } else if (s.kind === "double" && map && s.count !== count) sleeve.merge(r as ChartRow, map, s.map);
     else if (s.count !== count) sleeve.transition(r as ChartRow, count, s.count, s.map, spread(s.count, count - s.count));
-    else sleeve.chart(r as ChartRow, s.map);
+    else sleeve.chart(r as ChartRow, s.map, s.resized);
     count = s.count;
     map = s.map;
   });

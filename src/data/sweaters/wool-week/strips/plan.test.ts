@@ -59,11 +59,25 @@ describe("Each Year Once, refitted", () => {
     const plan = planOf(measured.find((m) => m.id === "l")!.finished, { kind: "refit" }, "l");
     const houses = plan.rows.yoke.filter((r) => r.year === 2016 && !("plain" in r)) as Exclude<Row, { plain: string }>[];
     expect([houses[0].row, houses[houses.length - 1].row]).toEqual([39, 11]);
-    // Every row of both stars, a plain round above and between them; the sheep giving up two rows of sky and one of field for it.
+    // Every row of both stars, a plain round between them, framed alike above and below; the sheep giving up rows of sky and field for it.
     const stars = plan.rows.yoke.filter((r) => r.year === 2014).map((r) => ("plain" in r ? "plain" : `${r.chart}${r.row}`));
-    expect(stars).toEqual(["plain", ...Array.from({ length: 13 }, (_, i) => `C${13 - i}`), "plain", ...Array.from({ length: 13 }, (_, i) => `B${13 - i}`)]);
+    expect(stars).toEqual(["plain", "plain", ...Array.from({ length: 13 }, (_, i) => `C${13 - i}`), "plain", ...Array.from({ length: 13 }, (_, i) => `B${13 - i}`), "plain", "plain"]);
     const sheep = plan.rows.yoke.filter((r) => r.year === 2015 && !("plain" in r)) as Exclude<Row, { plain: string }>[];
-    expect(sheep.map((r) => r.row)).toEqual(Array.from({ length: 22 }, (_, i) => 23 - i));
+    expect(sheep.map((r) => r.row)).toEqual(Array.from({ length: 19 }, (_, i) => 21 - i));
+  });
+
+  it.each(measured)("frames every year alike, as many plain rounds above it as below, in $label", ({ id, finished }) => {
+    const plan = planOf(finished, { kind: "refit" }, id);
+    for (const piece of ["yoke", "body", "sleeve"] as const) {
+      const rows = plan.rows[piece];
+      for (const year of new Set(rows.map((r) => r.year))) {
+        // A year's rounds, and how many at each end are plain: rounds in its yarn, or its pattern's own plain rows.
+        const own = rows.filter((r) => r.year === year);
+        const plain = (r: Row) => "plain" in r || new Set(lettersOfRow(r)).size === 1;
+        const run = (rs: Row[]) => rs.findIndex((r) => !plain(r));
+        expect(run(own), `${piece}, ${year}`).toBe(run([...own].reverse()));
+      }
+    }
   });
 });
 

@@ -22,8 +22,14 @@ import { type Measured, type Plan, type Row, type Strip, splitOf } from "./plan"
  *    against a band of stars, 2014's two stars, 2019's boat and sheep - a
  *    plain round goes between them, in the stronger one's background, so
  *    they don't run into each other (see quanta's plainBetween).
- * 5. Padding goes to patterned edges first, up to two rounds each, strongest
- *    background first; past that to any edge, carrying on its colour.
+ * 5. Padding goes to strips a pair at a time, a round above and a round
+ *    below, patterned strips first, up to two pairs each, strongest
+ *    background first; past that to any strip, carrying on its colours. An
+ *    odd round over is left out: the piece is a round shorter.
+ * 7. Every year is framed alike: as many plain rounds in its own yarn above
+ *    it as below - its pattern's own plain edge rows, the round between it
+ *    and its neighbour where that is in its yarn, and its padding. Where one
+ *    side has more, rounds go on the other, in that edge's background.
  * 6. Each year's cuts are a ladder from fullest down; a piece starts each
  *    year at the top of its ladder and steps down the trims in a set order
  *    until it fits. The sleeves start in the middle and spend spare rounds
@@ -224,21 +230,42 @@ const between = (strips: Placed[], total: number, ends: Ends) => {
   const rounds: (R | null)[] = [ends.top && !strips[0].state.opens ? roundBetween(null, strips[0]) : null];
   for (let i = 1; i < strips.length; i++) rounds.push(roundBetween(strips[i - 1], strips[i]));
   rounds.push(ends.bottom ? roundBetween(strips[strips.length - 1], null) : null);
-  const used = strips.reduce((t, s) => t + s.rounds.length, 0) + rounds.filter(Boolean).length;
-  return { spare: total - used, rounds };
+  // Rule 7: each strip's own plain rounds above and below it, and the rounds that even them up.
+  const framing = strips.map((s, i) => {
+    const above = (rounds[i]?.year === s.year ? 1 : 0) + leading(s.rounds);
+    const below = (rounds[i + 1]?.year === s.year ? 1 : 0) + leading([...s.rounds].reverse());
+    return { top: Math.max(0, below - above), bottom: Math.max(0, above - below) };
+  });
+  const used = strips.reduce((t, s) => t + s.rounds.length, 0) + rounds.filter(Boolean).length + framing.reduce((t, f) => t + f.top + f.bottom, 0);
+  return { spare: total - used, rounds, framing };
+};
+
+/** How many of a strip's rounds, from its edge, are plain. */
+const leading = (rounds: R[]) => {
+  let n = 0;
+  while (n < rounds.length && isPlain(rounds[n])) n++;
+  return n;
 };
 
 /** A piece's rounds and its strips, the spare rounds shared out by rule 5. */
 const build = (strips: Placed[], total: number, ends: Ends): { rows: Row[]; strips: Strip[] } => {
-  const { spare, rounds } = between(strips, total, ends);
+  const { spare, rounds, framing } = between(strips, total, ends);
   if (spare < 0) throw new Error(`${strips.map((s) => s.year).join(", ")} will not go in ${total} rounds`);
-  const edges = strips.flatMap((s, i) => [true, false].map((top) => ({ i, top, ...edge(s.rounds, top) })));
-  const patterned = edges.filter((e) => !e.plain).sort((a, b) => b.share - a.share);
-  const everywhere = [...edges].sort((a, b) => b.share - a.share);
+  // Rule 5: padding a pair at a time, patterned strips first, strongest background first.
+  const strength = (i: number) => {
+    const [a, b] = [edge(strips[i].rounds, true), edge(strips[i].rounds, false)];
+    return { i, patterned: !a.plain && !b.plain, share: a.share + b.share };
+  };
+  const order = strips.map((_, i) => strength(i)).sort((a, b) => b.share - a.share);
+  const patterned = order.filter((e) => e.patterned);
   const pads = new Map<string, number>();
-  for (let k = 0; k < spare; k++) {
-    const e = k < 2 * patterned.length ? patterned[k % patterned.length] : everywhere[(k - 2 * patterned.length) % everywhere.length];
-    pads.set(`${e.i}${e.top}`, (pads.get(`${e.i}${e.top}`) ?? 0) + 1);
+  for (let k = 0; k < Math.floor(spare / 2); k++) {
+    const e = k < 2 * patterned.length ? patterned[k % patterned.length] : order[(k - 2 * patterned.length) % order.length];
+    for (const top of [true, false]) pads.set(`${e.i}${top}`, (pads.get(`${e.i}${top}`) ?? 0) + 1);
+  }
+  for (const [i, f] of framing.entries()) {
+    pads.set(`${i}true`, (pads.get(`${i}true`) ?? 0) + f.top);
+    pads.set(`${i}false`, (pads.get(`${i}false`) ?? 0) + f.bottom);
   }
   const rows: Row[] = [];
   const placed: Strip[] = [];
@@ -266,15 +293,22 @@ const place = (ladders: Ladder[], at: number[]): Placed[] =>
 const fit = (ladders: Ladder[], total: number, ends: Ends, trims: number[]): { placed: Placed[]; at: number[] } | null => {
   const at = ladders.map(() => 0);
   const taken: number[] = [];
+  // A cut that opens the piece itself is passed over: every piece begins with a plain round, where its first shaping or its divide goes.
+  const next = (i: number) => {
+    let a = at[i] + 1;
+    while (a < ladders[i].states.length && ladders[i].states[a].opens) a++;
+    return a;
+  };
   while (between(place(ladders, at), total, ends).spare < 0) {
-    const k = trims.find((i) => at[i] < ladders[i].states.length - 1);
+    const k = trims.find((i) => next(i) < ladders[i].states.length);
     if (k === undefined) return null;
-    at[k]++;
+    at[k] = next(k);
     taken.push(k);
   }
   for (const k of taken.slice(0, -1)) {
-    at[k]--;
-    if (between(place(ladders, at), total, ends).spare < 0) at[k]++;
+    const was = at[k];
+    do at[k]--; while (at[k] > 0 && ladders[k].states[at[k]].opens);
+    if (ladders[k].states[at[k]].opens || between(place(ladders, at), total, ends).spare < 0) at[k] = was;
   }
   return { placed: place(ladders, at), at };
 };
@@ -315,6 +349,7 @@ export const refit = (size: Measured, sizeId: string): Plan => {
   return {
     strips: { yoke: y.strips, body: b.strips, sleeve: s.strips },
     rows: { yoke: y.rows.map(toRow), body: b.rows.map(toRow), sleeve: s.rows.map(toRow) },
-    depth: { yoke: sp.yoke, body: sp.body, sleeve: sp.sleeve },
+    // A piece a round shorter where an odd round was left out (rule 5).
+    depth: { yoke: y.rows.length, body: b.rows.length, sleeve: s.rows.length },
   };
 };

@@ -243,10 +243,17 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
   - Where two quanta meet that don't go together, a plain round goes
     between them, in the stronger one's background, so they don't run into
     each other: 2014's peeries and stars, its two stars where a cut parts
-    them, 2019's boat and sheep, 2023's peeries and flowers. In L the sheep
-    give up two rows of sky and one of field to make room.
-  - Spare rounds go to patterned edges first, up to two each, strongest
-    background first: sky above the boats, ground under the sheep.
+    them, 2019's boat and sheep, 2023's peeries and flowers.
+  - Every year is framed alike: as many plain rounds in its own yarn above
+    it as below - its pattern's own plain edge rows, the round between it
+    and a neighbour where that is in its yarn, and its padding. Where one
+    side has more, rounds go on the other. In L the stars get two above and
+    two below, and the sheep give up rows of sky and field to make room.
+  - Spare rounds go to strips a pair at a time, one above and one below,
+    patterned strips first, up to two pairs each, strongest background
+    first; an odd one over is left out, the piece a round shorter. A cut
+    that would open a piece itself, with no plain round above for its first
+    shaping, is passed over.
   - Each year's cuts are a ladder from fullest down, and a piece takes the
     trims in a set order until it fits: on the yoke 2014's outer rows, then
     the sheep's sky and field, two rows to one; on the body 2020's outer
@@ -287,21 +294,47 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
   body keeps every repeat whole, and changes count in plain or one-colour
   rounds, or spread through a round of the pattern where the repeat
   changes.
-- **The sleeves** (`knit.ts`, `shaping.ts`). Seamless where a band can be,
-  seamed on the inner arm where it can't: every round within 10% of a straight
-  taper from the upper arm to the cuff. A seamless band is on whole repeats,
-  narrowing between bands or where a doubled background column ends - one
-  whose ancestors, from the top of the band down, are all background. A band
-  that can't stay within the tolerance so is seamed: centred on the arm, its
-  repeats meeting part-way at a seam stitch on the inner arm (chosen to break
-  the floats either side of it), two decreases at a time either side, and
-  slid round, the same all through the band, to the offset that leaves the
-  least foreground touching the seam. Seamed rounds cost the search far more
-  than any departure within the tolerance, so it seams as few as it can, and
-  a sleeve never widens. Strictly seamless sleeves are impossible in most
-  sizes: with whole repeats and a falling count, the bands' repeats compound
-  from the cuff up - 2026's 32-stitch lattice, 2025's 18, the ram's 20, the
-  flower's 34 - past the stitches the sleeve starts with.
+- **The sleeves** (`knit.ts`, `shaping.ts`, `regions.ts`). Seamless where a
+  band can be, seamed on the inner arm where it can't: every round within 10%
+  of a straight taper from the upper arm to the cuff's count where the last
+  year's band begins, and straight on from there, so that band can go round
+  at one count. A seamless band is on whole repeats, narrowing between bands
+  or where a doubled background column ends - one whose ancestors, from the
+  top of the band down, are all background. A band runs on round its
+  quantum's repeat, 2025's upper core, peerie and lower core one band,
+  changing its layout only in its first pass, so they line up and its
+  decreases are all in its upper half.
+  - **Narrowed and padded bands** (`regions.ts`). A band's foreground is
+    split into regions, stitches that touch, corners included. A seam is a
+    path down the band through its background, a stitch a round, that never
+    cuts a region; taken out, a seam and its mirror image bring the motifs a
+    stitch nearer each other unaltered, until regions would meet - 2024's
+    rams 20 to 18, their heads a stitch nearer the little diamonds between
+    them. Put in, it moves them apart - 2023's flowers 34 to 36, 38, 40 or
+    42, the most four stitches or a quarter of a repeat. A band may leave out
+    stitches to be narrowed (`trims.ts`): 2023's birch-branch stems, three
+    stitches at each corner, so its flowers come to 32. 2026's lattice is
+    padded by making its diamond of sixteen balls bigger, p stitches either
+    side in every round and p rounds at each tip, the lattice's lines parted
+    round the new tips in their pairs, the I at its crossing left whole;
+    padded by four or more, its columns of balls spread a stitch apart.
+    Padding costs the search more than narrowing, and more the wider it is,
+    so it is used only where a band would otherwise be seamed, and no more
+    than it needs. Each Year Once's sleeves are seamless in every size.
+  - **Seamed bands**, where nothing else will do. A band
+    that can't stay within the tolerance so is seamed: centred on the arm, its
+    repeats meeting part-way at a seam stitch on the inner arm (chosen to break
+    the floats either side of it), two decreases at a time either side. The
+    middle of its repeat sits on the top of the arm, so the pattern is square
+    on the outside and meets itself at the seam the same on both sides; of the
+    offsets within a stitch of that, the one under which the band is most
+    nearly a mirror image about the seam stitch. Seamed rounds cost the search far more
+    than any departure within the tolerance, so it seams as few as it can, and
+    a sleeve never widens. On their hats' repeats alone, seamless sleeves are
+    impossible in most sizes: with whole repeats and a falling count, the
+    bands' repeats compound from the cuff up - 2026's 32-stitch lattice,
+    2025's 18, the ram's 20, the flower's 34 - past the stitches the sleeve
+    starts with. Narrowing and padding make the room.
 - **The colourways** (`colours.ts`, from `colourways.json`, which
   `scripts/strip-colourways.mjs` works out). Each yarn of each hat is its own
   slot, "14A" or "26DA" (see `slots.ts`), so a colourway is a yarn for every
