@@ -15,7 +15,7 @@ export default stripSampler({
     "five down both sleeves. Each hat shows as much of itself as its piece " +
     "has room for - the Crofthoose Hat's three strips of houses, both of " +
     "Katie's Kep's star bands, Da Crofter's Kep with its borders - and the " +
-    "plain rounds between them carry on the background beside them. The " +
-    "sleeves taper at a seam under the arm.",
+    "plain rounds between them carry on the background beside them, as " +
+    "many above each hat as below. The sleeves taper without a seam.",
   layout: { kind: "refit" },
 });

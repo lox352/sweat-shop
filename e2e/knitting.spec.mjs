@@ -665,8 +665,10 @@ test("closed up, the rib at the neck is its stitches side by side, and every col
   const columns = Number(await tiles.getAttribute("data-columns"));
   const scroller = page.locator(".chart-scroll");
   const height = await scroller.evaluate(box => box.scrollHeight);
+  // Half a view at a time, so every row is well inside some view: the widest round is only a few rows.
+  const step = Math.floor((await scroller.evaluate(box => box.clientHeight)) / 2);
   const counts = [];
-  for (let top = height; top >= 0; top -= 400) {
+  for (let top = height; top >= 0; top -= step) {
     await scroller.evaluate((box, top) => { box.scrollTop = top; }, top);
     await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
     counts.push(Number(await tiles.getAttribute("data-columns-showing")));

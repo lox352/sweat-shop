@@ -272,3 +272,24 @@ export const groundOf = (year: number, parts: Part[]): string => {
   for (const [c, a, b] of parts) for (const r of lettersOf(year, c).slice(a - 1, b)) for (const x of r) n.set(x, (n.get(x) ?? 0) + 1);
   return [...n].sort((p, q) => q[1] - p[1])[0][0];
 };
+
+/** A round while a strip is being laid out: a row of one of its year's charts, or plain in one of its yarns. */
+export type Round = ({ year: number } & CutRow) | { year: number; plain: string };
+
+export const lettersOfRound = (r: Round): string[] => ("plain" in r ? [r.plain] : lettersOf(r.year, r.chart)[r.row - 1]);
+export const isPlain = (r: Round) => solid(lettersOfRound(r));
+
+/** A pattern's background at an edge: the commonest yarn over the three rows nearest it, how much of them it is, and whether the edge row is plain. */
+export const edgeOf = (rows: Round[], top: boolean) => {
+  const near = (top ? rows.slice(0, 3) : rows.slice(-3)).map(lettersOfRound);
+  const n = new Map<string, number>();
+  let all = 0;
+  for (const r of near) {
+    for (const c of r) {
+      n.set(c, (n.get(c) ?? 0) + 1 / r.length);
+      all += 1 / r.length;
+    }
+  }
+  const [letter, count] = [...n].sort((a, b) => b[1] - a[1])[0];
+  return { letter, share: count / all, plain: isPlain(top ? rows[0] : rows[rows.length - 1]) };
+};

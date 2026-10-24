@@ -226,9 +226,29 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
   row, cropped evenly about it.
 - **Thirteen Strips' plan.** Every strip within five per cent of its piece's
   average, give or take the round it is rounded to: a plain round, which
-  carries any shaping, then the cut nearest its height, padded with plain
-  rounds. Both plans put a plain round wherever two quanta meet that don't
-  go together (see Quanta below).
+  carries any shaping, then a cut, padded with plain rounds. Both plans put a
+  plain round wherever two quanta meet that don't go together (see Quanta
+  below). It keeps the rules of Each Year Once's plan that a fixed height
+  leaves room for:
+  - Every year is framed alike, as many plain rounds in its own yarn above
+    its pattern as below: its plain round, its padding, and its pattern's
+    own plain edge rows. Of every cut and every way of taking its edge rows
+    off that does so, a strip takes the one with the most pattern.
+  - Its plain round may be left out beside a pattern whose own top row is
+    one colour, that row taking the shaping; never where it begins a piece.
+  - Padding above carries on the background of the pattern's top edge, and
+    below, its bottom edge's; a round where two quanta meet, or where the
+    repeat changes, the stronger one's.
+  - A pattern framed alike fits only every other height: 2026's crops are
+    all an even number of rows, 2021's to 2025's odd. So the heights are
+    found together, a small search for the cheapest that frames every strip
+    alike within the five per cent; the divide may move a round or two, and
+    a piece may be a round or more shorter, where nothing else will do.
+  - The sleeves knit the body's strips round for round, then carry 2026 on
+    through the rest of its hat to the cuff, framed alike too: the hat runs
+    out before the cuff, so the plain rounds left are shared above and
+    below, and its pattern begins up to three rounds lower than on the body.
+    The sleeve may be a round longer or shorter for it.
 - **Each Year Once's plan** (`refit.ts`), by these rules:
   - A plain round outside a pattern carries on a neighbouring pattern's
     background, the commonest yarn in the three rows nearest that edge,
