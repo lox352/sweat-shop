@@ -269,6 +269,13 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     and a neighbour where that is in its yarn, and its padding. Where one
     side has more, rounds go on the other. In L the stars get two above and
     two below, and the sheep give up rows of sky and field to make room.
+  - And in one yarn above as below: a year's plain rounds, at both its
+    edges and the round between it and a neighbour where that is its own,
+    are all one yarn - its pattern's own one-colour edge row's where it has
+    one, or else a ground both its edges knit, the one they knit most. So
+    2026's lattice has the same ground round above and below it in every
+    size. 2015's sheep keep their sky above and their field below, the
+    hat's own rows.
   - Spare rounds go to strips a pair at a time, one above and one below,
     patterned strips first, up to two pairs each, strongest background
     first; an odd one over is left out, the piece a round shorter. A cut
