@@ -204,6 +204,17 @@ const narrowed = (tiles: string[][], bg: boolean[][], most: number): Narrowed[] 
  * lines between rounds. None if no padding keeps every region apart.
  */
 export const paddingOf = (tiles: string[][], bg: boolean[][]): Narrowed | undefined => {
+  const w = tiles[0].length;
+  const once = padded(tiles, bg);
+  if (once) return once;
+  // Seams either side of the repeat's edge, 2023's either side of the crosses between flowers, read with the repeat begun half way round.
+  const k = Math.floor(w / 2);
+  const turn = <T>(rows: T[][]) => rows.map((row) => row.map((_, x) => row[(x + k) % w]));
+  const turned = padded(turn(tiles), turn(bg));
+  return turned && { ...turned, maps: turned.maps.map((m) => m.map((x) => (x + k) % w)) };
+};
+
+const padded = (tiles: string[][], bg: boolean[][]): Narrowed | undefined => {
   const w = tiles[0].length, H = tiles.length;
   const fg = bg.map((row) => row.map((b) => !b));
   const regions = regionsOf(fg, w);
@@ -290,7 +301,9 @@ export const paddingOf = (tiles: string[][], bg: boolean[][]): Narrowed | undefi
  * The diamond is found from the middle of the band's mirror line that holds
  * it, round by round: out from the middle over motif - runs of three or more
  * stitches - and background, to the first stitch of a line, a run of one or
- * two. From its widest round out to its tips it narrows a stitch a side a
+ * two, and never within a stitch of the other mirror line, so the lattice's
+ * crossing there - 2026's I, three stitches across its top and bottom -
+ * stays as it is. From its widest round out to its tips it narrows a stitch a side a
  * round; past them, its half-width is taken on below nothing.
  */
 export const diamondPaddingsOf = (tiles: string[][], bg: boolean[][], most = 4): Narrowed[] => {
@@ -312,7 +325,8 @@ export const diamondPaddingsOf = (tiles: string[][], bg: boolean[][], most = 4):
     };
     if (at(c) && run(c) <= 2) return 0;
     let h = 0;
-    while (h < w / 2 - 1 && !(at(c + h + 1) && run(c + h + 1) <= 2)) h++;
+    // Never past a stitch short of the mirror line half a repeat on: whatever sits on that, the lattice's crossing, stays outside.
+    while (h < w / 2 - 2 && !(at(c + h + 1) && run(c + h + 1) <= 2)) h++;
     return h;
   };
   // The mirror line holding the diamond: where, round by round, there is most of it.
@@ -352,6 +366,28 @@ export const diamondPaddingsOf = (tiles: string[][], bg: boolean[][], most = 4):
     });
     if (maps.some((m) => m.length !== w + 2 * p)) break;
     out.push({ w: w + 2 * p, maps });
+  }
+  return out;
+};
+
+/**
+ * The band padded again and again, each time along its best seam (see
+ * paddingOf): up to `most` paddings, the widest last. 2023's flowers, moved
+ * apart a stitch either side of the crosses between them at a time.
+ */
+export const paddingsOf = (tiles: string[][], bg: boolean[][], most = 4): Narrowed[] => {
+  const out: Narrowed[] = [];
+  let band = { tiles, bg, maps: tiles.map((row) => row.map((_, x) => x)), cost: 0 };
+  while (out.length < most) {
+    const p = paddingOf(band.tiles, band.bg);
+    if (!p) break;
+    band = {
+      tiles: p.maps.map((m, r) => m.map((x) => band.tiles[r][x])),
+      bg: p.maps.map((m, r) => m.map((x) => band.bg[r][x])),
+      maps: p.maps.map((m, r) => m.map((x) => band.maps[r][x])),
+      cost: band.cost + (p.cost ?? 0),
+    };
+    out.push({ w: band.tiles[0].length, maps: band.maps, cost: band.cost });
   }
   return out;
 };
