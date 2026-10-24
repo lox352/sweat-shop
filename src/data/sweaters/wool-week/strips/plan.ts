@@ -47,11 +47,20 @@ export interface Strip {
   ground: string;
 }
 
+/** A quantum's framing, as Each Year Once lays it out: its year, and its plain rounds above it and below. */
+export interface Frame {
+  year: number;
+  above: number;
+  below: number;
+}
+
 export interface Plan {
   strips: { yoke: Strip[]; body: Strip[]; sleeve: Strip[] };
   rows: { yoke: Row[]; body: Row[]; sleeve: Row[] };
   /** Rounds of colourwork on each piece. */
   depth: { yoke: number; body: number; sleeve: number };
+  /** For Each Year Once: each piece's quanta, in order, and how they are framed. */
+  frames?: { yoke: Frame[]; body: Frame[]; sleeve: Frame[] };
   /** For a lined-up layout: how the last year carries on down the sleeve. */
   onward?: { year: number; pattern: number; plain: number };
 }
