@@ -293,7 +293,9 @@ const padded = (tiles: string[][], bg: boolean[][]): Narrowed | undefined => {
  * balls - padded by making that diamond bigger: p stitches wider either side
  * in every round, and so p rounds taller at either tip, everything outside it
  * moved out unaltered. Inside the diamond a round's edge stitches are
- * doubled; past its tips, where the lattice's lines cross, the crossing is
+ * doubled - or, padded by four or more, its motifs spread, each column of
+ * 2026's balls a stitch further from the next, the middle column where it
+ * was; past its tips, where the lattice's lines cross, the crossing is
  * parted round the diamond's new tip, the diamond's ground between, each
  * line going on as a pair of stitches a stitch on from the round before. One padding for each p from 1 to `most`, where it can be made;
  * none for a band with no such diamond.
@@ -348,6 +350,25 @@ export const diamondPaddingsOf = (tiles: string[][], bg: boolean[][], most = 4):
   }
   // Each round read from the place half a repeat from the diamond's middle, so the rounds stay in line wherever the diamond's edges are.
   const o = c - Math.floor(w / 2);
+  // The motifs inside the diamond, 2026's balls, by column out from its middle: in each round each run of motif is one ball's, its middle the
+  // ball's; the columns are numbered 0, 1, 2... by distance from the middle, the same for every ball in a column.
+  const offset = (x: number) => ((((x - c) % w) + w + Math.floor(w / 2)) % w) - Math.floor(w / 2);
+  const runs: { r: number; xs: number[]; mid: number }[] = [];
+  tiles.forEach((_, r) => {
+    const h = half[r];
+    let run: number[] = [];
+    for (let k = -h; k <= h + 1; k++) {
+      const x = ((c + k) % w + w) % w;
+      if (k <= h && fg[r][x]) run.push(x);
+      else if (run.length) {
+        runs.push({ r, xs: run, mid: Math.round(run.reduce((t, y) => t + offset(y), 0) / run.length) });
+        run = [];
+      }
+    }
+  });
+  const distances = [...new Set(runs.map((g) => Math.abs(g.mid)))].sort((a, b) => a - b);
+  const columnOf = new Map<number, number>();
+  for (const g of runs) for (const x of g.xs) columnOf.set(g.r * w + x, Math.sign(g.mid) * distances.indexOf(Math.abs(g.mid)));
   const out: Narrowed[] = [];
   for (let p = 1; p <= most; p++) {
     // Past its tips a smaller padding would not reach the rounds furthest out: only bigger ones can be made.
@@ -364,12 +385,24 @@ export const diamondPaddingsOf = (tiles: string[][], bg: boolean[][], most = 4):
         left = [...left.slice(0, -2), line, line];
         right = [line, line, ...right.slice(2)];
       }
-      let inside: number[];
-      if (h >= 0) {
+      let middle: number[];
+      // Padded by four or more, the motifs spread too, so the diamond doesn't stand empty round them: each column of them a stitch further from
+      // the next for every four of padding, the middle one where it was, the gaps between them all alike.
+      const spread = Math.floor(p / 4);
+      if (h >= 0 && spread) {
+        const ground = groundNear(bg[r], at(c));
+        middle = Array<number>(2 * (h + p) + 1).fill(ground);
+        for (let k = -h; k <= h; k++) {
+          const x = at(c + k);
+          const col = columnOf.get(r * w + x);
+          if (col === undefined) continue;
+          middle[h + p + k + spread * col] = x;
+        }
+      } else if (h >= 0) {
         const old = Array.from({ length: 2 * h + 1 }, (_, k) => at(c - h + k));
-        inside = [...Array<number>(p).fill(old[0]), ...old, ...Array<number>(p).fill(old[old.length - 1])];
-      } else inside = Array<number>(2 * (h + p) + 1).fill(groundNear(bg[r], at(c)));
-      return [...left, ...inside, ...right];
+        middle = [...Array<number>(p).fill(old[0]), ...old, ...Array<number>(p).fill(old[old.length - 1])];
+      } else middle = Array<number>(2 * (h + p) + 1).fill(groundNear(bg[r], at(c)));
+      return [...left, ...middle, ...right];
     });
     if (maps.some((m) => m.length !== w + 2 * p)) break;
     out.push({ w: w + 2 * p, maps });
