@@ -464,6 +464,54 @@ describe("the chart on tiles, closed up", () => {
     view.destroy();
   });
 
+  it("scrolled across from the right, puts every column back where it was when the rows in view go and come back", () => {
+    const narrow = 6 * cell;
+    const { scroller, sheet, container, scrollTo } = scrollingBox(narrow, 200);
+    scroller.style.direction = "rtl";
+    Object.defineProperty(sheet, "offsetLeft", { get: () => narrow - (parseFloat(sheet.style.width) || 0) });
+    Object.defineProperty(scroller, "scrollWidth", { get: () => Math.max(narrow, parseFloat(sheet.style.width) || 0) });
+    const view = new TileView(container, scroller, sheet);
+    view.show(content({ collapse: true }));
+    const settle = () => {
+      for (let frame = 0; frame < 15; frame++) {
+        now += 16;
+        view.update();
+      }
+      now += 200;
+      view.update();
+    };
+    const across = (id: number) => sheet.offsetLeft + view.place(id)!.x - scroller.scrollLeft;
+    const showing = () => container.dataset.columnsShowing;
+    let changed = 0;
+    for (let first = 1; first + 6 <= rows; first++) {
+      // Rested on rows `first` up, half way across the chart: well away from either edge.
+      scrollTo(0, topFor(first));
+      settle();
+      scrollTo(-((parseFloat(sheet.style.width) || 0) - narrow) / 2, topFor(first));
+      settle();
+      // The stitch nearest the middle of the box, in a row in view either side of the step.
+      const ids = idsIn(first + 2).filter((id) => view.place(id) !== undefined);
+      const id = ids.reduce((best, one) => (Math.abs(across(one) - narrow / 2) < Math.abs(across(best) - narrow / 2) ? one : best));
+      const was = across(id);
+      const columns = showing();
+      const after: number[] = [];
+      for (let cycle = 0; cycle < 4; cycle++) {
+        scrollTo(scroller.scrollLeft, topFor(first + 1));
+        settle();
+        changed += Number(showing() !== columns);
+        scrollTo(scroller.scrollLeft, topFor(first));
+        settle();
+        after.push(across(id));
+      }
+      // Never further than part of a cell the first time - a column it was in closing in on it from both sides opens on one - and nowhere after.
+      expect(Math.abs(after[0] - was), `rows ${first} up`).toBeLessThan(cell);
+      for (const at of after) expect(at, `rows ${first} up`).toBeCloseTo(after[0], 6);
+    }
+    // Columns did open and close.
+    expect(changed).toBeGreaterThan(0);
+    view.destroy();
+  });
+
   it("moves the columns at once when the rows in view jump, or when asked for less motion", () => {
     const { first, id, other } = heldStitch();
     const { scroller, sheet, container, scrollTo } = scrollingBox(wide, 200);

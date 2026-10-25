@@ -28,8 +28,9 @@ import type { Palette } from "./palette";
  * It also decides where each column and each row goes. Asked to close up,
  * it counts, as the box scrolls, which columns the rows in view need and
  * which rows the columns on screen need - see column-window - and when either
- * changes, lays those lines out again with one held still: the stitch being
- * worked, or an edge of the chart in view, or the line in the middle. The
+ * changes, lays those lines out again with one held still - the stitch being
+ * worked, or an edge of the chart in view - or else the middle of the box,
+ * which every line closes in towards, or opens out from, on its own side. The
  * lines ease to their new places rather than jumping.
  *
  * Holding a line still never writes the box's scroll while it is moving: a
@@ -134,6 +135,27 @@ const reducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 /**
+ * Where a place `at` along lines laid out `from` goes when they are laid out
+ * `to`: as far into the line it is in, the same part of the way across it,
+ * and a line closing gathers to its leading edge. Past the chart, it keeps
+ * its distance from the edge it is past.
+ */
+const along = (from: Places, to: Places, at: number) => {
+  const { start, size } = from;
+  for (let line = 0; line < start.length; line++) {
+    if (size[line] > 0 && start[line] <= at && at < start[line] + size[line]) {
+      return to.start[line] + ((at - start[line]) / size[line]) * to.size[line];
+    }
+  }
+  // Line 0 is the chart's far edge, and the last line its near one, at nought.
+  const edge = at >= start[0] ? 0 : start.length - 1;
+  return to.start[edge] + at - start[edge];
+};
+
+/** What to hold still as lines move: a line, or a place along them. */
+type Held = number | { at: number };
+
+/**
  * One way across the chart, the columns or the rows: where its lines are
  * drawn now, where they are going, and how far the layer is moved along it
  * while they go, to hold one line still.
@@ -162,10 +184,18 @@ class Axis {
     return this.shift + this.places.start[line];
   }
 
-  /** Send the lines to `to`, and the layer to where it holds `line` where it is drawn now. */
-  retarget(to: Places, line: number) {
+  /**
+   * Send the lines to `to`, and the layer to where it holds `held` where it
+   * is drawn now: a line, or a place along the lines, which those either
+   * side of it close in towards or open out from, each on its own side, a
+   * line it is in from both. Lines closing and then opening again come back
+   * to where they were, where holding whichever line is nearest a place
+   * would hold one either side of it in turn, and creep a line each time.
+   */
+  retarget(to: Places, held: Held) {
     this.target = to;
-    this.targetShift = this.at(line) - to.start[line];
+    if (typeof held === "number") this.targetShift = this.at(held) - to.start[held];
+    else this.targetShift = this.shift + held.at - along(this.places, to, held.at);
   }
 
   /**
@@ -419,8 +449,6 @@ export class TileView {
   private settle(fresh: boolean, view: () => { x: number; y: number } = () => this.showing(true)): { columns: boolean; rows: boolean } {
     const content = this.content!;
     const { cell } = content;
-    const wasColumns = this.columnMap!;
-    const wasRows = this.rowMap!;
     let columns = false;
     let rows = false;
     for (let round = 0; round < rounds; round++) {
@@ -433,8 +461,9 @@ export class TileView {
           this.columns.reset(to);
           this.anchorColumns();
         } else {
-          this.columns.retarget(to, this.columnHeld(wasColumns));
-          this.keepColumnsInBox();
+          const held = this.columnHeld();
+          this.columns.retarget(to, held);
+          this.keepColumnsInBox(held);
         }
         columns = true;
       }
@@ -444,7 +473,7 @@ export class TileView {
         const to = rowPlaces(this.rowMap, cell);
         if (fresh) this.rows.reset(to);
         else {
-          this.rows.retarget(to, this.rowHeld(wasRows, to));
+          this.rows.retarget(to, this.rowHeld(to));
           this.keepRowsInBox();
         }
         rows = true;
@@ -545,48 +574,53 @@ export class TileView {
    * Which column to hold still as the columns move: one being scrolled or
    * zoomed to, the stitch being worked if it is on screen, an edge of the
    * chart in view - the right one first, where a chart is read from - or else
-   * the column in the middle of the box that shows before and after. Never
-   * one off screen while the box is not scrolling to it: holding that still
-   * would slide what is on screen sideways.
+   * the middle of the box. Never a column off screen while the box is not
+   * scrolling to it: holding that still would slide what is on screen
+   * sideways. But scrolled from the right, the right-hand edge within a box
+   * of the box is held, whichever way the columns between move: the box
+   * can't be scrolled past it until rest (see keepColumnsInBox), and the
+   * columns there open and close towards it alike.
    */
-  private columnHeld(was: ColumnMap): number {
+  private columnHeld(): Held {
     const { scene, follow } = this.content!;
     if (this.point) return this.point.column;
     if (this.target !== undefined && scene.rowOf[this.target]) return scene.columnOf[this.target];
     if (this.followShowing()) return scene.columnOf[follow!];
     const view = this.showing();
     const columns = scene.layout.columns;
-    const { start, size } = this.columns.places;
-    if (start[0] >= view.x && start[0] <= view.x + view.width) return 0;
+    const { start } = this.columns.places;
+    const reach = scrollsFromRight(this.scroller) ? view.width : 0;
+    if (start[0] >= view.x && start[0] <= view.x + view.width + reach) return 0;
     if (start[columns + 1] >= view.x && start[columns + 1] <= view.x + view.width) return columns + 1;
-    return this.middle(was.order, start, size, view.x + view.width / 2, this.columnMap!.shows) ?? 0;
+    return { at: view.x + view.width / 2 };
   }
 
   /**
    * And which row, going `to` new places: one being scrolled or zoomed to,
    * the stitch being worked if it is on screen, an edge of the chart in view -
-   * the bottom first, where a chart is read from - or else the row in the
-   * middle of the box that shows before and after. An edge only while holding
-   * it keeps that middle row in the box: rows open and close by the dozen -
-   * the whole yoke, under the stitches cast on at an underarm - and holding
-   * the edge below them still would send what is on screen off the top.
+   * the bottom first, where a chart is read from - or else the middle of the
+   * box. An edge only while holding it keeps the middle in the box: rows open
+   * and close by the dozen - the whole yoke, under the stitches cast on at an
+   * underarm - and holding the edge below them still would send what is on
+   * screen off the top.
    */
-  private rowHeld(was: RowMap, to: Places): number {
+  private rowHeld(to: Places): Held {
     const { scene, follow } = this.content!;
     if (this.point) return this.point.row;
     if (this.target !== undefined && scene.rowOf[this.target]) return scene.rowOf[this.target];
     if (this.followShowing()) return scene.rowOf[follow!];
     const view = this.showing();
     const rows = scene.layout.rows;
-    const { start, size } = this.rows.places;
-    const middle = this.middle(was.order, start, size, view.y + view.height / 2, this.rowMap!.shows) ?? 0;
-    // How far holding a line still would move the row in the middle.
-    const moves = (line: number) => Math.abs(to.start[middle] - to.start[line] - (start[middle] - start[line]));
+    const { places } = this.rows;
+    const { start } = places;
+    const middle = view.y + view.height / 2;
+    // How far holding a line still would move the middle.
+    const moves = (line: number) => Math.abs(along(places, to, middle) - to.start[line] - (middle - start[line]));
     for (const edge of [0, rows + 1]) {
       const inView = start[edge] >= view.y && start[edge] <= view.y + view.height;
       if (inView && moves(edge) < view.height / 2) return edge;
     }
-    return middle;
+    return { at: middle };
   }
 
   /**
@@ -614,7 +648,7 @@ export class TileView {
    * scroll a phone can lose. A chart narrower than the box has nothing to
    * scroll, and is left as it is.
    */
-  private keepColumnsInBox() {
+  private keepColumnsInBox(held: Held) {
     if (this.point) return;
     const size = this.scroller.clientWidth;
     // The chart, its round numbers, and the box's own padding past them.
@@ -624,36 +658,24 @@ export class TileView {
     const was = this.columns.targetShift;
     const [lowest, highest] = scrollAcross(this.scroller);
     this.columns.keepBox(this.scroller.scrollLeft - left, size, lowest - left, room);
-    if (scrollsFromRight(this.scroller)) {
+    if (scrollsFromRight(this.scroller) && typeof held === "number") {
       /*
        * Nor carried out past the furthest right the box can go, which
        * holding a stitch still would do as columns close between it and
        * the edge: the box can't follow it there, and what it held would be
        * out of reach. Scrolled from the left, the sheet grows to meet it.
+       *
+       * Not while holding the middle of the box, as it only is with that
+       * edge more than a box away (see columnHeld): columns opening between
+       * the two run on out of sight, and are taken into the sheet at rest,
+       * as those closing there are. Held back only as they opened, and not
+       * as they closed, the chart would creep a column across each time.
        */
       const most = highest - left - (this.columns.target.start[0] + room - size);
       if (this.columns.targetShift > most) this.columns.targetShift = most;
     }
     const by = this.columns.targetShift - was;
     if (this.target !== undefined && Math.abs(by) >= 0.5) this.onTargetMoved?.(by);
-  }
-
-  /** The line under `at` along `order`, by where lines are drawn now, or the nearest to it that `shows`. */
-  private middle(order: Int32Array, start: Float64Array, size: Float64Array, at: number, shows: Uint8Array) {
-    let low = 0;
-    let high = order.length - 1;
-    while (low < high) {
-      const k = (low + high) >> 1;
-      if (start[order[k]] + size[order[k]] <= at) low = k + 1;
-      else high = k;
-    }
-    for (let step = 0; step < order.length; step++) {
-      for (const k of [low - step, low + step]) {
-        const line = order[k];
-        if (line !== undefined && shows[line]) return line;
-      }
-    }
-    return undefined;
   }
 
   /** The chart's width on the sheet, with room for the round numbers, and its height. */
