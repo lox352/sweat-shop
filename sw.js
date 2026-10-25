@@ -1,5 +1,5 @@
-const version = "d18fe81ae83ca72b";
-const assets = ["404.html","assets/SweaterStage-8_dACF2j.js","assets/index-CIDsCsu6.js","assets/index-DQrzs-mK.css","assets/index-DxVVyilS.js","favicon.svg","fonts/README.md","fonts/fonts.css","fonts/oswald-variable.woff2","fonts/source-sans-3-italic.woff2","fonts/source-sans-3-variable.woff2","index.html","robots.txt"];
+const version = "272266de9ebdddb6";
+const assets = ["404.html","assets/SweaterStage-CdASGJNB.js","assets/index-DQrzs-mK.css","assets/index-DxVVyilS.js","assets/index-VtfhRU8N.js","favicon.svg","fonts/README.md","fonts/fonts.css","fonts/oswald-variable.woff2","fonts/source-sans-3-italic.woff2","fonts/source-sans-3-variable.woff2","index.html","robots.txt"];
 const prefix = "sweat-shop-static-";
 const cacheName = prefix + version;
 const urlFor = path => new URL(path, self.registration.scope).href;
