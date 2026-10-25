@@ -91,7 +91,7 @@ export interface TileContent {
  * Each line's leading edge from the chart's own top left corner - a
  * column's left, a row's top - and its size: a cell, or none closed up.
  */
-interface Places {
+export interface Places {
   start: Float64Array;
   size: Float64Array;
 }
@@ -142,26 +142,34 @@ const lineAt = (places: Places, lines: number, at: number, cell: number, ratio: 
 const reducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-/** How many cells either side of the pivot a line closing or opening is shared between the two sides: see along. */
-const spread = 2;
+/**
+ * How far either side of the pivot, in pixels, a line opening or closing is
+ * shared between the two sides, for a box `size` long at `cell` a stitch:
+ * half the box, so that what opens or closes in view opens out from the
+ * pivot or closes in on it on both sides, the more on the side it is
+ * nearer, and the share changes as evenly as the box moves. Never less
+ * than half a cell, so a line the pivot is in opens out both ways.
+ */
+const spreadOver = (size: number, cell: number) => Math.max(cell / 2, size / 2);
 
 /**
- * How far lines laid out `places` reach before `u`, a place along the chart
- * with every line open, in cells from its near edge: all of those well
- * before it, none of those well after, and those within `spread` of it in
- * part, the nearer before it the more. Line `lines` is at the near edge. A
- * line closed up counts as the merest sliver, so that every place reaches a
- * little further than the one before, and the pivot can always be found
- * again from how far the lines reach before it: see pivotAt.
+ * How far lines laid out `places` reach before the pivot `at`, a place along
+ * the lines as laid out `rest` - those the sheet was last given the size of
+ * - in pixels from the chart's near edge: all of those whose middle was
+ * well before it then, none of those well after, and those within `spread`
+ * of it in part, the nearer before it the more. Lines closed up then stand
+ * at a point, and share alike as they open. A line closed up counts as the
+ * merest sliver, so that every place reaches a little further than the one
+ * before, and the pivot can always be found again from how far the lines
+ * reach before it: see pivotAt.
  */
-const reach = (places: Places, u: number) => {
-  const { size } = places;
-  const lines = size.length - 2;
+const reach = (rest: Places, places: Places, at: number, spread: number) => {
+  const lines = places.size.length - 2;
   let total = 0;
   for (let line = 1; line <= lines; line++) {
-    const middle = lines - line + 0.5;
-    const part = Math.min(1, Math.max(0, 0.5 + (u - middle) / (2 * spread)));
-    if (part > 0) total += part * Math.max(size[line], sliver);
+    const middle = rest.start[line] + rest.size[line] / 2;
+    const part = Math.min(1, Math.max(0, 0.5 + (at - middle) / (2 * spread)));
+    if (part > 0) total += part * Math.max(places.size[line], sliver);
   }
   return total;
 };
@@ -170,15 +178,19 @@ const reach = (places: Places, u: number) => {
 const sliver = 1e-6;
 
 /** How far lines laid out `places` reach in all. */
-const reachAll = (places: Places) => reach(places, places.size.length + spread);
+const reachAll = (places: Places) => {
+  let total = 0;
+  for (let line = 1; line < places.size.length - 1; line++) total += Math.max(places.size[line], sliver);
+  return total;
+};
 
-/** The pivot: the place along the chart with every line open that lines laid out `places` reach `length` before. */
-const pivotAt = (places: Places, length: number) => {
+/** The pivot: the place along lines laid out `rest` that they reach `length` before. */
+const pivotAt = (rest: Places, length: number, spread: number) => {
   let low = -spread - 1;
-  let high = places.size.length + spread;
+  let high = rest.start[0] + spread + 1;
   for (let step = 0; step < 60; step++) {
     const middle = (low + high) / 2;
-    if (reach(places, middle) < length) low = middle;
+    if (reach(rest, rest, middle, spread) < length) low = middle;
     else high = middle;
   }
   return (low + high) / 2;
@@ -190,13 +202,16 @@ const pivotAt = (places: Places, length: number) => {
  * layer anew every frame, and the lines the room was made for stay the same
  * from one rest to the next.
  */
-const pivots = new WeakMap<Places, { part: number; pivot: number; all: number }>();
-const pivotFor = (rest: Places, part: number) => {
+const pivots = new WeakMap<Places, { part: number; spread: number; pivot: number; all: number }>();
+const pivotFor = (rest: Places, part: number, spread: number) => {
   let known = pivots.get(rest);
-  if (!known) pivots.set(rest, (known = { part: NaN, pivot: 0, all: reachAll(rest) }));
+  if (!known || known.spread !== spread) {
+    known = { part: NaN, spread, pivot: 0, all: reachAll(rest) };
+    pivots.set(rest, known);
+  }
   if (known.part !== part) {
     known.part = part;
-    known.pivot = pivotAt(rest, part * known.all);
+    known.pivot = pivotAt(rest, part * known.all, spread);
   }
   return known.pivot;
 };
@@ -209,18 +224,21 @@ const pivotFor = (rest: Places, part: number) => {
  * of the way before, the same part of the way along these as they reach
  * before it. So a scroll at an end shows that edge, however the lines have
  * changed since the room was made; the lines either side of the pivot open
- * out from it and close in on it as they change, those within `spread` of it
- * on both sides; and where the box goes depends only on the scroll and the
+ * out from it and close in on it as they change, each shared between the
+ * two sides the more evenly the nearer it is, over half the box either side
+ * (see spreadOver), so that no line opens one way or the other for being a
+ * pixel either side of the pivot; and where the box goes depends only on the scroll and the
  * lines showing, never on how they came to show. With lines just as they
  * were, it is just as far along as the scroll is. A scroll is whole pixels
  * where the chart need not be, so one within a pixel of an end counts as at it.
  * A chart the box can't be scrolled along keeps the edge the box is scrolled
  * from where it is, the far edge if `home` is 1.
  */
-const along = (rest: Places, places: Places, part: number, size: number, near: number, far: number, home: number) => {
+export const along = (rest: Places, places: Places, part: number, size: number, near: number, far: number, home: number, cell: number) => {
+  const spread = spreadOver(size, cell);
   const room = places.start[0] + near + far - size;
   if (room <= 2) return home ? places.start[0] + far - size : -near;
-  const goes = part <= 0 || part >= 1 ? part : reach(places, pivotFor(rest, part)) / reachAll(places);
+  const goes = part <= 0 || part >= 1 ? part : reach(rest, places, pivotFor(rest, part, spread), spread) / reachAll(places);
   return (goes <= 0 ? 0 : goes >= 1 ? room : 1 + goes * (room - 2)) - near;
 };
 
@@ -569,7 +587,7 @@ export class TileView {
     if (room <= 2) return 0;
     const box = this.within(this.scroller.scrollLeft - this.sheet.offsetLeft, near, room);
     const home = scrollsFromRight(this.scroller) ? 1 : 0;
-    return box - along(this.columns.rest, places, this.part(box + near, room), size, near, far, home);
+    return box - along(this.columns.rest, places, this.part(box + near, room), size, near, far, home, content.cell);
   }
 
   /** And down, with rows laid out `places`, the box going past the chart by its padding. */
@@ -584,7 +602,7 @@ export class TileView {
     const room = height + near + far - size;
     if (room <= 2) return 0;
     const box = this.within(this.scroller.scrollTop - this.sheet.offsetTop, near, room);
-    return box - along(this.rows.rest, places, this.part(box + near, room), size, near, far, 0);
+    return box - along(this.rows.rest, places, this.part(box + near, room), size, near, far, 0, content.cell);
   }
 
   /**

@@ -4,7 +4,7 @@ import { layOutSweater } from "./layout";
 import { sceneOf } from "./chart-scene";
 import { defaultColours, gutter } from "./chart-painter";
 import { LiveColumns, mapOf } from "./column-window";
-import { TileView, type TileContent, tileSize } from "./tile-view";
+import { TileView, type TileContent, tileSize, along, type Places } from "./tile-view";
 import { testSweater } from "./test-sweater";
 import type { Palette } from "./palette";
 
@@ -918,5 +918,56 @@ describe("the chart on tiles, closed up", () => {
       expect(container.querySelector<HTMLElement>(".chart-layer")!.style.transform).toBe("");
       view.destroy();
     });
+  });
+});
+
+describe("where the box goes as lines open and close", () => {
+  const cell = 10;
+  // A chart long beside the box, as a sweater's is.
+  const lines = 200;
+  /** Lines all a cell wide but those in `shut`, from line `lines` at the near edge to line 1 at the far one. */
+  const laid = (shut: (line: number) => boolean): Places => {
+    const start = new Float64Array(lines + 2);
+    const size = new Float64Array(lines + 2);
+    let at = 0;
+    for (let line = lines + 1; line >= 0; line--) {
+      start[line] = at;
+      size[line] = line >= 1 && line <= lines && !shut(line) ? cell : 0;
+      at += size[line];
+    }
+    return { start, size };
+  };
+
+  it("opens a block of lines out both ways in view, by more on the side the box is further from, and changes that share as gradually as the box moves", () => {
+    // Fourteen lines side by side, shut, then open; a box twenty cells long.
+    const block = (line: number) => line >= 95 && line <= 108;
+    const rest = laid(block);
+    const open = laid(() => false);
+    const size = 20 * cell;
+    const room = rest.start[0] - size;
+    const width = 14 * cell;
+    // The block's place on the chart while shut.
+    const point = rest.start[108];
+    const shares: { across: number; left: number }[] = [];
+    // Clear of the pixel at either end, which counts as at it.
+    for (let box = 2; box <= room - 2; box += 5) {
+      const part = (box - 1) / (room - 2);
+      const now = along(rest, open, part, size, 0, 0, 1, cell);
+      // What was left of the block moves left by as much as the box moves on along the chart: that share of it opened to the left.
+      shares.push({ across: point - box, left: (now - box) / width });
+    }
+    // Well left of the box, all of it opens to the left; well right, all to the right; never more than all, nor less than none.
+    expect(shares[shares.length - 1].left).toBeGreaterThan(0.95);
+    expect(shares[0].left).toBeLessThan(0.05);
+    for (const { left } of shares) {
+      expect(left).toBeGreaterThanOrEqual(-1e-9);
+      expect(left).toBeLessThanOrEqual(1 + 1e-9);
+    }
+    // The further along the box is, the more of it opens to the left: never back the other way.
+    shares.forEach((share, k) => k > 0 && expect(share.left).toBeGreaterThanOrEqual(shares[k - 1].left - 1e-9));
+    // And from mostly one way to mostly the other over half the box or more, not as the box passes a line.
+    const mostlyRight = shares.filter((share) => share.left <= 0.2).map((share) => share.across);
+    const mostlyLeft = shares.filter((share) => share.left >= 0.8).map((share) => share.across);
+    expect(Math.min(...mostlyRight) - Math.max(...mostlyLeft)).toBeGreaterThanOrEqual(size / 2);
   });
 });
