@@ -28,21 +28,25 @@ import type { Palette } from "./palette";
  * It also decides where each column and each row goes. Asked to close up,
  * it counts, as the box scrolls, which columns the rows in view need and
  * which rows the columns on screen need - see column-window - and when either
- * changes, lays those lines out again. The stitch being worked, on screen,
- * is held still; otherwise the box stays the same part of the way along the
- * chart, about a pivot as far across the box as the box is along the chart,
- * which the lines either side close in towards or open out from - see
- * carried. Where the box goes depends only on where it is and the lines
- * showing, never on how they came to show, so nothing creeps; and at an end
- * of the chart, that edge stays put. The lines ease to their new places
+ * changes, lays those lines out again, easing them to their new places
  * rather than jumping.
  *
- * Holding a line still never writes the box's scroll while it is moving: a
- * phone ignores a scroll set mid-fling, or stops the fling for it, and a
- * smooth scroll set going by the chart is cancelled by one. So the tiles sit
- * on a layer that is moved across the sheet instead, and only once the box
- * has come to rest is the layer put back at the sheet's corner and the box
- * scrolled to match, in the same frame, so nothing on screen moves.
+ * Nothing here writes the box's scroll while it is moving: a phone ignores
+ * a scroll set mid-fling, or stops the fling for it, and a smooth scroll set
+ * going by the chart is cancelled by one. So the sheet keeps its size while
+ * the box moves, and the tiles sit on a layer that slides across it with the
+ * box's scroll: a scroll the part so far along the room the sheet gives it
+ * shows the chart the same part of the way along, about a pivot that far
+ * across the box, however many lines have opened or closed since - see
+ * along. A scroll at an end shows that edge of the chart, either way and
+ * both ways, so there is never an edge out of reach or blank sheet past one;
+ * the lines either side of the pivot open out from it and close in on it;
+ * and where the layer goes depends only on the scroll and the lines showing,
+ * never on how they came to show, so nothing creeps. Only the stitch being
+ * worked, on screen, or one scrolled or zoomed to, is held still, the layer
+ * moved on by as much. Once the box has come to rest, the sheet takes the
+ * chart's size, the layer goes back to its corner and the box is scrolled to
+ * match, in the same frame, so nothing on screen moves.
  */
 
 /** A tile's side, in CSS pixels. */
@@ -138,7 +142,7 @@ const lineAt = (places: Places, lines: number, at: number, cell: number, ratio: 
 const reducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-/** How many cells either side of the pivot a line closing or opening is shared between the two sides: see carried. */
+/** How many cells either side of the pivot a line closing or opening is shared between the two sides: see along. */
 const spread = 2;
 
 /**
@@ -181,58 +185,97 @@ const pivotAt = (places: Places, length: number) => {
 };
 
 /**
- * Where a box `size` long, `at` along lines laid out `from`, goes when they
- * are laid out `to`. The box can go from `near` before the chart's near
- * edge to `far` past its far one, and is the same part of the way along
- * that as the lines reach before the pivot of the whole chart: so the
- * pivot keeps that part of the way across the box, with the lines either
- * side of it opening out from it and closing in on it, those within
- * `spread` of it on both sides. Found again from where the box is, the
- * pivot is the same wherever it came from, so lines closing and opening
- * again put everything back, in any order; and with the box at an end of
- * the chart, that edge stays where it is.
+ * The pivot for a scroll the part `part` of the way along lines laid out
+ * `rest`, remembered for the last part asked of each: the scroll puts the
+ * layer anew every frame, and the lines the room was made for stay the same
+ * from one rest to the next.
  */
-const carried = (from: Places, to: Places, at: number, size: number, near: number, far: number) => {
-  const was = from.start[0];
-  const now = to.start[0];
-  const room = was + near + far - size;
-  /*
-   * A chart the box can't be scrolled along keeps its far edge where it is.
-   * A scroll is whole pixels where the chart need not be, so a box within a
-   * pixel of an end counts as at it, or it would edge away a little each time.
-   */
-  const part = room > 2 ? Math.min(1, Math.max(0, (at + near - 1) / (room - 2))) : 1;
-  // At an end it stays at that end, whatever the sums come to.
-  const goes = part <= 0 || part >= 1 ? part : reach(to, pivotAt(from, part * reachAll(from))) / reachAll(to);
-  const roomNow = now + near + far - size;
-  if (roomNow <= 2) return now + far - size;
-  // Back the same way it was read, but right at an end where it was counted at one.
-  const along = goes <= 0 ? 0 : goes >= 1 ? roomNow : 1 + goes * (roomNow - 2);
-  return along - near;
+const pivots = new WeakMap<Places, { part: number; pivot: number; all: number }>();
+const pivotFor = (rest: Places, part: number) => {
+  let known = pivots.get(rest);
+  if (!known) pivots.set(rest, (known = { part: NaN, pivot: 0, all: reachAll(rest) }));
+  if (known.part !== part) {
+    known.part = part;
+    known.pivot = pivotAt(rest, part * known.all);
+  }
+  return known.pivot;
 };
 
 /**
+ * How far along lines laid out `places` a box `size` long goes for a scroll
+ * the part `part` of the way along the room it has, from `near` before the
+ * chart's near edge to `far` past its far one: about the pivot that lines
+ * laid out `rest` - those the scroll's room was made for - reach that part
+ * of the way before, the same part of the way along these as they reach
+ * before it. So a scroll at an end shows that edge, however the lines have
+ * changed since the room was made; the lines either side of the pivot open
+ * out from it and close in on it as they change, those within `spread` of it
+ * on both sides; and where the box goes depends only on the scroll and the
+ * lines showing, never on how they came to show. With lines just as they
+ * were, it is just as far along as the scroll is. A scroll is whole pixels
+ * where the chart need not be, so one within a pixel of an end counts as at it.
+ * A chart the box can't be scrolled along keeps the edge the box is scrolled
+ * from where it is, the far edge if `home` is 1.
+ */
+const along = (rest: Places, places: Places, part: number, size: number, near: number, far: number, home: number) => {
+  const room = places.start[0] + near + far - size;
+  if (room <= 2) return home ? places.start[0] + far - size : -near;
+  const goes = part <= 0 || part >= 1 ? part : reach(places, pivotFor(rest, part)) / reachAll(places);
+  return (goes <= 0 ? 0 : goes >= 1 ? room : 1 + goes * (room - 2)) - near;
+};
+
+/** Nought for what the sums of a slide come to by way of rounding: far less than a pixel. */
+const clean = (shift: number) => (Math.abs(shift) < 1e-6 ? 0 : shift);
+
+/**
  * One way across the chart, the columns or the rows: where its lines are
- * drawn now, where they are going, and how far the layer is moved along it
- * while they go, to hold one line still.
+ * drawn now, where they are going, and how far the layer is moved along it.
+ * The layer slides with the box's scroll, so that the box shows the chart
+ * from edge to edge whatever lines have opened or closed since the sheet
+ * last took the chart's size (see along, and `slide`), and is moved on from
+ * there by `held`, to hold a line still when one is held.
  */
 class Axis {
   places: Places;
   /** Where the lines are going, and where the layer will be when they get there. */
   target: Places;
+  /** The lines the sheet was last given the size of. */
+  rest: Places;
   shift = 0;
   targetShift = 0;
-  private ease?: { from: Places; shift: number; start: number };
+  /** How far the layer is moved on from where the scroll puts it, now and once the lines arrive. */
+  held = 0;
+  targetHeld = 0;
+  /** Where the box's scroll puts the layer, with lines laid out so: nowhere but the sheet's edge until told. */
+  slide: (places: Places) => number = () => 0;
+  private ease?: { from: Places; held: number; start: number };
 
   constructor(places: Places) {
-    this.places = this.target = places;
+    this.places = this.target = this.rest = places;
   }
 
   /** Laid out afresh, at once, with the layer back at the sheet's edge. */
   reset(places: Places) {
-    this.places = this.target = places;
-    this.shift = this.targetShift = 0;
+    this.places = this.target = this.rest = places;
+    this.held = this.targetHeld = 0;
     this.ease = undefined;
+    this.follow();
+  }
+
+  /** The layer put where the scroll and what is held put it, for the scroll as it is. */
+  follow() {
+    this.shift = clean(this.slide(this.places) + this.held);
+    this.targetShift = clean(this.slide(this.target) + this.targetHeld);
+  }
+
+  /** What is held made up to put the layer at `shift` now, and at `target` once the lines arrive. */
+  private hold(shift: number, target: number) {
+    const was = this.held;
+    this.shift = shift;
+    this.targetShift = target;
+    this.held = shift - this.slide(this.places);
+    this.targetHeld = target - this.slide(this.target);
+    if (this.ease) this.ease.held += this.held - was;
   }
 
   /** Where a line is drawn now, from the sheet's edge. */
@@ -240,23 +283,16 @@ class Axis {
     return this.shift + this.places.start[line];
   }
 
-  /** Send the lines to `to`, and the layer to where it holds `line` where it is drawn now. */
-  retarget(to: Places, line: number) {
+  /** Send the lines to `to`, the layer going where the scroll puts it, holding nothing more than it holds now. */
+  send(to: Places) {
     this.target = to;
-    this.targetShift = this.at(line) - to.start[line];
+    this.targetShift = this.slide(to) + this.targetHeld;
   }
 
-  /**
-   * Or the layer to where the box, `at` along the lines where they are going
-   * and `size` long, keeps the pivot of the chart where it is across the box:
-   * see carried. Counted from where the lines are going, not where they are
-   * drawn part way there, so lines changing again mid-way start from where
-   * the last change put the box.
-   */
-  carry(to: Places, at: number, size: number, near: number, far: number) {
-    const next = carried(this.target, to, at, size, near, far);
+  /** Or to where it holds `line` where it is drawn now. */
+  retarget(to: Places, line: number) {
     this.target = to;
-    this.targetShift += at - next;
+    this.hold(this.shift, this.at(line) - to.start[line]);
   }
 
   /**
@@ -268,19 +304,25 @@ class Axis {
    */
   keepBox(from: number, size: number, lowest: number, room = 0) {
     const highest = Math.max(lowest, this.target.start[0] + room - size);
-    this.targetShift = from - Math.min(Math.max(from - this.targetShift, lowest), highest);
+    this.limit(from - Math.min(Math.max(from - this.targetShift, lowest), highest));
+  }
+
+  /** The layer sent to `target` instead, once the lines arrive. */
+  limit(target: number) {
+    this.hold(this.shift, target);
   }
 
   /** Set off for the target: eased over the next frames from where the lines are now, or there at once. */
   go(time: number, now: boolean) {
     if (now) {
       this.places = this.target;
-      this.shift = this.targetShift;
+      this.held = this.targetHeld;
       this.ease = undefined;
     } else {
       const from = { start: this.places.start.slice(), size: this.places.size.slice() };
-      this.ease = { from, shift: this.shift, start: time };
+      this.ease = { from, held: this.held, start: time };
     }
+    this.follow();
   }
 
   get moving() {
@@ -288,16 +330,17 @@ class Axis {
   }
 
   /**
-   * A frame of the easing, or its end at once when `finish`. The layer eases
-   * with the lines, so the line it holds stays where it is all the way.
+   * A frame of the easing, or its end at once when `finish`. What is held
+   * eases with the lines, so a line held stays where it is all the way.
    */
   step(time: number, finish: boolean) {
     const ease = this.ease!;
     const t = finish ? 1 : Math.min(1, (time - ease.start) / easing);
     if (t >= 1) {
       this.places = this.target;
-      this.shift = this.targetShift;
+      this.held = this.targetHeld;
       this.ease = undefined;
+      this.follow();
       return;
     }
     const e = 1 - (1 - t) ** 3;
@@ -310,25 +353,32 @@ class Axis {
       size[line] = from.size[line] + (to.size[line] - from.size[line]) * e;
     }
     this.places = { start, size };
-    this.shift = ease.shift + (this.targetShift - ease.shift) * e;
+    this.held = ease.held + (this.targetHeld - ease.held) * e;
+    this.follow();
   }
 
   /** The layer put `shift` along from the sheet's edge, at once, and kept there. */
   anchor(shift: number) {
-    this.shift = this.targetShift = shift;
-    if (this.ease) this.ease.shift = shift;
+    this.hold(shift, shift);
   }
 
-  /** The sheet's edge moved by `by` under the layer: the layer moved back by as much, so nothing on it moves. */
+  /**
+   * The sheet's edge moved by `by` under the layer, from where it was when
+   * the layer was last put: the layer moved back by as much, so nothing on
+   * it moves, whatever the scroll now puts it at.
+   */
   offset(by: number) {
-    this.shift -= by;
-    this.targetShift -= by;
-    if (this.ease) this.ease.shift -= by;
+    this.hold(this.shift - by, this.targetShift - by);
   }
 
-  /** At rest: the layer put back at the sheet's edge. Says how far it had moved. */
+  /**
+   * At rest: the layer put back at the sheet's edge, and the lines as they
+   * are made those the sheet has the size of. Says how far it had moved.
+   */
   rebase(): number {
     const shift = this.shift;
+    this.rest = this.places;
+    this.held = this.targetHeld = 0;
     this.shift = this.targetShift = 0;
     return shift;
   }
@@ -392,6 +442,8 @@ export class TileView {
     private readonly scroller: HTMLElement,
     private readonly sheet: HTMLElement,
   ) {
+    this.columns.slide = (places) => this.slideAcross(places);
+    this.rows.slide = (places) => this.slideDown(places);
     this.layer = document.createElement("div");
     this.layer.className = "chart-layer";
     container.appendChild(this.layer);
@@ -474,9 +526,12 @@ export class TileView {
    * still is from the chart before: then what is in view is as far from that
    * edge as the box is, and the sheet takes the chart's width at rest with
    * nothing on screen moving. A box scrolled from the left has the chart at
-   * the sheet's left-hand edge instead.
+   * the sheet's left-hand edge instead. Closed up, the layer slides with the
+   * box's scroll to show the chart from edge to edge, whatever width the
+   * sheet is (see along), and nothing more is needed.
    */
   private anchorColumns() {
+    if (this.content?.collapse) return;
     const width = parseFloat(this.sheet.style.width) || 0;
     this.columns.anchor(scrollsFromRight(this.scroller) && width > 0 ? width - this.size().width : 0);
   }
@@ -491,6 +546,59 @@ export class TileView {
     const was = this.sheet.offsetLeft;
     this.sheet.style.width = `${width}px`;
     if (keep) this.columns.offset(this.sheet.offsetLeft - was);
+  }
+
+  /**
+   * Where the box's scroll across puts the layer, with columns laid out
+   * `places`: from where the box is along the room it has to scroll, as the
+   * sheet now is, to as far along those columns (see along). The box goes
+   * past the chart by its own padding, the margin left for a join's arrow,
+   * and the round numbers.
+   */
+  private slideAcross(places: Places): number {
+    const content = this.content;
+    const width = parseFloat(this.sheet.style.width) || 0;
+    // A sheet with no size yet has no room to scroll along: the layer stays at its edge.
+    if (!content?.collapse || width <= 0) return 0;
+    const style = getComputedStyle(this.scroller);
+    const near = (parseFloat(style.paddingLeft) || 0) + content.margin;
+    const far = gutter(content.cell) + (parseFloat(style.paddingRight) || 0);
+    const size = this.scroller.clientWidth;
+    const room = width - gutter(content.cell) + near + far - size;
+    // A sheet the box can't be scrolled along leaves the layer at its edge.
+    if (room <= 2) return 0;
+    const box = this.within(this.scroller.scrollLeft - this.sheet.offsetLeft, near, room);
+    const home = scrollsFromRight(this.scroller) ? 1 : 0;
+    return box - along(this.columns.rest, places, this.part(box + near, room), size, near, far, home);
+  }
+
+  /** And down, with rows laid out `places`, the box going past the chart by its padding. */
+  private slideDown(places: Places): number {
+    const content = this.content;
+    const height = parseFloat(this.sheet.style.height) || 0;
+    if (!content?.collapse || height <= 0) return 0;
+    const style = getComputedStyle(this.scroller);
+    const near = parseFloat(style.paddingTop) || 0;
+    const far = parseFloat(style.paddingBottom) || 0;
+    const size = this.scroller.clientHeight;
+    const room = height + near + far - size;
+    if (room <= 2) return 0;
+    const box = this.within(this.scroller.scrollTop - this.sheet.offsetTop, near, room);
+    return box - along(this.rows.rest, places, this.part(box + near, room), size, near, far, 0);
+  }
+
+  /**
+   * A box `at` along the sheet as far as its scroll can take it: a phone
+   * bouncing the box past an end moves what is on the sheet with it, as any
+   * scroll would, the layer staying where the end put it.
+   */
+  private within(at: number, near: number, room: number) {
+    return Math.min(room - near, Math.max(-near, at));
+  }
+
+  /** How far along `room` a box `at` along it is: at an end within a pixel of one, a scroll being whole pixels. */
+  private part(at: number, room: number) {
+    return Math.min(1, Math.max(0, (at - 1) / (room - 2)));
   }
 
   /** What of the chart the box shows, from the chart's own top left: where the lines are drawn, or going. */
@@ -526,13 +634,7 @@ export class TileView {
           if (held !== undefined) {
             this.columns.retarget(to, held);
             this.keepColumnsInBox();
-          } else {
-            // The box goes past the chart by its own padding, the margin left for a join's arrow, and the round numbers.
-            const style = getComputedStyle(this.scroller);
-            const near = (parseFloat(style.paddingLeft) || 0) + content.margin;
-            const far = gutter(cell) + (parseFloat(style.paddingRight) || 0);
-            this.columns.carry(to, this.showing(true).x, this.scroller.clientWidth, near, far);
-          }
+          } else this.columns.send(to);
         }
         columns = true;
       }
@@ -546,11 +648,7 @@ export class TileView {
           if (held !== undefined) {
             this.rows.retarget(to, held);
             this.keepRowsInBox();
-          } else {
-            const style = getComputedStyle(this.scroller);
-            const near = parseFloat(style.paddingTop) || 0;
-            this.rows.carry(to, this.showing(true).y, this.scroller.clientHeight, near, parseFloat(style.paddingBottom) || 0);
-          }
+          } else this.rows.send(to);
         }
         rows = true;
       }
@@ -649,8 +747,8 @@ export class TileView {
   /**
    * Which column to hold still as the columns move, if any: one being
    * scrolled or zoomed to, or the stitch being worked if it is on screen.
-   * Otherwise the box keeps the chart's pivot where it is across it (see
-   * carried), and holds no column of its own.
+   * Otherwise the layer goes only where the box's scroll puts it (see
+   * along), and holds no column of its own.
    */
   private columnHeld(): number | undefined {
     const { scene, follow } = this.content!;
@@ -764,45 +862,30 @@ export class TileView {
     const still = !this.touching && !this.columns.moving && !this.rows.moving && time - this.movedAt >= settling;
     const width = parseFloat(style.width) || 0;
     const height = parseFloat(style.height) || 0;
-    const shifted = this.columns.shift !== 0 || this.rows.shift !== 0;
+    // Moved by a hundredth of a pixel or more: the sums of where the scroll puts the layer may come to less.
+    const shifted = Math.abs(this.columns.shift) >= 0.01 || Math.abs(this.rows.shift) >= 0.01;
     if (!still) {
-      if (!scrollsFromRight(this.scroller)) {
-        if (this.columns.shift + wanted.width > width) style.width = `${this.columns.shift + wanted.width}px`;
-      } else if (width === 0) {
+      if (width === 0) {
         // Nothing on it yet to keep still.
         this.sheetWidth(wanted.width, false);
+        style.height = `${wanted.height}px`;
       } else if (this.target !== undefined && wanted.width > width) {
         /*
-         * But while the box is being sent to a stitch, a sheet too narrow
-         * for it would leave the stitch out of reach past its left-hand
-         * edge until rest. So it grows, keeping everything where it is on
-         * screen, and the box is sent again to the same place, which the
-         * browser now counts from a left-hand edge further away.
+         * While the box is being sent to a stitch, a sheet too narrow for it
+         * would leave the stitch out of reach until rest. So it grows,
+         * keeping everything where it is on screen, and the box is sent
+         * again to the same place, which the browser now counts from an
+         * edge further away.
          */
         this.sheetWidth(wanted.width, true);
         this.onTargetMoved?.(0);
-      } else {
-        /*
-         * Otherwise, the sheet's left-hand edge keeps up with the chart's, the
-         * far side from where the box is held, which leaves a scroll under
-         * way where it is; everything on the sheet stays where it is on
-         * screen. Columns opening run past that edge, where they would be cut
-         * off, and the box could go no further left than it until rest: a
-         * blank margin where the chart goes on. So the sheet grows to take
-         * them as they open. And columns closing again leave the sheet going
-         * on past the chart, for the box to be scrolled on into and jump back
-         * out of at rest: so it is cut back as they close, as far as the box
-         * is not already over what is cut, which would move its scroll.
-         */
-        const past = -Math.min(this.columns.shift, this.columns.targetShift);
-        if (past > 0) this.sheetWidth(width + past, true);
-        else {
-          const further = this.scroller.scrollLeft - scrollAcross(this.scroller)[0];
-          const spare = Math.min(-past, further);
-          if (spare >= 1) this.sheetWidth(width - spare, true);
-        }
       }
-      if (this.rows.shift + wanted.height > height) style.height = `${this.rows.shift + wanted.height}px`;
+      /*
+       * Otherwise the sheet keeps its size until rest, whatever opens and
+       * closes meanwhile: the layer slides with the box's scroll so that the
+       * box shows the chart from edge to edge however wide or tall it has
+       * grown or shrunk (see along), and a scroll under way is never moved.
+       */
       /*
        * Looked at again until at rest, while there is something to put right
        * then: a stitch or a point held to let go of, or the sheet. A finger
@@ -879,7 +962,13 @@ export class TileView {
       this.container.dataset.columnsShowing = String(this.columnMap?.count ?? 0);
       this.container.dataset.rowsShowing = String(this.rowMap?.count ?? 0);
     }
+    // The layer goes where the box's scroll puts it, every frame.
+    this.columns.follow();
+    this.rows.follow();
     const rebased = this.fitSheet(time);
+    // And again for the sheet as it is now, given a size or brought to rest.
+    this.columns.follow();
+    this.rows.follow();
     const { shift: x } = this.columns;
     const { shift: y } = this.rows;
     this.layer.style.transform = x || y ? `translate(${x}px, ${y}px)` : "";
@@ -1095,12 +1184,12 @@ export class TileView {
       const at = place();
       return { x: at.x - inBox.x, y: at.y - inBox.y };
     });
-    // Placed from the sheet's edge, as the box is scrolled to it from here: not anchored as a fresh chart is.
-    this.columns.anchor(0);
-    // The sheet takes the chart's new size now, before the box is scrolled to the point.
+    // The sheet takes the chart's new size now, before the box is scrolled to the point: the layer then at its edge.
     const size = this.size();
     this.sheet.style.width = `${size.width}px`;
     this.sheet.style.height = `${size.height}px`;
+    // Where the scroll puts it once there, the lines being those the sheet has the size of.
+    for (const axis of [this.columns, this.rows]) axis.shift = axis.targetShift = 0;
     this.layer.style.transform = "";
     this.version++;
     this.onMove?.();
