@@ -28,10 +28,14 @@ import type { Palette } from "./palette";
  * It also decides where each column and each row goes. Asked to close up,
  * it counts, as the box scrolls, which columns the rows in view need and
  * which rows the columns on screen need - see column-window - and when either
- * changes, lays those lines out again with one held still - the stitch being
- * worked, or an edge of the chart in view - or else the middle of the box,
- * which every line closes in towards, or opens out from, on its own side. The
- * lines ease to their new places rather than jumping.
+ * changes, lays those lines out again. The stitch being worked, on screen,
+ * is held still; otherwise the box stays the same part of the way along the
+ * chart, about a pivot as far across the box as the box is along the chart,
+ * which the lines either side close in towards or open out from - see
+ * carried. Where the box goes depends only on where it is and the lines
+ * showing, never on how they came to show, so nothing creeps; and at an end
+ * of the chart, that edge stays put. The lines ease to their new places
+ * rather than jumping.
  *
  * Holding a line still never writes the box's scroll while it is moving: a
  * phone ignores a scroll set mid-fling, or stops the fling for it, and a
@@ -134,26 +138,78 @@ const lineAt = (places: Places, lines: number, at: number, cell: number, ratio: 
 const reducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
+/** How many cells either side of the pivot a line closing or opening is shared between the two sides: see carried. */
+const spread = 2;
+
 /**
- * Where a place `at` along lines laid out `from` goes when they are laid out
- * `to`: as far into the line it is in, the same part of the way across it,
- * and a line closing gathers to its leading edge. Past the chart, it keeps
- * its distance from the edge it is past.
+ * How far lines laid out `places` reach before `u`, a place along the chart
+ * with every line open, in cells from its near edge: all of those well
+ * before it, none of those well after, and those within `spread` of it in
+ * part, the nearer before it the more. Line `lines` is at the near edge. A
+ * line closed up counts as the merest sliver, so that every place reaches a
+ * little further than the one before, and the pivot can always be found
+ * again from how far the lines reach before it: see pivotAt.
  */
-const along = (from: Places, to: Places, at: number) => {
-  const { start, size } = from;
-  for (let line = 0; line < start.length; line++) {
-    if (size[line] > 0 && start[line] <= at && at < start[line] + size[line]) {
-      return to.start[line] + ((at - start[line]) / size[line]) * to.size[line];
-    }
+const reach = (places: Places, u: number) => {
+  const { size } = places;
+  const lines = size.length - 2;
+  let total = 0;
+  for (let line = 1; line <= lines; line++) {
+    const middle = lines - line + 0.5;
+    const part = Math.min(1, Math.max(0, 0.5 + (u - middle) / (2 * spread)));
+    if (part > 0) total += part * Math.max(size[line], sliver);
   }
-  // Line 0 is the chart's far edge, and the last line its near one, at nought.
-  const edge = at >= start[0] ? 0 : start.length - 1;
-  return to.start[edge] + at - start[edge];
+  return total;
 };
 
-/** What to hold still as lines move: a line, or a place along them. */
-type Held = number | { at: number };
+/** How wide a line closed up counts as, in pixels, to reach: far less than anything drawn. */
+const sliver = 1e-6;
+
+/** How far lines laid out `places` reach in all. */
+const reachAll = (places: Places) => reach(places, places.size.length + spread);
+
+/** The pivot: the place along the chart with every line open that lines laid out `places` reach `length` before. */
+const pivotAt = (places: Places, length: number) => {
+  let low = -spread - 1;
+  let high = places.size.length + spread;
+  for (let step = 0; step < 60; step++) {
+    const middle = (low + high) / 2;
+    if (reach(places, middle) < length) low = middle;
+    else high = middle;
+  }
+  return (low + high) / 2;
+};
+
+/**
+ * Where a box `size` long, `at` along lines laid out `from`, goes when they
+ * are laid out `to`. The box can go from `near` before the chart's near
+ * edge to `far` past its far one, and is the same part of the way along
+ * that as the lines reach before the pivot of the whole chart: so the
+ * pivot keeps that part of the way across the box, with the lines either
+ * side of it opening out from it and closing in on it, those within
+ * `spread` of it on both sides. Found again from where the box is, the
+ * pivot is the same wherever it came from, so lines closing and opening
+ * again put everything back, in any order; and with the box at an end of
+ * the chart, that edge stays where it is.
+ */
+const carried = (from: Places, to: Places, at: number, size: number, near: number, far: number) => {
+  const was = from.start[0];
+  const now = to.start[0];
+  const room = was + near + far - size;
+  /*
+   * A chart the box can't be scrolled along keeps its far edge where it is.
+   * A scroll is whole pixels where the chart need not be, so a box within a
+   * pixel of an end counts as at it, or it would edge away a little each time.
+   */
+  const part = room > 2 ? Math.min(1, Math.max(0, (at + near - 1) / (room - 2))) : 1;
+  // At an end it stays at that end, whatever the sums come to.
+  const goes = part <= 0 || part >= 1 ? part : reach(to, pivotAt(from, part * reachAll(from))) / reachAll(to);
+  const roomNow = now + near + far - size;
+  if (roomNow <= 2) return now + far - size;
+  // Back the same way it was read, but right at an end where it was counted at one.
+  const along = goes <= 0 ? 0 : goes >= 1 ? roomNow : 1 + goes * (roomNow - 2);
+  return along - near;
+};
 
 /**
  * One way across the chart, the columns or the rows: where its lines are
@@ -184,18 +240,23 @@ class Axis {
     return this.shift + this.places.start[line];
   }
 
-  /**
-   * Send the lines to `to`, and the layer to where it holds `held` where it
-   * is drawn now: a line, or a place along the lines, which those either
-   * side of it close in towards or open out from, each on its own side, a
-   * line it is in from both. Lines closing and then opening again come back
-   * to where they were, where holding whichever line is nearest a place
-   * would hold one either side of it in turn, and creep a line each time.
-   */
-  retarget(to: Places, held: Held) {
+  /** Send the lines to `to`, and the layer to where it holds `line` where it is drawn now. */
+  retarget(to: Places, line: number) {
     this.target = to;
-    if (typeof held === "number") this.targetShift = this.at(held) - to.start[held];
-    else this.targetShift = this.shift + held.at - along(this.places, to, held.at);
+    this.targetShift = this.at(line) - to.start[line];
+  }
+
+  /**
+   * Or the layer to where the box, `at` along the lines where they are going
+   * and `size` long, keeps the pivot of the chart where it is across the box:
+   * see carried. Counted from where the lines are going, not where they are
+   * drawn part way there, so lines changing again mid-way start from where
+   * the last change put the box.
+   */
+  carry(to: Places, at: number, size: number, near: number, far: number) {
+    const next = carried(this.target, to, at, size, near, far);
+    this.target = to;
+    this.targetShift += at - next;
   }
 
   /**
@@ -462,8 +523,16 @@ export class TileView {
           this.anchorColumns();
         } else {
           const held = this.columnHeld();
-          this.columns.retarget(to, held);
-          this.keepColumnsInBox();
+          if (held !== undefined) {
+            this.columns.retarget(to, held);
+            this.keepColumnsInBox();
+          } else {
+            // The box goes past the chart by its own padding, the margin left for a join's arrow, and the round numbers.
+            const style = getComputedStyle(this.scroller);
+            const near = (parseFloat(style.paddingLeft) || 0) + content.margin;
+            const far = gutter(cell) + (parseFloat(style.paddingRight) || 0);
+            this.columns.carry(to, this.showing(true).x, this.scroller.clientWidth, near, far);
+          }
         }
         columns = true;
       }
@@ -473,8 +542,15 @@ export class TileView {
         const to = rowPlaces(this.rowMap, cell);
         if (fresh) this.rows.reset(to);
         else {
-          this.rows.retarget(to, this.rowHeld(to));
-          this.keepRowsInBox();
+          const held = this.rowHeld();
+          if (held !== undefined) {
+            this.rows.retarget(to, held);
+            this.keepRowsInBox();
+          } else {
+            const style = getComputedStyle(this.scroller);
+            const near = parseFloat(style.paddingTop) || 0;
+            this.rows.carry(to, this.showing(true).y, this.scroller.clientHeight, near, parseFloat(style.paddingBottom) || 0);
+          }
         }
         rows = true;
       }
@@ -571,56 +647,28 @@ export class TileView {
   }
 
   /**
-   * Which column to hold still as the columns move: one being scrolled or
-   * zoomed to, the stitch being worked if it is on screen, an edge of the
-   * chart in view - the right one first, where a chart is read from - or else
-   * the middle of the box. Never a column off screen while the box is not
-   * scrolling to it: holding that still would slide what is on screen
-   * sideways. But scrolled from the right, the right-hand edge within a box
-   * of the box is held, whichever way the columns between move: the box
-   * can't be scrolled past it until rest (see keepColumnsInBox), and the
-   * columns there open and close towards it alike.
+   * Which column to hold still as the columns move, if any: one being
+   * scrolled or zoomed to, or the stitch being worked if it is on screen.
+   * Otherwise the box keeps the chart's pivot where it is across it (see
+   * carried), and holds no column of its own.
    */
-  private columnHeld(): Held {
+  private columnHeld(): number | undefined {
     const { scene, follow } = this.content!;
     if (this.point) return this.point.column;
     if (this.target !== undefined && scene.rowOf[this.target]) return scene.columnOf[this.target];
     if (this.followShowing()) return scene.columnOf[follow!];
-    const view = this.showing();
-    const columns = scene.layout.columns;
-    const { start } = this.columns.places;
-    if (start[0] >= view.x && (start[0] <= view.x + view.width || this.nearRight())) return 0;
-    if (start[columns + 1] >= view.x && start[columns + 1] <= view.x + view.width) return columns + 1;
-    return { at: view.x + view.width / 2 };
+    return undefined;
   }
 
-  /**
-   * And which row, going `to` new places: one being scrolled or zoomed to,
-   * the stitch being worked if it is on screen, an edge of the chart in view -
-   * the bottom first, where a chart is read from - or else the middle of the
-   * box. An edge only while holding it keeps the middle in the box: rows open
-   * and close by the dozen - the whole yoke, under the stitches cast on at an
-   * underarm - and holding the edge below them still would send what is on
-   * screen off the top.
-   */
-  private rowHeld(to: Places): Held {
+  /** And which row, likewise. */
+  private rowHeld(): number | undefined {
     const { scene, follow } = this.content!;
     if (this.point) return this.point.row;
     if (this.target !== undefined && scene.rowOf[this.target]) return scene.rowOf[this.target];
     if (this.followShowing()) return scene.rowOf[follow!];
-    const view = this.showing();
-    const rows = scene.layout.rows;
-    const { places } = this.rows;
-    const { start } = places;
-    const middle = view.y + view.height / 2;
-    // How far holding a line still would move the middle.
-    const moves = (line: number) => Math.abs(along(places, to, middle) - to.start[line] - (middle - start[line]));
-    for (const edge of [0, rows + 1]) {
-      const inView = start[edge] >= view.y && start[edge] <= view.y + view.height;
-      if (inView && moves(edge) < view.height / 2) return edge;
-    }
-    return { at: middle };
+    return undefined;
   }
+
 
   /**
    * Have the rows, once there, fill the box up and down as its scroll will
@@ -679,10 +727,8 @@ export class TileView {
        *
        * Only with that edge within a box of the box, though. Further off,
        * columns opening between the two run on out of sight, and are taken
-       * into the sheet at rest, as those closing there are. Held back only
-       * as they opened, and not as they closed, the chart would creep a
-       * column across each time; and its left-hand edge, held in view at
-       * the far left, would be carried off out of it.
+       * into the sheet at rest, as those closing there are: held back only
+       * as they opened, the stitch held would creep a column each time.
        */
       const most = highest - left - (this.columns.target.start[0] + room - size);
       if (this.columns.targetShift > most) this.columns.targetShift = most;

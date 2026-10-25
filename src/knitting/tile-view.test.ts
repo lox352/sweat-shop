@@ -520,6 +520,54 @@ describe("the chart on tiles, closed up", () => {
     view.destroy();
   });
 
+  it("comes back to just where it was after rows in view wander about and return, whatever the way", () => {
+    const narrow = 6 * cell;
+    // A box half way across a chart scrolled from the right, and a finger on it throughout: nothing put right at rest.
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const { scroller, sheet, container, scrollTo, touch } = scrollingBox(narrow, 200);
+      scroller.style.direction = "rtl";
+      Object.defineProperty(sheet, "offsetLeft", { get: () => narrow - (parseFloat(sheet.style.width) || 0) });
+      Object.defineProperty(scroller, "scrollWidth", { get: () => Math.max(narrow, parseFloat(sheet.style.width) || 0) });
+      const view = new TileView(container, scroller, sheet);
+      view.show(content({ collapse: true }));
+      const start = 2 + (seed % 3);
+      scrollTo(0, topFor(start));
+      now += 200;
+      view.update();
+      scrollTo(-((parseFloat(sheet.style.width) || 0) - narrow) / 2, topFor(start));
+      now += 200;
+      view.update();
+      const ids = idsIn(start + 2).filter((id) => view.place(id) !== undefined);
+      const where = () => ids.map((id) => [sheet.offsetLeft + view.place(id)!.x - scroller.scrollLeft, view.place(id)!.y - scroller.scrollTop]);
+      const was = where();
+      touch("touchstart", 1);
+      let random = seed;
+      const next = () => (random = (random * 1103515245 + 12345) % 2147483648) / 2147483648;
+      let first = start;
+      for (let move = 0; move < 40; move++) {
+        first = Math.min(rows - 6, Math.max(1, first + Math.round((next() - 0.5) * 6)));
+        scrollTo(scroller.scrollLeft, topFor(first));
+        // Now and then before the lines have got where they were going.
+        const frames = Math.floor(next() * 12);
+        for (let frame = 0; frame < frames; frame++) {
+          now += 16;
+          view.update();
+        }
+      }
+      scrollTo(scroller.scrollLeft, topFor(start));
+      for (let frame = 0; frame < 15; frame++) {
+        now += 16;
+        view.update();
+      }
+      where().forEach(([x, y], k) => {
+        expect(x, `seed ${seed}, stitch ${ids[k]} across`).toBeCloseTo(was[k][0], 6);
+        expect(y, `seed ${seed}, stitch ${ids[k]} down`).toBeCloseTo(was[k][1], 6);
+      });
+      touch("touchend", 0);
+      view.destroy();
+    }
+  });
+
   it("moves the columns at once when the rows in view jump, or when asked for less motion", () => {
     const { first, id, other } = heldStitch();
     const { scroller, sheet, container, scrollTo } = scrollingBox(wide, 200);
@@ -747,7 +795,7 @@ describe("the chart on tiles, closed up", () => {
       view.destroy();
     });
 
-    it("keeps the box inside the chart as rows close between the row held and an edge out of view", () => {
+    it("keeps the box inside the chart as rows close near an edge out of view", () => {
       // Every row open, the box half a row down from the chart's top, so neither edge is in view.
       const { scroller, sheet, container, scrollTo } = scrollingBox(300, 200);
       scrollTo(0, cell / 2);
@@ -761,17 +809,18 @@ describe("the chart on tiles, closed up", () => {
       now += 16;
       view.update();
       expect(container.dataset.rowsShowing).toBe(String(rows - 1));
-      // Held, the row in the middle would have left half a row's gap above the chart: the chart's top came to the box's top instead.
-      expect(view.place(below)!.y - scroller.scrollTop).toBe(0);
+      // No gap above the chart: its top is at or above the box's, and stays there at rest.
+      const above = view.place(below)!.y - scroller.scrollTop;
+      expect(above).toBeLessThanOrEqual(1e-6);
       now += 200;
       view.update();
-      expect(scroller.scrollTop).toBe(0);
-      expect(view.place(below)!.y).toBe(0);
+      expect(scroller.scrollTop).toBeGreaterThanOrEqual(0);
+      expect(view.place(below)!.y - scroller.scrollTop).toBeCloseTo(above, 6);
       expect(sheet.style.height).toBe(`${(rows - 1) * cell}px`);
       view.destroy();
     });
 
-    it("holds an edge of the chart in view still only while that keeps the row in the middle in the box", () => {
+    it("keeps the chart's bottom at the box's when rows open under a box at the bottom", () => {
       // Seven columns showing none of the bottom rows' stitches, the first such from the left: the column before them shows some.
       const live = new LiveColumns(scene.index);
       live.moveTo(1, rows);
@@ -804,10 +853,9 @@ describe("the chart on tiles, closed up", () => {
         view.destroy();
         return result;
       };
-      // Three rows opening under the middle of a box five rows tall: held, the bottom edge would send the middle row out of it.
-      expect(opening(5 * cell)).toEqual({ middle: 0, bottom: closed.length * cell });
-      // In a box ten rows tall, it is held, and the box still reaches the chart's bottom.
-      expect(opening(10 * cell).bottom).toBe(0);
+      // Three rows opening at the bottom of the chart, the box all the way down: the bottom stays where it is, whatever the box's height.
+      expect(opening(5 * cell).bottom).toBeCloseTo(0, 6);
+      expect(opening(10 * cell).bottom).toBeCloseTo(0, 6);
     });
 
     it("never closes up everything, even with the box off the chart", () => {
