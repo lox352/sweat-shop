@@ -664,24 +664,28 @@ test("closed up, the rib at the neck is its stitches side by side, and every col
   const tiles = page.locator(".chart-tiles");
   const columns = Number(await tiles.getAttribute("data-columns"));
   const scroller = page.locator(".chart-scroll");
-  await scroller.evaluate(box => { box.scrollTop = box.scrollHeight; });
   /*
    * Half a view at a time, so every row is well inside some view: the widest
    * round is only a few rows. Up from wherever the box is, to the top: the
    * chart grows taller as rows open, and its scroll is put right at rest,
-   * so places counted from its height at the start would stop short.
+   * so places counted from its height at the start would stop short. All in
+   * the page, a step a frame or two, as a slow runner has time for.
    */
-  const counts = [];
-  for (let at = Infinity; at > 0;) {
-    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
-    counts.push(Number(await tiles.getAttribute("data-columns-showing")));
-    at = await scroller.evaluate(box => {
+  const { counts, top } = await scroller.evaluate(async box => {
+    const frames = () => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)));
+    const tiles = box.querySelector(".chart-tiles");
+    box.scrollTop = box.scrollHeight;
+    const counts = [];
+    for (let step = 0; step < 400; step++) {
+      await frames();
+      counts.push(Number(tiles.dataset.columnsShowing));
+      if (box.scrollTop === 0) break;
       box.scrollTop = Math.max(0, box.scrollTop - Math.floor(box.clientHeight / 2));
-      return box.scrollTop;
-    });
-  }
-  await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
-  counts.push(Number(await tiles.getAttribute("data-columns-showing")));
+    }
+    return { counts, top: box.scrollTop };
+  });
+  // It got there.
+  expect(top).toBe(0);
   expect(counts[0]).toBeLessThan(columns);
   expect(Math.max(...counts)).toBe(columns);
 });
