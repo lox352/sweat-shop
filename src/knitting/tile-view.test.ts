@@ -4,7 +4,7 @@ import { layOutSweater } from "./layout";
 import { sceneOf } from "./chart-scene";
 import { defaultColours, gutter } from "./chart-painter";
 import { LiveColumns, mapOf } from "./column-window";
-import { TileView, type TileContent, tileSize } from "./tile-view";
+import { TileView, type TileContent, tileSize, along, type Places } from "./tile-view";
 import { testSweater } from "./test-sweater";
 import type { Palette } from "./palette";
 
@@ -425,7 +425,7 @@ describe("the chart on tiles, closed up", () => {
     view.destroy();
   });
 
-  it("scrolled across from the right, holds the chart's left-hand edge where it is at the far left, and grows the sheet for columns opening past it further in", () => {
+  it("scrolled across from the right, holds the chart's left-hand edge at the far left, and never leaves an edge out of reach while columns change", () => {
     const narrow = 6 * cell;
     const { scroller, sheet, container, writes, scrollTo, touch } = scrollingBox(narrow, 200);
     scroller.style.direction = "rtl";
@@ -434,41 +434,50 @@ describe("the chart on tiles, closed up", () => {
     const view = new TileView(container, scroller, sheet);
     view.show(content({ collapse: true }));
     const layer = container.querySelector<HTMLElement>(".chart-layer")!;
-    // Where the layer puts the chart's left-hand edge on the sheet: cut off, and out of the box's reach, if past nought.
-    const leftEdge = () => Number(/translate\((-?[\d.e-]+)px/.exec(layer.style.transform)?.[1] ?? 0);
-    // And where that is across the box.
-    const onScreen = () => sheet.offsetLeft + leftEdge() - scroller.scrollLeft;
-    const rest = () => {
-      now += 200;
-      view.update();
+    const shift = () => Number(/translate\((-?[\d.e-]+)px/.exec(layer.style.transform)?.[1] ?? 0);
+    // Where the chart's left-hand edge is across the box, and how far its right-hand edge, with the round numbers, falls short of the box's.
+    const left = () => sheet.offsetLeft + shift() - scroller.scrollLeft;
+    const right = () => narrow - (left() + view.place(idsIn(1).find((id) => scene.columnOf[id] === 1)!)!.x - shift() + cell + gutter(cell));
+    const frames = (count: number) => {
+      for (let frame = 0; frame < count; frame++) {
+        now += 16;
+        view.update();
+      }
     };
-    let grew = 0;
+    let changed = 0;
     for (const inset of [0, narrow]) {
       for (let first = 1; first + 6 <= rows; first++) {
         // A finger as far left as the sheet goes, or a box in from there, then a row up the chart.
         scrollTo(0, topFor(first));
-        rest();
+        now += 200;
+        view.update();
         scrollTo(narrow - (parseFloat(sheet.style.width) || 0) + inset, topFor(first));
-        rest();
-        const was = onScreen();
+        now += 200;
+        view.update();
+        const was = left();
+        const columns = container.dataset.columnsShowing;
         writes.length = 0;
         touch("touchstart", 1);
         scrollTo(scroller.scrollLeft, topFor(first + 1));
         for (let frame = 0; frame < 30; frame++) {
-          now += 16;
-          const width = parseFloat(sheet.style.width) || 0;
-          view.update();
-          if ((parseFloat(sheet.style.width) || 0) > width) grew++;
-          expect(leftEdge(), `rows ${first} up, frame ${frame}`).toBeGreaterThanOrEqual(-1e-6);
+          frames(1);
           // At the far left, the edge stays where it is, columns opening and closing away from it.
-          if (inset === 0) expect(onScreen(), `rows ${first} up, frame ${frame}`).toBeCloseTo(was, 6);
+          if (inset === 0) expect(left(), `rows ${first} up, frame ${frame}`).toBeCloseTo(was, 6);
         }
+        changed += Number(container.dataset.columnsShowing !== columns);
+        // Before rest, the finger still down, the box scrolled to either end of the sheet shows that edge of the chart.
+        scrollTo(narrow - (parseFloat(sheet.style.width) || 0), scroller.scrollTop);
+        frames(1);
+        expect(left(), `rows ${first} up, at the left`).toBeCloseTo(0, 6);
+        scrollTo(0, scroller.scrollTop);
+        frames(1);
+        expect(right(), `rows ${first} up, at the right`).toBeCloseTo(0, 6);
         expect(writes.filter((write) => write.startsWith("left"))).toEqual([]);
         touch("touchend", 0);
       }
     }
-    // Columns did open past the edge further in, for the sheet to grow.
-    expect(grew).toBeGreaterThan(0);
+    // Columns did open and close.
+    expect(changed).toBeGreaterThan(0);
     view.destroy();
   });
 
@@ -853,9 +862,10 @@ describe("the chart on tiles, closed up", () => {
         view.destroy();
         return result;
       };
-      // Three rows opening at the bottom of the chart, the box all the way down: the bottom stays where it is, whatever the box's height.
+      // Three rows opening at the bottom of the chart, the box all the way down: the bottom stays where it is.
       expect(opening(5 * cell).bottom).toBeCloseTo(0, 6);
-      expect(opening(10 * cell).bottom).toBeCloseTo(0, 6);
+      // In a box ten rows tall the whole chart fits, and the box has nowhere to scroll: it grows down from its top, where the box starts.
+      expect(opening(10 * cell).bottom).toBeCloseTo(rows * cell - 10 * cell, 6);
     });
 
     it("never closes up everything, even with the box off the chart", () => {
@@ -908,5 +918,56 @@ describe("the chart on tiles, closed up", () => {
       expect(container.querySelector<HTMLElement>(".chart-layer")!.style.transform).toBe("");
       view.destroy();
     });
+  });
+});
+
+describe("where the box goes as lines open and close", () => {
+  const cell = 10;
+  // A chart long beside the box, as a sweater's is.
+  const lines = 200;
+  /** Lines all a cell wide but those in `shut`, from line `lines` at the near edge to line 1 at the far one. */
+  const laid = (shut: (line: number) => boolean): Places => {
+    const start = new Float64Array(lines + 2);
+    const size = new Float64Array(lines + 2);
+    let at = 0;
+    for (let line = lines + 1; line >= 0; line--) {
+      start[line] = at;
+      size[line] = line >= 1 && line <= lines && !shut(line) ? cell : 0;
+      at += size[line];
+    }
+    return { start, size };
+  };
+
+  it("opens a block of lines out both ways in view, by more on the side the box is further from, and changes that share as gradually as the box moves", () => {
+    // Fourteen lines side by side, shut, then open; a box twenty cells long.
+    const block = (line: number) => line >= 95 && line <= 108;
+    const rest = laid(block);
+    const open = laid(() => false);
+    const size = 20 * cell;
+    const room = rest.start[0] - size;
+    const width = 14 * cell;
+    // The block's place on the chart while shut.
+    const point = rest.start[108];
+    const shares: { across: number; left: number }[] = [];
+    // Clear of the pixel at either end, which counts as at it.
+    for (let box = 2; box <= room - 2; box += 5) {
+      const part = (box - 1) / (room - 2);
+      const now = along(rest, open, part, size, 0, 0, 1, cell);
+      // What was left of the block moves left by as much as the box moves on along the chart: that share of it opened to the left.
+      shares.push({ across: point - box, left: (now - box) / width });
+    }
+    // Well left of the box, all of it opens to the left; well right, all to the right; never more than all, nor less than none.
+    expect(shares[shares.length - 1].left).toBeGreaterThan(0.95);
+    expect(shares[0].left).toBeLessThan(0.05);
+    for (const { left } of shares) {
+      expect(left).toBeGreaterThanOrEqual(-1e-9);
+      expect(left).toBeLessThanOrEqual(1 + 1e-9);
+    }
+    // The further along the box is, the more of it opens to the left: never back the other way.
+    shares.forEach((share, k) => k > 0 && expect(share.left).toBeGreaterThanOrEqual(shares[k - 1].left - 1e-9));
+    // And from mostly one way to mostly the other over half the box or more, not as the box passes a line.
+    const mostlyRight = shares.filter((share) => share.left <= 0.2).map((share) => share.across);
+    const mostlyLeft = shares.filter((share) => share.left >= 0.8).map((share) => share.across);
+    expect(Math.min(...mostlyRight) - Math.max(...mostlyLeft)).toBeGreaterThanOrEqual(size / 2);
   });
 });
