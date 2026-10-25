@@ -724,15 +724,24 @@ export class TileView {
         this.onTargetMoved?.(0);
       } else {
         /*
-         * Otherwise, columns opening run past the sheet's left-hand edge,
-         * where they would be cut off, and the box could go no further left
-         * than that edge until rest: a blank margin where the chart goes on.
-         * So the sheet grows to take them as they open, keeping everything
-         * where it is on screen. It grows only, the far side from where the
-         * box is held, which leaves a scroll under way where it is.
+         * Otherwise, the sheet's left-hand edge keeps up with the chart's, the
+         * far side from where the box is held, which leaves a scroll under
+         * way where it is; everything on the sheet stays where it is on
+         * screen. Columns opening run past that edge, where they would be cut
+         * off, and the box could go no further left than it until rest: a
+         * blank margin where the chart goes on. So the sheet grows to take
+         * them as they open. And columns closing again leave the sheet going
+         * on past the chart, for the box to be scrolled on into and jump back
+         * out of at rest: so it is cut back as they close, as far as the box
+         * is not already over what is cut, which would move its scroll.
          */
         const past = -Math.min(this.columns.shift, this.columns.targetShift);
         if (past > 0) this.sheetWidth(width + past, true);
+        else {
+          const further = this.scroller.scrollLeft - scrollAcross(this.scroller)[0];
+          const spare = Math.min(-past, further);
+          if (spare >= 1) this.sheetWidth(width - spare, true);
+        }
       }
       if (this.rows.shift + wanted.height > height) style.height = `${this.rows.shift + wanted.height}px`;
       /*

@@ -707,6 +707,42 @@ test("closed up, scrolled all the way left, the chart's left-hand edge is never 
   expect(cut).toBeLessThan(1);
 });
 
+test("closed up, scrolled left, the box stops at the chart's left-hand edge, with no blank past it to come back out of", async ({ page }) => {
+  // Each Year Once's neck, where columns open and close again on the way across.
+  await page.goto("#/sweater/wool-week-strips-once-oldest");
+  await page.getByRole("button", { name: "Start knitting this", exact: true }).click();
+  await expect(page.getByRole("button", { name: "End of round", exact: true })).toBeVisible();
+  const scroller = page.locator(".chart-scroll");
+  const { most, rest, opened } = await scroller.evaluate(async box => {
+    const frame = () => new Promise(done => requestAnimationFrame(done));
+    await new Promise(done => setTimeout(done, 600));
+    const sheet = box.querySelector(".chart-sheets");
+    const layer = box.querySelector(".chart-layer");
+    const tiles = box.querySelector(".chart-tiles");
+    const style = getComputedStyle(box);
+    const inside = box.getBoundingClientRect().left + parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft);
+    // How far right of the inside of the box the chart's left-hand edge is.
+    const blank = () => sheet.getBoundingClientRect().left + Number(/translate\((-?[\d.e-]+)px/.exec(layer.style.transform)?.[1] ?? 0) - inside;
+    const counts = new Set();
+    let most = -Infinity;
+    // A long swipe left, a little every frame, to the end.
+    for (let step = 0; step < 600; step++) {
+      const was = box.scrollLeft;
+      box.scrollLeft -= 20;
+      await frame();
+      counts.add(tiles.dataset.columnsShowing);
+      most = Math.max(most, blank());
+      if (box.scrollLeft === was) break;
+    }
+    await new Promise(done => setTimeout(done, 600));
+    return { most, rest: blank(), opened: counts.size };
+  });
+  // Columns opened and closed on the way.
+  expect(opened).toBeGreaterThan(1);
+  // Never further than it comes to rest, its margin for a join's arrow: no blank sheet past it.
+  expect(most - rest).toBeLessThan(1);
+});
+
 test("closed up, zooming keeps the stitch under the point zoomed about", async ({ page }) => {
   await start(page);
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
