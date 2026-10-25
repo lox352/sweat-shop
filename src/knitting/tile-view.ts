@@ -700,14 +700,18 @@ export class TileView {
          */
         this.sheetWidth(wanted.width, true);
         this.onTargetMoved?.(0);
+      } else {
+        /*
+         * Otherwise, columns opening run past the sheet's left-hand edge,
+         * where they would be cut off, and the box could go no further left
+         * than that edge until rest: a blank margin where the chart goes on.
+         * So the sheet grows to take them as they open, keeping everything
+         * where it is on screen. It grows only, the far side from where the
+         * box is held, which leaves a scroll under way where it is.
+         */
+        const past = -Math.min(this.columns.shift, this.columns.targetShift);
+        if (past > 0) this.sheetWidth(width + past, true);
       }
-      /*
-       * Otherwise, scrolled from its right-hand edge, the sheet keeps its width
-       * until rest, whatever runs past its left-hand edge meanwhile: that is the
-       * far side from where the box is held, and growing the sheet there
-       * would move a smooth scroll under way, which a browser aims at a place
-       * counted from the left.
-       */
       if (this.rows.shift + wanted.height > height) style.height = `${this.rows.shift + wanted.height}px`;
       /*
        * Looked at again until at rest, while there is something to put right
