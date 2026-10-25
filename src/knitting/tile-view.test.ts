@@ -425,8 +425,7 @@ describe("the chart on tiles, closed up", () => {
     view.destroy();
   });
 
-  it("scrolled across from the right, grows the sheet to take columns opening past its left-hand edge while the box is still moving", () => {
-    const { first } = heldStitch();
+  it("scrolled across from the right, holds the chart's left-hand edge where it is at the far left, and grows the sheet for columns opening past it further in", () => {
     const narrow = 6 * cell;
     const { scroller, sheet, container, writes, scrollTo, touch } = scrollingBox(narrow, 200);
     scroller.style.direction = "rtl";
@@ -437,30 +436,39 @@ describe("the chart on tiles, closed up", () => {
     const layer = container.querySelector<HTMLElement>(".chart-layer")!;
     // Where the layer puts the chart's left-hand edge on the sheet: cut off, and out of the box's reach, if past nought.
     const leftEdge = () => Number(/translate\((-?[\d.e-]+)px/.exec(layer.style.transform)?.[1] ?? 0);
-    let pastBefore = false;
-    for (const to of [first + 1, first, first + 1]) {
-      // A finger at the chart's left-hand edge, scrolled as far left as the sheet goes, then down or up a row.
-      scrollTo(0, topFor(to));
+    // And where that is across the box.
+    const onScreen = () => sheet.offsetLeft + leftEdge() - scroller.scrollLeft;
+    const rest = () => {
       now += 200;
       view.update();
-      scrollTo(narrow - (parseFloat(sheet.style.width) || 0), topFor(to));
-      now += 200;
-      view.update();
-      writes.length = 0;
-      touch("touchstart", 1);
-      scrollTo(scroller.scrollLeft, topFor(to === first ? first + 1 : first));
-      for (let frame = 0; frame < 30; frame++) {
-        now += 16;
-        const width = parseFloat(sheet.style.width) || 0;
-        view.update();
-        if ((parseFloat(sheet.style.width) || 0) > width) pastBefore = true;
-        expect(leftEdge(), `frame ${frame}`).toBeGreaterThanOrEqual(-1e-6);
+    };
+    let grew = 0;
+    for (const inset of [0, narrow]) {
+      for (let first = 1; first + 6 <= rows; first++) {
+        // A finger as far left as the sheet goes, or a box in from there, then a row up the chart.
+        scrollTo(0, topFor(first));
+        rest();
+        scrollTo(narrow - (parseFloat(sheet.style.width) || 0) + inset, topFor(first));
+        rest();
+        const was = onScreen();
+        writes.length = 0;
+        touch("touchstart", 1);
+        scrollTo(scroller.scrollLeft, topFor(first + 1));
+        for (let frame = 0; frame < 30; frame++) {
+          now += 16;
+          const width = parseFloat(sheet.style.width) || 0;
+          view.update();
+          if ((parseFloat(sheet.style.width) || 0) > width) grew++;
+          expect(leftEdge(), `rows ${first} up, frame ${frame}`).toBeGreaterThanOrEqual(-1e-6);
+          // At the far left, the edge stays where it is, columns opening and closing away from it.
+          if (inset === 0) expect(onScreen(), `rows ${first} up, frame ${frame}`).toBeCloseTo(was, 6);
+        }
+        expect(writes.filter((write) => write.startsWith("left"))).toEqual([]);
+        touch("touchend", 0);
       }
-      expect(writes.filter((write) => write.startsWith("left"))).toEqual([]);
-      touch("touchend", 0);
     }
-    // Columns did open past the edge, for the sheet to grow.
-    expect(pastBefore).toBe(true);
+    // Columns did open past the edge further in, for the sheet to grow.
+    expect(grew).toBeGreaterThan(0);
     view.destroy();
   });
 

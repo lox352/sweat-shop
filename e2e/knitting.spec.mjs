@@ -752,6 +752,45 @@ test("closed up, scrolled left, the box stops at the chart's left-hand edge, wit
   expect(most - rest).toBeLessThan(1);
 });
 
+test("closed up, scrolled all the way left and then gently up, the chart's left-hand edge stays where it is", async ({ page }) => {
+  await page.goto("#/sweater/wool-week-strips-once-oldest");
+  await page.getByRole("button", { name: "Start knitting this", exact: true }).click();
+  await expect(page.getByRole("button", { name: "End of round", exact: true })).toBeVisible();
+  const scroller = page.locator(".chart-scroll");
+  const { start, least, most, opened } = await scroller.evaluate(async box => {
+    const frame = () => new Promise(done => requestAnimationFrame(done));
+    const rest = () => new Promise(done => setTimeout(done, 600));
+    const sheet = box.querySelector(".chart-sheets");
+    const layer = box.querySelector(".chart-layer");
+    const tiles = box.querySelector(".chart-tiles");
+    // Where the chart's left-hand edge is across the box.
+    const edge = () => sheet.getBoundingClientRect().left + Number(/translate\((-?[\d.e-]+)px/.exec(layer.style.transform)?.[1] ?? 0) - box.getBoundingClientRect().left;
+    box.scrollLeft = -1e6;
+    await rest();
+    box.scrollLeft = -1e6;
+    await rest();
+    const start = edge();
+    const counts = new Set();
+    let least = Infinity;
+    let most = -Infinity;
+    // Up the yoke a little every frame, its make-ones opening columns as their rows come into view.
+    for (let step = 0; step < 300 && box.scrollTop > 0; step++) {
+      box.scrollTop -= 2;
+      await frame();
+      counts.add(tiles.dataset.columnsShowing);
+      least = Math.min(least, edge());
+      most = Math.max(most, edge());
+    }
+    await rest();
+    least = Math.min(least, edge());
+    most = Math.max(most, edge());
+    return { start, least, most, opened: counts.size };
+  });
+  expect(opened).toBeGreaterThan(1);
+  expect(start - least).toBeLessThan(1);
+  expect(most - start).toBeLessThan(1);
+});
+
 test("closed up, zooming keeps the stitch under the point zoomed about", async ({ page }) => {
   await start(page);
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();

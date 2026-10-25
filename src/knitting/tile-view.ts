@@ -463,7 +463,7 @@ export class TileView {
         } else {
           const held = this.columnHeld();
           this.columns.retarget(to, held);
-          this.keepColumnsInBox(held);
+          this.keepColumnsInBox();
         }
         columns = true;
       }
@@ -589,8 +589,7 @@ export class TileView {
     const view = this.showing();
     const columns = scene.layout.columns;
     const { start } = this.columns.places;
-    const reach = scrollsFromRight(this.scroller) ? view.width : 0;
-    if (start[0] >= view.x && start[0] <= view.x + view.width + reach) return 0;
+    if (start[0] >= view.x && (start[0] <= view.x + view.width || this.nearRight())) return 0;
     if (start[columns + 1] >= view.x && start[columns + 1] <= view.x + view.width) return columns + 1;
     return { at: view.x + view.width / 2 };
   }
@@ -638,6 +637,19 @@ export class TileView {
   }
 
   /**
+   * Scrolled from the right, whether the chart's right-hand edge, as drawn
+   * now, is within a box of the box's: near enough for the box to be
+   * scrolled to it before rest, past which it can't be until then (see
+   * keepColumnsInBox). Further off, columns opening between the two can
+   * run on out of sight.
+   */
+  private nearRight(): boolean {
+    if (!scrollsFromRight(this.scroller)) return false;
+    const view = this.showing();
+    return this.columns.places.start[0] <= view.x + 2 * view.width;
+  }
+
+  /**
    * And the columns, always but while zoomed about a point: the box stays
    * inside the chart as the columns move, however those between the line
    * held and an edge open or close. Above all, the chart's right-hand edge -
@@ -648,7 +660,7 @@ export class TileView {
    * scroll a phone can lose. A chart narrower than the box has nothing to
    * scroll, and is left as it is.
    */
-  private keepColumnsInBox(held: Held) {
+  private keepColumnsInBox() {
     if (this.point) return;
     const size = this.scroller.clientWidth;
     // The chart, its round numbers, and the box's own padding past them.
@@ -658,18 +670,19 @@ export class TileView {
     const was = this.columns.targetShift;
     const [lowest, highest] = scrollAcross(this.scroller);
     this.columns.keepBox(this.scroller.scrollLeft - left, size, lowest - left, room);
-    if (scrollsFromRight(this.scroller) && typeof held === "number") {
+    if (this.nearRight()) {
       /*
        * Nor carried out past the furthest right the box can go, which
        * holding a stitch still would do as columns close between it and
        * the edge: the box can't follow it there, and what it held would be
        * out of reach. Scrolled from the left, the sheet grows to meet it.
        *
-       * Not while holding the middle of the box, as it only is with that
-       * edge more than a box away (see columnHeld): columns opening between
-       * the two run on out of sight, and are taken into the sheet at rest,
-       * as those closing there are. Held back only as they opened, and not
-       * as they closed, the chart would creep a column across each time.
+       * Only with that edge within a box of the box, though. Further off,
+       * columns opening between the two run on out of sight, and are taken
+       * into the sheet at rest, as those closing there are. Held back only
+       * as they opened, and not as they closed, the chart would creep a
+       * column across each time; and its left-hand edge, held in view at
+       * the far left, would be carried off out of it.
        */
       const most = highest - left - (this.columns.target.start[0] + room - size);
       if (this.columns.targetShift > most) this.columns.targetShift = most;
