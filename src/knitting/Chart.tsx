@@ -325,6 +325,16 @@ const Chart: React.FC<ChartProps> = ({
     aim(reducedMotion() || !aimed.current ? "auto" : "smooth");
     aimed.current = true;
   }, [aim, at]);
+  /*
+   * When the knitting stops, the box is no longer being sent anywhere: the
+   * stitch it was sent to is let go of at once, not at rest, so that columns
+   * opening as you scroll straight away can't send the box back to it.
+   */
+  useEffect(() => {
+    if (at || !aimedAt.current) return;
+    aimedAt.current = undefined;
+    tilesRef.current?.hold(undefined);
+  }, [at]);
 
   /*
    * When the window changes size. Scroll positions are counted from the top
