@@ -664,15 +664,24 @@ test("closed up, the rib at the neck is its stitches side by side, and every col
   const tiles = page.locator(".chart-tiles");
   const columns = Number(await tiles.getAttribute("data-columns"));
   const scroller = page.locator(".chart-scroll");
-  const height = await scroller.evaluate(box => box.scrollHeight);
-  // Half a view at a time, so every row is well inside some view: the widest round is only a few rows.
-  const step = Math.floor((await scroller.evaluate(box => box.clientHeight)) / 2);
+  await scroller.evaluate(box => { box.scrollTop = box.scrollHeight; });
+  /*
+   * Half a view at a time, so every row is well inside some view: the widest
+   * round is only a few rows. Up from wherever the box is, to the top: the
+   * chart grows taller as rows open, and its scroll is put right at rest,
+   * so places counted from its height at the start would stop short.
+   */
   const counts = [];
-  for (let top = height; top >= 0; top -= step) {
-    await scroller.evaluate((box, top) => { box.scrollTop = top; }, top);
+  for (let at = Infinity; at > 0;) {
     await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
     counts.push(Number(await tiles.getAttribute("data-columns-showing")));
+    at = await scroller.evaluate(box => {
+      box.scrollTop = Math.max(0, box.scrollTop - Math.floor(box.clientHeight / 2));
+      return box.scrollTop;
+    });
   }
+  await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+  counts.push(Number(await tiles.getAttribute("data-columns-showing")));
   expect(counts[0]).toBeLessThan(columns);
   expect(Math.max(...counts)).toBe(columns);
 });
