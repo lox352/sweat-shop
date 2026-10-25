@@ -425,6 +425,45 @@ describe("the chart on tiles, closed up", () => {
     view.destroy();
   });
 
+  it("scrolled across from the right, grows the sheet to take columns opening past its left-hand edge while the box is still moving", () => {
+    const { first } = heldStitch();
+    const narrow = 6 * cell;
+    const { scroller, sheet, container, writes, scrollTo, touch } = scrollingBox(narrow, 200);
+    scroller.style.direction = "rtl";
+    Object.defineProperty(sheet, "offsetLeft", { get: () => narrow - (parseFloat(sheet.style.width) || 0) });
+    Object.defineProperty(scroller, "scrollWidth", { get: () => Math.max(narrow, parseFloat(sheet.style.width) || 0) });
+    const view = new TileView(container, scroller, sheet);
+    view.show(content({ collapse: true }));
+    const layer = container.querySelector<HTMLElement>(".chart-layer")!;
+    // Where the layer puts the chart's left-hand edge on the sheet: cut off, and out of the box's reach, if past nought.
+    const leftEdge = () => Number(/translate\((-?[\d.e-]+)px/.exec(layer.style.transform)?.[1] ?? 0);
+    let pastBefore = false;
+    for (const to of [first + 1, first, first + 1]) {
+      // A finger at the chart's left-hand edge, scrolled as far left as the sheet goes, then down or up a row.
+      scrollTo(0, topFor(to));
+      now += 200;
+      view.update();
+      scrollTo(narrow - (parseFloat(sheet.style.width) || 0), topFor(to));
+      now += 200;
+      view.update();
+      writes.length = 0;
+      touch("touchstart", 1);
+      scrollTo(scroller.scrollLeft, topFor(to === first ? first + 1 : first));
+      for (let frame = 0; frame < 30; frame++) {
+        now += 16;
+        const width = parseFloat(sheet.style.width) || 0;
+        view.update();
+        if ((parseFloat(sheet.style.width) || 0) > width) pastBefore = true;
+        expect(leftEdge(), `frame ${frame}`).toBeGreaterThanOrEqual(-1e-6);
+      }
+      expect(writes.filter((write) => write.startsWith("left"))).toEqual([]);
+      touch("touchend", 0);
+    }
+    // Columns did open past the edge, for the sheet to grow.
+    expect(pastBefore).toBe(true);
+    view.destroy();
+  });
+
   it("moves the columns at once when the rows in view jump, or when asked for less motion", () => {
     const { first, id, other } = heldStitch();
     const { scroller, sheet, container, scrollTo } = scrollingBox(wide, 200);

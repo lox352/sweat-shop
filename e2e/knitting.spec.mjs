@@ -677,6 +677,36 @@ test("closed up, the rib at the neck is its stitches side by side, and every col
   expect(Math.max(...counts)).toBe(columns);
 });
 
+test("closed up, scrolled all the way left, the chart's left-hand edge is never cut off as columns open", async ({ page }) => {
+  await start(page);
+  await zoomAllTheWayIn(page);
+  await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  const scroller = page.locator(".chart-scroll");
+  // At the neck, as far left as the box goes, then up the yoke a little every frame, its make-ones opening columns to the left.
+  const { cut, opened } = await scroller.evaluate(async box => {
+    const frame = () => new Promise(done => requestAnimationFrame(done));
+    const layer = box.querySelector(".chart-layer");
+    const tiles = box.querySelector(".chart-tiles");
+    box.scrollTop = box.scrollHeight;
+    await frame();
+    await new Promise(done => setTimeout(done, 400));
+    const showing = () => Number(tiles.dataset.columnsShowing);
+    const from = showing();
+    let cut = 0;
+    for (let step = 0; step < 240 && box.scrollTop > 0; step++) {
+      box.scrollLeft = box.clientWidth - box.scrollWidth;
+      box.scrollTop -= 6;
+      await frame();
+      // Where the layer puts the chart's left-hand edge on the sheet: cut off, and out of reach, if past nought.
+      const x = Number(/translate\((-?[\d.e-]+)px/.exec(layer.style.transform)?.[1] ?? 0);
+      cut = Math.max(cut, -x);
+    }
+    return { cut, opened: showing() - from };
+  });
+  expect(opened).toBeGreaterThan(0);
+  expect(cut).toBeLessThan(1);
+});
+
 test("closed up, zooming keeps the stitch under the point zoomed about", async ({ page }) => {
   await start(page);
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
