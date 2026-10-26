@@ -17,6 +17,7 @@ import { keyEntryAt } from "./stitch-key";
 import { useSettings } from "../helpers/settings";
 import type { SweaterPattern } from "../data/sweaters/types";
 import { usePinchZoom } from "./usePinchZoom";
+import { Glide } from "./glide";
 import { leastCell, minCell, stepCell } from "./zoom";
 import "./Chart.css";
 
@@ -312,7 +313,34 @@ const Chart: React.FC<ChartProps> = ({
    * directions cannot be sent separately. The round only changes once a
    * round, so within one this moves only sideways.
    */
-  const aimedAt = useRef<ScrollToOptions>();
+  const aimedAt = useRef<{ left: number; top: number; behavior: ScrollBehavior }>();
+  /*
+   * A smooth aim glides there, the scroll written frame by frame from here
+   * rather than left to the browser, whose smooth scroll is carried off by
+   * the columns opening on the way: see glide.
+   */
+  const glide = useRef<Glide>();
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    if (!scroller) return;
+    const made = new Glide(scroller, () => tilesRef.current?.scrolled());
+    glide.current = made;
+    return () => {
+      made.destroy();
+      glide.current = undefined;
+    };
+  }, []);
+  /** The box sent where it was last aimed: gliding, or there at once. */
+  const send = useCallback(() => {
+    const scroller = scrollRef.current;
+    const aimed = aimedAt.current;
+    if (!scroller || !aimed) return;
+    if (aimed.behavior === "smooth" && glide.current) glide.current.to(aimed);
+    else {
+      glide.current?.stop();
+      scroller.scrollTo({ left: aimed.left, top: aimed.top, behavior: "instant" });
+    }
+  }, []);
   const aim = useCallback(
     (behavior: ScrollBehavior) => {
       const scroller = scrollRef.current;
@@ -329,35 +357,40 @@ const Chart: React.FC<ChartProps> = ({
         top: Math.max(placed.y + cell - (scroller.clientHeight - lift(scroller.clientHeight, cell, followAt)), 0),
         behavior,
       };
-      scroller.scrollTo(aimedAt.current);
+      send();
     },
-    [at, followAt, nextId],
+    [at, followAt, nextId, send],
   );
   /*
    * Where the box was last sent, and sent on from there when the stitch it
    * was sent to is moved across on the way: by the columns being kept from
    * carrying the chart's right-hand edge into the box, which outranks holding
-   * the stitch still. See TileView.keepColumnsInBox.
+   * the stitch still. See TileView.keepColumnsInBox. Told of nothing moved,
+   * the sheet having grown under a glide, there is nothing to do: the glide
+   * writes the scroll afresh every frame.
    */
   const targetMoved = useCallback((by: number) => {
-    const scroller = scrollRef.current;
     const aimed = aimedAt.current;
-    if (!scroller || !aimed) return;
-    aimedAt.current = { ...aimed, left: (aimed.left ?? 0) + by };
-    scroller.scrollTo(aimedAt.current);
-  }, []);
+    if (!aimed || (by === 0 && glide.current?.going)) return;
+    aimedAt.current = { ...aimed, left: aimed.left + by };
+    send();
+  }, [send]);
   /*
    * The first aim, as the chart opens - on a view of its own after the
    * knitting moves to another - goes straight there: there is nothing on
    * screen yet to follow on from, and the chart is still being sized for
    * where it is going, which a smooth scroll under way would be thrown by.
+   * So does the first on a chart laid out afresh - cut at a new beginning
+   * of the round, or turned over for a short row - where the box's scroll
+   * was a place on the chart as it was, and gliding on from it would go
+   * from nowhere on this one.
    */
-  const aimed = useRef(false);
+  const aimedOn = useRef<ChartLayout>();
   useEffect(() => {
     if (!at) return;
-    aim(reducedMotion() || !aimed.current ? "auto" : "smooth");
-    aimed.current = true;
-  }, [aim, at]);
+    aim(reducedMotion() || aimedOn.current !== layout ? "auto" : "smooth");
+    aimedOn.current = layout;
+  }, [aim, at, layout]);
   /*
    * When the knitting stops, the box is no longer being sent anywhere: the
    * stitch it was sent to is let go of at once, not at rest, so that columns
@@ -366,6 +399,7 @@ const Chart: React.FC<ChartProps> = ({
   useEffect(() => {
     if (at || !aimedAt.current) return;
     aimedAt.current = undefined;
+    glide.current?.stop();
     tilesRef.current?.hold(undefined);
   }, [at]);
 

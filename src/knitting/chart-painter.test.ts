@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildSweater } from "./engine";
 import { layOut, layOutSweater } from "./layout";
 import { numberedRows, sceneOf } from "./chart-scene";
-import { type Ctx2D, type PaintState, defaultColours, laidOutPlaces, laidOutRows, paintRegion } from "./chart-painter";
+import { type Ctx2D, type PaintState, defaultColours, laidOutPlaces, laidOutRows, markerRowsChanging, paintRegion } from "./chart-painter";
 import { LiveColumns, mapOf, placeFrom } from "./column-window";
 import { holdsIn, joinIn, needleChangesIn, turnsIn } from "./chart-marks";
 import { raglanLine, testBandedSweater, testSweater, testSweaterWithMarkers } from "./test-sweater";
@@ -341,6 +341,21 @@ describe("the stitch markers on the chart", () => {
     const done = paintAt(stitches.length - 1);
     for (let row = line.from; row <= line.to; row++) expect(done.drawn(defaultColours.ink, 2)).toContainEqual(done.rowOf(row));
     expect(done.drawn(defaultColours.marker, 2)).toHaveLength(0);
+  });
+
+  it("says which rows working stitches changes the line in, beyond the stitches' own: the row it is reached in next", () => {
+    const placedRow = line.route[0];
+    const next = line.route[1];
+    // Passing the marker in its first row turns the next row's stretch of line heavy, though no stitch there was worked.
+    const changing = markerRowsChanging(scene, placedRow.passed - 1, placedRow.passed);
+    expect(changing).toContain(next.row);
+    expect(changing).toContain(placedRow.row);
+    // Painted at either, the next row's stretch is drawn differently.
+    const [before, after] = [paintAt(placedRow.passed - 1), paintAt(placedRow.passed)];
+    expect(before.drawn(defaultColours.marker, 3)).not.toContainEqual(before.rowOf(next.row));
+    expect(after.drawn(defaultColours.marker, 3)).toContainEqual(after.rowOf(next.row));
+    // Working on where nothing about it changes, nothing does.
+    expect(markerRowsChanging(scene, next.passed + 1, next.passed + 1)).toEqual([]);
   });
 });
 

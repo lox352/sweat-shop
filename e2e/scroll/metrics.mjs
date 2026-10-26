@@ -13,8 +13,21 @@
  * - Jitter: frame-to-frame wobble in that motion, while it should be smooth.
  * - Scrollbars: how far the box's scrollbars are from telling the truth of
  *   where in the chart the box is, and how far they move in one frame.
- * - Painting: the most of the box left showing an old chart in a frame.
+ * - Painting: the most of the box left showing an old chart in a frame,
+ *   and how many tiles were painted, how long that took a frame, and how
+ *   many frames of lines easing repainted any.
  * - Settling: how long after the last gesture the chart is at rest.
+ * - Shake: what is on screen going back and forth by itself, outside the
+ *   knitter's gestures: it should go one way and come to rest.
+ * - Following: the stitch to be worked, as the chart follows the knitting
+ *   to it - how straight it goes, whether it ever turns back, and how far
+ *   from the middle of the box it comes to rest.
+ * - Drift: how much of what moves while the knitter scrolls is not the
+ *   scroll - lines opening and closing as they come into view.
+ * - Sharpness: the frames in which the tiles are off the screen's own
+ *   pixels, smeared, and shimmering as they move.
+ * - Audit: tiles at rest showing anything but the chart as it now is, each
+ *   painted again and compared once the scenario is over.
  */
 
 const median = (values) => {
@@ -108,6 +121,111 @@ export const scrollbarsOf = (frames) => {
 };
 
 /**
+ * When the knitter's own input was moving the box: from each gesture's mark
+ * to its end - a swipe's flung momentum included - as [from, to] times.
+ * Whatever moves outside these is the chart's own doing: following the
+ * knitting, a zoom, lines opening and closing as it comes to rest.
+ */
+export const gesturesOf = (marks = []) => {
+  const spans = [];
+  let open;
+  for (const { t, what } of marks) {
+    if (/^(swipe|wheel|trackpad|pinch|touch pinch)/.test(what)) open = { from: t, flung: /^swipe/.test(what) && !/no fling/.test(what) };
+    else if (open && (what === "fling done" || (what === "lifted" && !open.flung) || / done$/.test(what))) {
+      spans.push([open.from, t]);
+      open = undefined;
+    }
+  }
+  if (open) spans.push([open.from, Infinity]);
+  return spans;
+};
+
+/**
+ * How often something on screen goes one way and then back, by at least
+ * `amplitude` pixels each way: a series of positions, null where it is not
+ * on screen or is cut to (a new view). Each run of motion one way is
+ * counted once it has gone `amplitude`; a reversal is a run that far one way
+ * followed by one that far the other. Lines easing and a glide come to rest
+ * without turning back; the chart shaking from side to side turns back
+ * every few frames.
+ */
+export const reversalsOf = (series, amplitude = 4) => {
+  let count = 0;
+  let largest = 0;
+  for (const axis of [0, 1]) {
+    let direction = 0;
+    let run = 0;
+    let previousRun = 0;
+    for (let k = 1; k < series.length; k++) {
+      const [a, b] = [series[k - 1], series[k]];
+      if (!a || !b) {
+        direction = 0;
+        run = previousRun = 0;
+        continue;
+      }
+      const d = b[axis] - a[axis];
+      if (Math.abs(d) < 0.25) continue;
+      const sign = Math.sign(d);
+      if (sign === direction) run += Math.abs(d);
+      else {
+        if (direction !== 0 && run >= amplitude) previousRun = run;
+        else if (direction !== 0) previousRun = 0;
+        direction = sign;
+        run = Math.abs(d);
+      }
+      if (previousRun >= amplitude && run >= amplitude) {
+        count++;
+        largest = Math.max(largest, Math.min(previousRun, run));
+        previousRun = 0;
+      }
+    }
+  }
+  return { count, largest: round(largest) };
+};
+
+/**
+ * Each trip something on screen takes between rests - frames where it moves
+ * less than a pixel - and how straight it went: how far it got, over how far
+ * it went along the way. One that goes straight there scores one; one that
+ * overshoots and comes back, or wanders off and back, less.
+ */
+export const tripsOf = (series) => {
+  const trips = [];
+  let trip;
+  let still = 0;
+  for (let k = 1; k < series.length; k++) {
+    const [a, b] = [series[k - 1], series[k]];
+    if (!a || !b) {
+      trip = undefined;
+      continue;
+    }
+    const step = hypot(b[0] - a[0], b[1] - a[1]);
+    if (step < 1) {
+      if (trip && ++still >= 3) {
+        trips.push(trip);
+        trip = undefined;
+      }
+      continue;
+    }
+    still = 0;
+    if (!trip) trip = { from: a, to: b, path: 0, frames: 0 };
+    trip.to = b;
+    trip.path += step;
+    trip.frames++;
+  }
+  if (trip) trips.push(trip);
+  return trips
+    .filter((t) => t.path >= 8)
+    .map((t) => ({ ...t, straightness: round(hypot(t.to[0] - t.from[0], t.to[1] - t.from[1]) / t.path, 3) }));
+};
+
+/** How far a value in pixels is from the nearest device pixel, in device pixels. */
+const offGrid = (value, ratio) => {
+  const device = value * ratio;
+  return Math.abs(device - Math.round(device));
+};
+
+/**
  * Everything measured of one recording. `allow` is how far, in pixels, the
  * frames either side of one let it move without counting as a jump.
  */
@@ -145,7 +263,13 @@ export const measure = (recording, { allow = 24 } = {}) => {
    * against the mean of the frames either side, an easing hardly counts.
    */
   const writes = recording.writes ?? [];
-  const writesIn = (k) => writes.filter((w) => w.t > (frames[k - 1].ts ?? frames[k - 1].t) && w.t <= (frames[k].ts ?? frames[k].t + 1));
+  /*
+   * The scroll writes in a frame, but a glide's (see glide.ts): those are the
+   * page's own smooth scroll, a little a frame, and move what is on screen
+   * as any scroll does - what the scroll does not account for is measured
+   * as it is for a finger's.
+   */
+  const writesIn = (k) => writes.filter((w) => !w.glide && w.t > (frames[k - 1].ts ?? frames[k - 1].t) && w.t <= (frames[k].ts ?? frames[k].t + 1));
   // A frame whose scroll the page set, whose unexplained motion is the scroll's undoing (see fitSheet), and one zoomed in.
   const set = motion.map((m) => (m ? writesIn(m.i).length > 0 : false));
   const zoomed = motion.map((m) => (m ? frames[m.i].s.cell !== frames[m.i - 1].s.cell || frames[m.i].scaled || frames[m.i - 1].scaled : false));
@@ -213,6 +337,90 @@ export const measure = (recording, { allow = 24 } = {}) => {
   // What moves on screen that the box's scroll does not account for, frame to frame.
   const unexplained = motion.filter((m, k) => usable(k)).map((m) => hypot(m.ux, m.uy));
 
+  /*
+   * What the chart does on its own, outside the knitter's gestures: what is
+   * on screen should go one way and come to rest, never back and forth.
+   * Its place, frame to frame, by the motion of the stitches followed; and
+   * the outline round the stitch to be worked, which the chart follows.
+   */
+  const spans = gesturesOf(recording.marks);
+  const attended = (t) => spans.some(([from, to]) => t >= from && t <= to + 50);
+  // Each thing the harness did - a button pressed, a key - sets the chart going afresh: what it does then is a new movement.
+  const marked = (k) => (recording.marks ?? []).some((m) => m.t > frames[k - 1].t && m.t <= frames[k].t);
+  const own = [null];
+  let place = [0, 0];
+  let resting = 0;
+  for (let k = 0; k < motion.length; k++) {
+    const m = motion[k];
+    const frame = frames[k + 1];
+    // A movement ends where it rests, for three frames.
+    resting = m && Number.isFinite(m.dx) && hypot(m.dx, m.dy) < 0.5 ? resting + 1 : 0;
+    if (!m || !Number.isFinite(m.dx) || zoomed[k] || attended(frame.t) || marked(k + 1) || resting >= 3) {
+      own.push(null);
+      place = [0, 0];
+      continue;
+    }
+    // Where a movement starts, after the gap that ends the one before.
+    if (own[own.length - 1] === null) own.push([...place]);
+    place = [place[0] + m.dx, place[1] + m.dy];
+    own.push([...place]);
+  }
+  const shake = reversalsOf(own);
+  // The outline round the stitch to be worked, from when it is put round a stitch until it is put round another.
+  const nexts = frames.map((f, k) => {
+    if (!f.next || attended(f.t)) return null;
+    const was = frames[k - 1];
+    if (was && (was.view !== f.view || was.s?.cell !== f.s.cell || was.s?.follow !== f.s.follow || !was.next)) return null;
+    return [f.next[0], f.next[1]];
+  });
+
+  const followTrips = tripsOf(nexts);
+  const followTurns = reversalsOf(nexts);
+  const lastFrame = frames[frames.length - 1];
+  // Where the stitch followed came to rest, from the middle of the box across.
+  const followOff = lastFrame?.next ? round(lastFrame.next[0] + lastFrame.next[2] / 2 - (lastFrame.box.left + lastFrame.box.width / 2)) : null;
+
+  /*
+   * How much of what moves on screen while the knitter scrolls is not the
+   * scroll: lines opening and closing as they come into view, the layer
+   * sliding. Some is the chart closing up; all of it is motion the finger
+   * did not make.
+   */
+  let scrolled = 0;
+  let drifted = 0;
+  for (let k = 0; k < motion.length; k++) {
+    const m = motion[k];
+    if (!usable(k) || !attended(frames[m.i].t)) continue;
+    scrolled += hypot(m.dx, m.dy);
+    drifted += hypot(m.ux, m.uy);
+  }
+
+  // The tiles painted each frame, and how long that took.
+  const paintSteps = [];
+  for (let k = 1; k < frames.length; k++) {
+    const [a, b] = [frames[k - 1], frames[k]];
+    if (!a.s || !b.s || a.view !== b.view || b.s.paints === undefined) continue;
+    paintSteps.push({ tiles: b.s.paints - a.s.paints, ms: b.s.paintTime - a.s.paintTime, moving: b.s.moving.columns || b.s.moving.rows });
+  }
+
+  /*
+   * Sharpness: the tiles are drawn at the device's own pixels, and are sharp
+   * only where they land on whole device pixels; between, every line is
+   * smeared across two. Moved across the sheet by a part of a device pixel
+   * - lines easing, the layer sliding - they shimmer, sharp one frame and
+   * smeared the next, as the chart is drawn. And the box itself may sit on
+   * no whole pixel, as the page lays it out, which smears them all alike.
+   */
+  const layerOff = (f) => {
+    const found = /translate\(([-\d.e]+)px, ([-\d.e]+)px\)/.exec(f.transform ?? "");
+    const [x, y] = found ? [Number(found[1]), Number(found[2])] : [0, 0];
+    return Math.max(offGrid(f.sheetRect.left + x, f.dpr ?? 1), offGrid(f.sheetRect.top + y, f.dpr ?? 1));
+  };
+  const drawn = frames.filter((f) => f.s && f.sheetRect);
+  const smeared = drawn.filter((f) => layerOff(f) > 0.05);
+  const moved = drawn.filter((f) => f.transform);
+  const shimmering = smeared.filter((f) => f.transform).length;
+
   const bars = scrollbarsOf(frames);
   const barGaps = bars.filter(Boolean).map((b) => Math.max(Math.abs(b.thumbX - b.trueX), Math.abs(b.thumbY - b.trueY)));
   const barSteps = [];
@@ -269,8 +477,34 @@ export const measure = (recording, { allow = 24 } = {}) => {
       stepMax: round(Math.max(0, ...barSteps.map((s) => s.step)), 3),
       resizes: barSteps.filter((s) => s.resized).length,
     },
-    painting: { unpaintedMax: round(Math.max(0, ...frames.map((f) => f.s?.unpainted ?? 0)), 3), costMax: round(Math.max(0, ...frames.map((f) => f.s?.cost ?? 0)), 1) },
+    painting: {
+      /*
+       * Measured in the frames sampled as they were drawn: one sampled late,
+       * a fling's scroll moved on meanwhile, shows the box where the frame
+       * never had it, and the next frame paints for where it has got to.
+       */
+      unpaintedMax: round(Math.max(0, ...frames.filter((f) => (f.ts ?? f.t) - f.t <= period * 1.5).map((f) => f.s?.unpainted ?? 0)), 3),
+      costMax: round(Math.max(0, ...frames.map((f) => f.s?.cost ?? 0)), 1),
+      tiles: paintSteps.reduce((sum, p) => sum + p.tiles, 0),
+      tilesPerFrameMax: Math.max(0, ...paintSteps.map((p) => p.tiles)),
+      msPerFrameP95: round(quantile(paintSteps.filter((p) => p.tiles > 0).map((p) => p.ms), 0.95)),
+      msPerFrameMax: round(Math.max(0, ...paintSteps.map((p) => p.ms))),
+      // Frames repainting while lines ease, each of which repaints what it shows.
+      easingFrames: paintSteps.filter((p) => p.moving && p.tiles > 0).length,
+    },
+    shake: { reversals: shake.count, largest: shake.largest },
+    follow: {
+      trips: followTrips.length,
+      straightness: followTrips.length ? Math.min(...followTrips.map((t) => t.straightness)) : 1,
+      reversals: followTurns.count,
+      largest: followTurns.largest,
+      offCentre: followOff,
+    },
+    drift: { share: round(scrolled > 0 ? drifted / scrolled : 0, 3), pixels: round(drifted) },
+    sharpness: { smeared: smeared.length, frames: drawn.length, share: round(drawn.length ? smeared.length / drawn.length : 0, 3), shimmering, moved: moved.length },
     settling: { ms: round(Math.max(0, lastChange - lastInput), 0), rested },
     writes: (recording.writes ?? []).length,
+    // Tiles at rest that show something other than the chart as it is: see TileView.audit.
+    audit: recording.audit ?? { tiles: 0, wrong: 0 },
   };
 };

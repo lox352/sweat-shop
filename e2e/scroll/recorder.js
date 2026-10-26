@@ -25,8 +25,11 @@
    */
   probe.writes = [];
   const caller = () => (new Error().stack ?? "").split("\n").slice(3, 6).map((line) => line.trim().replace(/^at /, "")).join(" < ");
+  // A glide's writes (see glide.ts) are the page's own smooth scroll, a little a frame.
   const note = (element, what, value) => {
-    if (probe.recording && element.classList?.contains("chart-scroll")) probe.writes.push({ t: performance.now(), what, value, from: caller() });
+    if (probe.recording && element.classList?.contains("chart-scroll")) {
+      probe.writes.push({ t: performance.now(), what, value, from: caller(), glide: element.dataset.gliding !== undefined });
+    }
   };
   // The browser's own setters, for the fling below, which is the browser's doing and not the page's.
   const setters = {};
@@ -123,6 +126,10 @@
       if (!cell) return [id, null];
       return [id, round(sheet.left + cell.x), round(sheet.top + cell.y), round(cell.width)];
     });
+    // The outline round the stitch to be worked next, where it is on screen: what the chart follows.
+    const nextOutline = box.querySelector(".chart-next");
+    const nextRect = nextOutline && !nextOutline.hidden ? nextOutline.getBoundingClientRect() : null;
+    const next = nextRect ? [round(nextRect.left), round(nextRect.top), round(nextRect.width)] : null;
     const visible = anchors.filter(([, x, y]) => x !== null && x > rect.left && x < rect.right && y > rect.top && y < rect.bottom);
     if (visible.length < 3 && !state.moving.columns && !state.moving.rows) probe.anchors = pick();
     probe.frames.push({
@@ -137,8 +144,10 @@
       sheetRect: { left: round(sheet.left), top: round(sheet.top) },
       transform: box.querySelector(".chart-layer")?.style.transform ?? "",
       a: anchors,
+      next,
       vw: innerWidth,
       vh: innerHeight,
+      dpr: devicePixelRatio,
     });
   };
 
