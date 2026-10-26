@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "./engine";
 import { holdRegions, onHoldAt } from "./holds";
-import { testSweater } from "./test-sweater";
+import { testSweater, testSweaterDivided as dividedAs } from "./test-sweater";
 import { indexRounds } from "./progress";
 import hamefarin from "../data/sweaters/hamefarin";
 
@@ -23,6 +23,7 @@ describe("stitches put on hold", () => {
       {
         holder: "sleeve-right",
         stitches: yokeLast.slice(8, 16),
+        parts: [{ at: step("hold", "sleeve-right"), stitches: yokeLast.slice(8, 16) }],
         edge: underarms.slice(0, 4),
         heldAt: step("hold", "sleeve-right"),
         resumedAt: step("resume", "sleeve-right"),
@@ -30,6 +31,7 @@ describe("stitches put on hold", () => {
       {
         holder: "sleeve-left",
         stitches: yokeLast.slice(32, 40),
+        parts: [{ at: step("hold", "sleeve-left"), stitches: yokeLast.slice(32, 40) }],
         edge: underarms.slice(4, 8),
         heldAt: step("hold", "sleeve-left"),
         resumedAt: step("resume", "sleeve-left"),
@@ -84,5 +86,64 @@ describe("a region on hold", () => {
   it("stays on hold, with nothing to take it up yet", () => {
     const waiting = { ...left, resumedAt: undefined };
     expect(onHoldAt([waiting], built.stitches.length).map((region) => region.holder)).toEqual(["sleeve-left"]);
+  });
+});
+
+describe("a block of stitches held a part at a time", () => {
+  it("is one block, with the stitches cast on between its parts as its edge, and is taken up whole", () => {
+    // The right sleeve's eight held four and four, half its underarm cast on after each.
+    const one = buildSweater(
+      dividedAs([
+        { work: 8 },
+        { hold: "sleeve-right", count: 4, castOn: 2 },
+        { hold: "sleeve-right", count: 4, castOn: 2 },
+        { work: 16 },
+        { hold: "sleeve-left", count: 8, castOn: 4 },
+        { work: 8 },
+      ]),
+      "one",
+    );
+    const right = one.holds.find((held) => held.holder === "sleeve-right")!;
+    expect(right.stitches).toEqual(yokeLast.slice(8, 16));
+    expect(right.parts.map((part) => part.stitches)).toEqual([yokeLast.slice(8, 12), yokeLast.slice(12, 16)]);
+    expect(right.heldAt).toBe(right.parts[0].at);
+    expect(right.edge).toHaveLength(4);
+    // Taken up whole: the sleeve's first round knits all eight.
+    const resume = one.stitches[right.resumedAt!];
+    expect(resume.count).toBe(8);
+    const knitted = one.stitches.filter((stitch) => stitch.piece === "sleeve-right" && stitch.type === "k1" && right.stitches.includes(stitch.links[0]));
+    expect(knitted).toHaveLength(8);
+  });
+
+  it("straddling the beginning of the round, held as it begins and as it ends, is in its order round the needle", () => {
+    const one = buildSweater(
+      dividedAs([
+        { hold: "sleeve-right", count: 4, castOn: 0 },
+        { work: 12 },
+        { hold: "sleeve-left", count: 8, castOn: 4 },
+        { work: 20 },
+        { hold: "sleeve-right", count: 4, castOn: 4 },
+      ]),
+      "one",
+    );
+    const right = one.holds.find((held) => held.holder === "sleeve-right")!;
+    expect(right.stitches).toEqual([...yokeLast.slice(44, 48), ...yokeLast.slice(0, 4)]);
+  });
+
+  it("must be one block: stitches worked between two parts make them two", () => {
+    expect(() =>
+      buildSweater(
+        dividedAs([
+          { work: 8 },
+          { hold: "sleeve-right", count: 4, castOn: 2 },
+          { work: 2 },
+          { hold: "sleeve-right", count: 4, castOn: 2 },
+          { work: 14 },
+          { hold: "sleeve-left", count: 8, castOn: 4 },
+          { work: 8 },
+        ]),
+        "one",
+      ),
+    ).toThrow(/not one block/);
   });
 });

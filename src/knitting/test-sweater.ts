@@ -1,4 +1,4 @@
-import type { Chart, ChartCell, Section, SweaterPattern } from "../data/sweaters/types";
+import type { Chart, ChartCell, DivideSegment, Section, SweaterPattern } from "../data/sweaters/types";
 
 /**
  * A sweater small enough to count by hand, for the tests.
@@ -392,4 +392,16 @@ export const testBandedSweater: SweaterPattern = {
       ],
     },
   ],
+};
+
+/**
+ * The test sweater with its dividing round worked another way: these
+ * segments in place of its own - a sleeve held a part at a time, say.
+ */
+export const testSweaterDivided = (segments: DivideSegment[]): SweaterPattern => {
+  const pattern = structuredClone(testSweater);
+  for (const section of pattern.sizes[0].sections) {
+    for (const spec of section.rounds) if (spec.type === "divide") spec.segments = segments;
+  }
+  return pattern;
 };

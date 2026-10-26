@@ -33,7 +33,7 @@ describe("the strip samplers' stitch markers", () => {
     const built = sweaterStitches(pattern, "m");
     const counted = viewFor(built, () => seamLayout(built), undefined);
     const views = chartViews(built, pattern.pieces);
-    const lineIn = (label: string, marker: string) => viewChart(built, counted, views.find((one) => one.label === label)!).markers.find((one) => one.marker === marker);
+    const lineIn = (label: string, marker: string) => viewChart(built, counted, views.find((one) => one.label === label && !one.stageOf)!).markers.find((one) => one.marker === marker);
     for (const label of ["From the neck", "Body"]) {
       const line = lineIn(label, startOfRound)!;
       expect(new Set(line.route.map((row) => row.after))).toEqual(new Set([0]));

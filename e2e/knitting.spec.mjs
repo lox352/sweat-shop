@@ -850,6 +850,28 @@ test("zoomed out as far as it goes, the chart's whole width fits the box, and it
   expect(await wide()).toBeGreaterThan(0);
 });
 
+test("between its sleeves going on hold, the chart is what is left on the needles: the first sleeve gone, the second still there", async ({ page }) => {
+  // Each Year Once in a medium: its right sleeve on hold at 29464, its left at 29635.
+  const sampler = { sweaterId: "wool-week-strips-once-oldest", sizeId: "m", colourwayId: "early-light" };
+  const chartPage = page.locator(".chart-page");
+  await knittedTo(page, 29400, sampler);
+  await expect(chartPage).toHaveAttribute("data-view", "neck");
+  await knittedTo(page, 29500, sampler);
+  await expect(chartPage).toHaveAttribute("data-view", "remaining-29464");
+  // The tabs are the finished pattern's views: the body's is the one the knitting is in, and shows it as it stands.
+  await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  await expect(page.getByRole("tab")).toHaveCount(4);
+  await expect(page.getByRole("tab", { name: /^Body/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: /^Body/ })).toContainText("knitting");
+  await expect(chartPage).toHaveAttribute("data-view", "remaining-29464");
+  // Wider than the body's, by the second sleeve's stitches.
+  const columns = () => page.locator(".chart-tiles").getAttribute("data-columns");
+  const between = Number(await columns());
+  await knittedTo(page, 29700, sampler);
+  await expect(chartPage).toHaveAttribute("data-view", "remaining-29635");
+  expect(between).toBeGreaterThan(Number(await columns()));
+});
+
 test("the Body view tears the yoke apart either side of each underarm, where a sleeve's stitches are left out", async ({ page }) => {
   await knittedTo(page, 0, { sweaterId: "wool-week-strips-once-oldest", sizeId: "m", colourwayId: "early-light" });
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
