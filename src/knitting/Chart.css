@@ -133,9 +133,6 @@
    * A chart shorter than its box - zoomed right out - sits at the bottom of
    * it, where it is read from, rather than the top: see .chart-sheets.
    */
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
 }
 
 /*
@@ -169,8 +166,7 @@
 .chart-sheets {
   position: relative;
   direction: ltr;
-  flex: none;
-  margin-top: auto;
+
 }
 
 .chart-pickable {
