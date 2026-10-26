@@ -86,11 +86,18 @@ export const open = async (page, { choices = eachYearOnce, progress = 0, knittin
   await settled(page, { quiet: 500 });
 };
 
+/**
+ * A scenario's act, recorded frame by frame; and, once the chart is at
+ * rest, the tiles audited (see TileView.audit): every one taken to be up to
+ * date painted again and compared.
+ */
 export const record = async (page, act) => {
   await page.evaluate(() => window.__scrollProbe.start());
   await act();
   await settled(page, { quiet: 600 });
-  return page.evaluate(() => window.__scrollProbe.stop());
+  const recording = await page.evaluate(() => window.__scrollProbe.stop());
+  recording.audit = await page.evaluate(() => window.__chartViews.at(-1)?.audit());
+  return recording;
 };
 
 /** The box scrolled straight to a corner of the chart, and let come to rest. */
@@ -184,12 +191,12 @@ export const scenarios = {
      * rest, so once many columns have opened a scroll across moves the chart
      * further than the fingers (see TileView.slideAcross) - up to two and a
      * half times, here - until the box rests and the sheet takes the chart's
-     * width. Its slips, lurches and jitter are measured and reported, but
+     * width. Its slips, lurches, jitter and shake are measured and reported, but
      * how many there are turns on when the wheel's events fall between
      * frames, which differs from one machine to the next: they are not held
      * to a number until it is fixed. Everything else is.
      */
-    known: { slips: Infinity, lurches: Infinity, jitter: Infinity },
+    known: { slips: Infinity, lurches: Infinity, jitter: Infinity, shake: Infinity },
     setup: (page) => open(page, { choices: eachYearOnce }),
     act: async (page) => {
       await trackpad(page, { dy: -1400 });
@@ -201,7 +208,7 @@ export const scenarios = {
   "wheel up the chart": {
     input: "wheel",
     // As for the trackpad: see there.
-    known: { slips: Infinity, lurches: Infinity, jitter: Infinity },
+    known: { slips: Infinity, lurches: Infinity, jitter: Infinity, shake: Infinity },
     setup: (page) => open(page, { choices: hamefarin }),
     act: async (page) => {
       await wheelNotches(page, { notches: -12, step: 100, gap: 60 });
@@ -283,7 +290,7 @@ export const scenarios = {
   },
   "knit up to a stitch a few rounds on": {
     input: "any",
-    setup: (page) => open(page, { choices: hamefarin, progress: 20714, knitting: true }),
+    setup: (page) => open(page, { choices: hamefarin, progress: 15000, knitting: true }),
     act: async (page) => {
       // Whatever stitch is drawn five rows up and four along from the one to be worked.
       const id = await page.evaluate(() => {
@@ -296,6 +303,13 @@ export const scenarios = {
   },
   "fling up the raglan, its markers going by": {
     input: "touch",
+    /*
+     * From the neck, a few dozen columns wide, down into a yoke of hundreds:
+     * while the box moves the sheet keeps the size it had at rest (see
+     * TileView.fitSheet), and so the scrollbars, which a phone hides, say
+     * less of where the box is than elsewhere.
+     */
+    known: { scrollbars: 0.25 },
     setup: async (page) => {
       await open(page, { choices: klee });
       await toCorner(page, { bottom: false });

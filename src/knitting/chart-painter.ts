@@ -226,6 +226,40 @@ const clearOfEachOther = (rows: number[], top: (row: number) => number, height: 
   return kept;
 };
 
+/** Which of its three tenses a marker line is drawn in along the `k`th row of its route, at `progress`: see the markers below. */
+const markerTense = (route: MarkerRow[], k: number, progress: number): "been" | "now" | "ahead" => {
+  const at = route[k];
+  if (progress >= at.passed) return "been";
+  const reached = k > 0 ? progress >= route[k - 1].passed : progress >= at.start - 1;
+  return reached ? "now" : "ahead";
+};
+
+/**
+ * The rows whose marker lines are drawn differently at progress `from` and
+ * at `to`: a line's tense along a row turns on stitches worked in the row
+ * below it, and its bars on the steps placing and taking it off, so working
+ * stitches changes more rows than the stitches' own. With the rows either
+ * side, for what is drawn along a row's edge.
+ */
+export const markerRowsChanging = (scene: ChartScene, from: number, to: number): number[] => {
+  const rows: number[] = [];
+  const both = (row: number) => rows.push(row - 1, row, row + 1);
+  for (const line of scene.markers) {
+    const { route } = line;
+    route.forEach((at, k) => {
+      if (markerTense(route, k, from) === markerTense(route, k, to)) return;
+      both(at.row);
+      if (k > 0) both(route[k - 1].row);
+    });
+    const [first, last] = [route[0], route[route.length - 1]];
+    if (!first || !last) continue;
+    if (from >= line.placed !== to >= line.placed) both(first.row);
+    const off = line.off ?? last.passed;
+    if (from >= off !== to >= off) both(last.row);
+  }
+  return rows;
+};
+
 export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state: PaintState) => {
   const { layout, index } = scene;
   const { cell, left, width, colours, height } = state;
@@ -748,9 +782,8 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     for (const line of lines) {
       const { route } = line;
       route.forEach((at, k) => {
-        const passed = state.progress >= at.passed;
-        const reached = k > 0 ? state.progress >= route[k - 1].passed : state.progress >= at.start - 1;
-        const into = passed ? been : reached ? now : ahead;
+        const tense = markerTense(route, k, state.progress);
+        const into = tense === "been" ? been : tense === "now" ? now : ahead;
         const x = snap(left[at.after]);
         if (k > 0 && route[k - 1].after !== at.after) {
           const y = top(route[k - 1].row);

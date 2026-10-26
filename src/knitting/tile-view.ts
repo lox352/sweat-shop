@@ -1,6 +1,6 @@
 import type { ChartScene } from "./chart-scene";
 import type { Break } from "./breaks";
-import { type ChartColours, type ChartOverlay, type PaintState, gutter, paintRegion } from "./chart-painter";
+import { type ChartColours, type ChartOverlay, type PaintState, gutter, markerRowsChanging, paintRegion } from "./chart-painter";
 import { scrollAcross, scrollsFromRight } from "./scroll-corner";
 import {
   type ColumnMap,
@@ -119,8 +119,25 @@ interface Tile {
   canvas: HTMLCanvasElement;
   /** What it shows: stale once the content moves on. */
   painted: number;
+  /** Painted only in part, while lines eased: that part, from the chart's own top left, and the rest stale. */
+  part?: Rect;
   used: number;
 }
+
+interface Rect {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+/**
+ * How far past the box tiles are painted while lines ease, every one of them
+ * afresh each frame: as little as covers how far the box may scroll on
+ * before the next frame is drawn - this, and twice as far as it scrolled in
+ * the last, up to `ahead`.
+ */
+const easingMargin = 64;
 
 /** Lines laid out side by side, each as many cells in as there are lines showing before it. */
 const placesFrom = (before: Int32Array, shows: Uint8Array, cell: number): Places => {
@@ -537,6 +554,8 @@ export class TileView {
   private movedAt = 0;
   /** What painting the tiles in view costs a frame while lines move, smoothed; easing stops while it is over budget. */
   private cost = 0;
+  /** Where the box was scrolled to when the tiles were last painted, for how fast it is going. */
+  private scrolledTo = { left: 0, top: 0 };
   /** How many tiles have been painted, and how long that took: for the scroll harness. */
   private paints = 0;
   private paintTime = 0;
@@ -601,11 +620,13 @@ export class TileView {
       const { width, height } = this.size();
       const [x0, x1] = [Math.max(view.x, -this.content.margin), Math.min(view.x + view.width, width)];
       const [y0, y1] = [Math.max(view.y, 0), Math.min(view.y + view.height, height)];
+      const area = (a: Rect) => Math.max(0, a.x1 - a.x0) * Math.max(0, a.y1 - a.y0);
+      const within = (a: Rect, b: Rect): Rect => ({ x0: Math.max(a.x0, b.x0), y0: Math.max(a.y0, b.y0), x1: Math.min(a.x1, b.x1), y1: Math.min(a.y1, b.y1) });
       for (const tile of this.tiles.values()) {
-        if (tile.painted === this.version) continue;
-        const across = Math.min(tile.x + tileSize, x1) - Math.max(tile.x, x0);
-        const down = Math.min(tile.y + tileSize, y1) - Math.max(tile.y, y0);
-        if (across > 0 && down > 0) blank += across * down;
+        const shown = within({ x0: tile.x, y0: tile.y, x1: tile.x + tileSize, y1: tile.y + tileSize }, { x0, y0, x1, y1 });
+        // Painted in part, what shows beyond the part is as old as a tile not painted at all.
+        if (tile.painted !== this.version) blank += area(shown);
+        else if (tile.part) blank += area(shown) - area(within(shown, tile.part));
       }
     }
     const size = this.content ? this.size() : { width: 0, height: 0 };
@@ -876,6 +897,30 @@ export class TileView {
     return from < to ? order.subarray(from, to) : order;
   }
 
+  /**
+   * Mark stale the tiles lines moving from `was` to `now` change: columns if
+   * `across`, rows if not. A line keeps its place while none before it - to
+   * its left, or above it - opens or closes, so only the tiles from the
+   * first line that moved on are drawn differently: those before it are
+   * left as they are, which while lines ease is often half of what is in
+   * view or more, a frame. A little before it, too, for what is drawn over
+   * the edge of a cell: a marker's arrow, a round's number.
+   */
+  private movedOn(was: Places, now: Places, across: boolean) {
+    if (was === now) return;
+    let from = Infinity;
+    for (let line = 0; line < now.start.length; line++) {
+      if (was.start[line] !== now.start[line] || was.size[line] !== now.size[line]) {
+        from = Math.min(from, was.start[line], now.start[line]);
+      }
+    }
+    if (from === Infinity) return;
+    const edge = from - 3 * this.content!.cell;
+    this.tiles.forEach((tile) => {
+      if ((across ? tile.x : tile.y) + tileSize > edge) tile.painted = -1;
+    });
+  }
+
   /** Mark stale the tiles across the rows whose stitches changed from done to to do, or back. */
   private progressed(from: number, to: number) {
     const { scene } = this.content!;
@@ -886,12 +931,17 @@ export class TileView {
     }
     let first = Infinity;
     let last = -Infinity;
-    for (let id = low + 1; id <= high; id++) {
-      const row = scene.rowOf[id];
-      if (!row) continue;
+    const include = (row: number) => {
       first = Math.min(first, row);
       last = Math.max(last, row);
+    };
+    for (let id = low + 1; id <= high; id++) {
+      const row = scene.rowOf[id];
+      if (row) include(row);
     }
+    // And the rows whose marker lines change tense as the stitches are worked: see markerRowsChanging.
+    const rows = scene.layout.rows;
+    for (const row of markerRowsChanging(scene, from, to)) if (row >= 1 && row <= rows) include(row);
     if (first > last) return;
     const { start, size } = this.rows.places;
     const top = start[last];
@@ -1117,17 +1167,20 @@ export class TileView {
           live.rows.high < columnsWere[0] ||
           live.rows.low > columnsWere[1];
         const now = jumped || this.cost > budget || reducedMotion();
+        const was = { columns: this.columns.places, rows: this.rows.places };
         if (changed.columns) this.columns.go(time, now);
         if (changed.rows) this.rows.go(time, now);
-        this.version++;
+        this.movedOn(was.columns, this.columns.places, true);
+        this.movedOn(was.rows, this.rows.places, false);
         moved = true;
       }
     }
-    for (const axis of [this.columns, this.rows]) {
+    for (const [axis, across] of [[this.columns, true], [this.rows, false]] as const) {
       if (!axis.moving) continue;
+      const was = axis.places;
       // Finished at once when the frames of easing have turned out too slow.
       axis.step(time, this.cost > budget);
-      this.version++;
+      this.movedOn(was, axis.places, across);
       moved = true;
     }
     const shown = `${this.columnMap?.count ?? 0}|${this.rowMap?.count ?? 0}`;
@@ -1217,12 +1270,41 @@ export class TileView {
     }
     // What is in view first, then what is about to be, while there is time.
     const inView = (tile: Tile) => tile.tx >= vx0 && tile.tx <= vx1 && tile.y / tileSize >= vy0 && tile.y / tileSize <= vy1;
+    /*
+     * While lines ease, every tile is drawn afresh each frame, so only what
+     * is in view is painted, and of each tile only the part in view and a
+     * little round it: the most of a tile, and of the tiles round the box,
+     * would be painted only to be painted again the next frame. The rest is
+     * painted once the lines come to rest. Painting what is not shown, it
+     * was most of the work of a frame of easing, and on a phone the frames
+     * came late for it.
+     */
+    const easing = this.columns.moving || this.rows.moving;
+    const scrolled = { left: this.scroller.scrollLeft, top: this.scroller.scrollTop };
+    const going = Math.hypot(scrolled.left - this.scrolledTo.left, scrolled.top - this.scrolledTo.top);
+    this.scrolledTo = scrolled;
+    const beyond = Math.min(ahead, easingMargin + 2 * going);
+    const shown: Rect = { x0: view.x, y0: view.y, x1: view.x + view.width, y1: view.y + view.height };
+    const partOf = (tile: Tile, by: number): Rect => ({
+      x0: Math.max(tile.x, shown.x0 - by),
+      y0: Math.max(tile.y, shown.y0 - by),
+      x1: Math.min(tile.x + tileSize, shown.x1 + by),
+      y1: Math.min(tile.y + tileSize, shown.y1 + by),
+    });
+    // A tile painted in part wants painting again for any more of it to show, or once the lines are at rest.
+    for (const tile of this.tiles.values()) {
+      if (tile.painted !== this.version || !tile.part || !wanted.has(tile.key)) continue;
+      const needed = partOf(tile, 0);
+      const covered = tile.part.x0 <= needed.x0 && tile.part.y0 <= needed.y0 && tile.part.x1 >= needed.x1 && tile.part.y1 >= needed.y1;
+      if (!easing || !covered) stale.push(tile);
+    }
     let left = false;
     const fresh = stale.filter(inView);
-    for (const tile of fresh) this.paint(tile, content, state);
+    for (const tile of fresh) this.paint(tile, content, state, easing ? partOf(tile, beyond) : undefined);
     const spent = performance.now() - time;
     // A phone too slow to ease the lines has them moved at once instead, until it is quick enough again.
     if (moved && fresh.length > 0) this.cost = this.cost * 0.6 + spent * 0.4;
+    if (easing) return this.keep(wanted);
     for (const tile of stale.filter((tile) => !inView(tile))) {
       if (performance.now() - time > spent + spare) {
         left = true;
@@ -1231,11 +1313,14 @@ export class TileView {
       this.paint(tile, content, state);
     }
     if (left) this.schedule();
-    // Keep only as many canvases as a phone can spare: the longest unused go first.
-    if (this.tiles.size > most) {
-      const old = [...this.tiles.values()].filter((tile) => !wanted.has(tile.key)).sort((a, b) => a.used - b.used);
-      for (const tile of old.slice(0, this.tiles.size - most)) this.release(tile);
-    }
+    this.keep(wanted);
+  }
+
+  /** Keep only as many canvases as a phone can spare, beyond those `wanted`: the longest unused go first. */
+  private keep(wanted: Set<string>) {
+    if (this.tiles.size <= most) return;
+    const old = [...this.tiles.values()].filter((tile) => !wanted.has(tile.key)).sort((a, b) => a.used - b.used);
+    for (const tile of old.slice(0, this.tiles.size - most)) this.release(tile);
   }
 
   private stateFor(content: TileContent): PaintState {
@@ -1280,6 +1365,44 @@ export class TileView {
     const height = this.rows.places.size[row];
     if (width <= 0 || height <= 0) return undefined;
     return { x: this.columns.places.start[column], y: this.rows.places.start[row], width, height };
+  }
+
+  /**
+   * For the scroll harness: how many of the tiles taken to show the chart as
+   * it is now do not - each painted afresh on a spare canvas and the two
+   * compared, a pixel in every few. None should: a tile left as it was is
+   * one no line before it moved for.
+   */
+  audit(): { tiles: number; wrong: number; which: string[] } {
+    const content = this.content;
+    if (!content) return { tiles: 0, wrong: 0, which: [] };
+    const state = this.stateFor(content);
+    const spare = document.createElement("canvas");
+    let tiles = 0;
+    let wrong = 0;
+    const which: string[] = [];
+    for (const tile of this.tiles.values()) {
+      if (tile.painted !== this.version || tile.part) continue;
+      tiles++;
+      spare.width = tile.canvas.width;
+      spare.height = tile.canvas.height;
+      const ctx = spare.getContext("2d", { alpha: false });
+      const own = tile.canvas.getContext("2d", { alpha: false });
+      if (!ctx || !own) continue;
+      ctx.setTransform(this.ratio, 0, 0, this.ratio, -tile.x * this.ratio, -tile.y * this.ratio);
+      paintRegion(ctx, { x: tile.x, y: tile.y, width: tileSize, height: tileSize }, content.scene, state);
+      const a = own.getImageData(0, 0, spare.width, spare.height).data;
+      const b = ctx.getImageData(0, 0, spare.width, spare.height).data;
+      for (let k = 0; k < a.length; k += 4 * 7) {
+        if (Math.abs(a[k] - b[k]) + Math.abs(a[k + 1] - b[k + 1]) + Math.abs(a[k + 2] - b[k + 2]) > 24) {
+          wrong++;
+          which.push(tile.key);
+          break;
+        }
+      }
+    }
+    spare.width = spare.height = 0;
+    return { tiles, wrong, which };
   }
 
   /** A stitch's cell on the sheet, as drawn now: nowhere while its column or row is closed up. For the scroll harness. */
@@ -1418,7 +1541,8 @@ export class TileView {
     return canvas;
   }
 
-  private paint(tile: Tile, content: TileContent, state: PaintState) {
+  /** Paint a tile, or only `part` of it. */
+  private paint(tile: Tile, content: TileContent, state: PaintState, part?: Rect) {
     const began = performance.now();
     const side = Math.round(tileSize * this.ratio);
     if (tile.canvas.width !== side) {
@@ -1428,8 +1552,13 @@ export class TileView {
     const ctx = tile.canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
     ctx.setTransform(this.ratio, 0, 0, this.ratio, -tile.x * this.ratio, -tile.y * this.ratio);
-    paintRegion(ctx, { x: tile.x, y: tile.y, width: tileSize, height: tileSize }, content.scene, state);
+    const region = part
+      ? { x: part.x0, y: part.y0, width: part.x1 - part.x0, height: part.y1 - part.y0 }
+      : { x: tile.x, y: tile.y, width: tileSize, height: tileSize };
+    if (region.width <= 0 || region.height <= 0) return;
+    paintRegion(ctx, region, content.scene, state);
     tile.painted = this.version;
+    tile.part = part;
     this.paints++;
     this.paintTime += performance.now() - began;
   }

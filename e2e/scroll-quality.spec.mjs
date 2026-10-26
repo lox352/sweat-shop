@@ -33,7 +33,19 @@ const limits = {
   unpainted: 0.01,
   // And the chart is at rest once the gesture is over, within a second.
   settle: 1000,
+  // Left to itself, what is on screen goes one way and comes to rest: back and forth by 4 pixels or more, twice at most.
+  shake: 2,
+  // The tiles on whole device pixels, all but a twentieth of the frames: between, they are smeared and shimmer.
+  smeared: 0.05,
 };
+
+/**
+ * And a scenario that knits, following the stitch to be worked: it goes
+ * straight there, never turning back - the chart shaking from side to side
+ * as a phone's smooth scroll was carried off and sent back did - and so
+ * nearly straight that it goes no more than a sixth further than it gets.
+ */
+const following = { reversals: 0, straightness: 0.85 };
 
 /** Scenarios that knit, whose scrolls the page sets: each follows the next stitch, smoothly. */
 const knits = (name) => name.startsWith("knit");
@@ -73,6 +85,14 @@ test.describe("the chart moves smoothly", () => {
         expect(scrollbars.gapP95, "scrollbars against the truth").toBeLessThanOrEqual(limit.scrollbars);
         expect(painting.unpaintedMax, "old chart showing").toBeLessThanOrEqual(limit.unpainted);
         expect(settling.rested, "at rest after").toBe(true);
+        expect(measured.shake.reversals, `back and forth by itself: ${JSON.stringify(measured.shake)}`).toBeLessThanOrEqual(limit.shake);
+        expect(measured.sharpness.share, "tiles off whole device pixels").toBeLessThanOrEqual(limit.smeared);
+        // Every tile taken to be up to date at rest shows the chart as it is.
+        expect(measured.audit.wrong, `tiles showing an old chart at rest: ${measured.audit.which?.join(", ")}`).toBe(0);
+        if (knits(name)) {
+          expect(measured.follow.reversals, `the stitch followed turning back: ${JSON.stringify(measured.follow)}`).toBeLessThanOrEqual(following.reversals);
+          expect(measured.follow.straightness, `how straight the stitch followed goes: ${JSON.stringify(measured.follow)}`).toBeGreaterThanOrEqual(following.straightness);
+        }
         if (!knits(name)) expect(settling.ms, "time to rest").toBeLessThanOrEqual(limit.settle);
       });
     }

@@ -67,7 +67,8 @@ for (const [device, { input, ...profile }] of Object.entries(profiles)) {
         console.log(
           `        shake ${shake.reversals}/${shake.largest}px  follow ${follow.trips} trips, straight ${follow.straightness}, turns ${follow.reversals}/${follow.largest}px, off ${follow.offCentre}  ` +
             `drift ${drift.share}  smeared ${sharpness.smeared}/${sharpness.frames} (moving ${sharpness.shimmering}/${sharpness.moved})  ` +
-            `paint ${painting.tiles} tiles, ${painting.tilesPerFrameMax}/frame, ${painting.msPerFrameP95}/${painting.msPerFrameMax}ms, ${painting.easingFrames} easing`,
+            `paint ${painting.tiles} tiles, ${painting.tilesPerFrameMax}/frame, ${painting.msPerFrameP95}/${painting.msPerFrameMax}ms, ${painting.easingFrames} easing  ` +
+            `audit ${measured.audit.wrong}/${measured.audit.tiles} wrong`,
         );
         for (const jump of jumps.list.slice(0, 4)) {
           console.log(`        ${jump.kind} at ${Math.round(jump.t)}ms: moved ${jump.dx},${jump.dy} (${jump.off} off), scroll ${jump.scrollX},${jump.scrollY}, unexplained ${jump.unexplained}`);

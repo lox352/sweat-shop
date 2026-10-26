@@ -347,7 +347,8 @@ export const measure = (recording, { allow = 24 } = {}) => {
       place = [0, 0];
       continue;
     }
-    if (own[own.length - 1] === null) own[own.length - 1] = [...place];
+    // Where a movement starts, after the gap that ends the one before.
+    if (own[own.length - 1] === null) own.push([...place]);
     place = [place[0] + m.dx, place[1] + m.dy];
     own.push([...place]);
   }
@@ -464,7 +465,12 @@ export const measure = (recording, { allow = 24 } = {}) => {
       resizes: barSteps.filter((s) => s.resized).length,
     },
     painting: {
-      unpaintedMax: round(Math.max(0, ...frames.map((f) => f.s?.unpainted ?? 0)), 3),
+      /*
+       * Measured in the frames sampled as they were drawn: one sampled late,
+       * a fling's scroll moved on meanwhile, shows the box where the frame
+       * never had it, and the next frame paints for where it has got to.
+       */
+      unpaintedMax: round(Math.max(0, ...frames.filter((f) => (f.ts ?? f.t) - f.t <= period * 1.5).map((f) => f.s?.unpainted ?? 0)), 3),
       costMax: round(Math.max(0, ...frames.map((f) => f.s?.cost ?? 0)), 1),
       tiles: paintSteps.reduce((sum, p) => sum + p.tiles, 0),
       tilesPerFrameMax: Math.max(0, ...paintSteps.map((p) => p.tiles)),
@@ -485,5 +491,7 @@ export const measure = (recording, { allow = 24 } = {}) => {
     sharpness: { smeared: smeared.length, frames: drawn.length, share: round(drawn.length ? smeared.length / drawn.length : 0, 3), shimmering, moved: moved.length },
     settling: { ms: round(Math.max(0, lastChange - lastInput), 0), rested },
     writes: (recording.writes ?? []).length,
+    // Tiles at rest that show something other than the chart as it is: see TileView.audit.
+    audit: recording.audit ?? { tiles: 0, wrong: 0 },
   };
 };
