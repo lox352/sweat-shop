@@ -580,10 +580,10 @@ const written = palettes.map((pal) => {
     family: pal.family,
     name: pal.name,
     note: pal.note,
-    // The trim: any of the palette's yarns, lightest first; by default the ground's.
+    // The trim: any of the palette's yarns, lightest first; by default the darkest of the years beside it (see colours.ts).
     yarns: all.sort((a, b) => lightness(b) - lightness(a)).map(String),
-    light: { ground: String(pal.lights[0]), maps: solve(pal, true) },
-    dark: { ground: String(pal.darks[0]), maps: solve(pal, false) },
+    light: { maps: solve(pal, true) },
+    dark: { maps: solve(pal, false) },
   };
 });
 
@@ -597,7 +597,7 @@ const writtenMany = manyPalettes.map((pal) => {
   const mains = order.map((year) => maps[year][roles[year].ground[0]]);
   const darkest = [...codes].sort((a, b) => lightness(a) - lightness(b)).slice(0, 4);
   const trims = [...new Set([String(pal.trim), ...mains, ...darkest])].slice(0, 12).sort((a, b) => lightness(b) - lightness(a));
-  return { id: pal.id, family: "Many colours", name: pal.name, note: pal.note, mode: pal.mode, trim: String(pal.trim), trims, maps, ...(shading ? { shading } : {}) };
+  return { id: pal.id, family: "Many colours", name: pal.name, note: pal.note, mode: pal.mode, trims, maps, ...(shading ? { shading } : {}) };
 });
 
 fs.writeFileSync(out, JSON.stringify({ yarns, palettes: written, many: writtenMany }) + "\n");

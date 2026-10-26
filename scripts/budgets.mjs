@@ -25,9 +25,11 @@ const kb = 1024;
  * Week samplers bring it to 195KB: thirteen hats' charts and every colourway
  * they were published in, and the planning, knitting and palettes that make
  * a jumper of them. Their nine many-colour palettes, tens of yarns each,
- * bring it to 211KB.
+ * bring it to 211KB; stitch markers drawn up the chart, the underarm torn
+ * apart in the Body view, and each part of the samplers' trim in its own
+ * darkest yarn, to 220KB.
  */
-const budgets = { page: 220 * kb, stage: 260 * kb, settled: 300 * kb };
+const budgets = { page: 230 * kb, stage: 260 * kb, settled: 300 * kb };
 
 const files = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
