@@ -13,8 +13,21 @@
  * - Jitter: frame-to-frame wobble in that motion, while it should be smooth.
  * - Scrollbars: how far the box's scrollbars are from telling the truth of
  *   where in the chart the box is, and how far they move in one frame.
- * - Painting: the most of the box left showing an old chart in a frame.
+ * - Painting: the most of the box left showing an old chart in a frame,
+ *   and how many tiles were painted, how long that took a frame, and how
+ *   many frames of lines easing repainted any.
  * - Settling: how long after the last gesture the chart is at rest.
+ * - Shake: what is on screen going back and forth by itself, outside the
+ *   knitter's gestures: it should go one way and come to rest.
+ * - Following: the stitch to be worked, as the chart follows the knitting
+ *   to it - how straight it goes, whether it ever turns back, and how far
+ *   from the middle of the box it comes to rest.
+ * - Drift: how much of what moves while the knitter scrolls is not the
+ *   scroll - lines opening and closing as they come into view.
+ * - Sharpness: the frames in which the tiles are off the screen's own
+ *   pixels, smeared, and shimmering as they move.
+ * - Audit: tiles at rest showing anything but the chart as it now is, each
+ *   painted again and compared once the scenario is over.
  */
 
 const median = (values) => {
