@@ -96,6 +96,17 @@ export const bandSlotsOfRow = (year: number, chart: string, row: number, band?: 
 /** The ribbing's slot - the neck, the hem and the cuffs - which is no hat's: see colours. */
 export const trimSlot = "trim";
 
+/**
+ * The trim for one part of the ribbing, named for the years it is knitted
+ * beside, whose darkest yarn it takes by default (see colours): "trim/14" for
+ * the neck's beside 2014, "trim/21+26" for the waist's and the wrists' beside
+ * 2021 and 2026. A trim the knitter chooses goes in every one.
+ */
+export const trimOf = (years: number[]): string => `${trimSlot}/${[...new Set(years)].sort().map(yy).join("+")}`;
+
+/** The years a trim's slot is named for. */
+export const yearsOfTrim = (slot: string): number[] => slot.split("/")[1].split("+").map((y) => 2000 + Number(y));
+
 export const yearOfSlot = (slot: string): number => 2000 + Number(slot.slice(0, 2));
 
 /** Every hat's yarn any cut of any year knits, in year order. */
@@ -111,6 +122,12 @@ export const baseSlots: string[] = (() => {
 
 /** Every slot any cut of any year knits: each hat's yarn, then its shades in a shaded band. */
 export const allSlots: string[] = baseSlots.flatMap((slot) => [slot, ...SHADE_VARIANTS.map((v) => `${slot}/${v}`)]);
+
+/** Every trim a sampler may knit: beside one year, or beside two. */
+export const allTrims: string[] = (() => {
+  const years = [...new Set(baseSlots.map(yearOfSlot))];
+  return [...years.map((y) => trimOf([y])), ...years.flatMap((a, i) => years.slice(i + 1).map((b) => trimOf([a, b])))];
+})();
 
 /** The commonest slot of a hat's yarn letter, for a round knitted plain in it. */
 export const plainSlot = (year: number, letter: string): string => {

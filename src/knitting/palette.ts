@@ -93,11 +93,13 @@ export const trimIdOf = (shade: Shade): string => shade.wool ?? shade.code ?? sh
 /**
  * A colourway with its trim changed to one of its own trims, where the
  * design has one and the choice is still among them; otherwise as it is.
+ * A trim in parts, each a slot of its own under the trim's ("trim/14"), is
+ * changed in every part.
  */
 export const trimmed = (colourway: Colourway, trim: string | undefined): Colourway => {
   const choice = trim === undefined ? undefined : colourway.trims?.find((t) => trimIdOf(t) === trim);
   if (!choice) return colourway;
-  return { ...colourway, shades: colourway.shades.map((s) => (s.slot === choice.slot ? choice : s)) };
+  return { ...colourway, shades: colourway.shades.map((s) => (s.slot.split("/")[0] === choice.slot ? { ...choice, slot: s.slot } : s)) };
 };
 
 const fallback: Yarn = { name: "unknown", hex: "#cccccc", approximate: true };

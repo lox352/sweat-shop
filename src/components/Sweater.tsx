@@ -185,6 +185,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
             setOwn({});
           }}
           trim={sweater.trim}
+          trimChosen={trim}
           onTrim={setTrim}
           until={choicesRef}
         />
