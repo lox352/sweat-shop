@@ -5,6 +5,7 @@ import { type Face, type Hold, type Join, type Turn, markAt } from "./chart-mark
 import { seenFrom } from "./sides";
 import type { Mark } from "../helpers/stitch-marks";
 import type { MarkerLine } from "./view";
+import { type Break, breaksIn } from "./breaks";
 
 /** Every fifth row and column is counted by: numbered down the edge, and ruled heavier. */
 export const emphasis = 5;
@@ -81,6 +82,8 @@ export interface ChartScene {
   turns: Turn[];
   /** The stitch markers on the needles, each a line up the chart between two columns. */
   markers: MarkerLine[];
+  /** Where two stitches side by side are not worked one after the other, what is between them left out: torn apart. */
+  breaks: Break[];
   face: Face;
   makeOneLean?: "left" | "right";
   /**
@@ -215,6 +218,7 @@ export const sceneOf = (
     held,
     turns,
     markers,
+    breaks: breaksIn(index, layout, stitches),
     face,
     makeOneLean,
     markOf,

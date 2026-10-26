@@ -450,6 +450,7 @@ const Chart: React.FC<ChartProps> = ({
           names={names}
           pieces={pieces}
           markers={markerLines}
+          breaks={scene.breaks}
         />
         <div
           ref={sheetRef}

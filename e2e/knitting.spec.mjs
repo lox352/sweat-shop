@@ -817,6 +817,17 @@ test("closed up, zooming keeps the stitch under the point zoomed about", async (
   expect(after.name).toBe(before.name);
 });
 
+test("the Body view tears the yoke apart either side of each underarm, where a sleeve's stitches are left out", async ({ page }) => {
+  await knittedTo(page, 0, { sweaterId: "wool-week-strips-once-oldest", sizeId: "m", colourwayId: "early-light" });
+  await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  const notes = page.locator(".chart-notes [data-note=break]");
+  // From the neck, nothing is left out between two stitches side by side.
+  await expect(notes).toHaveCount(0);
+  await page.getByRole("tab", { name: "Body" }).click();
+  await expect(notes.first()).toContainText("are not on this chart");
+  expect(await notes.count()).toBeGreaterThanOrEqual(2);
+});
+
 test("closed up, a row with no stitch in the columns on screen takes no height, and the chart keeps its bottom", async ({ page }) => {
   await start(page);
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();

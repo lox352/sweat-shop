@@ -452,6 +452,48 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     ctx.globalAlpha = 1;
   }
 
+  /*
+   * Where the chart is torn (see breaks): the two stitches either side, not
+   * worked one after the other, each have their facing edge pinked, two
+   * teeth a row, as if cut apart with what was between them taken out.
+   */
+  if (scene.breaks.length > 0) {
+    const depth = Math.max(2, cell * 0.18);
+    // Each tooth: the edge it is cut into, which way into the stitch, and the stretch of the row it spans.
+    const cuts: { x: number; into: number; y: number; span: number }[] = [];
+    for (const one of scene.breaks) {
+      if (width[one.right] <= 0 || width[one.left] <= 0) continue;
+      // The facing edges: the left of the stitch on the right, the right of the one on the left.
+      const [onRight, onLeft] = [left[one.right], left[one.left] + width[one.left]];
+      if (Math.max(onRight, onLeft) < region.x - depth || Math.min(onRight, onLeft) > region.x + region.width + depth) continue;
+      for (let row = Math.max(one.from, firstRow); row <= Math.min(one.to, lastRow); row++) {
+        const h = height[row];
+        for (let y = top(row); y < top(row) + h - 0.5; y += h / 2) {
+          cuts.push({ x: onRight, into: depth, y, span: h / 2 }, { x: onLeft, into: -depth, y, span: h / 2 });
+        }
+      }
+    }
+    if (cuts.length > 0) {
+      const teeth = () => {
+        for (const { x, into, y, span } of cuts) {
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + into, y + span / 2);
+          ctx.lineTo(x, y + span);
+        }
+      };
+      ctx.beginPath();
+      teeth();
+      ctx.fillStyle = colours.ground;
+      ctx.fill();
+      ctx.beginPath();
+      teeth();
+      ctx.strokeStyle = colours.faint;
+      ctx.lineWidth = 1;
+      ctx.lineJoin = "miter";
+      ctx.stroke();
+    }
+  }
+
   /* Diagonal lines over a region, at the SVG pattern's spacing, from the chart's corner so tiles meet. */
   const diagonals = (rects: number[], up: boolean, down: boolean, lineWidth: number, alpha: number) => {
     if (rects.length === 0) return;
