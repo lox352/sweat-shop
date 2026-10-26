@@ -331,14 +331,24 @@ const ProjectView: React.FC<{
   useEffect(() => {
     if (knitting) setChosenView(undefined);
   }, [knitting]);
-  const shownView = (!knitting && views.find((one) => one.id === chosenView)) || views[following];
+  /*
+   * The tabs are the views of the finished pattern. Part way through a round
+   * that puts stitches on hold one lot after another, the knitting is on a
+   * stage on the way to the next of them (see knitting/views): its tab is
+   * that view's, and shows the stage.
+   */
+  const knittingIn = views[following];
+  const finished = useMemo(() => views.filter((one) => !one.stageOf), [views]);
+  const tabOf = (view?: ChartView) => view?.stageOf ?? view?.id;
+  const chosen = !knitting ? views.find((one) => one.id === chosenView) : undefined;
+  const shownView = chosen && chosen.id !== tabOf(knittingIn) ? chosen : knittingIn;
   const chart = shownView ? viewChart(built, counted, shownView) : { layout: counted.layout, markers: counted.markers };
   const makeOnes = useMemo(() => makeOnesAtMarkers({ stitches, knitting: built.knitting }), [stitches, built.knitting]);
-  const tabs = views.length > 1 && shownView && (
+  const tabs = finished.length > 1 && shownView && (
     <ViewTabs
-      views={views}
-      shown={shownView.id}
-      current={views[following]?.id}
+      views={finished}
+      shown={tabOf(shownView)!}
+      current={tabOf(knittingIn)}
       onShow={setChosenView}
     />
   );

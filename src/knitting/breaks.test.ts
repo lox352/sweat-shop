@@ -14,7 +14,8 @@ import type { Palette } from "./palette";
 const built = buildSweater(testSweater, "one");
 const counted = viewFor(built, () => seamLayout(built), undefined);
 const views = chartViews(built, testSweater.pieces);
-const chartOf = (label: string) => viewChart(built, counted, views.find((view) => view.label === label)!).layout;
+// The finished pattern's view of that name, not a stage on the way to it.
+const chartOf = (label: string) => viewChart(built, counted, views.find((view) => view.label === label && !view.stageOf)!).layout;
 
 describe("where the chart is torn apart", () => {
   it("is in the Body view, either side of each underarm, through the yoke: back and front with a sleeve's stitches between them", () => {

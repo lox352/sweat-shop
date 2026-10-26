@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type SweaterStitches, buildSweater } from "./engine";
-import { testSweater } from "./test-sweater";
+import { testSweater, testSweaterDivided } from "./test-sweater";
 import { seamLayout } from "./useSweater";
 import { beginningAt, viewFor } from "./view";
 import { type ChartView, chartViews, layOutView, markersInView, viewFollowedAt, viewsFollowed } from "./views";
@@ -20,12 +20,13 @@ const every = (ids: number[], view: ChartView) => ids.every((id) => view.members
 const none = (ids: number[], view: ChartView) => ids.every((id) => !view.members.has(id));
 
 describe("the chart's views", () => {
-  it("are four for a sweater with two sleeves held: the neck's, the body's and one a sleeve, in the order the knitting comes to them", () => {
-    expect(views.map((view) => [view.kind, view.label])).toEqual([
-      ["neck", "From the neck"],
-      ["remaining", "Body"],
-      ["held", "Right sleeve"],
-      ["held", "Left sleeve"],
+  it("are four for a sweater with two sleeves held: the neck's, the body's and one a sleeve, and a stage on the way to the body's between the two holds", () => {
+    expect(views.map((view) => [view.kind, view.label, view.stageOf])).toEqual([
+      ["neck", "From the neck", undefined],
+      ["remaining", "Body", "remaining-" + left.heldAt],
+      ["remaining", "Body", undefined],
+      ["held", "Right sleeve", undefined],
+      ["held", "Left sleeve", undefined],
     ]);
   });
 
@@ -43,8 +44,28 @@ describe("the chart's views", () => {
     expect(sleeve("sleeve-left").some((id) => neck.members.has(id))).toBe(true);
   });
 
-  it("the body's: both underarms and the whole body, over the yoke but for the sleeves' stitches", () => {
+  it("between the two holds: what is left on the needles - the body, its first underarm and the second sleeve - over the yoke but for the first sleeve", () => {
     const view = byId("remaining-" + right.heldAt);
+    // The first sleeve's held stitches and all that is knitted from them are gone from it.
+    expect(none([...right.stitches, ...sleeve("sleeve-right")], view)).toBe(true);
+    // And the yoke's stitches below them that nothing else was worked out of: the stitches each is knitted into, as far down as they are its alone.
+    const neck = byId("neck");
+    const below = (id: number) => built.stitches[id].links.slice(0, consumption[built.stitches[id].type]);
+    const theirs = right.stitches.flatMap(below).filter((id) => !view.members.has(id));
+    expect(theirs.length).toBeGreaterThan(0);
+    for (const id of theirs) expect(neck.members.has(id)).toBe(true);
+    // The second sleeve's stitches are still on the needles, so they stay, and the sleeve knitted from them.
+    expect(every(left.stitches, view)).toBe(true);
+    expect(sleeve("sleeve-left").some((id) => view.members.has(id))).toBe(true);
+    // The first underarm is cast on, and the body knitted from it; the second is not yet.
+    expect(every(right.edge!, view)).toBe(true);
+    expect(none(left.edge!, view)).toBe(true);
+    // Nothing picked up out of an underarm.
+    for (const id of view.members) expect(built.stitches[id].type).not.toBe("pickUp");
+  });
+
+  it("the body's, once the last sleeve is held: both underarms and the whole body, over the yoke but for the sleeves' stitches", () => {
+    const view = byId("remaining-" + left.heldAt);
     expect(every([...edges], view)).toBe(true);
     expect(every(body, view)).toBe(true);
     expect(none([...right.stitches, ...left.stitches], view)).toBe(true);
@@ -64,13 +85,17 @@ describe("the chart's views", () => {
     }
   });
 
-  it("are followed as the knitting goes: to the body at the first stitch cast on at an underarm, to a sleeve at its first picked-up stitch", () => {
+  it("are followed as the needles change: to what is left on them as each sleeve goes on hold, to a sleeve as it is taken up again", () => {
     const at = viewsFollowed(views, built);
     const name = (id: number) => views[at[id]].label;
+    const which = (id: number) => views[at[id]].id;
     expect(name(right.stitches[0])).toBe("From the neck");
-    expect(name(right.edge![0] - 2)).toBe("From the neck");
-    expect(name(right.edge![0])).toBe("Body");
-    expect(name(left.edge![0])).toBe("Body");
+    // The hold itself is in the view before it: until it is done, the stitches are still on the needles.
+    expect(which(right.heldAt)).toBe("neck");
+    expect(which(right.heldAt + 1)).toBe("remaining-" + right.heldAt);
+    expect(which(right.edge![0])).toBe("remaining-" + right.heldAt);
+    expect(which(left.heldAt)).toBe("remaining-" + right.heldAt);
+    expect(which(left.edge![0])).toBe("remaining-" + left.heldAt);
     expect(name(body[body.length - 1])).toBe("Body");
     const firstPickUp = (holder: string) => built.stitches.find((stitch) => stitch.type === "pickUp" && stitch.piece === holder)!.id;
     expect(name(firstPickUp("sleeve-left"))).toBe("Left sleeve");
@@ -79,7 +104,7 @@ describe("the chart's views", () => {
     const last = sleeve("sleeve-right").at(-1)!;
     expect(name(last)).toBe("Right sleeve");
     // The knitting is in the view of the stitch it is about to work.
-    expect(views[viewFollowedAt(views, built, right.edge![0] - 1)].label).toBe("Body");
+    expect(views[viewFollowedAt(views, built, right.edge![0] - 1)].id).toBe("remaining-" + right.heldAt);
   });
 
   it("never wait on what comes after: worked out from the stitches so far, each view's stitches as made so far are the same", () => {
@@ -108,6 +133,84 @@ describe("the chart's views", () => {
     }
   });
 });
+
+describe("a sleeve held a part at a time", () => {
+  // The right sleeve's eight held four and four, half its underarm cast on after each.
+  const one = buildSweater(
+    testSweaterDivided([
+      { work: 8 },
+      { hold: "sleeve-right", count: 4, castOn: 2 },
+      { hold: "sleeve-right", count: 4, castOn: 2 },
+      { work: 16 },
+      { hold: "sleeve-left", count: 8, castOn: 4 },
+      { work: 8 },
+    ]),
+    "one",
+  );
+  const all = chartViews(one, testSweater.pieces);
+  const [right, left] = one.holds;
+  const [first, second] = right.parts;
+
+  it("has a stage after each part, the last of them the body's", () => {
+    expect(all.map((view) => [view.id, view.stageOf])).toEqual([
+      ["neck", undefined],
+      ["remaining-" + first.at, "remaining-" + left.heldAt],
+      ["remaining-" + second.at, "remaining-" + left.heldAt],
+      ["remaining-" + left.heldAt, undefined],
+      ["held-sleeve-right", undefined],
+      ["held-sleeve-left", undefined],
+    ]);
+  });
+
+  it("with some of the sleeve on hold, the rest of it is still on the chart, and its half of the underarm", () => {
+    const stage = all.find((view) => view.id === "remaining-" + first.at)!;
+    expect(first.stitches.some((id) => stage.members.has(id))).toBe(false);
+    expect(second.stitches.every((id) => stage.members.has(id))).toBe(true);
+    expect(right.edge!.slice(0, 2).every((id) => stage.members.has(id))).toBe(true);
+    expect(right.edge!.slice(2).some((id) => stage.members.has(id))).toBe(false);
+    // The next part's stage has the whole sleeve gone, and the whole underarm.
+    const next = all.find((view) => view.id === "remaining-" + second.at)!;
+    expect(right.stitches.some((id) => next.members.has(id))).toBe(false);
+    expect(right.edge!.every((id) => next.members.has(id))).toBe(true);
+  });
+
+  it("is followed part by part, and the sleeve's view is its whole block", () => {
+    const at = viewsFollowed(all, one);
+    expect(all[at[first.at + 1]].id).toBe("remaining-" + first.at);
+    expect(all[at[second.at + 1]].id).toBe("remaining-" + second.at);
+    expect(all[at[left.heldAt + 1]].id).toBe("remaining-" + left.heldAt);
+    const sleeve = all.find((view) => view.id === "held-sleeve-right")!;
+    expect(sleeve.generator.slice(0, 8)).toEqual(right.stitches);
+    checkLayouts(one, all);
+  });
+});
+
+/** The whole dividing round, everything it was worked out of and everything worked out of it, but nothing picked up. */
+const roundFamily = ({ stitches, holds, knitting }: SweaterStitches): Set<number> => {
+  const roundOf = new Map<number, number>();
+  knitting.rounds.forEach((round, index) => round.forEach((id) => roundOf.set(id, index)));
+  let after = holds[0].heldAt + 1;
+  while (!isFabric(stitches[after])) after++;
+  const row = knitting.rounds[roundOf.get(after)!].filter((id) => isFabric(stitches[id]));
+  const into = (id: number) => stitches[id].links.slice(0, consumption[stitches[id].type]);
+  const out = new Set(row);
+  for (let id = row[0]; id < stitches.length; id++) {
+    const stitch = stitches[id];
+    if (out.has(id) || !isFabric(stitch) || stitch.type === "pickUp") continue;
+    const beside = stitch.type === "m1" ? stitch.links[stitch.links.length - 1] : undefined;
+    if ((beside !== undefined && out.has(beside)) || into(id).some((below) => out.has(below))) out.add(id);
+  }
+  const waiting = [...row];
+  while (waiting.length > 0) {
+    for (const below of into(waiting.pop()!)) {
+      if (out.has(below) || !isFabric(stitches[below])) continue;
+      out.add(below);
+      waiting.push(below);
+    }
+  }
+  return out;
+};
+const sameAs = (a: Set<number>, b: Set<number>) => a.size === b.size && [...a].every((id) => b.has(id));
 
 /** Every view's chart for a sweater, and the checks every one of them must pass. */
 const checkLayouts = (sweater: SweaterStitches, all: ChartView[], beginning?: number) => {
@@ -163,11 +266,13 @@ describe("each view's chart", () => {
   });
 
   for (const sweater of sweaters) {
-    it(`are sound in every size of ${sweater.name}: four views, every stitch in one`, () => {
+    it(`are sound in every size of ${sweater.name}: four views and a stage between the holds, every stitch in one`, () => {
       for (const size of sweater.sizes) {
         const one = buildSweater(sweater, size.id);
         const all = chartViews(one, sweater.pieces);
-        expect(all.map((view) => view.kind)).toEqual(["neck", "remaining", "held", "held"]);
+        expect(all.map((view) => view.kind)).toEqual(["neck", "remaining", "remaining", "held", "held"]);
+        // Once the last sleeve is held, the body's view is the dividing round's: that row, all it was worked out of, and all worked out of it.
+        expect(sameAs(all[2].members, roundFamily(one))).toBe(true);
         const seen = new Set(all.flatMap((view) => [...view.members]));
         expect(one.stitches.filter((stitch) => isFabric(stitch) && !seen.has(stitch.id))).toEqual([]);
         checkLayouts(one, all);

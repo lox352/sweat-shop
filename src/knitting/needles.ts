@@ -51,7 +51,16 @@ export const beginning = "the beginning of the round";
  */
 export interface Held {
   holder: string;
+  /** The held stitches, in the order they sit round the needle: one block, however many steps put it on hold. */
   stitches: number[];
+  /**
+   * Each step that put some of them on hold, and the ones it did. A block is
+   * usually held in one; a sleeve can be held a part at a time, with cast-on
+   * stitches between the parts, so long as nothing else is worked between
+   * them - or as the round begins and as it ends, a block that straddles its
+   * beginning.
+   */
+  parts: { at: number; stitches: number[] }[];
   /**
    * The stitches cast on in their place, where there are any: a sleeve's
    * underarm, which the body knits on from and the sleeve picks up out of
@@ -92,6 +101,10 @@ export default class Needles {
   /** The stitches on the needles, from the beginning of the round. */
   private live: number[] = [];
   private readonly holders = new Map<string, number[]>();
+  /** Where on the round in progress each holder's block was taken from, to know whether more held under it is the same block: see hold. */
+  private readonly holding = new Map<string, { round: number; from: number; to: number }>();
+  /** How many rounds have been begun: which round in progress a holding was in. */
+  private roundsBegun = 0;
   /** Stitches cast on in place of held ones, by holder: a sleeve's underarm. */
   private readonly edges = new Map<string, number[]>();
 
@@ -274,6 +287,7 @@ export default class Needles {
     if (this.working) throw new Error(`a round is already in progress: ${this.label}`);
     if (this.walkTo !== undefined) throw new Error(`${label}: knit on to the new beginning of the round first`);
     this.working = true;
+    this.roundsBegun++;
     this.made = [];
     this.next = [];
     this.crossed = false;
@@ -420,16 +434,47 @@ export default class Needles {
   /**
    * Put the next `count` stitches on hold, part way through a round: a step.
    * They wait on waste yarn under `name` until a piece takes them back up.
+   *
+   * More may go onto a holder already holding some, to be one block with
+   * them, taken up together: the stitches straight after them on the needle,
+   * with nothing worked since but stitches cast on, which play no part in
+   * it; or, for a block that straddles the beginning of the round, held as
+   * the round began, the stitches the round ends with, which come before
+   * them round the needle. Any others are not one block with them.
    */
   hold(name: string, count: number, wrap = false): this {
-    if (this.holders.has(name)) throw new Error(`there is already a holder called ${name}`);
+    const from = this.cursor;
+    const record = this.holds.find((one) => one.holder === name && one.resumedAt === undefined);
+    const before = this.holding.get(name);
+    let first = false;
+    if (record) {
+      const same = before?.round === this.roundsBegun;
+      if (same && from === before.to) {
+        // Straight after them.
+      } else if (same && before.from === this.start && from + count === this.end) {
+        first = true;
+      } else {
+        throw new Error(`${this.label}: the stitches held under ${name} and these are not one block on the needle`);
+      }
+    } else if (this.holders.has(name)) {
+      throw new Error(`there is already a holder called ${name}`);
+    }
     const held = this.take(count);
-    this.holders.set(name, held);
     const step = this.step("hold");
     step.holder = name;
     step.count = count;
     if (wrap) step.wrap = true;
-    this.holds.push({ holder: name, stitches: [...held], heldAt: step.id });
+    const part = { at: step.id, stitches: [...held] };
+    if (record) {
+      record.stitches = first ? [...held, ...record.stitches] : [...record.stitches, ...held];
+      record.parts.push(part);
+      this.holders.set(name, record.stitches);
+      this.holding.set(name, first ? { ...before!, from } : { ...before!, to: this.cursor });
+    } else {
+      this.holders.set(name, held);
+      this.holding.set(name, { round: this.roundsBegun, from, to: this.cursor });
+      this.holds.push({ holder: name, stitches: [...held], parts: [part], heldAt: step.id });
+    }
     return this;
   }
 
@@ -454,9 +499,11 @@ export default class Needles {
     if (marker && marker.after >= count) this.placeMarker(marker.name, marker.begins);
     // One more, to be passed over the next stitch: no part of the edge left.
     if (passOver) this.knit("castOn", slot);
-    this.edges.set(edge, ids);
+    // In the order cast on, after any cast on for the same holder already.
+    const all = [...(this.edges.get(edge) ?? []), ...ids];
+    this.edges.set(edge, all);
     const held = this.holds.find((one) => one.holder === edge && one.resumedAt === undefined);
-    if (held) held.edge = ids;
+    if (held) held.edge = all;
     return this;
   }
 
@@ -472,6 +519,7 @@ export default class Needles {
     if (!held) throw new Error(`nothing is held under ${name}`);
     if (this.live.length > 0) throw new Error(`${name}: the needles still have stitches on them`);
     this.holders.delete(name);
+    this.holding.delete(name);
     this.live = held;
     // A ring of its own, its rounds beginning at its own seam.
     this.start = 0;
