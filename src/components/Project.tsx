@@ -3,6 +3,7 @@ import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { sweaterById } from "../data/sweaters";
 import { SlotId } from "../data/sweaters/types";
 import { useSweater, viewChart } from "../knitting/useSweater";
+import { makeOnesAtMarkers } from "../knitting/marker-routes";
 import type { ChartView } from "../knitting/views";
 import { colourwayLabel, keyOf, paletteOf, slotNames, trimmed } from "../knitting/palette";
 import { totals, positionOf, currentRun, whereYouAre, roundNames, roundWhats } from "../knitting/progress";
@@ -332,6 +333,7 @@ const ProjectView: React.FC<{
   }, [knitting]);
   const shownView = (!knitting && views.find((one) => one.id === chosenView)) || views[following];
   const chart = shownView ? viewChart(built, counted, shownView) : { layout: counted.layout, markers: counted.markers };
+  const makeOnes = useMemo(() => makeOnesAtMarkers({ stitches, knitting: built.knitting }), [stitches, built.knitting]);
   const tabs = views.length > 1 && shownView && (
     <ViewTabs
       views={views}
@@ -486,6 +488,7 @@ const ProjectView: React.FC<{
             onUndo={undo}
             notes={sweater.stitchNotes}
             onOpenKey={() => setKeyOpen(true)}
+            makeOnesAtMarkers={makeOnes}
           />
         ) : (
           <ChartPageFoot

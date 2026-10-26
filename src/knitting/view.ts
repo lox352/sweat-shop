@@ -2,6 +2,7 @@ import { isFabric, isStep } from "../types/Stitch";
 import { consumption } from "../types/StitchType";
 import type { SweaterStitches } from "./engine";
 import { type Cell, type ChartLayout, chartRows } from "./layout";
+import { markerRoutes } from "./marker-routes";
 import type { RoundKind } from "./needles";
 
 /**
@@ -42,10 +43,24 @@ export interface View {
 /** A stitch marker, up the chart: between two columns, from the row it is placed in to the row it comes off in. */
 export interface MarkerLine {
   marker: string;
-  /** The column it stands to the left of, counted from the chart's right-hand edge. */
+  /** The column it stands to the left of, counted from the chart's right-hand edge, where it is placed. */
   after: number;
   from: number;
   to: number;
+  /** The steps placing it and taking it off, where it comes off. */
+  placed: number;
+  off?: number;
+  /** Row by row, up from the row it is placed in: see MarkerRow. */
+  route: MarkerRow[];
+}
+
+/** A marker in one row: the column it stands to the left of, and the stitch it is reached after - in the row it is placed in, the step placing it. */
+export interface MarkerRow {
+  row: number;
+  after: number;
+  passed: number;
+  /** The round's first stitch. */
+  start: number;
 }
 
 /** Every step placing a new beginning of the round, once a sweater: most have none. */
@@ -67,13 +82,6 @@ export const beginningAt = (built: Pick<SweaterStitches, "stitches">, progress: 
 const fabricBefore = (built: Pick<SweaterStitches, "stitches">, id: number): number => {
   let at = id;
   while (at > 0 && !isFabric(built.stitches[at])) at--;
-  return at;
-};
-
-/** And at or after it. */
-const fabricAfter = (built: Pick<SweaterStitches, "stitches">, id: number): number => {
-  let at = id;
-  while (at < built.stitches.length - 1 && !isFabric(built.stitches[at])) at++;
   return at;
 };
 
@@ -250,30 +258,23 @@ export const viewFor = (built: SweaterStitches, layoutOf: () => ChartLayout, beg
 };
 
 /**
- * Every marker placed on the needles, as a line up the chart: on the
- * boundary to the left of the stitch before it, from the row of the stitch
- * after it to the row of the last stitch before it comes off - or the end of
- * its piece, where it never does. Not the beginning of the round, which the
- * chart's own edge is.
+ * Every marker placed on the needles, as a line up the chart: row by row,
+ * on the boundary to the left of the stitch before it, from the row it is
+ * placed in to the row it comes off in - or the end of its piece, where it
+ * never does. Not the beginning of the round, which the chart's own edge is.
  */
-const markerLines = (built: SweaterStitches, cellOf: (id: number) => Cell | undefined): MarkerLine[] => {
-  const { stitches } = built;
-  const lines: MarkerLine[] = [];
-  for (const step of stitches) {
-    if (step.type !== "marker" || step.removed || step.begins || !step.marker) continue;
-    const before = cellOf(fabricBefore(built, step.id));
-    const after = cellOf(fabricAfter(built, step.id + 1));
-    if (!before || !after) continue;
-    const off = stitches.find((one) => one.id > step.id && one.type === "marker" && one.removed && one.marker === step.marker);
-    let last = off ? cellOf(fabricBefore(built, off.id)) : undefined;
-    if (!off) {
-      // Up to the last row of its piece.
-      for (const stitch of stitches) {
-        const cell = stitch.piece === after.piece ? cellOf(stitch.id) : undefined;
-        if (cell && (!last || cell.row > last.row)) last = cell;
-      }
-    }
-    lines.push({ marker: step.marker, after: Math.round(before.column), from: after.row, to: last?.row ?? after.row });
-  }
-  return lines;
-};
+const markerLines = (built: SweaterStitches, cellOf: (id: number) => Cell | undefined): MarkerLine[] =>
+  markerRoutes(built).flatMap(({ marker, placed, off, rounds }) => {
+    const route: MarkerRow[] = [];
+    rounds.forEach((round, k) => {
+      const cell = cellOf(round.before);
+      if (!cell) return;
+      // Taken off, it is reached where it came up to, whatever is either side of it there.
+      const after = round.takenOff && route.length > 0 ? route[route.length - 1].after : Math.round(cell.column);
+      const row = { row: cell.row, after, passed: k === 0 ? placed : round.before, start: round.start };
+      if (route.length > 0 && route[route.length - 1].row === row.row) route[route.length - 1] = row;
+      else route.push(row);
+    });
+    if (route.length === 0) return [];
+    return [{ marker, after: route[0].after, from: route[0].row, to: route[route.length - 1].row, placed, ...(off === undefined ? {} : { off }), route }];
+  });

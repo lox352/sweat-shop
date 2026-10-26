@@ -33,6 +33,8 @@ interface KnittingPanelProps {
   notes?: Partial<Record<StitchKeyId, StitchNote>>;
   /** Opens the whole key: the colours and every stitch. */
   onOpenKey?: () => void;
+  /** The make-ones worked at a marker, each with what the marker marks: see knitting/marker-routes. */
+  makeOnesAtMarkers?: Map<number, string>;
 }
 
 /**
@@ -322,9 +324,13 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
   onUndo,
   notes,
   onOpenKey,
+  makeOnesAtMarkers,
 }) => {
   const position = positionOf(stitches, progress, index);
   const run = currentRun(stitches, progress, index);
+  // A make-one at a marker in the run in hand: the panel says which side of it the new stitch goes.
+  let atMarker: string | undefined;
+  for (let id = run?.startId ?? 0; run && makeOnesAtMarkers && id <= run.endId && !atMarker; id++) atMarker = makeOnesAtMarkers.get(id);
   const roundIds = index.rounds[position.round - 1];
   const inRound = useMemo(
     () => (roundIds ? roundEntries(stitches, roundIds, notes) : []),
@@ -562,6 +568,7 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
       <p className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
         {where}, stitch {position.stitchInRound}.
         {run && ` ${runInstruction(run)} in ${yarnFor(palette, run.slot).name}.`}
+        {atMarker && ` M1, then slip the marker for ${atMarker}.`}
       </p>
       <div className="knitting-readout">
         {shortRows ? (
@@ -610,6 +617,13 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
         )}
       </div>
 
+
+      {atMarker && (
+        <p className="knitting-marker-order">
+          <strong>M1, then slip the marker</strong>{" "}
+          <span className="quiet">for {atMarker}: the new stitch goes before it.</span>
+        </p>
+      )}
 
       {inRound.length > 0 && <StitchHint entries={inRound} current={current} />}
 
