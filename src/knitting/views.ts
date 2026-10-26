@@ -2,7 +2,7 @@ import { type Stitch, isFabric, isStep } from "../types/Stitch";
 import { consumption } from "../types/StitchType";
 import type { Cell, ChartLayout } from "./layout";
 import type { Held } from "./needles";
-import type { MarkerLine } from "./view";
+import { type MarkerLine, startLine } from "./view";
 
 /**
  * The chart's views: which of the sweater's stitches one chart shows.
@@ -335,8 +335,23 @@ export const layOutView = (
  * The marker lines on a view's chart: each between the columns it stands
  * between there, or where those columns would be when one side is not in it.
  */
-export const markersInView = (lines: MarkerLine[], boundary: (after: number) => number | undefined): MarkerLine[] =>
+export const markersInView = (
+  lines: MarkerLine[],
+  boundary: (after: number) => number | undefined,
+  /** Where a column of the sweater's chart is on the view's, if in it: for a start of the round, beside its rounds' first stitches. */
+  column: (column: number) => number | undefined = () => undefined,
+): MarkerLine[] =>
   lines.flatMap((line) => {
+    if (line.atStart) {
+      // Beside the first stitch of each of its rows the view has, at the edge of the view if that is where they are.
+      const rows = line.route.flatMap((row) => {
+        const beside = row.beside === undefined ? undefined : column(row.beside);
+        return beside === undefined ? [] : [{ ...row, beside: Math.round(beside) }];
+      });
+      if (rows.length === 0) return [];
+      const route = startLine(rows);
+      return [{ ...line, after: route[0].after, from: route[0].row, to: route[route.length - 1].row, route }];
+    }
     const after = boundary(line.after);
     if (after === undefined) return [];
     const route = line.route.flatMap((row) => {

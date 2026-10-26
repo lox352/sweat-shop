@@ -47,6 +47,16 @@ const isPlain = (r: Row): r is { year: number; plain: string } => "plain" in r;
 const rowIsSolid = (r: Row) => !isPlain(r) && solid(lettersOf(r.year, r.chart)[r.row - 1]);
 const slotOfRound = (r: Row): string => (isPlain(r) ? plainSlot(r.year, r.plain) : tileOf(r)[0]);
 
+/**
+ * What the samplers' markers mark, as the knitting panel names them - "Place
+ * a marker for the start of the round": the round's start at the back of the
+ * neck, placed as the neck's rib begins; and each sleeve's, at the middle of
+ * its underarm, placed as its first round comes back round to it. A sleeve
+ * narrows by decreases spread round its bands, with no seam to mark.
+ */
+export const startOfRound = "the start of the round";
+export const sleeveStart = (piece: string) => `the start of the ${piece === "sleeve-left" ? "left" : "right"} sleeve's rounds`;
+
 export interface Knitted {
   sections: Section[];
   charts: Chart[];
@@ -444,7 +454,7 @@ export const knit = (size: Measured, given: Plan, prefix: string): Knitted => {
   const yokeSpecs: RoundSpec[] = [
     { type: "castOn", count: neck, slot: trimSlot, fabric: "rib", check: "neck" },
     { type: "join" },
-    { type: "rounds", count: ribs.neck, slot: trimSlot, sequence: ["k", "p"], fabric: "rib" },
+    { type: "rounds", count: ribs.neck, slot: trimSlot, sequence: ["k", "p"], fabric: "rib", markers: [{ after: 0, place: startOfRound }] },
     { type: "needles", to: "main" },
     { type: "shortRows", first: Math.round(neck * 0.16), extend: Math.round(neck * 0.05), pairs: 3, slot: neckSlot },
     ...yoke.done(),
@@ -516,12 +526,18 @@ export const knit = (size: Measured, given: Plan, prefix: string): Knitted => {
   // A last round on more than the cuff's count is taken in in a round of the trim before the rib.
   if (count !== cuff) sleeve.shape(trimSlot, count, cuff);
   const sleeveSpecs = sleeve.done();
+  // Each sleeve's start of its rounds, placed as its first comes back round to the middle of the underarm.
+  const sleeveRounds = (piece: string): RoundSpec[] => {
+    const [first, ...rest] = sleeveSpecs;
+    if (first.type !== "rounds" && first.type !== "shaping" && first.type !== "chart") throw new Error("a sleeve's second round is a round of stitches");
+    return [{ ...first, markers: [{ after: 0, place: sleeveStart(piece) }] }, ...rest];
+  };
   const sleeveSection = (piece: string, label: string): Section => ({
     label,
     piece,
     rounds: [
       { type: "piece", held: piece, before: underarm / 2, after: underarm / 2, slot: slotOfRound(rows[0]), check: `${piece}:top` },
-      ...sleeveSpecs,
+      ...sleeveRounds(piece),
       { type: "needles", to: "rib" },
       { type: "rounds", count: ribs.cuff, slot: trimSlot, sequence: ["k", "k", "p", "p"], fabric: "rib", check: `${piece}:cuff` },
       { type: "bindOff", slot: trimSlot, fabric: "rib", sequence: ["k", "k", "p", "p"] },

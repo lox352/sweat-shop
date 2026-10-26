@@ -335,6 +335,7 @@ export const buildSweater = (
           types.map((type) => ({ type, slot: spec.slot })),
           spec.fabric,
           spec.borrow,
+          spec.markers,
         );
         if (needles.count !== spec.to) {
           throw new Error(

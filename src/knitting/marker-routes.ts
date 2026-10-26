@@ -31,6 +31,10 @@ export interface MarkerRound {
    * past it may be going on hold, not where it has come up from.
    */
   takenOff?: boolean;
+  /** A marker at the start of the round: reached as the round before ends, and drawn beside the round's first stitch. */
+  atStart?: boolean;
+  /** A short row, at the start of the round: it passes the marker part way along, from wherever it begins. */
+  turned?: boolean;
 }
 
 export interface MarkerRoute {
@@ -55,7 +59,7 @@ const fabricAfter = (stitches: Stitch[], id: number): number => {
 
 const routes = new WeakMap<Stitch[], MarkerRoute[]>();
 
-/** Every marker a pattern places, but the beginning of the round, which is the chart's own edge. */
+/** Every marker a pattern places, but the beginning of the round the knitting keeps for itself and moves with a new one. */
 export const markerRoutes = (built: Pick<SweaterStitches, "stitches" | "knitting">): MarkerRoute[] => {
   const { stitches, knitting } = built;
   const kept = routes.get(stitches);
@@ -69,6 +73,10 @@ export const markerRoutes = (built: Pick<SweaterStitches, "stitches" | "knitting
     let before = fabricBefore(stitches, step.id);
     let after = fabricAfter(stitches, step.id + 1);
     let index = roundOf.get(before);
+    if (index !== undefined && roundOf.get(after) !== undefined && roundOf.get(after) !== index) {
+      found.push({ marker: step.marker, placed: step.id, off, rounds: startsOf(built, roundOf.get(after)!, off) });
+      continue;
+    }
     if (index === undefined || roundOf.get(after) !== index) continue;
     const piece = knitting.roundPieces[index];
     const rounds: MarkerRound[] = [{ before, after, start: knitting.rounds[index][0] }];
@@ -88,6 +96,28 @@ export const markerRoutes = (built: Pick<SweaterStitches, "stitches" | "knitting
   }
   routes.set(stitches, found);
   return found;
+};
+
+/**
+ * A marker placed between two rounds, where the next begins: the start of the
+ * round. It stays at the start of every round of its ring after that - the
+ * body's after the yoke's - until it comes off or a piece is begun afresh from
+ * held stitches. A short row passes it part way along, and is counted as
+ * reaching it as the row before ends, as a round does.
+ */
+const startsOf = ({ stitches, knitting }: Pick<SweaterStitches, "stitches" | "knitting">, from: number, off?: number): MarkerRound[] => {
+  const rounds: MarkerRound[] = [];
+  for (let index = from; index < knitting.rounds.length; index++) {
+    const round = knitting.rounds[index];
+    if (off !== undefined && off < round[0]) break;
+    const before = fabricBefore(stitches, round[0] - 1);
+    // A piece begun afresh: the stitches between it and the round before are a step taking held stitches up.
+    if (index > from && stitches.slice(before + 1, round[0]).some((one) => one.type === "resume")) break;
+    // A short row begins wherever it turned: it is drawn where the round before it is.
+    const turned = knitting.roundKinds[index] === "right" || knitting.roundKinds[index] === "wrong";
+    rounds.push({ before, after: round[0], start: round[0], atStart: true, ...(turned ? { turned } : {}) });
+  }
+  return rounds;
 };
 
 /**
