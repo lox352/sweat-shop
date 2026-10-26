@@ -50,6 +50,9 @@ export class Glide {
   private start = 0;
   private time = 0;
   private frame = 0;
+  /** How many frames running the box has been held at an edge short of where it was sent, and how much room it had. */
+  private held = 0;
+  private room = "";
 
   /** `onFrame` is told after each frame's scroll is written, to bring what is drawn up to it in the same frame. */
   constructor(
@@ -86,6 +89,8 @@ export class Glide {
     }
     this.goal = { ...goal };
     this.start = now;
+    this.held = 0;
+    this.room = "";
     // Said on the box while it glides: for the scroll harness, and anything else that would know.
     this.box.dataset.gliding = "";
     if (!this.frame) this.frame = requestAnimationFrame(this.step);
@@ -95,9 +100,24 @@ export class Glide {
     const done = now - this.start >= this.time;
     const { at } = done ? { at: this.goal } : this.state(now);
     this.frame = done ? 0 : requestAnimationFrame(this.step);
+    const was = { left: this.box.scrollLeft, top: this.box.scrollTop };
+    const room = `${this.box.scrollWidth}|${this.box.scrollHeight}`;
     this.box.scrollLeft = at.left;
     this.box.scrollTop = at.top;
-    if (done) delete this.box.dataset.gliding;
+    /*
+     * Sent past where the box can scroll - a stitch at the chart's edge, the
+     * middle of the box beyond it - the browser holds it at the edge, and
+     * the box goes nowhere. A browser's smooth scroll stops there; so does
+     * this, held a few frames with no more room made for it, or it would go
+     * on counting as moving while nothing moved, and the chart never come
+     * to rest. Room made - the sheet growing to take a stitch the box is
+     * sent to - and it goes on.
+     */
+    const still = this.box.scrollLeft === was.left && this.box.scrollTop === was.top;
+    const short = Math.abs(this.box.scrollLeft - at.left) > 0.5 || Math.abs(this.box.scrollTop - at.top) > 0.5;
+    this.held = still && short && room === this.room ? this.held + 1 : 0;
+    this.room = room;
+    if (done || this.held >= 3) this.stop();
     this.onFrame?.();
   };
 

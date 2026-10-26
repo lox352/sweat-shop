@@ -484,6 +484,13 @@ test("a raglan divides as its pattern says: its markers off either side of each 
     const end = document.querySelector(".chart-sheets").getBoundingClientRect().right - Math.round(cell * 2.2);
     return Math.abs(end - next.right) < cell / 2;
   });
+  // And if not, where it is, and whether the chart is still on its way there, for the report.
+  const whereNext = () => page.evaluate(() => {
+    const next = document.querySelector(".chart-next").getBoundingClientRect();
+    const view = window.__chartViews?.at(-1)?.probe();
+    const box = document.querySelector(".chart-scroll");
+    return { right: next.right, sheet: document.querySelector(".chart-sheets").getBoundingClientRect().right, gliding: box.dataset.gliding !== undefined, shift: view?.shift, moving: view?.moving };
+  });
   await knittedTo(page, kleeBeforeHold, klee);
   await expect(position(page)).toContainText("Body, round 107, stitch 55. Take off the marker for the right back raglan line.");
   await expect.poll(edge).toBe(false);
@@ -503,7 +510,7 @@ test("a raglan divides as its pattern says: its markers off either side of each 
   // The whole chart is cut at it from now on: a new round, and the next stitch the chart's right-hand edge. The
   // rounds are numbered by its rows, two more now below: the cast-on's part, and the set-up round's beside the short rows.
   await expect(position(page)).toContainText("Body, round 109, stitch 1.");
-  await expect.poll(edge).toBe(true);
+  await expect.poll(edge, { message: `the next stitch at the chart's right-hand edge: ${JSON.stringify(await whereNext())}` }).toBe(true);
   await page.getByRole("button", { name: /^Cast on 5 in / }).click();
   await page.getByRole("button", { name: /^Slip 1 and pass the cast-on over in / }).click();
   await page.getByRole("button", { name: /^Knit 109 in / }).click();

@@ -9,12 +9,13 @@ const run = (time: number) => {
   for (const frame of now) frame(time);
 };
 
-const box = () => {
+/** A box to scroll, keeping every scroll written; scrolled no further left than `least`, as a box is held at its edge. */
+const box = (least = -Infinity) => {
   const scroller = document.createElement("div");
   let left = 0;
   let top = 0;
   const written: [number, number][] = [];
-  Object.defineProperty(scroller, "scrollLeft", { get: () => left, set: (value: number) => { left = value; written.push([left, top]); } });
+  Object.defineProperty(scroller, "scrollLeft", { get: () => left, set: (value: number) => { left = Math.max(least, value); written.push([left, top]); } });
   Object.defineProperty(scroller, "scrollTop", { get: () => top, set: (value: number) => { top = value; written[written.length - 1][1] = top; } });
   return { scroller, written };
 };
@@ -67,6 +68,18 @@ describe("gliding the chart's box", () => {
     expect(after - before[1]).toBeGreaterThan(step * 0.7);
     for (let t = 144; t < 1000; t += 16) run(t);
     expect(written[written.length - 1][1]).toBe(1200);
+  });
+
+  it("stops once the box is held at its edge short of where it was sent, as a browser's smooth scroll does", () => {
+    // A box that scrolls no further left than -300.
+    const { scroller, written } = box(-300);
+    const glide = new Glide(scroller);
+    glide.to({ left: -600, top: 0 }, 0);
+    let t = 0;
+    while (glide.going && t < 2000) run((t += 16));
+    // Well before the glide's own time was up: it is not still sending the box to where it cannot go.
+    expect(t).toBeLessThan(glideTime(600));
+    expect(written[written.length - 1][0]).toBe(-300);
   });
 
   it("stops where it is when the knitter takes over", () => {
