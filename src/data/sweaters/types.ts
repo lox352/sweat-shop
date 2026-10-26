@@ -297,6 +297,8 @@ export type RoundSpec = (
       fabric?: string;
       /** Where to begin working the round: see engine's borrowFor. */
       borrow?: number;
+      /** Markers placed or taken off in it. */
+      markers?: MarkerAt[];
     }
   | {
       type: "chart";

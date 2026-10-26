@@ -107,5 +107,6 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
     },
     colourways,
     sizes,
+    revisions: [{ what: "Stitch markers for the start of the round, and for each sleeve's", added: ["marker"] }],
   };
 };

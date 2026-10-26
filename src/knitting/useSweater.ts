@@ -82,8 +82,8 @@ export const viewChart = (built: SweaterStitches, counted: View, view: ChartView
   let chart = kept.get(view.id);
   if (!chart) {
     const edge = built.holds.find((held) => view.kind === "held" && held.holder === view.holder)?.edge;
-    const { layout, boundary } = layOutView(view, counted.layout, built, edge);
-    chart = { layout, markers: markersInView(counted.markers, boundary) };
+    const { layout, boundary, column } = layOutView(view, counted.layout, built, edge);
+    chart = { layout, markers: markersInView(counted.markers, boundary, column) };
     kept.set(view.id, chart);
   }
   return chart;

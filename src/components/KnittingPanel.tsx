@@ -262,15 +262,16 @@ const NeedlesStep: React.FC<{ to: number; from?: number }> = ({ to, from }) => (
  * Joining the cast-on into a round: one stitch more is cast on and lifted
  * off again where the two ends meet - or however the design says to join it.
  */
-const JoinStep: React.FC<{ how?: string }> = ({ how }) => (
+const JoinStep: React.FC<{ how?: string; marked?: boolean }> = ({ how, marked }) => (
   <div className="knitting-step">
     <StepHeading symbol={<JoinArrow />}>Join in the round</StepHeading>
     <span className="quiet">
       {how ??
         "Cast on one more stitch. Then, without twisting the cast-on, slip it to " +
           "the left needle, lift the first stitch cast on over it and off, and slip " +
-          "it back to the right needle."}{" "}
-      Place a marker for the start of the round: the middle of the back.
+          "it back to the right needle."}
+      {/* Where the design places the marker as a step of its own, straight after, that step says so. */}
+      {!marked && " Place a marker for the start of the round: the middle of the back."}
     </span>
   </div>
 );
@@ -487,7 +488,7 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
         ) : position.turnNext ? (
           <TurnStep side={position.turnNext.side} />
         ) : position.joinNext ? (
-          <JoinStep how={notes?.join?.how} />
+          <JoinStep how={notes?.join?.how} marked={position.nextStitchId !== undefined && stitches[position.nextStitchId + 1]?.type === "marker"} />
         ) : (
           <NeedlesStep to={position.needlesNext ?? 0} from={stitches[progress]?.needles} />
         )}

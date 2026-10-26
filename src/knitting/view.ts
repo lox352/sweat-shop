@@ -52,7 +52,22 @@ export interface MarkerLine {
   off?: number;
   /** Row by row, up from the row it is placed in: see MarkerRow. */
   route: MarkerRow[];
+  /**
+   * A marker at the start of the round, beside each round's first stitch:
+   * drawn up one boundary, to the right of the first stitch of every row it
+   * is in, however far into the row that is (see startLine).
+   */
+  atStart?: boolean;
 }
+
+/**
+ * A start of the round's rows all on the one boundary, to the right of every
+ * row's first stitch: the chart's edge, for the round it begins.
+ */
+export const startLine = (route: MarkerRow[]): MarkerRow[] => {
+  const after = Math.min(...route.map((row) => (row.beside ?? row.after + 1) - 1));
+  return route.map((row) => ({ ...row, after }));
+};
 
 /** A marker in one row: the column it stands to the left of, and the stitch it is reached after - in the row it is placed in, the step placing it. */
 export interface MarkerRow {
@@ -61,6 +76,8 @@ export interface MarkerRow {
   passed: number;
   /** The round's first stitch. */
   start: number;
+  /** For a marker at the start of the round, the column of the round's first stitch, which it stands beside: see atStart. */
+  beside?: number;
 }
 
 /** Every step placing a new beginning of the round, once a sweater: most have none. */
@@ -266,15 +283,23 @@ export const viewFor = (built: SweaterStitches, layoutOf: () => ChartLayout, beg
 const markerLines = (built: SweaterStitches, cellOf: (id: number) => Cell | undefined): MarkerLine[] =>
   markerRoutes(built).flatMap(({ marker, placed, off, rounds }) => {
     const route: MarkerRow[] = [];
+    const atStart = rounds.some((round) => round.atStart);
     rounds.forEach((round, k) => {
-      const cell = cellOf(round.before);
+      // At the start of the round, beside the round's first stitch.
+      const cell = cellOf(atStart ? round.after : round.before);
       if (!cell) return;
-      // Taken off, it is reached where it came up to, whatever is either side of it there.
-      const after = round.takenOff && route.length > 0 ? route[route.length - 1].after : Math.round(cell.column);
-      const row = { row: cell.row, after, passed: k === 0 ? placed : round.before, start: round.start };
-      if (route.length > 0 && route[route.length - 1].row === row.row) route[route.length - 1] = row;
-      else route.push(row);
+      // Taken off, it is reached where it came up to, whatever is either side of it there; a short row is where the round before it is.
+      const last = route[route.length - 1];
+      const after = (round.takenOff || round.turned) && last ? last.after : Math.round(cell.column);
+      const row: MarkerRow = { row: cell.row, after, passed: k === 0 ? placed : round.before, start: round.start, ...(atStart ? { beside: (round.turned && last?.beside) || after } : {}) };
+      if (last && last.row === row.row) route[route.length - 1] = row;
+      else if (last && atStart && row.row > last.row + 1) {
+        // A row with no round begun in it of its own, a short row's sharing the row before: reached with the row above.
+        for (let between = last.row + 1; between < row.row; between++) route.push({ ...row, row: between });
+        route.push(row);
+      } else route.push(row);
     });
     if (route.length === 0) return [];
-    return [{ marker, after: route[0].after, from: route[0].row, to: route[route.length - 1].row, placed, ...(off === undefined ? {} : { off }), route }];
+    const lined = atStart ? startLine(route) : route;
+    return [{ marker, after: lined[0].after, from: lined[0].row, to: lined[lined.length - 1].row, placed, ...(off === undefined ? {} : { off }), route: lined, ...(atStart ? { atStart } : {}) }];
   });
