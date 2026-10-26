@@ -3,11 +3,13 @@ import type { ChartLayout } from "./layout";
 import type { Hold, Join, NeedleChange, Turn } from "./chart-marks";
 import type { HoldRegion } from "./holds";
 import type { MarkerLine } from "./view";
+import type { Break } from "./breaks";
 
 /**
  * What the chart marks besides its stitches, in words: where the knitting is
  * joined, where the needles change, where sleeves go on hold, where a short
- * row turns, what is on hold now and which rows are hatched.
+ * row turns, what is on hold now, which rows are hatched and where the
+ * chart is torn apart.
  *
  * A chart drawn on canvases has nothing in it for a screen reader to find, as
  * the vectors' titles were, so it is said here instead, beside the chart and
@@ -27,7 +29,9 @@ const ChartNotes: React.FC<{
   pieces?: { id: string; label: string }[];
   /** The stitch markers on the needles, each a line up the chart. */
   markers?: MarkerLine[];
-}> = ({ layout, join, turns, holds, needles, onHold, hatch, names, pieces, markers = [] }) => {
+  /** Where the chart is torn, what is between two stitches side by side left out. */
+  breaks?: Break[];
+}> = ({ layout, join, turns, holds, needles, onHold, hatch, names, pieces, markers = [], breaks = [] }) => {
   const roundName = (id: number) => {
     const round = layout.cells.get(id)?.round;
     return round === undefined ? "" : names?.[round - 1] ?? `round ${round}`;
@@ -58,6 +62,11 @@ const ChartNotes: React.FC<{
       {markers.map((line) => (
         <li key={`marker-${line.marker}-${line.from}`} data-note="marker">
           {`A marker for ${line.marker} runs up the chart from row ${line.from} to row ${line.to}.`}
+        </li>
+      ))}
+      {breaks.map((one) => (
+        <li key={`break-${one.right}-${one.from}`} data-note="break">
+          {`Torn apart ${one.from === one.to ? `in row ${one.from}` : `from row ${one.from} to row ${one.to}`}: the ${one.between} stitches knitted between the stitches either side are not on this chart.`}
         </li>
       ))}
       {hatch.map(([from, to]) => (

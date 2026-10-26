@@ -1,4 +1,5 @@
 import type { ChartScene } from "./chart-scene";
+import type { Break } from "./breaks";
 import { type ChartColours, type ChartOverlay, type PaintState, gutter, paintRegion } from "./chart-painter";
 import { scrollAcross, scrollsFromRight } from "./scroll-corner";
 import {
@@ -117,7 +118,39 @@ const placesFrom = (before: Int32Array, shows: Uint8Array, cell: number): Places
   }
   return { start, size };
 };
-const columnPlaces = (map: ColumnMap, cell: number) => placesFrom(map.leftOf, map.shows, cell);
+/** How far apart, in cells, the two sides of a break are kept: see columnPlaces. */
+const torn = 0.45;
+
+/**
+ * The columns laid out side by side, and kept a little apart where the chart
+ * is torn (see breaks): two stitches either side of a break, the columns
+ * between them closed up, would otherwise stand together as if worked one
+ * after the other. The room goes in at the left-hand edge of the stitch on
+ * the right, and only as much of it as the columns showing between the two
+ * leave wanting - none with the underarm's open between them.
+ */
+export const columnPlaces = (map: ColumnMap, cell: number, breaks: Break[] = []): Places => {
+  const places = placesFrom(map.leftOf, map.shows, cell);
+  if (breaks.length === 0) return places;
+  const room = Math.round(cell * torn);
+  const pairs = new Map<string, Break>();
+  for (const one of breaks) pairs.set(`${one.right}:${one.left}`, one);
+  // The narrowest first, so that one inside another counts as room the wider already has.
+  const kept = new Map<number, number>();
+  for (const { right, left } of [...pairs.values()].sort((a, b) => a.left - a.right - (b.left - b.right))) {
+    let open = (map.leftOf[right] - map.leftOf[left] - map.shows[left]) * cell;
+    for (const [at, gap] of kept) if (at >= right && at < left) open += gap;
+    if (open < room) kept.set(right, Math.max(kept.get(right) ?? 0, room - open));
+  }
+  if (kept.size === 0) return places;
+  // Every column at or to the right of the room kept moves right by it.
+  let extra = 0;
+  for (let column = places.start.length - 1; column >= 0; column--) {
+    extra += kept.get(column) ?? 0;
+    places.start[column] += extra;
+  }
+  return places;
+};
 const rowPlaces = (map: RowMap, cell: number) => placesFrom(map.above, map.shows, cell);
 
 /**
@@ -499,7 +532,7 @@ export class TileView {
         cell: was.cell,
       };
       // The same lines showing, at the new size; which show is looked at again once the box has its new scroll.
-      this.columns.reset(columnPlaces(this.columnMap!, content.cell));
+      this.columns.reset(columnPlaces(this.columnMap!, content.cell, content.scene.breaks));
       this.rows.reset(rowPlaces(this.rowMap!, content.cell));
       this.version++;
     }
@@ -531,7 +564,7 @@ export class TileView {
     this.liveRows = new LiveRows(indexColumns(index));
     this.columnMap = everyColumn(layout.columns);
     this.rowMap = everyRow(layout.rows);
-    this.columns.reset(columnPlaces(this.columnMap, content.cell));
+    this.columns.reset(columnPlaces(this.columnMap, content.cell, content.scene.breaks));
     this.rows.reset(rowPlaces(this.rowMap, content.cell));
     this.anchorColumns();
     if (content.collapse) this.settle(true);
@@ -643,7 +676,7 @@ export class TileView {
       const columnsMoved = this.liveColumns!.moveTo(first, last);
       if (columnsMoved) {
         this.columnMap = mapOf(this.liveColumns!);
-        const to = columnPlaces(this.columnMap, cell);
+        const to = columnPlaces(this.columnMap, cell, content.scene.breaks);
         if (fresh) {
           this.columns.reset(to);
           this.anchorColumns();
@@ -1196,7 +1229,7 @@ export class TileView {
     // Where in the box the point will be, and so what of the chart the box will show.
     const box = this.scroller.getBoundingClientRect();
     const inBox = { x: screenX - box.left - this.scroller.clientLeft, y: screenY - box.top - this.scroller.clientTop };
-    this.columns.reset(columnPlaces(this.columnMap!, cell));
+    this.columns.reset(columnPlaces(this.columnMap!, cell, scene.breaks));
     this.rows.reset(rowPlaces(this.rowMap!, cell));
     this.settle(true, () => {
       const at = place();
