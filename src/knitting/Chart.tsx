@@ -380,13 +380,17 @@ const Chart: React.FC<ChartProps> = ({
    * knitting moves to another - goes straight there: there is nothing on
    * screen yet to follow on from, and the chart is still being sized for
    * where it is going, which a smooth scroll under way would be thrown by.
+   * So does the first on a chart laid out afresh - cut at a new beginning
+   * of the round, or turned over for a short row - where the box's scroll
+   * was a place on the chart as it was, and gliding on from it would go
+   * from nowhere on this one.
    */
-  const aimed = useRef(false);
+  const aimedOn = useRef<ChartLayout>();
   useEffect(() => {
     if (!at) return;
-    aim(reducedMotion() || !aimed.current ? "auto" : "smooth");
-    aimed.current = true;
-  }, [aim, at]);
+    aim(reducedMotion() || aimedOn.current !== layout ? "auto" : "smooth");
+    aimedOn.current = layout;
+  }, [aim, at, layout]);
   /*
    * When the knitting stops, the box is no longer being sent anywhere: the
    * stitch it was sent to is let go of at once, not at rest, so that columns
