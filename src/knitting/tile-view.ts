@@ -488,6 +488,8 @@ export interface ViewProbe {
   touching: boolean;
   /** What is held still: a stitch scrolled to, a zoom's column and row. */
   target?: number;
+  /** The stitch to be worked next, outlined. */
+  follow?: number;
   point?: { column: number; row: number };
   columnsShowing: number;
   rowsShowing: number;
@@ -498,6 +500,9 @@ export interface ViewProbe {
   unpainted: number;
   /** What a frame's painting has cost of late, in milliseconds. */
   cost: number;
+  /** How many tiles have been painted since the view was made, and how long that took in all, in milliseconds. */
+  paints: number;
+  paintTime: number;
 }
 
 type Registry = { __chartViews?: TileView[] };
@@ -532,6 +537,9 @@ export class TileView {
   private movedAt = 0;
   /** What painting the tiles in view costs a frame while lines move, smoothed; easing stops while it is over budget. */
   private cost = 0;
+  /** How many tiles have been painted, and how long that took: for the scroll harness. */
+  private paints = 0;
+  private paintTime = 0;
   /** Lines moved while the chart was being drawn, which is told of on the next frame instead. */
   private toTell = false;
   /** How many columns and rows show, as the tiles' data attributes say. */
@@ -615,6 +623,7 @@ export class TileView {
       moving: { columns: this.columns.moving, rows: this.rows.moving },
       touching: this.touching,
       target: this.target,
+      follow: this.content?.follow,
       point: this.point,
       columnsShowing: this.columnMap?.count ?? 0,
       rowsShowing: this.rowMap?.count ?? 0,
@@ -622,6 +631,8 @@ export class TileView {
       chart: size,
       unpainted: view.width * view.height > 0 ? blank / (view.width * view.height) : 0,
       cost: this.cost,
+      paints: this.paints,
+      paintTime: this.paintTime,
     };
   }
 
@@ -1132,8 +1143,7 @@ export class TileView {
     // And again for the sheet as it is now, given a size or brought to rest.
     this.columns.follow();
     this.rows.follow();
-    const { shift: x } = this.columns;
-    const { shift: y } = this.rows;
+    const [x, y] = this.onPixels(this.columns.shift, this.rows.shift);
     this.layer.style.transform = x || y ? `translate(${x}px, ${y}px)` : "";
     this.paintTiles(content, time, moved);
     this.placeNext(content);
@@ -1147,6 +1157,23 @@ export class TileView {
         this.onMove?.();
       }
     }
+  }
+
+  /**
+   * The layer moved by `x` and `y`, but put on whole pixels of the screen's
+   * own: the tiles are painted at the screen's pixels, and only drawn on
+   * them are they sharp. Put a part of a pixel off, every line is smeared
+   * across two; moved by parts of a pixel as lines ease or the layer slides,
+   * they shimmer, sharp one frame and smeared the next. So the layer goes to
+   * the nearest whole pixel, from wherever the page has put the tiles' box,
+   * which may be no whole pixel itself - a third of a pixel at most, on a
+   * phone, and nothing anyone could see move.
+   */
+  private onPixels(x: number, y: number): [number, number] {
+    const ratio = window.devicePixelRatio || 1;
+    const origin = this.container.getBoundingClientRect();
+    const snap = (at: number, by: number) => clean(Math.round((at + by) * ratio) / ratio - at);
+    return [snap(origin.left, x), snap(origin.top, y)];
   }
 
   private paintTiles(content: TileContent, time: number, moved: boolean) {
@@ -1282,6 +1309,20 @@ export class TileView {
     this.schedule();
   }
 
+  /**
+   * The box scrolled by the page itself, this frame (see glide): the layer
+   * is put to match at once, rather than a frame later when the browser
+   * tells of the scroll, and the box counts as moving.
+   */
+  scrolled() {
+    this.movedAt = performance.now();
+    if (this.frame) {
+      cancelAnimationFrame(this.frame);
+      this.frame = 0;
+    }
+    this.update();
+  }
+
   /** The stitch at a point on screen, if any. */
   stitchAt(clientX: number, clientY: number): number | undefined {
     const content = this.content;
@@ -1378,6 +1419,7 @@ export class TileView {
   }
 
   private paint(tile: Tile, content: TileContent, state: PaintState) {
+    const began = performance.now();
     const side = Math.round(tileSize * this.ratio);
     if (tile.canvas.width !== side) {
       tile.canvas.width = side;
@@ -1388,6 +1430,8 @@ export class TileView {
     ctx.setTransform(this.ratio, 0, 0, this.ratio, -tile.x * this.ratio, -tile.y * this.ratio);
     paintRegion(ctx, { x: tile.x, y: tile.y, width: tileSize, height: tileSize }, content.scene, state);
     tile.painted = this.version;
+    this.paints++;
+    this.paintTime += performance.now() - began;
   }
 
   private release(tile: Tile) {

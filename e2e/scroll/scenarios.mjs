@@ -6,6 +6,7 @@
  * (scripts/scroll-lab.mjs) alike.
  */
 import { boxOf, ctrlWheel, settled, swipe, trackpad, wheelNotches } from "./gestures.mjs";
+export { settled };
 
 const recorder = new URL("./recorder.js", import.meta.url);
 
@@ -15,6 +16,45 @@ export const eachYearOnce = { sweaterId: "wool-week-strips-once-oldest", sizeId:
 export const hamefarin = { sweaterId: "hamefarin", sizeId: "m", colourwayId: "simmer-dim" };
 /** The Paul Klee Sweater's M1, a raglan with markers. */
 export const klee = { sweaterId: "paul-klee", sizeId: "m1", colourwayId: "klee", revision: 1 };
+
+/** The Paul Klee Sweater's L, whose yoke grows from 240 stitches to 360 as you knit up it. */
+export const kleeLarge = { sweaterId: "paul-klee", sizeId: "l", colourwayId: "klee", revision: 1 };
+
+/**
+ * Where a stitch's cell is on screen, as the chart draws it now: its middle,
+ * and the box's edges.
+ */
+export const cellOnScreen = (page, id) =>
+  page.evaluate((id) => {
+    const view = window.__chartViews.at(-1);
+    const cell = view?.cellOnSheet(id);
+    const sheet = document.querySelector(".chart-sheets").getBoundingClientRect();
+    const box = document.querySelector(".chart-scroll").getBoundingClientRect();
+    return {
+      x: cell ? sheet.left + cell.x + cell.width / 2 : undefined,
+      y: cell ? sheet.top + cell.y + cell.height / 2 : undefined,
+      box: { left: box.left, top: box.top, right: box.right, bottom: Math.min(box.bottom, innerHeight) },
+    };
+  }, id);
+
+/** The box scrolled straight up or down until a stitch is `from` the top of it, and let come to rest. */
+const bringDown = async (page, id, from = 120) => {
+  const at = await cellOnScreen(page, id);
+  if (at.y === undefined) throw new Error(`stitch ${id} is not drawn`);
+  await page.locator(".chart-scroll").evaluate((box, by) => {
+    box.scrollTop += by;
+  }, at.y - at.box.top - from);
+  await settled(page, { quiet: 500 });
+};
+
+/** A stitch tapped, and knitting carried on up to it from the picker. */
+const knitUpTo = async (page, id) => {
+  const at = await cellOnScreen(page, id);
+  await page.evaluate(() => window.__scrollProbe.mark("tapped"));
+  await page.mouse.click(at.x, at.y);
+  await page.getByRole("button", { name: /Knit up to here/ }).click();
+  await page.evaluate(() => window.__scrollProbe.mark("knit up to here"));
+};
 
 /** The recorder, in every page of the context, before the page's own script. */
 export const instrument = async (context) => {
@@ -221,6 +261,57 @@ export const scenarios = {
         else await page.getByRole("button", { name: /^End of (round|row)$/ }).click();
         await page.waitForTimeout(350);
       }
+    },
+  },
+  "knit up to a stitch far ahead, the yoke growing on the way": {
+    /*
+     * As a knitter caught up with a chart left behind does: forty rounds up
+     * the Paul Klee's yoke at a tap, where the round is half as long again,
+     * every column opening on the way. Followed by a scroll the browser
+     * eased, the chart shook from side to side for two seconds on a phone,
+     * carried off by the columns opening under it and sent back.
+     */
+    input: "any",
+    setup: async (page) => {
+      await open(page, { choices: kleeLarge, progress: 6935, knitting: true });
+      await bringDown(page, 16996);
+    },
+    act: async (page) => {
+      await knitUpTo(page, 16996);
+      await page.waitForTimeout(1200);
+    },
+  },
+  "knit up to a stitch a few rounds on": {
+    input: "any",
+    setup: (page) => open(page, { choices: hamefarin, progress: 20714, knitting: true }),
+    act: async (page) => {
+      // Whatever stitch is drawn five rows up and four along from the one to be worked.
+      const id = await page.evaluate(() => {
+        const next = document.querySelector(".chart-next").getBoundingClientRect();
+        return window.__chartViews.at(-1).stitchAt(next.left - next.width * 3.5, next.top - next.height * 4.5);
+      });
+      await knitUpTo(page, id);
+      await page.waitForTimeout(1000);
+    },
+  },
+  "fling up the raglan, its markers going by": {
+    input: "touch",
+    setup: async (page) => {
+      await open(page, { choices: klee });
+      await toCorner(page, { bottom: false });
+    },
+    act: async (page) => {
+      for (let k = 0; k < 4; k++) {
+        await swipe(page, { dy: -240, speed: 1500, mode: k % 2 ? "android" : "ios" });
+        await page.waitForTimeout(300);
+      }
+    },
+  },
+  "drag slowly across a round, the columns opening": {
+    input: "touch",
+    setup: (page) => open(page, { choices: kleeLarge, progress: 16000 }),
+    act: async (page) => {
+      for (let k = 0; k < 4; k++) await swipe(page, { dx: 200, speed: 250, fling: false });
     },
   },
   "the window resized mid-fling": {

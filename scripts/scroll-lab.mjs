@@ -5,7 +5,10 @@
  * that came with it. Recordings are kept for a closer look.
  *
  *   npm run build && npm run preview -- --port 4319 &
- *   node scripts/scroll-lab.mjs [--only <text>] [--device phone|desktop] [--out dir] [--repeat n]
+ *   node scripts/scroll-lab.mjs [--only <text>] [--device phone|desktop] [--out dir] [--repeat n] [--throttle n]
+ *
+ * --throttle slows the browser's CPU that many times, as a phone's is
+ * against a laptop's: four is about a recent iPhone against this machine.
  *
  * CHROMIUM may name a browser to use in place of Playwright's own.
  */
@@ -25,6 +28,7 @@ const which = option("device");
 const out = option("out", "scroll-lab");
 const repeat = Number(option("repeat", "1"));
 const base = option("base", "http://127.0.0.1:4319/sweat-shop/");
+const throttle = Number(option("throttle", "1"));
 
 const profiles = {
   phone: { ...devices["iPhone 13"], defaultBrowserType: undefined, input: "touch" },
@@ -46,18 +50,24 @@ for (const [device, { input, ...profile }] of Object.entries(profiles)) {
       page.on("pageerror", (error) => errors.push(String(error)));
       try {
         await scenario.setup(page);
+        if (throttle > 1) await (await context.newCDPSession(page)).send("Emulation.setCPUThrottlingRate", { rate: throttle });
         const recording = await record(page, () => scenario.act(page));
         const measured = measure(recording);
         const file = join(out, `${device}--${name.replace(/[^a-z0-9]+/gi, "-")}--${run}.json`);
         writeFileSync(file, JSON.stringify({ device, name, run, measured, recording }));
         summary.push({ device, name, run, measured, errors });
-        const { pacing, jumps, jitter, scrollbars, painting, settling, motion } = measured;
+        const { pacing, jumps, jitter, scrollbars, painting, settling, motion, shake, follow, drift, sharpness } = measured;
         console.log(
           `${device.padEnd(7)} ${name.padEnd(44)} frames ${String(measured.frames).padStart(4)}  dropped ${String(pacing.dropped).padStart(3)}  ` +
             `long ${pacing.longFrames}/${pacing.longest}ms  jumps ${jumps.byKind.slip}/${jumps.byKind.set}/${jumps.byKind.lurch} (${jumps.worst}px)  jitter ${jitter.p95}  ` +
             `unexpl ${motion.unexplainedP95}/${motion.unexplainedMax}  bars ${scrollbars.gapMax}/${scrollbars.stepMax}  ` +
             `blank ${painting.unpaintedMax}  settle ${settling.ms}ms${settling.rested ? "" : " NOT AT REST"}  writes ${measured.writes}` +
             (errors.length ? `  ERRORS ${errors.length}` : ""),
+        );
+        console.log(
+          `        shake ${shake.reversals}/${shake.largest}px  follow ${follow.trips} trips, straight ${follow.straightness}, turns ${follow.reversals}/${follow.largest}px, off ${follow.offCentre}  ` +
+            `drift ${drift.share}  smeared ${sharpness.smeared}/${sharpness.frames} (moving ${sharpness.shimmering}/${sharpness.moved})  ` +
+            `paint ${painting.tiles} tiles, ${painting.tilesPerFrameMax}/frame, ${painting.msPerFrameP95}/${painting.msPerFrameMax}ms, ${painting.easingFrames} easing`,
         );
         for (const jump of jumps.list.slice(0, 4)) {
           console.log(`        ${jump.kind} at ${Math.round(jump.t)}ms: moved ${jump.dx},${jump.dy} (${jump.off} off), scroll ${jump.scrollX},${jump.scrollY}, unexplained ${jump.unexplained}`);

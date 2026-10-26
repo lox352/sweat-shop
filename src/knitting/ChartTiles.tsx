@@ -9,6 +9,8 @@ export interface TilesHandle {
   stitchAt(clientX: number, clientY: number): number | undefined;
   /** Hold a stitch still while the chart scrolls to it. */
   hold(id: number | undefined): void;
+  /** The box scrolled by the page this frame: see TileView.scrolled. */
+  scrolled(): void;
   /** After a zoom, where the point zoomed about has got to on the sheet; see TileView.zoomedTo. */
   zoomedTo(x: number, y: number, screenX: number, screenY: number): { x: number; y: number } | undefined;
 }
@@ -60,6 +62,7 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetM
     place: (id) => viewRef.current?.place(id),
     stitchAt: (x, y) => viewRef.current?.stitchAt(x, y),
     hold: (id) => viewRef.current?.hold(id),
+    scrolled: () => viewRef.current?.scrolled(),
     zoomedTo: (x, y, screenX, screenY) => viewRef.current?.zoomedTo(x, y, screenX, screenY),
   }), []);
 
