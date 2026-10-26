@@ -153,12 +153,22 @@ const DockingStrip: React.FC<{ body: Body; palette: Palette; until?: RefObject<E
  * marked, and any other of its palette. Part of the colourway rather than
  * wool of the knitter's own, so starting from another colourway resets it.
  */
-const TrimChoice: React.FC<{ trim: NonNullable<SweaterPattern["trim"]>; colourway: Colourway; onTrim: (trim: string) => void }> = ({
-  trim,
-  colourway,
-  onTrim,
-}) => {
-  const current = colourway.shades.find((s) => s.slot === trim.slot);
+const TrimChoice: React.FC<{
+  trim: NonNullable<SweaterPattern["trim"]>;
+  colourway: Colourway;
+  /** The colourway as the design gives it, before any trim is chosen. */
+  given: Colourway;
+  chosen?: string;
+  onTrim: (trim: string | undefined) => void;
+}> = ({ trim, colourway, given, chosen: choice, onTrim }) => {
+  /*
+   * The colourway's own: one yarn for the trim, or for a trim in parts (see
+   * palette's trimmed) each part's own, which no one yarn stands for. Then
+   * the colourway's own is a choice of its own, chosen until a yarn is.
+   */
+  const parts = given.shades.filter((s) => s.slot.split("/")[0] === trim.slot);
+  const inParts = parts.some((s) => s.slot !== trim.slot);
+  const current = inParts ? colourway.trims!.find((t) => trimIdOf(t) === choice) : colourway.shades.find((s) => s.slot === trim.slot);
   return (
     <div className="trim-choice" role="group" aria-label={trim.label}>
       <p className="colourway-starts-title">
@@ -166,6 +176,17 @@ const TrimChoice: React.FC<{ trim: NonNullable<SweaterPattern["trim"]>; colourwa
         {trim.note ? ` · ${trim.note}` : ""}
       </p>
       <div className="trim-options">
+        {inParts && (
+          <button type="button" className="trim-option" aria-pressed={current === undefined} onClick={() => onTrim(undefined)}>
+            <span className="trim-swatch trim-swatch-parts" aria-hidden="true">
+              {[...new Map(parts.map((p) => [p.hex, p])).values()].map((p) => (
+                <span key={p.slot} style={{ background: p.hex }} />
+              ))}
+              {current === undefined && <span className="trim-tick" style={{ color: inkOn(parts[0].hex) }}>✓</span>}
+            </span>
+            <span>Darkest beside each</span>
+          </button>
+        )}
         {colourway.trims!.map((option) => {
           const id = trimIdOf(option);
           const chosen = current !== undefined && trimIdOf(current) === id;
@@ -214,10 +235,12 @@ const ColourwayChoice: React.FC<{
   onStartFrom: (colourwayId: string) => void;
   /** The design's trim, where it has one, and choosing among the colourway's: see SweaterPattern.trim. */
   trim?: SweaterPattern["trim"];
-  onTrim?: (trim: string) => void;
+  /** The trim chosen, if any, by its wool: see palette's trimIdOf. */
+  trimChosen?: string;
+  onTrim?: (trim: string | undefined) => void;
   /** Where choosing the wool ends, and the strip stops being the banner. */
   until?: RefObject<Element>;
-}> = ({ colourways, colourway, overrides, palette, body, onStartFrom, trim, onTrim, until }) => {
+}> = ({ colourways, colourway, overrides, palette, body, onStartFrom, trim, trimChosen, onTrim, until }) => {
   const [asking, setAsking] = useState<Colourway>();
   const own = ownBalls(colourway, overrides);
   const choose = (option: Colourway) => {
@@ -255,7 +278,13 @@ const ColourwayChoice: React.FC<{
         </div>
       ))}
       {trim && onTrim && colourway.trims && colourway.trims.length > 1 && (
-        <TrimChoice trim={trim} colourway={colourway} onTrim={onTrim} />
+        <TrimChoice
+          trim={trim}
+          colourway={colourway}
+          given={colourways.find((c) => c.id === colourway.id) ?? colourway}
+          chosen={trimChosen}
+          onTrim={onTrim}
+        />
       )}
       <Dialog
         open={asking !== undefined}

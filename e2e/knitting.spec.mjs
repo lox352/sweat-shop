@@ -441,11 +441,13 @@ test("Each Year Once knits every hat from 2014 to 2026 once, the yoke's first, t
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Each Year Once, oldest at the neck");
   await expect(page.getByText("Hazel Tindall", { exact: false }).first()).toBeVisible();
   await expect(page.locator(".size-option")).toHaveCount(8);
-  // The trim chosen apart from the rest: any yarn of the palette, the ground's to begin with.
+  // The trim chosen apart from the rest: the darkest yarn of the hats beside each part to begin with, or any yarn of the palette.
   const trim = page.getByRole("group", { name: "Trim" });
-  await expect(trim.getByRole("button", { pressed: true })).toHaveAccessibleName("Shetland Black");
+  await expect(trim.getByRole("button", { pressed: true })).toHaveAccessibleName("Darkest beside each");
   await trim.getByRole("button", { name: "Moorit" }).click();
   await expect(trim.getByRole("button", { pressed: true })).toHaveAccessibleName("Moorit");
+  await trim.getByRole("button", { name: "Darkest beside each" }).click();
+  await expect(trim.getByRole("button", { pressed: true })).toHaveAccessibleName("Darkest beside each");
   // Knitting it in a medium: the yoke begins with the Shwook Hat and has the Crofthoose Hat's houses; a sleeve ends with the Birsie Beanny.
   const sampler = { sweaterId: "wool-week-strips-once-oldest", sizeId: "m", colourwayId: "early-light" };
   const onChart = (what) => page.getByRole("img", { name: new RegExp(`You are on .*: ${what}`) });

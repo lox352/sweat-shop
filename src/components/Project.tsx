@@ -214,7 +214,7 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
     change(current => ({ ...current, colourwayId, shades: undefined, trim: undefined }));
   }, [change]);
 
-  const setTrim = useCallback((trim: string) => {
+  const setTrim = useCallback((trim: string | undefined) => {
     change(current => ({ ...current, trim }));
   }, [change]);
 
@@ -303,7 +303,7 @@ const ProjectView: React.FC<{
   undo: () => void;
   canUndo: boolean;
   setColourway: (id: string) => void;
-  setTrim: (trim: string) => void;
+  setTrim: (trim: string | undefined) => void;
   setShade: (slots: SlotId[], chosen: Chosen | undefined) => void;
 }> = ({
   view,
@@ -577,6 +577,7 @@ const ProjectView: React.FC<{
           body={body}
           onStartFrom={setColourway}
           trim={sweater.trim}
+          trimChosen={project.trim}
           onTrim={setTrim}
           until={choicesRef}
         />

@@ -117,3 +117,22 @@
   border-radius: 2px;
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.2);
 }
+
+/* The colourway's own trim in parts: each part's yarn, side by side, the tick over them. */
+.trim-swatch-parts {
+  display: inline-flex;
+  position: relative;
+  overflow: hidden;
+}
+
+.trim-swatch-parts > span {
+  flex: 1;
+  align-self: stretch;
+}
+
+.trim-swatch-parts > .trim-tick {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}

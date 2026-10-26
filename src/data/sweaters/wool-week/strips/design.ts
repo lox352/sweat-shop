@@ -1,9 +1,9 @@
-import type { Chart, Size, SweaterPattern } from "../../types";
+import type { Chart, Colourway, Size, SweaterPattern } from "../../types";
 import { yearOf, years } from "../years";
 import { colourways } from "./colours";
-import { knit, type Knitted } from "./knit";
+import { knit, type Knitted, trimsOf } from "./knit";
 import { type Layout, type Measured, gauge, planOf } from "./plan";
-import { allSlots, letterOf, trimSlot, yearOfSlot } from "./slots";
+import { allSlots, letterOf, trimSlot, yearOfSlot, yearsOfTrim } from "./slots";
 
 /** What a shaded slot is in its round, for its name: ", ground, shade 2 of a band". */
 const shadeLabel = (slot: string): string => {
@@ -49,6 +49,12 @@ export interface StripSampler {
   layout: Layout;
 }
 
+/** What each trim is for, by the part of the ribbing it is and the years beside it. */
+const trimRole = (trim: string, part: string): string => {
+  const years = yearsOfTrim(trim).map((y) => `${y} ${yearOf(y).name}`);
+  return `${part}, by default in the darkest yarn of ${years.join(" or ")}`;
+};
+
 export const stripSampler = ({ id, name, story, layout }: StripSampler): SweaterPattern => {
   // Each size is planned and knitted the first time anything asks for it, and kept.
   const knitted = new Map<string, Knitted>();
@@ -71,6 +77,15 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
     },
   }));
   const designers = [...new Set(years.map((y) => y.designer))];
+  // The trims every size knits, which only the years at the neck, waist and wrists decide: the layout's, the same in every size.
+  let trims: ReturnType<typeof trimsOf> | undefined;
+  const trimsNow = () => (trims ??= trimsOf(planOf(measured[0].finished, layout, measured[0].id).rows));
+  // Each colourway with the trims this layout knits, of all those the colourways give.
+  let own: Colourway[] | undefined;
+  const colourwaysNow = () => {
+    const { neck, low } = trimsNow();
+    return (own ??= colourways.map((c) => ({ ...c, shades: c.shades.filter((s) => s.slot.split("/")[0] !== trimSlot || s.slot === neck || s.slot === low) })));
+  };
   return {
     id,
     name,
@@ -83,12 +98,23 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
       { id: "sleeve-left", label: "Left sleeve" },
       { id: "sleeve-right", label: "Right sleeve" },
     ],
-    slots: [...allSlots, trimSlot],
-    slotRoles: {
-      ...Object.fromEntries(allSlots.map((slot) => [slot, `${yearOfSlot(slot)} ${yearOf(yearOfSlot(slot)).name}, yarn ${letterOf(slot)}${shadeLabel(slot)}`])),
-      [trimSlot]: "The neck, waist and wrist ribbing",
+    get slots() {
+      const { neck, low } = trimsNow();
+      return [...allSlots, neck, low];
     },
-    trim: { slot: trimSlot, label: "Trim", note: "The neck, waist and wrist ribbing, in any yarn of the palette." },
+    get slotRoles() {
+      const { neck, low } = trimsNow();
+      return {
+        ...Object.fromEntries(allSlots.map((slot) => [slot, `${yearOfSlot(slot)} ${yearOf(yearOfSlot(slot)).name}, yarn ${letterOf(slot)}${shadeLabel(slot)}`])),
+        [neck]: trimRole(neck, "The neck's ribbing and the back neck's short rows"),
+        [low]: trimRole(low, "The waist and wrist ribbing"),
+      };
+    },
+    trim: {
+      slot: trimSlot,
+      label: "Trim",
+      note: "The ribbing and the back neck's short rows: the neck's in the darkest yarn of the hat beside it, the waist's and wrists' in the darkest of the hats beside them, or all in any yarn of the palette.",
+    },
     slotsVaryBySize: true,
     // Other people's charts, knitted as they drew them: floats as long as they come, caught behind the work, and one round of the Shwook Hat in three colours.
     rules: { colours: 3, float: Infinity },
@@ -105,7 +131,9 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
     get charts(): Chart[] {
       return [...new Map([...knitted.values()].flatMap((k) => k.charts).map((c) => [c.id, c])).values()];
     },
-    colourways,
+    get colourways() {
+      return colourwaysNow();
+    },
     sizes,
     revisions: [{ what: "Stitch markers for the start of the round, and for each sleeve's", added: ["marker"] }],
   };

@@ -3,7 +3,7 @@ import eachYearOnce from "../../wool-week-strips-once-oldest";
 import thirteenStrips from "../../wool-week-strips-lined-oldest";
 import { trimIdOf, trimmed } from "../../../../knitting/palette";
 import roles from "./roles.json";
-import { letterOf, trimSlot, yearOfSlot } from "./slots";
+import { letterOf, trimSlot, yearOfSlot, yearsOfTrim } from "./slots";
 
 /** CIE L*, how light a colour looks. */
 const lightness = (hex: string) => {
@@ -12,6 +12,7 @@ const lightness = (hex: string) => {
   const y = 0.2126 * lin(n >> 16) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
   return 116 * (y > 0.008856 ? Math.cbrt(y) : 7.787 * y + 16 / 116) - 16;
 };
+const isTrim = (slot: string) => slot.split("/")[0] === trimSlot;
 const roleOf = (slot: string): string => {
   const r = (roles as Record<string, { ground: string[]; middle?: string[]; figure: string[] }>)[yearOfSlot(slot)];
   const l = letterOf(slot);
@@ -38,7 +39,7 @@ describe.each([eachYearOnce, thirteenStrips])("the colourways of $name", (design
   });
 
   it.each(many.map((c) => [c.name, c] as const))("knits tens of yarns, in %s", (_, colourway) => {
-    const used = new Set(colourway.shades.filter((s) => s.slot !== trimSlot).map((s) => s.code));
+    const used = new Set(colourway.shades.filter((s) => !isTrim(s.slot)).map((s) => s.code));
     expect(used.size).toBeGreaterThanOrEqual(24);
     expect(colourway.family).toBe("Many colours");
   });
@@ -100,7 +101,7 @@ describe.each([eachYearOnce, thirteenStrips])("the colourways of $name", (design
     const dark = colourway.id.endsWith("-dark");
     // Every year's ground against the figure drawn on it - not the two pictures of sheep, which stay white whatever the sky.
     for (const year of Object.keys(roles).filter((y) => y !== "2015" && y !== "2019")) {
-      const shades = colourway.shades.filter((s) => s.slot !== trimSlot && yearOfSlot(s.slot) === +year);
+      const shades = colourway.shades.filter((s) => !isTrim(s.slot) && yearOfSlot(s.slot) === +year);
       const ground = shades.filter((s) => roleOf(s.slot) === "ground").map((s) => lightness(s.hex));
       const figure = shades.filter((s) => roleOf(s.slot) === "figure").map((s) => lightness(s.hex));
       const mean = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length;
@@ -109,37 +110,47 @@ describe.each([eachYearOnce, thirteenStrips])("the colourways of $name", (design
     }
   });
 
-  it("ribs the neck, waist and wrists in the trim", () => {
+  it("ribs the neck in the trim of the year beside it, the waist and wrists in one of the years beside them", () => {
     const ribs = design.sizes.flatMap((size) => size.sections.flatMap((s) => s.rounds))
       .filter((r) => "fabric" in r && r.fabric === "rib" && "slot" in r).map((r) => (r as { slot: string }).slot);
-    expect(new Set(ribs)).toEqual(new Set([trimSlot]));
+    // The yoke's first year is 2014 in every size; the body ends in 2021 or 2026, the sleeves in 2026.
+    const low = design.id.includes("once") ? "trim/21+26" : "trim/26";
+    expect(new Set(ribs)).toEqual(new Set(["trim/14", low]));
   });
 
-  it.each(traditions.map((c) => [c.name, c] as const))("trims in the palette's ground, in %s", (_, colourway) => {
-    // By default the yarn of the ground the most hats take.
-    const trim = colourway.shades.find((s) => s.slot === trimSlot)!;
-    const mains = Object.entries(roles).map(([year, r]) => colourway.shades.find((s) => s.slot.startsWith(`${year.slice(2)}${r.ground[0]}`))!.code);
-    const commonest = [...new Set(mains)].sort((a, b) => mains.filter((m) => m === b).length - mains.filter((m) => m === a).length)[0];
-    expect(trim.code).toBe(commonest);
+  it.each(design.colourways.map((c) => [c.name, c] as const))("trims by default in the darkest yarn of the years beside it, in %s", (_, colourway) => {
+    for (const trim of colourway.shades.filter((s) => isTrim(s.slot))) {
+      const years = yearsOfTrim(trim.slot);
+      const darkest = Math.min(...colourway.shades.filter((s) => !isTrim(s.slot) && years.includes(yearOfSlot(s.slot))).map((s) => lightness(s.hex)));
+      expect(lightness(trim.hex), trim.slot).toBe(darkest);
+    }
+  });
+
+  it("trims Night journey, in step, gentler in Dark Navy at the neck, and Black at the waist and wrists", () => {
+    const night = design.colourways.find((c) => c.id === "night-gentle-dark")!;
+    // Only the trims the layout knits.
+    expect(night.shades.filter((s) => isTrim(s.slot)).map((s) => [s.slot, s.name])).toEqual([
+      ["trim/14", "Dark Navy"],
+      [design.id.includes("once") ? "trim/21+26" : "trim/26", "Black"],
+    ]);
   });
 
   it.each(design.colourways.map((c) => [c.name, c] as const))("offers yarns of the palette for the trim, and changes only the trim, in %s", (_, colourway) => {
     const trims = colourway.trims!;
-    const used = new Set(colourway.shades.filter((s) => s.slot !== trimSlot).map((s) => s.code));
-    const trim = colourway.shades.find((s) => s.slot === trimSlot)!;
+    const used = new Set(colourway.shades.filter((s) => !isTrim(s.slot)).map((s) => s.code));
     if (MANY.includes(colourway.id)) {
-      // A dozen at most of its many, its own trim among them.
+      // A dozen at most of its many.
       expect(trims.length).toBeLessThanOrEqual(12);
-      expect(trims.map((t) => t.code)).toContain(trim.code);
     } else {
       // The palette's every yarn, which takes in every yarn the colourway knits.
       for (const code of used) expect(trims.map((t) => t.code)).toContain(code);
     }
     expect(trims.every((t) => t.slot === trimSlot)).toBe(true);
     for (const option of trims) {
+      // Every part of the trim in the one yarn, under its own slot.
       const changed = trimmed(colourway, trimIdOf(option));
-      expect(changed.shades.find((s) => s.slot === trimSlot)).toEqual(option);
-      expect(changed.shades.filter((s) => s.slot !== trimSlot)).toEqual(colourway.shades.filter((s) => s.slot !== trimSlot));
+      for (const shade of changed.shades.filter((s) => isTrim(s.slot))) expect(shade).toEqual({ ...option, slot: shade.slot });
+      expect(changed.shades.filter((s) => !isTrim(s.slot))).toEqual(colourway.shades.filter((s) => !isTrim(s.slot)));
     }
     // A trim no longer among them, and none, leave the colourway as it is.
     expect(trimmed(colourway, "not-a-yarn")).toBe(colourway);

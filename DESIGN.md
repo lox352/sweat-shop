@@ -433,11 +433,15 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
   - **Pictures pin colours.** Sheep are white: the Baa-ble Hat's bodies and
     the Roadside Beanie's sheep the palette's lightest yarn, the Baa-ble
     Hat's faces its darkest, whatever the grounds.
-  - **The trim.** The neck, waist and wrist ribbing is its own slot,
-    `trim`, which a colourway gives the palette's ground. A knitter may
-    choose it separately among all the palette's yarns (`Colourway.trims`,
-    `SweaterPattern.trim`); the project keeps the choice, and starting from
-    another colourway resets it.
+  - **The trim.** The ribbing is no hat's, and has slots of its own, named
+    for the years beside it (`trim/14`, `trim/21+26`): the neck's, with the
+    back neck's short rows, beside the yoke's first year, and the waist's and
+    wrists' beside the body's and sleeves' last, one yarn for both. A
+    colourway gives each the darkest yarn its years knit in it: in Night
+    journey, in step, gentler, 2014's Dark Navy at the neck, and the Black
+    of 2021 and 2026 below. A knitter may instead choose one yarn for all of
+    it among the palette's (`Colourway.trims`, `SweaterPattern.trim`); the
+    project keeps the choice, and starting from another colourway resets it.
 - **Measurements.** Hamefarin's, but the yoke a centimetre and a half deeper
   and the body three and a half longer: thirteen hats make a long jumper.
   Knitted at 32 stitches and 38 rounds to 10cm.
