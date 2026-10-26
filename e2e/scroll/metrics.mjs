@@ -62,8 +62,9 @@ export const motionOf = (frames) => {
       dxs.push(a[1] - b[1]);
       dys.push(a[2] - b[2]);
     }
-    const scrollX = now.s.scroll.left - was.s.scroll.left;
-    const scrollY = now.s.scroll.top - was.s.scroll.top;
+    // The box's own scroll, and the box itself moving with the page's: both move what is in it, and neither is the chart's doing.
+    const scrollX = now.s.scroll.left - was.s.scroll.left - (now.box.left - was.box.left);
+    const scrollY = now.s.scroll.top - was.s.scroll.top - (now.box.top - was.box.top);
     if (dxs.length === 0) {
       out.push({ i, dx: NaN, dy: NaN, scrollX, scrollY, ux: NaN, uy: NaN, n: 0 });
       continue;

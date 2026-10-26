@@ -129,6 +129,10 @@
    * is showing. See scroll-corner.ts.
    */
   direction: rtl;
+  /*
+   * A chart shorter than its box - zoomed right out - sits at the bottom of
+   * it, where it is read from, rather than the top: see .chart-sheets.
+   */
 }
 
 /*
@@ -158,10 +162,11 @@
   display: none;
 }
 
-/* The chart and the progress over it, stacked. */
+/* The chart and the progress over it, stacked: pushed to the bottom of its box where it is shorter, and from the top as ever where it is taller. */
 .chart-sheets {
   position: relative;
   direction: ltr;
+
 }
 
 .chart-pickable {

@@ -182,6 +182,20 @@ export const scenarios = {
       await trackpad(page, { dx: -900, at });
     },
   },
+  "zoom out to the whole width and back in": {
+    input: "any",
+    setup: (page) => open(page, { choices: eachYearOnce }),
+    act: async (page) => {
+      const chart = page.getByRole("region", { name: /Scrollable knitting chart/ });
+      await chart.focus();
+      for (const key of [..."--------", ..."++++++++"]) {
+        await page.evaluate((key) => window.__scrollProbe.mark(`press ${key}`), key);
+        await chart.press(key);
+        await page.waitForTimeout(300);
+      }
+      await page.evaluate(() => window.__scrollProbe.mark("zoom done"));
+    },
+  },
   "knit a few rounds, the chart following": {
     input: "any",
     setup: (page) => open(page, { choices: hamefarin, progress: 20714, knitting: true }),
