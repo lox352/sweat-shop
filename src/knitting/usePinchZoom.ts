@@ -1,10 +1,6 @@
 import { RefObject, useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { scrollAcross } from "./scroll-corner";
-
-export const minCell = 8;
-export const maxCell = 40;
-
-const clamp = (cell: number) => Math.min(maxCell, Math.max(minCell, cell));
+import { maxCell, minCell, settleCell } from "./zoom";
 
 interface Gesture {
   startCell: number;
@@ -40,7 +36,12 @@ export function usePinchZoom(
    * needs at the new size.
    */
   placeAfter?: (x: number, y: number, screenX: number, screenY: number) => { x: number; y: number } | undefined,
+  /** The least cell size the chart zooms out to, as the box is now: see zoom's leastCell. */
+  least: () => number = () => minCell,
 ) {
+  const leastNow = useRef(least);
+  leastNow.current = least;
+  const clamp = (cell: number) => Math.min(maxCell, Math.max(leastNow.current(), cell));
   const gesture = useRef<Gesture>();
   const settle = useRef<{
     ratio: number;
@@ -87,7 +88,7 @@ export function usePinchZoom(
       const g = gesture.current;
       gesture.current = undefined;
       if (!g) return;
-      const next = Math.round(g.cell);
+      const next = settleCell(g.cell, leastNow.current());
       if (next === g.startCell) {
         sheet.style.transform = "";
         return;
@@ -207,7 +208,7 @@ export function usePinchZoom(
   return useCallback(
     (next: number, clientX: number, clientY: number) => {
       const sheet = sheetRef.current;
-      const wanted = Math.round(clamp(next));
+      const wanted = settleCell(next, leastNow.current());
       if (!sheet || wanted === current.current) return;
       const box = sheet.getBoundingClientRect();
       settle.current = {

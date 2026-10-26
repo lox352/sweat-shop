@@ -17,6 +17,7 @@ import { keyEntryAt } from "./stitch-key";
 import { useSettings } from "../helpers/settings";
 import type { SweaterPattern } from "../data/sweaters/types";
 import { usePinchZoom } from "./usePinchZoom";
+import { leastCell, minCell, stepCell } from "./zoom";
 import "./Chart.css";
 
 /**
@@ -141,7 +142,19 @@ const Chart: React.FC<ChartProps> = ({
   }, [palette]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
-  const zoomTo = useCallback((cell: number) => setZoom(Math.round(cell)), []);
+  /*
+   * The least the chart zooms out to: its whole width fitting the box, read
+   * from the box as it is now - see zoom. Found once the scene below is,
+   * hence a ref.
+   */
+  const leastRef = useRef<() => number>(() => minCell);
+  const least = useCallback(() => leastRef.current(), []);
+  /* Zoomed right out, the chart is kept fitting the box as the box changes size: see below. */
+  const fitted = useRef(false);
+  const zoomTo = useCallback((cell: number) => {
+    fitted.current = cell <= least();
+    setZoom(cell);
+  }, [least]);
   /*
    * The tiles, where the columns and rows are closed up: where a stitch is
    * comes from them rather than from the layout, and a zoom settles about the
@@ -152,7 +165,7 @@ const Chart: React.FC<ChartProps> = ({
     (x: number, y: number, screenX: number, screenY: number) => tilesRef.current?.zoomedTo(x, y, screenX, screenY),
     [],
   );
-  const zoomAt = usePinchZoom(scrollRef, sheetRef, cellSize, zoomTo, placeAfter);
+  const zoomAt = usePinchZoom(scrollRef, sheetRef, cellSize, zoomTo, placeAfter, least);
   // Anything over the chart outside the tiles, the picker, is placed again when the columns or rows move.
   const [, moved] = useReducer((count: number) => count + 1, 0);
   /*
@@ -243,6 +256,26 @@ const Chart: React.FC<ChartProps> = ({
     () => sceneOf(layout, stitches, rounds, { needleRules, join, holds, held, turns, face, makeOneLean, markers: markerLines }),
     [layout, stitches, rounds, needleRules, join, holds, held, turns, face, makeOneLean, markerLines],
   );
+  leastRef.current = () => {
+    const box = scrollRef.current;
+    if (!box) return minCell;
+    const style = getComputedStyle(box);
+    const room = box.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0);
+    return leastCell(room, layout.columns, new Set(scene.breaks.map((one) => `${one.right}:${one.left}`)).size);
+  };
+  // As the box changes width - a phone turned, the knitting opened - a chart zoomed right out is zoomed to fit it again.
+  useEffect(() => {
+    const box = scrollRef.current;
+    if (!box || typeof ResizeObserver === "undefined") return;
+    let width = box.clientWidth;
+    const watch = new ResizeObserver(() => {
+      if (box.clientWidth === width) return;
+      width = box.clientWidth;
+      if (fitted.current) setZoom(least());
+    });
+    watch.observe(box);
+    return () => watch.disconnect();
+  }, [least]);
   const colours = useMemo(
     () => ({
       ...defaultColours,
@@ -435,14 +468,14 @@ const Chart: React.FC<ChartProps> = ({
         aria-label="Scrollable knitting chart. Plus and minus zoom it."
         onKeyDown={(event) => {
           if (event.metaKey || event.ctrlKey || event.altKey) return;
-          const step = event.key === "+" || event.key === "=" ? 4 : event.key === "-" ? -4 : 0;
+          const step = event.key === "+" || event.key === "=" ? 1 : event.key === "-" ? -1 : 0;
           if (!step) return;
           event.preventDefault();
           // About the middle of what is showing of the chart.
           const view = event.currentTarget.getBoundingClientRect();
           const top = Math.max(view.top, 0);
           const bottom = Math.min(view.bottom, window.innerHeight);
-          zoomAt(cellSize + step, view.left + view.width / 2, (top + bottom) / 2);
+          zoomAt(stepCell(cellSize, step, least()), view.left + view.width / 2, (top + bottom) / 2);
         }}
       >
         <ChartNotes

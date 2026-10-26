@@ -819,6 +819,37 @@ test("closed up, zooming keeps the stitch under the point zoomed about", async (
   expect(after.name).toBe(before.name);
 });
 
+test("zoomed out as far as it goes, the chart's whole width fits the box, and it zooms back in as it went", async ({ page }) => {
+  await knittedTo(page, 0, { sweaterId: "wool-week-strips-once-oldest", sizeId: "m", colourwayId: "early-light" });
+  await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  const chart = page.getByRole("region", { name: /Scrollable knitting chart/ });
+  await chart.focus();
+  const scroller = page.locator(".chart-scroll");
+  const wide = () => scroller.evaluate((box) => box.scrollWidth - box.clientWidth);
+  const tall = () => page.locator(".chart-sheets").evaluate((sheet) => sheet.offsetHeight);
+  expect(await wide()).toBeGreaterThan(0);
+  // Out a press at a time until it goes no further: then nothing is left to scroll across.
+  const heights = [await tall()];
+  for (let press = 0; press < 12; press++) {
+    await chart.press("-");
+    await page.waitForTimeout(150);
+    heights.push(await tall());
+  }
+  await expect.poll(wide).toBeLessThanOrEqual(0);
+  // It got smaller each press until it fitted, and then stayed put.
+  const smaller = heights.findIndex((h, k) => k > 0 && h === heights[k - 1]);
+  expect(smaller).toBeGreaterThan(3);
+  expect(new Set(heights.slice(smaller)).size).toBe(1);
+  // Every column showing, with all the rows in view.
+  const tiles = page.locator(".chart-tiles");
+  expect(await tiles.getAttribute("data-columns-showing")).toBe(await tiles.getAttribute("data-columns"));
+  // And back in by the same steps, to the size it began at: the room left of the chart for a join's arrow is half a stitch.
+  const room = () => page.locator(".chart-sheets").evaluate((sheet) => sheet.style.marginLeft);
+  for (let press = 0; press < smaller; press++) await chart.press("+");
+  await expect.poll(room).toBe("8px");
+  expect(await wide()).toBeGreaterThan(0);
+});
+
 test("the Body view tears the yoke apart either side of each underarm, where a sleeve's stitches are left out", async ({ page }) => {
   await knittedTo(page, 0, { sweaterId: "wool-week-strips-once-oldest", sizeId: "m", colourwayId: "early-light" });
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();

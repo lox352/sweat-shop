@@ -15,6 +15,7 @@ import {
   rowsWithin,
 } from "./column-window";
 import type { Palette } from "./palette";
+import { torn } from "./zoom";
 
 /**
  * The chart on canvases, a tile at a time, inside the box it scrolls in.
@@ -131,8 +132,6 @@ const placesFrom = (before: Int32Array, shows: Uint8Array, cell: number): Places
   }
   return { start, size };
 };
-/** How far apart, in cells, the two sides of a break are kept: see columnPlaces. */
-const torn = 0.45;
 
 /**
  * The columns laid out side by side, and kept a little apart where the chart
@@ -590,11 +589,14 @@ export class TileView {
     const view = this.showing();
     let blank = 0;
     if (this.content) {
-      // The tiles across the box, from the chart's own top left, that show an older chart than this one.
+      // The tiles across the box and the chart, from the chart's own top left, that show an older chart than this one: the tiles are cut off at the chart's edges.
+      const { width, height } = this.size();
+      const [x0, x1] = [Math.max(view.x, -this.content.margin), Math.min(view.x + view.width, width)];
+      const [y0, y1] = [Math.max(view.y, 0), Math.min(view.y + view.height, height)];
       for (const tile of this.tiles.values()) {
         if (tile.painted === this.version) continue;
-        const across = Math.min(tile.x + tileSize, view.x + view.width) - Math.max(tile.x, view.x);
-        const down = Math.min(tile.y + tileSize, view.y + view.height) - Math.max(tile.y, view.y);
+        const across = Math.min(tile.x + tileSize, x1) - Math.max(tile.x, x0);
+        const down = Math.min(tile.y + tileSize, y1) - Math.max(tile.y, y0);
         if (across > 0 && down > 0) blank += across * down;
       }
     }

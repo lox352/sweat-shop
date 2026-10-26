@@ -95,8 +95,8 @@ export interface ChartOverlay {
   strips?: { round: number; fill: string }[];
 }
 
-/** Room to the right of the chart for the round numbers. */
-export const gutter = (cell: number) => Math.round(cell * 2.2);
+/** Room to the right of the chart for the round numbers: as wide as three figures, however small a stitch. */
+export const gutter = (cell: number) => Math.max(Math.round(cell * 2.2), 22);
 
 /** Room kept to the left of the chart, for the join's arrow to reach into. On the right, the gutter has room for it. */
 export const leftMargin = (cell: number) => Math.ceil(cell * 0.5);
@@ -140,6 +140,16 @@ export interface Region {
 }
 
 const joinArrowLength = 0.42;
+/**
+ * Zoomed out, a stitch too small for its symbol, its hairlines or the
+ * steps' marks to read is painted as its colour alone, in pixels: smaller
+ * than this, in CSS pixels, has no symbol, no hairlines and no steps drawn.
+ */
+const detailed = 6;
+/** And smaller than this, not even every fifth line heavy: there are too many to tell apart. */
+const ruled = 3;
+/** Round numbers no closer than this, in pixels, so that zoomed out they never run into one another. */
+const numberSpacing = 16;
 /** A cell squeezed narrower than this, opening or closing, is painted without its mark. */
 const markable = 0.6;
 /** Hatching: one line every six pixels, at forty-five degrees, as the SVG's pattern draws it. */
@@ -195,6 +205,27 @@ const merged = (spans: [number, number][]): [number, number][] => {
   return out;
 };
 
+/**
+ * Of the rows to be numbered, those whose numbers stand clear of one another
+ * in a font `size` pixels tall, whose figures stand three quarters of that:
+ * the rows named for what happens there first - the instructions say them -
+ * then every fifth, each left out where it would run into one kept already.
+ * Worked out over the whole chart, so that every tile keeps the same.
+ */
+const clearOfEachOther = (rows: number[], top: (row: number) => number, height: Float64Array, size: number): number[] => {
+  const kept: number[] = [];
+  const at: number[] = [];
+  const order = [...rows.filter((row) => row % emphasis !== 0), ...rows.filter((row) => row % emphasis === 0)];
+  for (const row of order) {
+    if (height[row] <= 0) continue;
+    const y = top(row) + height[row] / 2;
+    if (at.some((other) => Math.abs(other - y) < size * 0.75)) continue;
+    kept.push(row);
+    at.push(y);
+  }
+  return kept;
+};
+
 export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state: PaintState) => {
   const { layout, index } = scene;
   const { cell, left, width, colours, height } = state;
@@ -240,7 +271,9 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
       if (!colour) return;
       let list = fills.get(colour);
       if (!list) fills.set(colour, (list = []));
-      list.push(runLeft, top(row), runRight - runLeft, height[row]);
+      // On whole device pixels, so that cells a pixel or two wide meet without a seam of ground between them.
+      const [x0, x1, y0, y1] = [snap(runLeft), snap(runRight), snap(top(row)), snap(top(row) + height[row])];
+      list.push(x0, y0, x1 - x0, y1 - y0);
     };
     for (let k = begin; k < end; k++) {
       const c = index.column[k];
@@ -294,6 +327,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     const up = aboveOf(row);
     const both = merged([...runsIn(scene, state, spanOf(row)), ...runsIn(scene, state, spanOf(up))]);
     const fifth = row > 0 && row % emphasis === 0 && up === row + 1;
+    if (cell < (fifth ? ruled : detailed)) continue;
     for (const [x0, x1] of both) across(fifth ? heavy : light, x0, x1, y);
   }
   const showing = (c: number) => c === columns + 1 || width[c] > 0;
@@ -308,13 +342,14 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
       if (!touching) {
         // The edge on the stitch-1 side of a run: heavy if the column to its right shows and is a fifth.
         const right = c - 1;
-        down(right >= 1 && right % emphasis === 0 && width[right] > 0 ? heavy : light, left[c] + width[c], y, height[row]);
+        const fifth = right >= 1 && right % emphasis === 0 && width[right] > 0;
+        if (cell >= (fifth ? ruled : detailed)) down(fifth ? heavy : light, left[c] + width[c], y, height[row]);
       }
       // And the left edge of every stitch, against the next one along on screen.
       const next = k + 1 < end ? index.column[k + 1] : -1;
       const nextTouches = next >= 0 && width[next] > 0 && Math.abs(left[c] - (left[next] + width[next])) < 1e-6;
       const fifth = c % emphasis === 0 && (nextTouches ? next === c + 1 : showing(c + 1));
-      down(fifth ? heavy : light, left[c], y, height[row]);
+      if (cell >= (fifth ? ruled : detailed)) down(fifth ? heavy : light, left[c], y, height[row]);
       previous = c;
     }
   }
@@ -330,6 +365,8 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
 
   /* Where one piece meets another: beside each other on screen in a row, and one over the other in a column. */
   const pieceLines: number[] = [];
+  // Half a piece line's width: two and a half pixels across, or less where a stitch is hardly wider, but never under a device pixel.
+  const halfPiece = Math.max(0.5 / state.ratio, Math.min(1.25, cell * 0.15));
   const pieceAbove = (row: number, c: number): number | undefined => {
     const up = aboveOf(row);
     if (up > rows) return undefined;
@@ -353,11 +390,11 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
       Math.abs(left[c] - (left[next] + width[next])) < 1e-6 &&
       scene.pieceAt[k + 1] !== scene.pieceAt[k]
     ) {
-      pieceLines.push(snap(left[c] - 1.25), y, snap(left[c] + 1.25) - snap(left[c] - 1.25), height[row]);
+      pieceLines.push(snap(left[c] - halfPiece), y, Math.max(1 / state.ratio, snap(left[c] + halfPiece) - snap(left[c] - halfPiece)), height[row]);
     }
     const above = pieceAbove(row, c);
     if (above !== undefined && above !== scene.pieceAt[k]) {
-      pieceLines.push(left[c], snap(y - 1.25), width[c], snap(y + 1.25) - snap(y - 1.25));
+      pieceLines.push(left[c], snap(y - halfPiece), width[c], Math.max(1 / state.ratio, snap(y + halfPiece) - snap(y - halfPiece)));
     }
   });
   fillRects(pieceLines, colours.piece);
@@ -384,7 +421,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
   };
   marked((k, row) => {
     const c = index.column[k];
-    if (width[c] < cell * markable || height[row] < cell * markable) return;
+    if (cell < detailed || width[c] < cell * markable || height[row] < cell * markable) return;
     const id = index.id[k];
     const mark = scene.markOf(id, centre, cell);
     if (!mark) return;
@@ -441,7 +478,9 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
   const regionOf = (keep: (id: number) => boolean) => {
     const out: number[] = [];
     for (let row = firstRow; row <= lastRow; row++) {
-      for (const [x0, x1] of runsIn(scene, state, spanOf(row), keep)) out.push(x0, top(row), x1 - x0, height[row]);
+      // On whole device pixels, as the yarns are, so that a wash laid over neither overlaps itself nor leaves a seam.
+      const [y0, y1] = [snap(top(row)), snap(top(row) + height[row])];
+      for (const [x0, x1] of runsIn(scene, state, spanOf(row), keep)) out.push(snap(x0), y0, snap(x1) - snap(x0), y1 - y0);
     }
     return out;
   };
@@ -457,7 +496,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
    * worked one after the other, each have their facing edge pinked, two
    * teeth a row, as if cut apart with what was between them taken out.
    */
-  if (scene.breaks.length > 0) {
+  if (scene.breaks.length > 0 && cell >= detailed) {
     const depth = Math.max(2, cell * 0.18);
     // Each tooth: the edge it is cut into, which way into the stitch, and the stretch of the row it spans.
     const cuts: { x: number; into: number; y: number; span: number }[] = [];
@@ -566,7 +605,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
   };
 
   // The join: the round going on past its last stitch, and coming back in at the first of the next.
-  if (scene.join) {
+  if (scene.join && cell >= detailed) {
     const last = at(scene.join.last);
     const first = at(scene.join.first);
     if (last && first) {
@@ -592,7 +631,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
 
   // A sleeve going on hold: a bar at the end of the stitch before, an arrow down it.
   const bars: { x: number; top: number; bottom: number }[] = [];
-  for (const hold of scene.holds) {
+  for (const hold of cell >= detailed ? scene.holds : []) {
     const a = at(hold.before);
     const b = at(hold.after);
     if (!a || !b) continue;
@@ -617,7 +656,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
    * A stitch put on hold: a bracket over the top of its cell, open below,
    * which runs on across a run of them as the holder they go onto.
    */
-  if (scene.held.length > 0) {
+  if (scene.held.length > 0 && cell >= detailed) {
     const drop = cell * 0.22;
     const draw = () => {
       for (const id of scene.held) {
@@ -635,7 +674,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
   }
 
   // A short row's turn: a hook from its last stitch round into the row above.
-  if (scene.turns.length > 0) {
+  if (scene.turns.length > 0 && cell >= detailed) {
     const reach = cell * 0.38;
     const head = cell * 0.16;
     strokeIn(() => {
@@ -659,7 +698,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
 
   // A change of needles: dashed across the piece that changes, on a pale line of its own.
   const needleSpans: { y: number; spans: [number, number][] }[] = [];
-  for (const change of scene.needleRules) {
+  for (const change of cell >= detailed ? scene.needleRules : []) {
     const y = top(change.after);
     if (y < region.y - 4 || y > region.y + region.height + 4) continue;
     const piece = scene.pieces.indexOf(change.piece);
@@ -737,35 +776,51 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
         ctx.lineTo(bar.x + reach, bar.y);
       }
     };
-    const thick = Math.max(3, Math.min(5, cell * 0.22));
+    // Zoomed out, every stroke thinner by as much as a stitch is smaller, but never under a device pixel.
+    const fine = Math.min(1, cell / 8);
+    const w = (pixels: number) => Math.max(1 / state.ratio, pixels * fine);
+    const thick = w(Math.max(3, Math.min(5, cell * 0.22)));
     strokeIn(() => {
       segments(been)();
       segments(now)();
       segments(ahead)();
       across(true)();
       across(false)();
-    }, "#fff", thick + 2);
+    }, "#fff", thick + w(2));
     ctx.globalAlpha = 0.45;
-    strokeIn(segments(been), colours.ink, 2);
-    strokeIn(across(true), colours.ink, 2.5);
+    strokeIn(segments(been), colours.ink, w(2));
+    strokeIn(across(true), colours.ink, w(2.5));
     ctx.globalAlpha = 1;
-    ctx.setLineDash([cell * 0.28, cell * 0.2]);
-    strokeIn(segments(ahead), colours.marker, 2);
+    ctx.setLineDash([Math.max(2, cell * 0.28), Math.max(2, cell * 0.2)]);
+    strokeIn(segments(ahead), colours.marker, w(2));
     ctx.setLineDash([]);
     strokeIn(segments(now), colours.marker, thick);
-    strokeIn(across(false), colours.marker, 2.5);
+    strokeIn(across(false), colours.marker, w(2.5));
   }
 
   /* The round numbers down the right-hand edge, beside where column 1 ends. */
-  const numbersAt = left[0] + Math.round(cell * 0.45);
-  if (numbersAt < region.x + region.width && numbersAt + 4 * cell > region.x) {
+  const numbersAt = left[0] + Math.max(2, Math.round(cell * 0.45));
+  if (numbersAt < region.x + region.width && numbersAt + gutter(cell) > region.x) {
     ctx.fillStyle = colours.faint;
-    ctx.font = `${Math.max(12, cell * 0.55)}px ${colours.font}`;
+    const size = Math.max(12, cell * 0.55);
+    ctx.font = `${size}px ${colours.font}`;
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
-    for (const row of scene.numbered) {
-      if (row < firstRow || row > lastRow || height[row] < cell * markable) continue;
-      ctx.fillText(String(row), numbersAt, top(row) + height[row] / 2);
+    /*
+     * Every fifth row, and the rows named, while there is room between them;
+     * zoomed out further, every tenth, or 25th, or 50th... only, as far apart
+     * as leaves the numbers clear of one another.
+     */
+    const every = cell * emphasis >= numberSpacing ? 0 : ([10, 25, 50, 100, 250].find((n) => n * cell >= numberSpacing) ?? 500);
+    if (every) {
+      for (let row = Math.ceil(firstRow / every) * every; row <= lastRow; row += every) {
+        if (height[row] > 0) ctx.fillText(String(row), numbersAt, top(row) + height[row] / 2);
+      }
+    } else {
+      for (const row of clearOfEachOther(scene.numbered, top, height, size)) {
+        if (row < firstRow || row > lastRow || height[row] < cell * markable) continue;
+        ctx.fillText(String(row), numbersAt, top(row) + height[row] / 2);
+      }
     }
   }
 
