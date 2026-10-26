@@ -1104,6 +1104,17 @@ export class TileView {
         this.sheetWidth(wanted.width, true);
         this.onTargetMoved?.(0);
       }
+      if (width > 0 && this.target !== undefined && wanted.height > height) {
+        /*
+         * And too short for it, the box would stop short of the stitch, held
+         * at the sheet's foot, and be left there at rest with the stitch out
+         * of sight. It grows downwards, which moves nothing above, the rows
+         * held where they are against the box's longer way to scroll.
+         */
+        style.height = `${wanted.height}px`;
+        this.rows.limit(this.rows.targetShift);
+        this.onTargetMoved?.(0);
+      }
       /*
        * Otherwise the sheet keeps its size until rest, whatever opens and
        * closes meanwhile: the layer slides with the box's scroll so that the
