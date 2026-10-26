@@ -399,7 +399,13 @@ const Chart: React.FC<ChartProps> = ({
         toggled.current = false;
         note();
       } else if (followingRef.current) {
-        aimRef.current("auto");
+        /*
+         * Aimed again as it was last aimed: a smooth scroll under way, to the
+         * next round say while the panel below changes height for it, goes on
+         * smoothly to where the stitch now is, rather than being cut short
+         * by a jump there.
+         */
+        aimRef.current(aimedAt.current?.behavior === "smooth" && !reducedMotion() ? "smooth" : "auto");
       } else {
         scroller.scrollLeft = scrollAcross(scroller)[1] - right;
         scroller.scrollTop = scroller.scrollHeight - scroller.clientHeight - bottom;

@@ -131,6 +131,33 @@
   direction: rtl;
 }
 
+/*
+ * Its scrollbars put away where they are only indicators: on a touch screen,
+ * and while knitting, when the chart scrolls itself to every stitch. Each
+ * of those scrolls brought them up for a moment across the middle of the
+ * screen, where the box ends above the knitting panel - and while the sheet
+ * keeps its size mid-scroll (see TileView), they show the sheet, not the
+ * chart. The round numbers say where you are. Scrolled with a mouse, the
+ * chart keeps them, to drag.
+ */
+@media (pointer: coarse) {
+  .chart-scroll {
+    scrollbar-width: none;
+  }
+
+  .chart-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.knit-screen .chart-scroll {
+  scrollbar-width: none;
+}
+
+.knit-screen .chart-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 /* The chart and the progress over it, stacked. */
 .chart-sheets {
   position: relative;

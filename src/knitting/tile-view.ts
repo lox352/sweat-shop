@@ -56,12 +56,25 @@ export const tileSize = 256;
 const ahead = 128;
 /** The most canvases kept beyond those in view: at three device pixels to one, about two megabytes each. */
 const most = 24;
-/** How long lines take to ease to their new places, in milliseconds. */
+/**
+ * How long lines take to ease to their new places, in milliseconds: from
+ * where each is and as fast as it is going - a line sent on again while on
+ * its way, as one opening after another comes into view while the box
+ * scrolls, goes on as fast as it was going rather than stopping for a frame
+ * and setting off afresh - to its place, coming to rest there.
+ */
 const easing = 150;
+/** A frame's length: an easing is begun a frame back, so a line set off moves in the frame it is set off in. */
+const frameTime = 1000 / 60;
 /** How long after the box last moved it counts as at rest. */
 const settling = 150;
-/** Painting slower than this a frame, lines are moved at once rather than eased. */
-const budget = 12;
+/**
+ * Painting slower than this a frame, lines are moved at once rather than
+ * eased: two frames' worth, so only a phone that can't ease them at all
+ * moves them at once. Set much lower, one slow frame on a quick laptop was
+ * enough to have the next lines to open jump there, now and then.
+ */
+const budget = 32;
 /** And no more than this a frame on tiles out of view, to have them ready. */
 const spare = 6;
 /**
@@ -299,7 +312,10 @@ class Axis {
   targetHeld = 0;
   /** Where the box's scroll puts the layer, with lines laid out so: nowhere but the sheet's edge until told. */
   slide: (places: Places) => number = () => 0;
-  private ease?: { from: Places; held: number; start: number };
+  /** While easing: when it began, and where the lines and what is held were then, and how fast they were going. */
+  private ease?: { start: number; from: Places; speed: Places; held: number; heldSpeed: number };
+  /** How fast each line, and what is held, was going at the last frame, in pixels a millisecond: nothing at rest. */
+  private speed?: { lines: Places; held: number };
 
   constructor(places: Places) {
     this.places = this.target = this.rest = places;
@@ -310,6 +326,7 @@ class Axis {
     this.places = this.target = this.rest = places;
     this.held = this.targetHeld = 0;
     this.ease = undefined;
+    this.speed = undefined;
     this.follow();
   }
 
@@ -363,15 +380,25 @@ class Axis {
     this.hold(this.shift, target);
   }
 
-  /** Set off for the target: eased over the next frames from where the lines are now, or there at once. */
+  /**
+   * Set off for the target: eased over the next frames from where the lines
+   * are now, as fast as they are going, or there at once.
+   */
   go(time: number, now: boolean) {
     if (now) {
       this.places = this.target;
       this.held = this.targetHeld;
       this.ease = undefined;
+      this.speed = undefined;
     } else {
-      const from = { start: this.places.start.slice(), size: this.places.size.slice() };
-      this.ease = { from, held: this.held, start: time };
+      const lines = this.places.start.length;
+      this.ease = {
+        start: time - frameTime,
+        from: { start: this.places.start.slice(), size: this.places.size.slice() },
+        speed: this.speed?.lines ?? { start: new Float64Array(lines), size: new Float64Array(lines) },
+        held: this.held,
+        heldSpeed: this.speed?.held ?? 0,
+      };
     }
     this.follow();
   }
@@ -381,30 +408,42 @@ class Axis {
   }
 
   /**
-   * A frame of the easing, or its end at once when `finish`. What is held
-   * eases with the lines, so a line held stays where it is all the way.
+   * A frame of the easing, or its end at once when `finish`: each line on a
+   * cubic from where it was and how fast it was going when the easing began
+   * to its place, at rest. What is held eases the same way, so a line held
+   * stays where it is all the way.
    */
   step(time: number, finish: boolean) {
     const ease = this.ease!;
-    const t = finish ? 1 : Math.min(1, (time - ease.start) / easing);
-    if (t >= 1) {
+    const s = finish ? 1 : Math.min(1, (time - ease.start) / easing);
+    if (s >= 1) {
       this.places = this.target;
       this.held = this.targetHeld;
       this.ease = undefined;
+      this.speed = undefined;
       this.follow();
       return;
     }
-    const e = 1 - (1 - t) ** 3;
-    const { from } = ease;
-    const to = this.target;
-    const start = new Float64Array(from.start.length);
-    const size = new Float64Array(from.start.length);
-    for (let line = 0; line < start.length; line++) {
-      start[line] = from.start[line] + (to.start[line] - from.start[line]) * e;
-      size[line] = from.size[line] + (to.size[line] - from.size[line]) * e;
+    // Hermite's: where it was, how fast it was going, and where it comes to rest.
+    const s2 = s * s;
+    const s3 = s2 * s;
+    const [from, by, to] = [2 * s3 - 3 * s2 + 1, (s3 - 2 * s2 + s) * easing, -2 * s3 + 3 * s2];
+    // And how fast it is going, a millisecond.
+    const [fromNow, byNow, toNow] = [(6 * s2 - 6 * s) / easing, 3 * s2 - 4 * s + 1, (6 * s - 6 * s2) / easing];
+    const lines = ease.from.start.length;
+    const places = { start: new Float64Array(lines), size: new Float64Array(lines) };
+    const speed = { start: new Float64Array(lines), size: new Float64Array(lines) };
+    for (const key of ["start", "size"] as const) {
+      const [a, v, b] = [ease.from[key], ease.speed[key], this.target[key]];
+      const [p, q] = [places[key], speed[key]];
+      for (let line = 0; line < lines; line++) {
+        p[line] = from * a[line] + by * v[line] + to * b[line];
+        q[line] = fromNow * a[line] + byNow * v[line] + toNow * b[line];
+      }
     }
-    this.places = { start, size };
-    this.held = ease.held + (this.targetHeld - ease.held) * e;
+    this.places = places;
+    this.held = from * ease.held + by * ease.heldSpeed + to * this.targetHeld;
+    this.speed = { lines: speed, held: fromNow * ease.held + byNow * ease.heldSpeed + toNow * this.targetHeld };
     this.follow();
   }
 
@@ -434,6 +473,37 @@ class Axis {
     return shift;
   }
 }
+
+/**
+ * What the scroll harness (e2e/scroll) reads of a view, each frame: see
+ * TileView.probe. A page opts in by setting `window.__chartViews` to an
+ * array before it loads; then every view puts itself in it while it lives.
+ */
+export interface ViewProbe {
+  /** The box's scroll and size, and the sheet's place and size in it. */
+  scroll: { left: number; top: number; width: number; height: number; clientWidth: number; clientHeight: number };
+  sheet: { left: number; top: number; width: number; height: number };
+  /** How far the layer is moved across the sheet, now and once the lines arrive. */
+  shift: { x: number; y: number; targetX: number; targetY: number };
+  moving: { columns: boolean; rows: boolean };
+  touching: boolean;
+  /** What is held still: a stitch scrolled to, a zoom's column and row. */
+  target?: number;
+  point?: { column: number; row: number };
+  columnsShowing: number;
+  rowsShowing: number;
+  cell: number;
+  /** The chart's width and height as drawn now, and as the sheet was last sized for. */
+  chart: { width: number; height: number };
+  /** The tiles in the box not yet painted as the chart is now, as a share of its area. */
+  unpainted: number;
+  /** What a frame's painting has cost of late, in milliseconds. */
+  cost: number;
+}
+
+type Registry = { __chartViews?: TileView[] };
+const registry = (): TileView[] | undefined =>
+  typeof window === "undefined" ? undefined : (window as unknown as Registry).__chartViews;
 
 export class TileView {
   private tiles = new Map<string, Tile>();
@@ -511,6 +581,46 @@ export class TileView {
       this.watch = new ResizeObserver(this.onScroll);
       this.watch.observe(scroller);
     }
+    registry()?.push(this);
+  }
+
+  /** What the scroll harness reads of the view: see ViewProbe. */
+  probe(): ViewProbe {
+    const { scroller, sheet } = this;
+    const view = this.showing();
+    let blank = 0;
+    if (this.content) {
+      // The tiles across the box, from the chart's own top left, that show an older chart than this one.
+      for (const tile of this.tiles.values()) {
+        if (tile.painted === this.version) continue;
+        const across = Math.min(tile.x + tileSize, view.x + view.width) - Math.max(tile.x, view.x);
+        const down = Math.min(tile.y + tileSize, view.y + view.height) - Math.max(tile.y, view.y);
+        if (across > 0 && down > 0) blank += across * down;
+      }
+    }
+    const size = this.content ? this.size() : { width: 0, height: 0 };
+    return {
+      scroll: {
+        left: scroller.scrollLeft,
+        top: scroller.scrollTop,
+        width: scroller.scrollWidth,
+        height: scroller.scrollHeight,
+        clientWidth: scroller.clientWidth,
+        clientHeight: scroller.clientHeight,
+      },
+      sheet: { left: sheet.offsetLeft, top: sheet.offsetTop, width: sheet.offsetWidth, height: sheet.offsetHeight },
+      shift: { x: this.columns.shift, y: this.rows.shift, targetX: this.columns.targetShift, targetY: this.rows.targetShift },
+      moving: { columns: this.columns.moving, rows: this.rows.moving },
+      touching: this.touching,
+      target: this.target,
+      point: this.point,
+      columnsShowing: this.columnMap?.count ?? 0,
+      rowsShowing: this.rowMap?.count ?? 0,
+      cell: this.content?.cell ?? 0,
+      chart: size,
+      unpainted: view.width * view.height > 0 ? blank / (view.width * view.height) : 0,
+      cost: this.cost,
+    };
   }
 
   /**
@@ -1143,6 +1253,12 @@ export class TileView {
     return { x: this.columns.places.start[column], y: this.rows.places.start[row], width, height };
   }
 
+  /** A stitch's cell on the sheet, as drawn now: nowhere while its column or row is closed up. For the scroll harness. */
+  cellOnSheet(id: number): { x: number; y: number; width: number; height: number } | undefined {
+    const at = this.placeOnLayer(id);
+    return at && { ...at, x: at.x + this.columns.shift, y: at.y + this.rows.shift };
+  }
+
   /** Where a stitch's cell is on the sheet, as the chart is drawn now. */
   place(id: number): { x: number; y: number } | undefined {
     const content = this.content;
@@ -1280,6 +1396,8 @@ export class TileView {
 
   /** Let go of every canvas: a canvas's memory is only given back once it has no size. */
   destroy() {
+    const views = registry();
+    if (views?.includes(this)) views.splice(views.indexOf(this), 1);
     cancelAnimationFrame(this.frame);
     this.scroller.removeEventListener("scroll", this.onScroll);
     this.scroller.removeEventListener("wheel", this.onScroll);
