@@ -299,19 +299,48 @@ describe("the round numbers down the edge", () => {
 });
 
 describe("the stitch markers on the chart", () => {
-  it("draws each as a line up the chart between two columns, through the rows it is on the needles", () => {
-    const built = buildSweater(testSweaterWithMarkers(), "one");
-    const { stitches, knitting } = built;
-    const seam = layOutSweater(stitches, knitting.rounds, knitting.roundKinds, knitting.roundPieces);
-    // Once the new beginning is placed, the chart turned to it, the raglan line with it.
-    const view = viewAt(built, seam, stitches.length);
-    const line = view.markers.find((one) => one.marker === raglanLine)!;
-    const scene = sceneOf(view.layout, stitches, view.rounds, { markers: view.markers });
-    const state = stateFor(view.layout);
+  const built = buildSweater(testSweaterWithMarkers(), "one");
+  const { stitches, knitting } = built;
+  const seam = layOutSweater(stitches, knitting.rounds, knitting.roundKinds, knitting.roundPieces);
+  // Once the new beginning is placed, the chart turned to it, the raglan line with it.
+  const view = viewAt(built, seam, stitches.length);
+  const line = view.markers.find((one) => one.marker === raglanLine)!;
+  const scene = sceneOf(view.layout, stitches, view.rounds, { markers: view.markers });
+  const paintAt = (progress: number) => {
+    const state = stateFor(view.layout, { progress });
     const paint = recorder();
     paintRegion(paint.ctx, { x: 0, y: 0, width: view.layout.columns * cell + 40, height: view.layout.rows * cell }, scene, state);
     const x = state.left[line.after];
-    const runs = paint.strokes.filter((one) => one.width === 2).flatMap((one) => one.points);
-    expect(runs).toContainEqual([x, state.top[line.to], x, state.top[line.from] + state.height[line.from]]);
+    const rowOf = (row: number) => [x, state.top[row] + state.height[row], x, state.top[row]];
+    const drawn = (colour: string, width: number) =>
+      paint.strokes.filter((one) => one.colour === colour && one.width === width).flatMap((one) => one.points);
+    return { rowOf, drawn, state, x };
+  };
+
+  it("draws each up the chart between two columns, a row at a time, through the rows it is on the needles", () => {
+    expect(line.route.map((at) => at.row)).toEqual(Array.from({ length: line.to - line.from + 1 }, (_, k) => line.from + k));
+    expect(new Set(line.route.map((at) => at.after))).toEqual(new Set([line.after]));
+  });
+
+  it("dashes the rows to come in the marker's colour, with a bar across where it is placed and where it comes off", () => {
+    const { rowOf, drawn, state, x } = paintAt(0);
+    const ahead = drawn(defaultColours.marker, 2);
+    for (let row = line.from; row <= line.to; row++) expect(ahead).toContainEqual(rowOf(row));
+    const bars = drawn(defaultColours.marker, 2.5);
+    expect(bars).toContainEqual([x - cell * 0.35, state.top[line.from] + state.height[line.from], x + cell * 0.35, state.top[line.from] + state.height[line.from]]);
+    expect(bars).toContainEqual([x - cell * 0.35, state.top[line.to], x + cell * 0.35, state.top[line.to]]);
+  });
+
+  it("draws the rows it has been through in grey ink, and the row it is reached in next heavier", () => {
+    // Placed, and the knitting part way round the next row, short of the marker.
+    const placedRow = line.route[0];
+    const { rowOf, drawn } = paintAt(placedRow.passed);
+    expect(drawn(defaultColours.ink, 2)).toContainEqual(rowOf(line.from));
+    expect(drawn(defaultColours.marker, 3)).toContainEqual(rowOf(line.route[1].row));
+    // Off the needles: every row it was on is in grey.
+    const done = paintAt(stitches.length - 1);
+    for (let row = line.from; row <= line.to; row++) expect(done.drawn(defaultColours.ink, 2)).toContainEqual(done.rowOf(row));
+    expect(done.drawn(defaultColours.marker, 2)).toHaveLength(0);
   });
 });
+

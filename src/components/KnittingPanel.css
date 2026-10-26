@@ -34,6 +34,12 @@
   font-size: 0.85rem;
 }
 
+/* Which side of a marker a make-one at it goes. */
+.knitting-marker-order {
+  margin: 0.5rem 0 0;
+  font-size: 0.95rem;
+}
+
 .run-swatch {
   display: inline-flex;
   align-items: center;

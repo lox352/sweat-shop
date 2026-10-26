@@ -1,6 +1,7 @@
 import { type ChartScene, emphasis } from "./chart-scene";
 import { rowsWithin } from "./column-window";
 import { type Palette, inkOn, yarnFor } from "./palette";
+import type { MarkerRow } from "./view";
 
 /**
  * The chart painted a piece at a time, onto a canvas.
@@ -67,6 +68,8 @@ export interface ChartColours {
   heavy: string;
   /** Where one piece meets another, and the steps drawn in ink: a change of needles, a hold. */
   piece: string;
+  /** A stitch marker's way ahead, and the round it is reached in next. */
+  marker: string;
   font: string;
 }
 
@@ -78,6 +81,7 @@ export const defaultColours: ChartColours = {
   rule: "rgba(0, 0, 0, 0.22)",
   heavy: "rgba(0, 0, 0, 0.7)",
   piece: "#1d1a17",
+  marker: "#bb2c43",
   font: '"Source Sans 3", "Source Sans Pro", system-ui, sans-serif',
 };
 
@@ -645,18 +649,69 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     ctx.setLineDash([]);
   }
 
-  // A stitch marker: a line up the chart between two columns, from the row it is placed in to the row it comes off in.
-  const lines = scene.markers.filter((line) => left[line.after] >= region.x - 4 && left[line.after] <= region.x + region.width + 4);
+  /*
+   * A stitch marker, up the chart between two columns, row by row: grey ink
+   * where it has been, a heavy stroke in the round it is reached in next,
+   * dashes for the rounds still to come. A bar across where it is placed,
+   * grey once it is, and another where it comes off, in the marker's colour
+   * until it does. Where it steps across to stand by a make-one, it steps
+   * along the top of the row below.
+   */
+  const near = (row: MarkerRow) => left[row.after] >= region.x - 4 && left[row.after] <= region.x + region.width + 4;
+  const lines = scene.markers.filter((line) => line.route.some(near));
   if (lines.length > 0) {
-    const draw = () => {
-      for (const line of lines) {
-        const x = snap(left[line.after]);
-        ctx.moveTo(x, top(line.to));
-        ctx.lineTo(x, top(line.from) + height[line.from]);
+    const been: number[] = [];
+    const now: number[] = [];
+    const ahead: number[] = [];
+    const bars: { x: number; y: number; done: boolean }[] = [];
+    for (const line of lines) {
+      const { route } = line;
+      route.forEach((at, k) => {
+        const passed = state.progress >= at.passed;
+        const reached = k > 0 ? state.progress >= route[k - 1].passed : state.progress >= at.start - 1;
+        const into = passed ? been : reached ? now : ahead;
+        const x = snap(left[at.after]);
+        if (k > 0 && route[k - 1].after !== at.after) {
+          const y = top(route[k - 1].row);
+          into.push(snap(left[route[k - 1].after]), y, x, y);
+        }
+        into.push(x, top(at.row) + height[at.row], x, top(at.row));
+      });
+      const [first, last] = [route[0], route[route.length - 1]];
+      bars.push({ x: snap(left[first.after]), y: top(first.row) + height[first.row], done: state.progress >= line.placed });
+      bars.push({ x: snap(left[last.after]), y: top(last.row), done: state.progress >= (line.off ?? last.passed) });
+    }
+    const reach = cell * 0.35;
+    const segments = (list: number[]) => () => {
+      for (let i = 0; i < list.length; i += 4) {
+        ctx.moveTo(list[i], list[i + 1]);
+        ctx.lineTo(list[i + 2], list[i + 3]);
       }
     };
-    strokeIn(draw, "#fff", 4);
-    strokeIn(draw, colours.piece, 2);
+    const across = (done: boolean) => () => {
+      for (const bar of bars) {
+        if (bar.done !== done) continue;
+        ctx.moveTo(bar.x - reach, bar.y);
+        ctx.lineTo(bar.x + reach, bar.y);
+      }
+    };
+    const thick = Math.max(3, Math.min(5, cell * 0.22));
+    strokeIn(() => {
+      segments(been)();
+      segments(now)();
+      segments(ahead)();
+      across(true)();
+      across(false)();
+    }, "#fff", thick + 2);
+    ctx.globalAlpha = 0.45;
+    strokeIn(segments(been), colours.ink, 2);
+    strokeIn(across(true), colours.ink, 2.5);
+    ctx.globalAlpha = 1;
+    ctx.setLineDash([cell * 0.28, cell * 0.2]);
+    strokeIn(segments(ahead), colours.marker, 2);
+    ctx.setLineDash([]);
+    strokeIn(segments(now), colours.marker, thick);
+    strokeIn(across(false), colours.marker, 2.5);
   }
 
   /* The round numbers down the right-hand edge, beside where column 1 ends. */

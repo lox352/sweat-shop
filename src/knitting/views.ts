@@ -338,5 +338,10 @@ export const layOutView = (
 export const markersInView = (lines: MarkerLine[], boundary: (after: number) => number | undefined): MarkerLine[] =>
   lines.flatMap((line) => {
     const after = boundary(line.after);
-    return after === undefined ? [] : [{ ...line, after }];
+    if (after === undefined) return [];
+    const route = line.route.flatMap((row) => {
+      const at = boundary(row.after);
+      return at === undefined ? [] : [{ ...row, after: at }];
+    });
+    return [{ ...line, after, route }];
   });
