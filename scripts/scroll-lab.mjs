@@ -61,12 +61,12 @@ for (const [device, { input, ...profile }] of Object.entries(profiles)) {
           `${device.padEnd(7)} ${name.padEnd(44)} frames ${String(measured.frames).padStart(4)}  dropped ${String(pacing.dropped).padStart(3)}  ` +
             `long ${pacing.longFrames}/${pacing.longest}ms  jumps ${jumps.byKind.slip}/${jumps.byKind.set}/${jumps.byKind.lurch} (${jumps.worst}px)  jitter ${jitter.p95}  ` +
             `unexpl ${motion.unexplainedP95}/${motion.unexplainedMax}  bars ${scrollbars.gapMax}/${scrollbars.stepMax}  ` +
-            `blank ${painting.unpaintedMax}  settle ${settling.ms}ms${settling.rested ? "" : " NOT AT REST"}  writes ${measured.writes}` +
+            `blank ${painting.unpaintedMax}/${painting.unpaintedNearMax}  settle ${settling.ms}ms${settling.rested ? "" : " NOT AT REST"}  writes ${measured.writes}` +
             (errors.length ? `  ERRORS ${errors.length}` : ""),
         );
         console.log(
           `        shake ${shake.reversals}/${shake.largest}px  follow ${follow.trips} trips, straight ${follow.straightness}, turns ${follow.reversals}/${follow.largest}px, off ${follow.offCentre}  ` +
-            `drift ${drift.share}  smeared ${sharpness.smeared}/${sharpness.frames} (moving ${sharpness.shimmering}/${sharpness.moved})  ` +
+            `drift ${drift.share}  past ${measured.past.max}px/${measured.past.frames}  smeared ${sharpness.smeared}/${sharpness.frames} (moving ${sharpness.shimmering}/${sharpness.moved})  ` +
             `paint ${painting.tiles} tiles, ${painting.tilesPerFrameMax}/frame, ${painting.msPerFrameP95}/${painting.msPerFrameMax}ms, ${painting.easingFrames} easing  ` +
             `audit ${measured.audit.wrong}/${measured.audit.tiles} wrong`,
         );

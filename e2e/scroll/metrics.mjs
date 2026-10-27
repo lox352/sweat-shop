@@ -14,8 +14,10 @@
  * - Scrollbars: how far the box's scrollbars are from telling the truth of
  *   where in the chart the box is, and how far they move in one frame.
  * - Painting: the most of the box left showing an old chart in a frame,
- *   and how many tiles were painted, how long that took a frame, and how
- *   many frames of lines easing repainted any.
+ *   and of it and a little round it, which a phone shows ahead of its
+ *   scroll; how many tiles were painted, how long that took a frame, and
+ *   how many frames of lines easing repainted any.
+ * - Past the edge: the box showing blank paper beyond the chart's edge.
  * - Settling: how long after the last gesture the chart is at rest.
  * - Shake: what is on screen going back and forth by itself, outside the
  *   knitter's gestures: it should go one way and come to rest.
@@ -410,16 +412,32 @@ export const measure = (recording, { allow = 24 } = {}) => {
    * - lines easing, the layer sliding - they shimmer, sharp one frame and
    * smeared the next, as the chart is drawn. And the box itself may sit on
    * no whole pixel, as the page lays it out, which smears them all alike.
+   * Mid-pinch the sheets are scaled, and no pixel is whole: those frames are
+   * left out.
    */
   const layerOff = (f) => {
     const found = /translate\(([-\d.e]+)px, ([-\d.e]+)px\)/.exec(f.transform ?? "");
     const [x, y] = found ? [Number(found[1]), Number(found[2])] : [0, 0];
     return Math.max(offGrid(f.sheetRect.left + x, f.dpr ?? 1), offGrid(f.sheetRect.top + y, f.dpr ?? 1));
   };
-  const drawn = frames.filter((f) => f.s && f.sheetRect);
+  const drawn = frames.filter((f) => f.s && f.sheetRect && !f.scaled);
   const smeared = drawn.filter((f) => layerOff(f) > 0.05);
   const moved = drawn.filter((f) => f.transform);
   const shimmering = smeared.filter((f) => f.transform).length;
+
+  /*
+   * Past the edge: how far the box shows beyond the chart's own edges, as
+   * the view reads where it is - blank paper where the chart should go on.
+   * The box goes past the chart by its padding, the room left for a join's
+   * arrow, and the round numbers, which the chart's width counts already: a
+   * couple of dozen pixels. Only a chart wider than the box can be scrolled
+   * past.
+   */
+  const pastEdge = frames.map((f) => {
+    if (!f.s || f.scaled || f.s.chart.width <= f.s.scroll.clientWidth) return 0;
+    const x = f.s.scroll.left - f.s.sheet.left - f.s.shift.x;
+    return Math.max(0, -x - 24, x + f.s.scroll.clientWidth - f.s.chart.width - 24);
+  });
 
   const bars = scrollbarsOf(frames);
   const barGaps = bars.filter(Boolean).map((b) => Math.max(Math.abs(b.thumbX - b.trueX), Math.abs(b.thumbY - b.trueY)));
@@ -484,6 +502,8 @@ export const measure = (recording, { allow = 24 } = {}) => {
        * never had it, and the next frame paints for where it has got to.
        */
       unpaintedMax: round(Math.max(0, ...frames.filter((f) => (f.ts ?? f.t) - f.t <= period * 1.5).map((f) => f.s?.unpainted ?? 0)), 3),
+      // And a little round the box, which a phone shows ahead of its scroll and bouncing at an end: see TileView.probe.
+      unpaintedNearMax: round(Math.max(0, ...frames.filter((f) => (f.ts ?? f.t) - f.t <= period * 1.5).map((f) => f.s?.unpaintedNear ?? 0)), 3),
       costMax: round(Math.max(0, ...frames.map((f) => f.s?.cost ?? 0)), 1),
       tiles: paintSteps.reduce((sum, p) => sum + p.tiles, 0),
       tilesPerFrameMax: Math.max(0, ...paintSteps.map((p) => p.tiles)),
@@ -501,6 +521,7 @@ export const measure = (recording, { allow = 24 } = {}) => {
       offCentre: followOff,
     },
     drift: { share: round(scrolled > 0 ? drifted / scrolled : 0, 3), pixels: round(drifted) },
+    past: { max: round(Math.max(0, ...pastEdge)), frames: pastEdge.filter((p) => p > 2).length },
     sharpness: { smeared: smeared.length, frames: drawn.length, share: round(drawn.length ? smeared.length / drawn.length : 0, 3), shimmering, moved: moved.length },
     settling: { ms: round(Math.max(0, lastChange - lastInput), 0), rested },
     writes: (recording.writes ?? []).length,

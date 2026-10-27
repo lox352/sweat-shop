@@ -5,7 +5,7 @@
  * page, run by the suite (scroll-quality.spec.mjs) and the lab
  * (scripts/scroll-lab.mjs) alike.
  */
-import { boxOf, ctrlWheel, settled, swipe, trackpad, wheelNotches } from "./gestures.mjs";
+import { boxOf, ctrlWheel, pinch, settled, swipe, trackpad, wheelNotches } from "./gestures.mjs";
 export { settled };
 
 const recorder = new URL("./recorder.js", import.meta.url);
@@ -96,7 +96,7 @@ export const record = async (page, act) => {
   await act();
   await settled(page, { quiet: 600 });
   const recording = await page.evaluate(() => window.__scrollProbe.stop());
-  recording.audit = await page.evaluate(() => window.__chartViews.at(-1)?.audit());
+  recording.audit = await page.evaluate(() => window.__chartViews.at(-1)?.audit?.());
   return recording;
 };
 
@@ -241,6 +241,36 @@ export const scenarios = {
         await page.waitForTimeout(300);
       }
       await page.evaluate(() => window.__scrollProbe.mark("zoom done"));
+    },
+  },
+  "zoom in from the whole width, then fling across": {
+    /*
+     * As a knitter does to look closer, on a phone: the chart zoomed right
+     * out, pinched in about a point left of the middle, and flung across
+     * straight away, both ways. Held still about the point it was pinched
+     * about, the chart's right-hand edge was carried into the box as columns
+     * closed beside it, and the box showed blank paper past it until rest.
+     */
+    input: "touch",
+    // Knitting, as the knitter in the clip was, the chart's scrollbars are put away: where they would be is not held to.
+    known: { scrollbars: Infinity },
+    setup: async (page) => {
+      await open(page, { choices: eachYearOnce, knitting: true });
+      const chart = page.getByRole("region", { name: /Scrollable knitting chart/ });
+      await chart.focus();
+      for (let k = 0; k < 8; k++) {
+        await chart.press("-");
+        await page.waitForTimeout(150);
+      }
+      await settled(page, { quiet: 500 });
+    },
+    act: async (page) => {
+      const box = await boxOf(page);
+      await pinch(page, { scale: Number(process.env.PINCH_SCALE ?? 6), at: { ...box, x: box.left + box.width * Number(process.env.PINCH_X ?? 0.3), y: box.top + box.height * Number(process.env.PINCH_Y ?? 0.6) } });
+      await page.waitForTimeout(150);
+      await swipe(page, { dx: -250, speed: 2500 });
+      await page.waitForTimeout(150);
+      await swipe(page, { dx: 200, speed: 2500 });
     },
   },
   "knit a few rounds, the chart following": {
