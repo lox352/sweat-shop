@@ -106,14 +106,14 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
       const { neck, low } = trimsNow();
       return {
         ...Object.fromEntries(allSlots.map((slot) => [slot, `${yearOfSlot(slot)} ${yearOf(yearOfSlot(slot)).name}, yarn ${letterOf(slot)}${shadeLabel(slot)}`])),
-        [neck]: trimRole(neck, "The neck's ribbing and the back neck's short rows"),
+        [neck]: trimRole(neck, "The neck's ribbing"),
         [low]: trimRole(low, "The waist and wrist ribbing"),
       };
     },
     trim: {
       slot: trimSlot,
       label: "Trim",
-      note: "The ribbing and the back neck's short rows: the neck's in the darkest yarn of the hat beside it, the waist's and wrists' in the darkest of the hats beside them, or all in any yarn of the palette.",
+      note: "The ribbing: the neck's in the darkest yarn of the hat beside it, the waist's and wrists' in the darkest of the hats beside them, or all in any yarn of the palette. The back neck's short rows are in the first band's background, into which they run on.",
     },
     slotsVaryBySize: true,
     // Other people's charts, knitted as they drew them: floats as long as they come, caught behind the work, and one round of the Shwook Hat in three colours.

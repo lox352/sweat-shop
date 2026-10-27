@@ -118,6 +118,19 @@ describe.each([eachYearOnce, thirteenStrips])("the colourways of $name", (design
     expect(new Set(ribs)).toEqual(new Set(["trim/14", low]));
   });
 
+  it("knits the back neck's short rows in the first band's background, not the trim, so that only the ribbing stands out", () => {
+    for (const size of design.sizes) {
+      const rounds = size.sections.flatMap((s) => s.rounds);
+      const at = rounds.findIndex((r) => r.type === "shortRows");
+      const short = rounds[at] as { slot: string };
+      // The first round of the yoke after them, which opens the first band in its background yarn.
+      const next = rounds.slice(at + 1).find((r) => "slot" in r || r.type === "chart") as { slot?: string };
+      expect(isTrim(short.slot), size.id).toBe(false);
+      expect(short.slot.split("/")[0], size.id).toBe(next.slot?.split("/")[0] ?? short.slot.split("/")[0]);
+      expect(yearOfSlot(short.slot), size.id).toBe(2014);
+    }
+  });
+
   it.each(design.colourways.map((c) => [c.name, c] as const))("trims by default in the darkest yarn of the years beside it, in %s", (_, colourway) => {
     for (const trim of colourway.shades.filter((s) => isTrim(s.slot))) {
       const years = yearsOfTrim(trim.slot);

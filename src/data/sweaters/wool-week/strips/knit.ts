@@ -59,6 +59,27 @@ export const trimsOf = (rows: Plan["rows"]): { neck: string; low: string } => ({
   low: trimOf([rows.body[rows.body.length - 1].year, rows.sleeve[rows.sleeve.length - 1].year]),
 });
 
+/**
+ * The background of the yoke's first band, as its round nearest the neck
+ * knits it: the yarn most of that round's background stitches are in. The
+ * back neck's short rows are knitted in it, so that they run on into the
+ * first band unseen and the ribbing alone stands out at the neck. Where the
+ * yoke opens with a plain round of that yarn, as it most often does, its
+ * slot is that round's, so the two are one even where a colourway shades
+ * its bands' grounds.
+ */
+export const firstGround = (yoke: Row[]): string => {
+  const opening = slotOfRound(yoke[0]);
+  const band = unitsOf(yoke).find((u) => !u.solid);
+  if (!band) return opening;
+  const tile = band.tiles[0];
+  const counts = new Map<string, number>();
+  band.bg[0].forEach((bg, q) => bg && counts.set(tile[q], (counts.get(tile[q]) ?? 0) + 1));
+  const ground = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? opening;
+  const yarn = (slot: string) => slot.split("/")[0];
+  return rowIsSolid(yoke[0]) || isPlain(yoke[0]) ? (yarn(opening) === yarn(ground) ? opening : ground) : ground;
+};
+
 export interface Knitted {
   sections: Section[];
   charts: Chart[];
@@ -442,8 +463,10 @@ export const knit = (size: Measured, given: Plan, prefix: string): Knitted => {
   const upperArm = nearest(size.upperArmCm * g.stitches, 2);
   const cuff = nearest(size.cuffCm * g.stitches, 4);
   const yokeTotal = body - 2 * underarm + 2 * (upperArm - underarm);
-  // The ribs and the back neck's short rows in the trim (see colours): the neck's beside the yoke's first year, the waist's and the wrists' beside the last of the body and the sleeves.
+  // The ribs in the trim (see colours): the neck's beside the yoke's first year, the waist's and the wrists' beside the last of the body and the sleeves.
   const { neck: neckTrim, low: lowTrim } = trimsOf(plan.rows);
+  // And the back neck's short rows in the first band's background, into which they run on.
+  const shortRowSlot = firstGround(plan.rows.yoke);
 
   /* ---------------------------------------------------------------- yoke */
   const yoke = new Writer(prefix);
@@ -457,7 +480,7 @@ export const knit = (size: Measured, given: Plan, prefix: string): Knitted => {
     { type: "join" },
     { type: "rounds", count: ribs.neck, slot: neckTrim, sequence: ["k", "p"], fabric: "rib", markers: [{ after: 0, place: startOfRound }] },
     { type: "needles", to: "main" },
-    { type: "shortRows", first: Math.round(neck * 0.16), extend: Math.round(neck * 0.05), pairs: 3, slot: neckTrim },
+    { type: "shortRows", first: Math.round(neck * 0.16), extend: Math.round(neck * 0.05), pairs: 3, slot: shortRowSlot },
     ...yoke.done(),
   ];
   yokeSpecs[yokeSpecs.length - 1] = { ...yokeSpecs[yokeSpecs.length - 1], check: "yoke" };

@@ -19,11 +19,13 @@ import { allSlots, allTrims, letterOf, trimSlot, yearOfSlot, yearsOfTrim } from 
  * figure (see slots' bandSlotsOfRow); every other colourway knits a shaded
  * slot in its yarn's own colour.
  *
- * The ribbing is the trim's, no hat's: the neck's, with the back neck's
- * short rows, by default in the darkest yarn the year beside it knits in the
- * colourway, and the waist's and wrists' in the darkest of the years beside
- * them, one yarn for both; or all of it in any of the palette's yarns the
- * knitter chooses (see Colourway.trims, and slots' trimOf).
+ * The ribbing is the trim's, no hat's: the neck's by default in the darkest
+ * yarn the year beside it knits in the colourway, and the waist's and
+ * wrists' in the darkest of the years beside them, one yarn for both; or all
+ * of it in any of the palette's yarns the knitter chooses (see
+ * Colourway.trims, and slots' trimOf). The back neck's short rows are not
+ * the trim's but the first band's background (see knit's firstGround), so
+ * the ribbing alone stands out at the neck.
  */
 
 interface Yarn {
