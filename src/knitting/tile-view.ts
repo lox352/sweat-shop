@@ -335,6 +335,8 @@ class Axis {
   private ease?: { start: number; from: Places; speed: Places; held: number; heldSpeed: number };
   /** How fast each line, and what is held, was going at the last frame, in pixels a millisecond: nothing at rest. */
   private speed?: { lines: Places; held: number };
+  /** The line held still while the lines ease, and where on the sheet: see retarget. */
+  private kept?: { line: number; at: number };
 
   constructor(places: Places) {
     this.places = this.target = this.rest = places;
@@ -346,6 +348,7 @@ class Axis {
     this.held = this.targetHeld = 0;
     this.ease = undefined;
     this.speed = undefined;
+    this.kept = undefined;
     this.follow();
   }
 
@@ -374,12 +377,14 @@ class Axis {
   send(to: Places) {
     this.target = to;
     this.targetShift = this.slide(to) + this.targetHeld;
+    this.kept = undefined;
   }
 
   /** Or to where it holds `line` where it is drawn now. */
   retarget(to: Places, line: number) {
     this.target = to;
     this.hold(this.shift, this.at(line) - to.start[line]);
+    this.kept = { line, at: this.at(line) };
   }
 
   /**
@@ -396,6 +401,8 @@ class Axis {
 
   /** The layer sent to `target` instead, once the lines arrive. */
   limit(target: number) {
+    // Sent on from where it was held, the line eases there with the rest.
+    if (Math.abs(target - this.targetShift) > 1e-6) this.kept = undefined;
     this.hold(this.shift, target);
   }
 
@@ -409,6 +416,7 @@ class Axis {
       this.held = this.targetHeld;
       this.ease = undefined;
       this.speed = undefined;
+      this.kept = undefined;
     } else {
       const lines = this.places.start.length;
       this.ease = {
@@ -437,9 +445,10 @@ class Axis {
     const s = finish ? 1 : Math.min(1, (time - ease.start) / easing);
     if (s >= 1) {
       this.places = this.target;
-      this.held = this.targetHeld;
+      this.held = this.targetHeld = this.keeping(this.target) ?? this.targetHeld;
       this.ease = undefined;
       this.speed = undefined;
+      this.kept = undefined;
       this.follow();
       return;
     }
@@ -461,13 +470,25 @@ class Axis {
       }
     }
     this.places = places;
-    this.held = from * ease.held + by * ease.heldSpeed + to * this.targetHeld;
+    this.held = this.keeping(places) ?? from * ease.held + by * ease.heldSpeed + to * this.targetHeld;
     this.speed = { lines: speed, held: fromNow * ease.held + byNow * ease.heldSpeed + toNow * this.targetHeld };
     this.follow();
   }
 
+  /**
+   * What is held, with lines laid out `places`, to keep the line held where
+   * it was on the sheet. Eased with the lines instead, it came to rest where
+   * the scroll then put the layer, which had moved on meanwhile: the box
+   * glided to the stitch and it crept on a few pixels as the lines arrived.
+   */
+  private keeping(places: Places): number | undefined {
+    const kept = this.kept;
+    return kept && kept.at - this.slide(places) - places.start[kept.line];
+  }
+
   /** The layer put `shift` along from the sheet's edge, at once, and kept there. */
   anchor(shift: number) {
+    this.kept = undefined;
     this.hold(shift, shift);
   }
 
@@ -477,6 +498,7 @@ class Axis {
    * it moves, whatever the scroll now puts it at.
    */
   offset(by: number) {
+    if (this.kept) this.kept.at -= by;
     this.hold(this.shift - by, this.targetShift - by);
   }
 
@@ -489,6 +511,7 @@ class Axis {
     this.rest = this.places;
     this.held = this.targetHeld = 0;
     this.shift = this.targetShift = 0;
+    this.kept = undefined;
     return shift;
   }
 }
