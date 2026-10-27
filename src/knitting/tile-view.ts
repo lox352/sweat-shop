@@ -131,13 +131,16 @@ interface Rect {
   y1: number;
 }
 
-/**
- * How far past the box tiles are painted while lines ease, every one of them
- * afresh each frame: as little as covers how far the box may scroll on
- * before the next frame is drawn - this, and twice as far as it scrolled in
- * the last, up to `ahead`.
- */
+/** How far past the box tiles are painted while lines ease, but on the side it is going: see paintTiles. */
 const easingMargin = 64;
+/** How long, in milliseconds, the box is taken to be going the way it last went: see paintTiles. */
+const headingFor = 250;
+
+/** A length in whole pixels, as the sheet is sized (see TileView.size); and how much that adds to it. */
+const whole = (length: number) => Math.ceil(length - 1e-6);
+const roundedUp = (length: number) => Math.max(0, whole(length) - length);
+
+const covers = (a: Rect, b: Rect) => a.x0 <= b.x0 && a.y0 <= b.y0 && a.x1 >= b.x1 && a.y1 >= b.y1;
 
 /** Lines laid out side by side, each as many cells in as there are lines showing before it. */
 const placesFrom = (before: Int32Array, shows: Uint8Array, cell: number): Places => {
@@ -332,6 +335,8 @@ class Axis {
   private ease?: { start: number; from: Places; speed: Places; held: number; heldSpeed: number };
   /** How fast each line, and what is held, was going at the last frame, in pixels a millisecond: nothing at rest. */
   private speed?: { lines: Places; held: number };
+  /** The line held still while the lines ease, and where on the sheet: see retarget. */
+  private kept?: { line: number; at: number };
 
   constructor(places: Places) {
     this.places = this.target = this.rest = places;
@@ -343,6 +348,7 @@ class Axis {
     this.held = this.targetHeld = 0;
     this.ease = undefined;
     this.speed = undefined;
+    this.kept = undefined;
     this.follow();
   }
 
@@ -371,12 +377,14 @@ class Axis {
   send(to: Places) {
     this.target = to;
     this.targetShift = this.slide(to) + this.targetHeld;
+    this.kept = undefined;
   }
 
   /** Or to where it holds `line` where it is drawn now. */
   retarget(to: Places, line: number) {
     this.target = to;
     this.hold(this.shift, this.at(line) - to.start[line]);
+    this.kept = { line, at: this.at(line) };
   }
 
   /**
@@ -393,6 +401,8 @@ class Axis {
 
   /** The layer sent to `target` instead, once the lines arrive. */
   limit(target: number) {
+    // Sent on from where it was held, the line eases there with the rest.
+    if (Math.abs(target - this.targetShift) > 1e-6) this.kept = undefined;
     this.hold(this.shift, target);
   }
 
@@ -406,6 +416,7 @@ class Axis {
       this.held = this.targetHeld;
       this.ease = undefined;
       this.speed = undefined;
+      this.kept = undefined;
     } else {
       const lines = this.places.start.length;
       this.ease = {
@@ -434,9 +445,10 @@ class Axis {
     const s = finish ? 1 : Math.min(1, (time - ease.start) / easing);
     if (s >= 1) {
       this.places = this.target;
-      this.held = this.targetHeld;
+      this.held = this.targetHeld = this.keeping(this.target) ?? this.targetHeld;
       this.ease = undefined;
       this.speed = undefined;
+      this.kept = undefined;
       this.follow();
       return;
     }
@@ -458,13 +470,25 @@ class Axis {
       }
     }
     this.places = places;
-    this.held = from * ease.held + by * ease.heldSpeed + to * this.targetHeld;
+    this.held = this.keeping(places) ?? from * ease.held + by * ease.heldSpeed + to * this.targetHeld;
     this.speed = { lines: speed, held: fromNow * ease.held + byNow * ease.heldSpeed + toNow * this.targetHeld };
     this.follow();
   }
 
+  /**
+   * What is held, with lines laid out `places`, to keep the line held where
+   * it was on the sheet. Eased with the lines instead, it came to rest where
+   * the scroll then put the layer, which had moved on meanwhile: the box
+   * glided to the stitch and it crept on a few pixels as the lines arrived.
+   */
+  private keeping(places: Places): number | undefined {
+    const kept = this.kept;
+    return kept && kept.at - this.slide(places) - places.start[kept.line];
+  }
+
   /** The layer put `shift` along from the sheet's edge, at once, and kept there. */
   anchor(shift: number) {
+    this.kept = undefined;
     this.hold(shift, shift);
   }
 
@@ -474,6 +498,7 @@ class Axis {
    * it moves, whatever the scroll now puts it at.
    */
   offset(by: number) {
+    if (this.kept) this.kept.at -= by;
     this.hold(this.shift - by, this.targetShift - by);
   }
 
@@ -486,6 +511,7 @@ class Axis {
     this.rest = this.places;
     this.held = this.targetHeld = 0;
     this.shift = this.targetShift = 0;
+    this.kept = undefined;
     return shift;
   }
 }
@@ -513,8 +539,9 @@ export interface ViewProbe {
   cell: number;
   /** The chart's width and height as drawn now, and as the sheet was last sized for. */
   chart: { width: number; height: number };
-  /** The tiles in the box not yet painted as the chart is now, as a share of its area. */
+  /** The tiles in the box not yet painted as the chart is now, as a share of its area; and in it and a little round it. */
   unpainted: number;
+  unpaintedNear: number;
   /** What a frame's painting has cost of late, in milliseconds. */
   cost: number;
   /** How many tiles have been painted since the view was made, and how long that took in all, in milliseconds. */
@@ -554,8 +581,9 @@ export class TileView {
   private movedAt = 0;
   /** What painting the tiles in view costs a frame while lines move, smoothed; easing stops while it is over budget. */
   private cost = 0;
-  /** Where the box was scrolled to when the tiles were last painted, for how fast it is going. */
-  private scrolledTo = { left: 0, top: 0 };
+  /** Where the box showed the chart when the tiles were last painted, and which way it was last seen going, and when. */
+  private lastView = { x: 0, y: 0 };
+  private heading = { x: 0, y: 0, at: { x: 0, y: 0 } };
   /** How many tiles have been painted, and how long that took: for the scroll harness. */
   private paints = 0;
   private paintTime = 0;
@@ -614,21 +642,31 @@ export class TileView {
   probe(): ViewProbe {
     const { scroller, sheet } = this;
     const view = this.showing();
-    let blank = 0;
-    if (this.content) {
-      // The tiles across the box and the chart, from the chart's own top left, that show an older chart than this one: the tiles are cut off at the chart's edges.
+    /*
+     * The tiles across the box and the chart, from the chart's own top left,
+     * that show an older chart than this one - and across the box and `by`
+     * round it, which a phone may show for a moment before it tells of its
+     * scroll, or bouncing at an end. The tiles are cut off at the chart's
+     * edges, and a tile not made yet shows nothing at all.
+     */
+    const blankIn = (by: number) => {
+      if (!this.content) return 0;
       const { width, height } = this.size();
-      const [x0, x1] = [Math.max(view.x, -this.content.margin), Math.min(view.x + view.width, width)];
-      const [y0, y1] = [Math.max(view.y, 0), Math.min(view.y + view.height, height)];
+      const [x0, x1] = [Math.max(view.x - by, -this.content.margin), Math.min(view.x + view.width + by, width)];
+      const [y0, y1] = [Math.max(view.y - by, 0), Math.min(view.y + view.height + by, height)];
       const area = (a: Rect) => Math.max(0, a.x1 - a.x0) * Math.max(0, a.y1 - a.y0);
       const within = (a: Rect, b: Rect): Rect => ({ x0: Math.max(a.x0, b.x0), y0: Math.max(a.y0, b.y0), x1: Math.min(a.x1, b.x1), y1: Math.min(a.y1, b.y1) });
+      let blank = area({ x0, y0, x1, y1 });
       for (const tile of this.tiles.values()) {
         const shown = within({ x0: tile.x, y0: tile.y, x1: tile.x + tileSize, y1: tile.y + tileSize }, { x0, y0, x1, y1 });
         // Painted in part, what shows beyond the part is as old as a tile not painted at all.
-        if (tile.painted !== this.version) blank += area(shown);
-        else if (tile.part) blank += area(shown) - area(within(shown, tile.part));
+        if (tile.painted === this.version) blank -= tile.part ? area(within(shown, tile.part)) : area(shown);
       }
-    }
+      return Math.max(0, blank);
+    };
+    const blank = blankIn(0);
+    // Half the margin painted round the box while lines ease: what is left of it once the box has moved on a frame.
+    const near = blankIn(easingMargin / 2);
     const size = this.content ? this.size() : { width: 0, height: 0 };
     return {
       scroll: {
@@ -651,6 +689,7 @@ export class TileView {
       cell: this.content?.cell ?? 0,
       chart: size,
       unpainted: view.width * view.height > 0 ? blank / (view.width * view.height) : 0,
+      unpaintedNear: view.width * view.height > 0 ? near / (view.width * view.height) : 0,
       cost: this.cost,
       paints: this.paints,
       paintTime: this.paintTime,
@@ -764,7 +803,9 @@ export class TileView {
     if (room <= 2) return 0;
     const box = this.within(this.scroller.scrollLeft - this.sheet.offsetLeft, near, room);
     const home = scrollsFromRight(this.scroller) ? 1 : 0;
-    return box - along(this.columns.rest, places, this.part(box + near, room), size, near, far, home, content.cell);
+    // The sheet is in whole pixels (see size): the part of one it is wider than the lines at rest is room past them.
+    const over = roundedUp(this.columns.rest.start[0] + gutter(content.cell));
+    return box - along(this.columns.rest, places, this.part(box + near, room), size, near, far + over, home, content.cell);
   }
 
   /** And down, with rows laid out `places`, the box going past the chart by its padding. */
@@ -779,7 +820,8 @@ export class TileView {
     const room = height + near + far - size;
     if (room <= 2) return 0;
     const box = this.within(this.scroller.scrollTop - this.sheet.offsetTop, near, room);
-    return box - along(this.rows.rest, places, this.part(box + near, room), size, near, far, 0, content.cell);
+    const over = roundedUp(this.rows.rest.start[0]);
+    return box - along(this.rows.rest, places, this.part(box + near, room), size, near, far + over, 0, content.cell);
   }
 
   /**
@@ -1062,9 +1104,15 @@ export class TileView {
   /** The chart's width on the sheet, with room for the round numbers, and its height. */
   private size() {
     const content = this.content!;
+    /*
+     * In whole pixels: zoomed out, a cell is a part of a pixel and so the
+     * chart may be, and the sheet's offset in the box, read in whole pixels,
+     * would then be a pixel out from where its scroll puts it - the layer
+     * slid a pixel at an end, never quite at rest.
+     */
     return {
-      width: this.columns.places.start[0] + gutter(content.cell),
-      height: this.rows.places.start[0],
+      width: whole(this.columns.places.start[0] + gutter(content.cell)),
+      height: whole(this.rows.places.start[0]),
     };
   }
 
@@ -1282,46 +1330,77 @@ export class TileView {
     // What is in view first, then what is about to be, while there is time.
     const inView = (tile: Tile) => tile.tx >= vx0 && tile.tx <= vx1 && tile.y / tileSize >= vy0 && tile.y / tileSize <= vy1;
     /*
-     * While lines ease, every tile is drawn afresh each frame, so only what
-     * is in view is painted, and of each tile only the part in view and a
-     * little round it: the most of a tile, and of the tiles round the box,
-     * would be painted only to be painted again the next frame. The rest is
-     * painted once the lines come to rest. Painting what is not shown, it
-     * was most of the work of a frame of easing, and on a phone the frames
-     * came late for it.
+     * While lines ease, every tile is drawn afresh each frame, so of each
+     * tile only the part in view and a little round it is painted: the rest
+     * of a tile would be painted only to be painted again the next frame. It
+     * is painted once the lines come to rest. Painting what could not be
+     * shown, it was most of the work of a frame of easing, and on a phone the
+     * frames came late for it. A little round it, but `ahead` on the side
+     * the box is going: a phone scrolls on ahead of what it has told of, and
+     * bounces past an end, so more shows that way than the scroll says - a
+     * box painted only as far as the scroll put it showed blank paper there.
+     * The way it is going is kept a little while: a busy phone tells of its
+     * scroll every other frame, and the box seemingly still for a frame went
+     * on the next by a frame's worth and more.
      */
     const easing = this.columns.moving || this.rows.moving;
-    const scrolled = { left: this.scroller.scrollLeft, top: this.scroller.scrollTop };
-    const going = Math.hypot(scrolled.left - this.scrolledTo.left, scrolled.top - this.scrolledTo.top);
-    this.scrolledTo = scrolled;
-    const beyond = Math.min(ahead, easingMargin + 2 * going);
-    const shown: Rect = { x0: view.x, y0: view.y, x1: view.x + view.width, y1: view.y + view.height };
-    const partOf = (tile: Tile, by: number): Rect => ({
-      x0: Math.max(tile.x, shown.x0 - by),
-      y0: Math.max(tile.y, shown.y0 - by),
-      x1: Math.min(tile.x + tileSize, shown.x1 + by),
-      y1: Math.min(tile.y + tileSize, shown.y1 + by),
+    const { heading } = this;
+    for (const axis of ["x", "y"] as const) {
+      const by = view[axis] - this.lastView[axis];
+      if (Math.abs(by) > 0.5) {
+        heading[axis] = Math.sign(by);
+        heading.at[axis] = time;
+      } else if (time - heading.at[axis] > headingFor) heading[axis] = 0;
+    }
+    this.lastView = { x: view.x, y: view.y };
+    const shown: Rect = {
+      x0: view.x - (heading.x < 0 ? ahead : easingMargin),
+      y0: view.y - (heading.y < 0 ? ahead : easingMargin),
+      x1: view.x + view.width + (heading.x > 0 ? ahead : easingMargin),
+      y1: view.y + view.height + (heading.y > 0 ? ahead : easingMargin),
+    };
+    const partOf = (tile: Tile): Rect => ({
+      x0: Math.max(tile.x, shown.x0),
+      y0: Math.max(tile.y, shown.y0),
+      x1: Math.min(tile.x + tileSize, shown.x1),
+      y1: Math.min(tile.y + tileSize, shown.y1),
     });
     // A tile painted in part wants painting again for any more of it to show, or once the lines are at rest.
     for (const tile of this.tiles.values()) {
       if (tile.painted !== this.version || !tile.part || !wanted.has(tile.key)) continue;
-      const needed = partOf(tile, 0);
-      const covered = tile.part.x0 <= needed.x0 && tile.part.y0 <= needed.y0 && tile.part.x1 >= needed.x1 && tile.part.y1 >= needed.y1;
-      if (!easing || !covered) stale.push(tile);
+      const needed = partOf(tile);
+      if (!easing || !covers(tile.part, needed)) stale.push(tile);
     }
     let left = false;
     const fresh = stale.filter(inView);
-    for (const tile of fresh) this.paint(tile, content, state, easing ? partOf(tile, beyond) : undefined);
+    for (const tile of fresh) this.paint(tile, content, state, easing ? partOf(tile) : undefined);
     const spent = performance.now() - time;
     // A phone too slow to ease the lines has them moved at once instead, until it is quick enough again.
     if (moved && fresh.length > 0) this.cost = this.cost * 0.6 + spent * 0.4;
-    if (easing) return this.keep(wanted);
-    for (const tile of stale.filter((tile) => !inView(tile))) {
-      if (performance.now() - time > spent + spare) {
+    if (easing) {
+      // And the tiles round the box, as far as is painted round it: see above.
+      for (const tile of stale) if (!inView(tile)) this.paint(tile, content, state, partOf(tile));
+      return this.keep(wanted);
+    }
+    /*
+     * Then round the box, nearest first, while there is time; but what is
+     * just past the box is painted whatever the time, if only in part: it
+     * is what a fling or a bounce shows next, before the page has said so.
+     */
+    const meets = (part: Rect) => part.x1 > part.x0 && part.y1 > part.y0;
+    const round = stale.filter((tile) => !inView(tile));
+    const distance = (tile: Tile) =>
+      Math.max(0, view.x - tile.x - tileSize, tile.x - view.x - view.width) +
+      Math.max(0, view.y - tile.y - tileSize, tile.y - view.y - view.height);
+    round.sort((a, b) => distance(a) - distance(b));
+    for (const tile of round) {
+      if (performance.now() - time <= spent + spare) this.paint(tile, content, state);
+      else {
         left = true;
-        break;
+        const part = partOf(tile);
+        const had = tile.painted === this.version ? tile.part : undefined;
+        if (meets(part) && !(had && covers(had, part))) this.paint(tile, content, state, part);
       }
-      this.paint(tile, content, state);
     }
     if (left) this.schedule();
     this.keep(wanted);
@@ -1495,6 +1574,56 @@ export class TileView {
       else low = row + 1;
     }
     return low <= rows && size[low] > 0 && y < start[low] + size[low] ? low : undefined;
+  }
+
+  /**
+   * The box sent straight to a stitch, to put it `inBox` - from the box's
+   * top left - in one frame: the knitting begun on a chart, or gone on to
+   * one laid out afresh, a sleeve put on hold. As for a zoom (see
+   * zoomedTo), the lines the box needs there are laid out at once, nothing
+   * held still, and the sheet takes the chart's size, before the box is
+   * scrolled to where the stitch now is, which this says. Sent there with
+   * the lines it needed where it was, the lines it needs once there opened
+   * about the stitch held still as the sheet grew round it, and could carry
+   * the box a chart's width past the chart's edge, blank, until rest.
+   */
+  jumpTo(id: number, inBox: { x: number; y: number }): { x: number; y: number } | undefined {
+    const content = this.content;
+    if (!content) return undefined;
+    const { cell, scene } = content;
+    const row = scene.rowOf[id];
+    if (!content.collapse || !row || !this.columnMap || !this.rowMap) return this.place(id);
+    const column = scene.columnOf[id];
+    this.target = id;
+    this.point = undefined;
+    this.movedAt = performance.now();
+    const place = () => ({ x: this.columns.places.start[column], y: this.rows.places.start[row] });
+    this.columns.reset(columnPlaces(this.columnMap, cell, scene.breaks));
+    this.rows.reset(rowPlaces(this.rowMap, cell));
+    /*
+     * Only as far as the box can be scrolled, as for slideAcross: with the
+     * stitch near an end of the chart, the box stops short of putting it
+     * `inBox`, and the lines are those it shows there.
+     */
+    const style = getComputedStyle(this.scroller);
+    const left = (parseFloat(style.paddingLeft) || 0) + content.margin;
+    const right = (parseFloat(style.paddingRight) || 0) - this.scroller.clientWidth;
+    const below = (parseFloat(style.paddingBottom) || 0) - this.scroller.clientHeight;
+    const clamp = (at: number, low: number, high: number) => Math.max(low, Math.min(at, high));
+    this.settle(true, () => {
+      const at = place();
+      const { width, height } = this.size();
+      return { x: clamp(at.x - inBox.x, -left, width + right), y: clamp(at.y - inBox.y, 0, height + below) };
+    });
+    const size = this.size();
+    this.sheet.style.width = `${size.width}px`;
+    this.sheet.style.height = `${size.height}px`;
+    for (const axis of [this.columns, this.rows]) axis.shift = axis.targetShift = 0;
+    this.layer.style.transform = "";
+    this.version++;
+    this.onMove?.();
+    this.schedule();
+    return place();
   }
 
   /**

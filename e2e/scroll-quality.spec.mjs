@@ -31,6 +31,10 @@ const limits = {
   scrollbars: 0.15,
   // The box hardly ever shows an old chart in a frame: a hundredth of it at most.
   unpainted: 0.01,
+  // Nor a little round it, which a phone shows ahead of its scroll and bouncing at an end: two hundredths.
+  unpaintedNear: 0.02,
+  // Nor blank paper past the chart's edge, where the chart goes on.
+  past: 4,
   // And the chart is at rest once the gesture is over, within a second.
   settle: 1000,
   // Left to itself, what is on screen goes one way and comes to rest: back and forth by 4 pixels or more, twice at most.
@@ -84,6 +88,8 @@ test.describe("the chart moves smoothly", () => {
         expect(jitter.p95, "jitter").toBeLessThanOrEqual(limit.jitter);
         expect(scrollbars.gapP95, "scrollbars against the truth").toBeLessThanOrEqual(limit.scrollbars);
         expect(painting.unpaintedMax, "old chart showing").toBeLessThanOrEqual(limit.unpainted);
+        expect(painting.unpaintedNearMax, "old chart round the box").toBeLessThanOrEqual(limit.unpaintedNear);
+        expect(measured.past.max, "the box past the chart's edge").toBeLessThanOrEqual(limit.past);
         expect(settling.rested, "at rest after").toBe(true);
         expect(measured.shake.reversals, `back and forth by itself: ${JSON.stringify(measured.shake)}`).toBeLessThanOrEqual(limit.shake);
         expect(measured.sharpness.share, "tiles off whole device pixels").toBeLessThanOrEqual(limit.smeared);

@@ -342,19 +342,30 @@ const Chart: React.FC<ChartProps> = ({
     }
   }, []);
   const aim = useCallback(
-    (behavior: ScrollBehavior) => {
+    (behavior: ScrollBehavior, afresh = false) => {
       const scroller = scrollRef.current;
       const sheet = sheetRef.current;
       if (!scroller || !sheet || nextId === undefined || !at) return;
       const cell = cellNow.current;
-      // Held still on the tiles while the box scrolls to it, however the columns move on the way.
-      tilesRef.current?.hold(nextId);
-      const placed = tilesRef.current?.place(nextId);
+      // Where in the box the stitch goes: the middle across, its round a little up from the foot.
+      const inBox = { x: scroller.clientWidth / 2 - cell / 2, y: scroller.clientHeight - lift(scroller.clientHeight, cell, followAt) - cell };
+      /*
+       * Held still on the tiles while the box goes to it, however the
+       * columns move on the way; or, sent straight to a chart laid out
+       * afresh, laid out first as the box needs it there (see
+       * TileView.jumpTo).
+       */
+      let placed: { x: number; y: number } | undefined;
+      if (afresh) placed = tilesRef.current?.jumpTo(nextId, inBox);
+      else {
+        tilesRef.current?.hold(nextId);
+        placed = tilesRef.current?.place(nextId);
+      }
       if (!placed) return;
       aimedAt.current = {
         // From the same edge as the sheet's offset in the box, whichever it is scrolled from: see scroll-corner.
-        left: sheet.offsetLeft + placed.x - scroller.clientWidth / 2 + cell / 2,
-        top: Math.max(placed.y + cell - (scroller.clientHeight - lift(scroller.clientHeight, cell, followAt)), 0),
+        left: sheet.offsetLeft + placed.x - inBox.x,
+        top: Math.max(placed.y - inBox.y, 0),
         behavior,
       };
       send();
@@ -383,12 +394,15 @@ const Chart: React.FC<ChartProps> = ({
    * So does the first on a chart laid out afresh - cut at a new beginning
    * of the round, or turned over for a short row - where the box's scroll
    * was a place on the chart as it was, and gliding on from it would go
-   * from nowhere on this one.
+   * from nowhere on this one. Either way the chart is laid out first as
+   * the box will need it there, so that it is not sent past the chart's
+   * edge (see TileView.jumpTo).
    */
   const aimedOn = useRef<ChartLayout>();
   useEffect(() => {
     if (!at) return;
-    aim(reducedMotion() || aimedOn.current !== layout ? "auto" : "smooth");
+    const afresh = aimedOn.current !== layout;
+    aim(reducedMotion() || aimedOn.current !== layout ? "auto" : "smooth", afresh);
     aimedOn.current = layout;
   }, [aim, at, layout]);
   /*
