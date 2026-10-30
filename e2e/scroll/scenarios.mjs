@@ -147,6 +147,12 @@ export const scenarios = {
      */
     input: "touch",
     corner: true,
+    /*
+     * The bounce here is only told of, not drawn - this browser can't scroll
+     * past an end - so what is on screen does not follow the scroll it tells
+     * of, and the measure of that is no measure of the chart's.
+     */
+    known: { jitter: Infinity },
     setup: async (page) => {
       await open(page, { choices: eachYearOnce, progress: 0, knitting: true });
       // Up and left of the corner, a swipe at a time, the finger lifted slowly.
