@@ -42,8 +42,7 @@ export const markAt = (
   const centre = (column: number) => 0.5 + at.column - column;
   const parentAt = layout.cells.get(stitch.links[0]);
   const purled = shown === "pfb" || shown === "pbf";
-  const onItsRight = shown === "kbf" || shown === "pbf";
-  return forkMark(centre(parentAt?.column ?? at.column), [0.5, centre(madeAt.column)], purled, onItsRight);
+  return forkMark(centre(parentAt?.column ?? at.column), [0.5, centre(madeAt.column)], purled);
 };
 
 /** Where the needles change: after which round, and to what size. */
