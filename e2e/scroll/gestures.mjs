@@ -35,9 +35,10 @@ export const boxOf = async (page) =>
  * pixels a second, as touches the browser scrolls the box by itself; then,
  * unless `fling` is false, flung on by momentum as it lifts (see the
  * recorder's fling: the browser here makes no fling of touches it is sent),
- * which `mode` says what a phone does with a scroll the page sets meanwhile.
+ * which `mode` says what a phone does with a scroll the page sets meanwhile,
+ * and `bounce` whether it bounces past an end as an iPhone does.
  */
-export const swipe = async (page, { dx = 0, dy = 0, speed = 1200, fling = true, mode = "ios", at } = {}) => {
+export const swipe = async (page, { dx = 0, dy = 0, speed = 1200, fling = true, mode = "ios", bounce = false, at } = {}) => {
   const session = await cdp(page);
   const box = at ?? (await boxOf(page));
   await mark(page, `swipe ${dx},${dy} @${speed}${fling ? ` ${mode}` : " no fling"}`);
@@ -55,7 +56,7 @@ export const swipe = async (page, { dx = 0, dy = 0, speed = 1200, fling = true, 
     // The finger's speed as it lifts, the scroll going the other way to the content.
     const vx = (-dx / distance) * speed;
     const vy = (-dy / distance) * speed;
-    await page.evaluate(({ vx, vy, mode }) => window.__scrollProbe.fling({ vx, vy, mode }), { vx, vy, mode });
+    await page.evaluate((options) => window.__scrollProbe.fling(options), { vx, vy, mode, bounce });
     await mark(page, "fling done");
   }
 };

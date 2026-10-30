@@ -137,6 +137,36 @@ export const scenarios = {
       }
     },
   },
+  "fling into the bottom right corner, bouncing past it": {
+    /*
+     * As a knitter caught up from the yoke flicks back to the cast-on, on an
+     * iPhone: the box flung on past the chart's corner bounces back from it
+     * by itself, telling of scrolls beyond it on the way. Taken at their
+     * word, they had the chart's edges kept that much further out, and the
+     * box came to rest as far short of the corner as it had bounced past.
+     */
+    input: "touch",
+    corner: true,
+    /*
+     * The bounce here is only told of, not drawn - this browser can't scroll
+     * past an end - so what is on screen does not follow the scroll it tells
+     * of, and the measure of that is no measure of the chart's.
+     */
+    known: { jitter: Infinity },
+    setup: async (page) => {
+      await open(page, { choices: eachYearOnce, progress: 0, knitting: true });
+      // Up and left of the corner, a swipe at a time, the finger lifted slowly.
+      for (let k = 0; k < 2; k++) {
+        await swipe(page, { dx: 300, speed: 600, fling: false });
+        await settled(page, { quiet: 300 });
+        await swipe(page, { dy: 500, speed: 600, fling: false });
+        await settled(page, { quiet: 300 });
+      }
+    },
+    act: async (page) => {
+      await swipe(page, { dx: -300, dy: -500, speed: 4000, bounce: true });
+    },
+  },
   "fling across the body and back": {
     input: "touch",
     /*

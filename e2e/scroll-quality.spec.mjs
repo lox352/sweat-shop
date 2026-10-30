@@ -90,6 +90,11 @@ test.describe("the chart moves smoothly", () => {
         expect(painting.unpaintedMax, "old chart showing").toBeLessThanOrEqual(limit.unpainted);
         expect(painting.unpaintedNearMax, "old chart round the box").toBeLessThanOrEqual(limit.unpaintedNear);
         expect(measured.past.max, "the box past the chart's edge").toBeLessThanOrEqual(limit.past);
+        // Flung into a corner, it comes to rest there, the chart's edges in the box: short of them, it would show less than nought past them.
+        if (scenario.corner) {
+          expect(measured.rest.right, "the box short of the chart's right-hand edge").toBeGreaterThanOrEqual(0);
+          expect(measured.rest.bottom, "the box short of the chart's bottom").toBeGreaterThanOrEqual(0);
+        }
         expect(settling.rested, "at rest after").toBe(true);
         expect(measured.shake.reversals, `back and forth by itself: ${JSON.stringify(measured.shake)}`).toBeLessThanOrEqual(limit.shake);
         expect(measured.sharpness.share, "tiles off whole device pixels").toBeLessThanOrEqual(limit.smeared);
