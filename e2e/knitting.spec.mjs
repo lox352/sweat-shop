@@ -178,6 +178,10 @@ test("the chart is its own page, and closing the knitting keeps you on it", asyn
 });
 
 test("knitting fills the screen, says how to work the round's stitches, and closing it leaves the chart still", async ({ page }) => {
+  // The chart's views, to ask where a stitch is drawn: see TileView.probe.
+  await page.addInitScript(() => {
+    window.__chartViews = [];
+  });
   await start(page);
   // The cast-on, twelve rounds of rib, the short rows, then the first increase round.
   await workRounds(page, 20);
@@ -199,14 +203,23 @@ test("knitting fills the screen, says how to work the round's stitches, and clos
   await expect(picker).toContainText("Knit");
   await picker.getByRole("button", { name: "Close" }).click();
 
-  const at = () => page.locator(".chart-sheets").evaluate(sheet => {
+  /*
+   * Where the stitch about to be worked is on screen. Not where the sheet's
+   * edge is: rounds out of view closing up above as the box grows move that
+   * edge, and nothing the knitter can see.
+   */
+  const id = await page.evaluate(() => window.__chartViews.at(-1).probe().follow);
+  expect(id).toBeGreaterThan(0);
+  const at = () => page.locator(".chart-sheets").evaluate((sheet, id) => {
     const box = sheet.getBoundingClientRect();
-    // By its right-hand edge, which it is scrolled across from: columns opening to the left move nothing.
-    return { right: box.right, top: box.top };
-  });
+    const place = window.__chartViews.at(-1).place(id);
+    return { right: box.left + place.x, top: box.top + place.y };
+  }, id);
   const before = await at();
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
   await expect(page.getByRole("region", { name: "Your progress" })).toBeVisible();
+  // At rest, every round and column that is going to close up or open has.
+  await page.waitForTimeout(400);
   const after = await at();
   expect(Math.abs(after.top - before.top)).toBeLessThan(2);
   expect(Math.abs(after.right - before.right)).toBeLessThan(2);
