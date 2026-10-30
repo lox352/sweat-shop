@@ -343,6 +343,33 @@ describe("the stitch markers on the chart", () => {
     expect(done.drawn(defaultColours.marker, 2)).toHaveLength(0);
   });
 
+  it("draws a marker at the start of the round heavy beside the round being worked, which it was passed in beginning", () => {
+    // The same line, as a start of the round's: beside each row's first stitch.
+    const start = { ...line, atStart: true };
+    const atStart = sceneOf(view.layout, stitches, view.rounds, { markers: [start] });
+    const [first, second, third] = start.route;
+    const paintStartAt = (progress: number) => {
+      const state = stateFor(view.layout, { progress });
+      const paint = recorder();
+      paintRegion(paint.ctx, { x: 0, y: 0, width: view.layout.columns * cell + 40, height: view.layout.rows * cell }, atStart, state);
+      const x = state.left[start.after];
+      const rowOf = (row: number) => [x, state.top[row] + state.height[row], x, state.top[row]];
+      const drawn = (colour: string, width: number) =>
+        paint.strokes.filter((one) => one.colour === colour && one.width === width).flatMap((one) => one.points);
+      return { rowOf, drawn };
+    };
+    // Into the second row's round: the knitting beside the marker there, the row below behind it, the rows above to come.
+    const { rowOf, drawn } = paintStartAt(second.passed + 1);
+    expect(drawn(defaultColours.marker, 3)).toEqual([rowOf(second.row)]);
+    expect(drawn(defaultColours.ink, 2)).toContainEqual(rowOf(first.row));
+    expect(drawn(defaultColours.marker, 2)).toContainEqual(rowOf(third.row));
+    // Beginning the next round turns the row it is beside heavy instead.
+    const changing = markerRowsChanging(atStart, third.passed - 1, third.passed);
+    expect(changing).toContain(second.row);
+    expect(changing).toContain(third.row);
+    expect(paintStartAt(third.passed).drawn(defaultColours.marker, 3)).toEqual([rowOf(third.row)]);
+  });
+
   it("says which rows working stitches changes the line in, beyond the stitches' own: the row it is reached in next", () => {
     const placedRow = line.route[0];
     const next = line.route[1];

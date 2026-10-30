@@ -1,7 +1,7 @@
 import { type ChartScene, emphasis } from "./chart-scene";
 import { rowsWithin } from "./column-window";
 import { type Palette, inkOn, yarnFor } from "./palette";
-import type { MarkerRow } from "./view";
+import type { MarkerLine, MarkerRow } from "./view";
 
 /**
  * The chart painted a piece at a time, onto a canvas.
@@ -226,9 +226,23 @@ const clearOfEachOther = (rows: number[], top: (row: number) => number, height: 
   return kept;
 };
 
-/** Which of its three tenses a marker line is drawn in along the `k`th row of its route, at `progress`: see the markers below. */
-const markerTense = (route: MarkerRow[], k: number, progress: number): "been" | "now" | "ahead" => {
+/**
+ * Which of its three tenses a marker line is drawn in along the `k`th row of
+ * its route, at `progress`: see the markers below. Along most rows it is the
+ * marker reached in that row, now while it is the next to be reached. A
+ * marker at the start of the round stands beside each row's first stitch,
+ * where it was passed in beginning that row's round: now while that round is
+ * worked, been once the next is begun, or at the end, once it comes `off`.
+ */
+const markerTense = (line: Pick<MarkerLine, "route" | "atStart" | "off">, k: number, progress: number): "been" | "now" | "ahead" => {
+  const { route } = line;
   const at = route[k];
+  if (line.atStart) {
+    if (progress < at.passed) return "ahead";
+    const next = route[k + 1];
+    const done = next ? progress >= next.passed : line.off !== undefined && progress >= line.off;
+    return done ? "been" : "now";
+  }
   if (progress >= at.passed) return "been";
   const reached = k > 0 ? progress >= route[k - 1].passed : progress >= at.start - 1;
   return reached ? "now" : "ahead";
@@ -247,7 +261,7 @@ export const markerRowsChanging = (scene: ChartScene, from: number, to: number):
   for (const line of scene.markers) {
     const { route } = line;
     route.forEach((at, k) => {
-      if (markerTense(route, k, from) === markerTense(route, k, to)) return;
+      if (markerTense(line, k, from) === markerTense(line, k, to)) return;
       both(at.row);
       if (k > 0) both(route[k - 1].row);
     });
@@ -782,7 +796,7 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     for (const line of lines) {
       const { route } = line;
       route.forEach((at, k) => {
-        const tense = markerTense(route, k, state.progress);
+        const tense = markerTense(line, k, state.progress);
         const into = tense === "been" ? been : tense === "now" ? now : ahead;
         const x = snap(left[at.after]);
         if (k > 0 && route[k - 1].after !== at.after) {
