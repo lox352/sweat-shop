@@ -165,6 +165,20 @@ export const patternOf = (year: number): Pattern => {
   return found;
 };
 
+/**
+ * The stitches the samplers knit in another yarn than their hat's, so that
+ * every round is in two: by year, chart, row and stitch, counted as the
+ * charts are. Only one hat has a row in three. In 2014's chart B, row 7 -
+ * Moorit and Light Fawn - its leaflet puts one stitch a repeat in Natural
+ * White, a fleck no lighter than the Light Fawn its mirror is knitted in.
+ * In the samplers' colourways that yarn is often dark against the row's
+ * two, a spot where the hat has none; it is knitted in Light Fawn, as its
+ * mirror is.
+ */
+const inTwoYarns: { year: number; chart: string; row: number; stitch: number; yarn: string }[] = [
+  { year: 2014, chart: "B", row: 7, stitch: 27, yarn: "B" },
+];
+
 /** A hat chart's rows as yarn letters, bottom row first, each row's first stitch first: in its first printing, or another. */
 export const lettersOf = (year: number, chart: string, printing?: string): string[][] => {
   const y = yearOf(year);
@@ -175,7 +189,9 @@ export const lettersOf = (year: number, chart: string, printing?: string): strin
   }
   const rows = y.charts[chart];
   if (!rows) throw new Error(`${year} has no chart ${chart}`);
-  return rows.map((row) => (row.match(/../g) ?? []).map((pair) => pair[0]));
+  const letters = rows.map((row) => (row.match(/../g) ?? []).map((pair) => pair[0]));
+  for (const at of inTwoYarns) if (at.year === year && at.chart === chart) letters[at.row - 1][at.stitch - 1] = at.yarn;
+  return letters;
 };
 
 export const solid = (row: string[]): boolean => new Set(row).size === 1;

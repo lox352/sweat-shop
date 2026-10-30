@@ -4,6 +4,8 @@ import thirteenStrips from "../../wool-week-strips-lined-oldest";
 import { trimIdOf, trimmed } from "../../../../knitting/palette";
 import roles from "./roles.json";
 import { letterOf, trimSlot, yearOfSlot, yearsOfTrim } from "./slots";
+import { lettersOf } from "./cuts";
+import { yearOf, years } from "../years";
 
 /** CIE L*, how light a colour looks. */
 const lightness = (hex: string) => {
@@ -168,5 +170,22 @@ describe.each([eachYearOnce, thirteenStrips])("the colourways of $name", (design
     // A trim no longer among them, and none, leave the colourway as it is.
     expect(trimmed(colourway, "not-a-yarn")).toBe(colourway);
     expect(trimmed(colourway, undefined)).toBe(colourway);
+  });
+});
+
+describe("the hats' charts, as the samplers knit them", () => {
+  it("have every row in two yarns at most: the Shwook Hat's fleck of Natural White in the Light Fawn its mirror is knitted in", () => {
+    for (const { year, charts } of years) {
+      for (const chart of Object.keys(charts)) {
+        lettersOf(year, chart).forEach((row, k) => {
+          expect(new Set(row).size, `${year}, chart ${chart}, row ${k + 1}`).toBeLessThanOrEqual(2);
+        });
+      }
+    }
+    // The leaflet's own row, Moorit and Light Fawn with the fleck at its 27th stitch, mirroring its first.
+    const row = lettersOf(2014, "B")[6];
+    expect(row[26]).toBe("B");
+    expect(row[26]).toBe(row[0]);
+    expect(yearOf(2014).charts.B[6].match(/../g)![26][0]).toBe("D");
   });
 });
