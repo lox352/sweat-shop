@@ -210,29 +210,43 @@ const reducedMotion = () =>
 /**
  * How far either side of the pivot, in pixels, a line opening or closing is
  * shared between the two sides, for a box `size` long at `cell` a stitch:
- * half the box, so that what opens or closes in view opens out from the
- * pivot or closes in on it on both sides, the more on the side it is
- * nearer, and the share changes as evenly as the box moves. Never less
- * than half a cell, so a line the pivot is in opens out both ways.
+ * the length of the box, so that what opens or closes in view opens out
+ * from the pivot or closes in on it on both sides, the more on the side it
+ * is nearer, and the share changes as evenly as the box moves. Measured
+ * along the chart with every line open (see reach), where a block of lines
+ * closed up takes its whole length, which the box moves past at once: so
+ * the whole box either side, that a block closed up across a good part of
+ * it still shares out over half a box of the box's own way. Never less than
+ * half a cell, so a line the pivot is in opens out both ways.
  */
-const spreadOver = (size: number, cell: number) => Math.max(cell / 2, size / 2);
+const spreadOver = (size: number, cell: number) => Math.max(cell / 2, size);
 
 /**
- * How far lines laid out `places` reach before the pivot `at`, a place along
- * the lines as laid out `rest` - those the sheet was last given the size of
- * - in pixels from the chart's near edge: all of those whose middle was
- * well before it then, none of those well after, and those within `spread`
- * of it in part, the nearer before it the more. Lines closed up then stand
- * at a point, and share alike as they open. A line closed up counts as the
- * merest sliver, so that every place reaches a little further than the one
- * before, and the pivot can always be found again from how far the lines
- * reach before it: see pivotAt.
+ * How far lines laid out `places` reach before the pivot `at`, in pixels
+ * from the chart's near edge: all of those whose middle is well before it,
+ * none of those well after, and those within `spread` of it in part, the
+ * nearer before it the more. A line closed up counts as the merest sliver,
+ * so that every place reaches a little further than the one before, and the
+ * pivot can always be found again from how far the lines reach before it:
+ * see pivotAt.
+ *
+ * The pivot, and every line's middle, are places along the chart with
+ * every line open, `cell` a line, whatever is open now or was at rest. So
+ * how much of a line counts before the pivot is the same whichever lines
+ * the box last came to rest among, and the pivot found again at rest, from
+ * how far the lines then reach before it, is the one it was: lines opening
+ * on the way up a round and closing on the way back down put the box back
+ * just where it was. Measured on the lines as they were at rest instead,
+ * every rest moved the pivot a little, and up and down again where
+ * decreases close columns either side of the box at once - a hat's crown,
+ * on the hat site, where it was found - the chart crept a pixel or two
+ * across each time.
  */
-const reach = (rest: Places, places: Places, at: number, spread: number) => {
+const reach = (places: Places, at: number, spread: number, cell: number) => {
   const lines = places.size.length - 2;
   let total = 0;
   for (let line = 1; line <= lines; line++) {
-    const middle = rest.start[line] + rest.size[line] / 2;
+    const middle = (lines - line + 0.5) * cell;
     const part = Math.min(1, Math.max(0, 0.5 + (at - middle) / (2 * spread)));
     if (part > 0) total += part * Math.max(places.size[line], sliver);
   }
@@ -249,13 +263,13 @@ const reachAll = (places: Places) => {
   return total;
 };
 
-/** The pivot: the place along lines laid out `rest` that they reach `length` before. */
-const pivotAt = (rest: Places, length: number, spread: number) => {
+/** The pivot: the place along the chart, every line open, that lines laid out `rest` reach `length` before. */
+const pivotAt = (rest: Places, length: number, spread: number, cell: number) => {
   let low = -spread - 1;
-  let high = rest.start[0] + spread + 1;
+  let high = (rest.size.length - 2) * cell + spread + 1;
   for (let step = 0; step < 60; step++) {
     const middle = (low + high) / 2;
-    if (reach(rest, rest, middle, spread) < length) low = middle;
+    if (reach(rest, middle, spread, cell) < length) low = middle;
     else high = middle;
   }
   return (low + high) / 2;
@@ -267,16 +281,16 @@ const pivotAt = (rest: Places, length: number, spread: number) => {
  * layer anew every frame, and the lines the room was made for stay the same
  * from one rest to the next.
  */
-const pivots = new WeakMap<Places, { part: number; spread: number; pivot: number; all: number }>();
-const pivotFor = (rest: Places, part: number, spread: number) => {
+const pivots = new WeakMap<Places, { part: number; spread: number; cell: number; pivot: number; all: number }>();
+const pivotFor = (rest: Places, part: number, spread: number, cell: number) => {
   let known = pivots.get(rest);
-  if (!known || known.spread !== spread) {
-    known = { part: NaN, spread, pivot: 0, all: reachAll(rest) };
+  if (!known || known.spread !== spread || known.cell !== cell) {
+    known = { part: NaN, spread, cell, pivot: 0, all: reachAll(rest) };
     pivots.set(rest, known);
   }
   if (known.part !== part) {
     known.part = part;
-    known.pivot = pivotAt(rest, part * known.all, spread);
+    known.pivot = pivotAt(rest, part * known.all, spread, cell);
   }
   return known.pivot;
 };
@@ -287,7 +301,7 @@ const pivotFor = (rest: Places, part: number, spread: number) => {
  * chart's near edge to `far` past its far one: about the pivot that lines
  * laid out `rest` - those the scroll's room was made for - reach that part
  * of the way before, the same part of the way along these as they reach
- * before it. So a scroll at an end shows that edge, however the lines have
+ * before it (see reach, for where the pivot is). So a scroll at an end shows that edge, however the lines have
  * changed since the room was made; the lines either side of the pivot open
  * out from it and close in on it as they change, each shared between the
  * two sides the more evenly the nearer it is, over half the box either side
@@ -303,7 +317,7 @@ export const along = (rest: Places, places: Places, part: number, size: number, 
   const spread = spreadOver(size, cell);
   const room = places.start[0] + near + far - size;
   if (room <= 2) return home ? places.start[0] + far - size : -near;
-  const goes = part <= 0 || part >= 1 ? part : reach(rest, places, pivotFor(rest, part, spread), spread) / reachAll(places);
+  const goes = part <= 0 || part >= 1 ? part : reach(places, pivotFor(rest, part, spread, cell), spread, cell) / reachAll(places);
   return (goes <= 0 ? 0 : goes >= 1 ? room : 1 + goes * (room - 2)) - near;
 };
 
