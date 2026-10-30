@@ -801,7 +801,7 @@ export class TileView {
     const room = width - gutter(content.cell) + near + far - size;
     // A sheet the box can't be scrolled along leaves the layer at its edge.
     if (room <= 2) return 0;
-    const box = this.within(this.scroller.scrollLeft - this.sheet.offsetLeft, near, room);
+    const box = this.within(this.scrolledTo().left - this.sheet.offsetLeft, near, room);
     const home = scrollsFromRight(this.scroller) ? 1 : 0;
     // The sheet is in whole pixels (see size): the part of one it is wider than the lines at rest is room past them.
     const over = roundedUp(this.columns.rest.start[0] + gutter(content.cell));
@@ -819,7 +819,7 @@ export class TileView {
     const size = this.scroller.clientHeight;
     const room = height + near + far - size;
     if (room <= 2) return 0;
-    const box = this.within(this.scroller.scrollTop - this.sheet.offsetTop, near, room);
+    const box = this.within(this.scrolledTo().top - this.sheet.offsetTop, near, room);
     const over = roundedUp(this.rows.rest.start[0]);
     return box - along(this.rows.rest, places, this.part(box + near, room), size, near, far + over, 0, content.cell);
   }
@@ -838,10 +838,27 @@ export class TileView {
     return Math.min(1, Math.max(0, (at - 1) / (room - 2)));
   }
 
+  /**
+   * Where the box is scrolled to, within the scrolls it can take. Bouncing
+   * past an end, an iPhone tells of scrolls beyond it, which the box springs
+   * back from by itself: taken as they came, the lines were laid out and the
+   * chart's edges kept in the box for a box past the end, and the chart came
+   * to rest as far short of its corner as the box had bounced past it.
+   */
+  private scrolledTo() {
+    const box = this.scroller;
+    const [lowest, highest] = scrollAcross(box);
+    const deepest = box.scrollHeight - box.clientHeight;
+    // A way it can't be scrolled at all, it doesn't bounce either.
+    const within = (at: number, low: number, high: number) => (high > low ? Math.min(high, Math.max(low, at)) : at);
+    return { left: within(box.scrollLeft, lowest, highest), top: within(box.scrollTop, 0, deepest) };
+  }
+
   /** What of the chart the box shows, from the chart's own top left: where the lines are drawn, or going. */
   private showing(going = false) {
-    const x = this.scroller.scrollLeft - this.sheet.offsetLeft - (going ? this.columns.targetShift : this.columns.shift);
-    const y = this.scroller.scrollTop - this.sheet.offsetTop - (going ? this.rows.targetShift : this.rows.shift);
+    const scroll = this.scrolledTo();
+    const x = scroll.left - this.sheet.offsetLeft - (going ? this.columns.targetShift : this.columns.shift);
+    const y = scroll.top - this.sheet.offsetTop - (going ? this.rows.targetShift : this.rows.shift);
     return { x, y, width: this.scroller.clientWidth, height: this.scroller.clientHeight };
   }
 
@@ -1045,7 +1062,7 @@ export class TileView {
   private keepRowsInBox() {
     if (this.target !== undefined || this.point) return;
     const top = this.sheet.offsetTop;
-    this.rows.keepBox(this.scroller.scrollTop - top, this.scroller.clientHeight, -top);
+    this.rows.keepBox(this.scrolledTo().top - top, this.scroller.clientHeight, -top);
   }
 
   /**
@@ -1081,7 +1098,7 @@ export class TileView {
     const left = this.sheet.offsetLeft;
     const was = this.columns.targetShift;
     const [lowest, highest] = scrollAcross(this.scroller);
-    this.columns.keepBox(this.scroller.scrollLeft - left, size, lowest - left, room);
+    this.columns.keepBox(this.scrolledTo().left - left, size, lowest - left, room);
     if (this.nearRight()) {
       /*
        * Nor carried out past the furthest right the box can go, which
@@ -1190,8 +1207,7 @@ export class TileView {
      * the left of the line held, as they most often are. A scroll set here
      * can be lost on a phone scrolling the box itself; one not set cannot.
      */
-    const left = this.scroller.scrollLeft;
-    const top = this.scroller.scrollTop;
+    const { left, top } = this.scrolledTo();
     this.sheetWidth(wanted.width, width > 0);
     style.height = `${wanted.height}px`;
     const x = this.columns.rebase();

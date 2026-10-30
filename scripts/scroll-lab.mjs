@@ -66,7 +66,7 @@ for (const [device, { input, ...profile }] of Object.entries(profiles)) {
         );
         console.log(
           `        shake ${shake.reversals}/${shake.largest}px  follow ${follow.trips} trips, straight ${follow.straightness}, turns ${follow.reversals}/${follow.largest}px, off ${follow.offCentre}  ` +
-            `drift ${drift.share}  past ${measured.past.max}px/${measured.past.frames}  smeared ${sharpness.smeared}/${sharpness.frames} (moving ${sharpness.shimmering}/${sharpness.moved})  ` +
+            `drift ${drift.share}  past ${measured.past.max}px/${measured.past.frames}  rest ${measured.rest?.right},${measured.rest?.bottom}  smeared ${sharpness.smeared}/${sharpness.frames} (moving ${sharpness.shimmering}/${sharpness.moved})  ` +
             `paint ${painting.tiles} tiles, ${painting.tilesPerFrameMax}/frame, ${painting.msPerFrameP95}/${painting.msPerFrameMax}ms, ${painting.easingFrames} easing  ` +
             `audit ${measured.audit.wrong}/${measured.audit.tiles} wrong`,
         );

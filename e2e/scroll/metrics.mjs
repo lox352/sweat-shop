@@ -439,6 +439,13 @@ export const measure = (recording, { allow = 24 } = {}) => {
     return Math.max(0, -x - 24, x + f.s.scroll.clientWidth - f.s.chart.width - 24);
   });
 
+  const restAt = (f) => {
+    if (!f) return null;
+    const x = f.s.scroll.left - f.s.sheet.left - f.s.shift.x;
+    const y = f.s.scroll.top - f.s.sheet.top - f.s.shift.y;
+    return { right: round(x + f.s.scroll.clientWidth - f.s.chart.width), bottom: round(y + f.s.scroll.clientHeight - f.s.chart.height) };
+  };
+
   const bars = scrollbarsOf(frames);
   const barGaps = bars.filter(Boolean).map((b) => Math.max(Math.abs(b.thumbX - b.trueX), Math.abs(b.thumbY - b.trueY)));
   const barSteps = [];
@@ -522,6 +529,8 @@ export const measure = (recording, { allow = 24 } = {}) => {
     },
     drift: { share: round(scrolled > 0 ? drifted / scrolled : 0, 3), pixels: round(drifted) },
     past: { max: round(Math.max(0, ...pastEdge)), frames: pastEdge.filter((p) => p > 2).length },
+    // Where the box came to rest against the chart's right-hand and bottom edges: the box's padding past them when it is in the corner, less when short of it.
+    rest: restAt(frames.findLast((f) => f.s && !f.scaled)),
     sharpness: { smeared: smeared.length, frames: drawn.length, share: round(drawn.length ? smeared.length / drawn.length : 0, 3), shimmering, moved: moved.length },
     settling: { ms: round(Math.max(0, lastChange - lastInput), 0), rested },
     writes: (recording.writes ?? []).length,

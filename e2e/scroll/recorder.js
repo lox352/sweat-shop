@@ -169,6 +169,9 @@
    * that the page sees it in the frame it is drawn in. What a phone does with
    * a scroll the page sets meanwhile differs: iOS carries on from where the
    * fling had got to, as if it had not been set; Android stops the fling.
+   * Flung into an end, iOS bounces: it goes on past it, slowing hard, telling
+   * the page of scrolls beyond it, and springs back by itself - which this
+   * browser can't, so the box's scroll is read as past the end meanwhile.
    * `vx` and `vy` are in pixels a second, positive scrolling right and down.
    */
   probe.fling = ({ vx = 0, vy = 0, mode = "ios" }) =>
@@ -178,20 +181,67 @@
       let x = box.scrollLeft;
       let y = box.scrollTop;
       let last = performance.now();
+      // How far past each end it has gone, and the scroll as read meanwhile.
+      const past = { x: 0, y: 0 };
+      const read = {};
+      for (const [name, axis] of [["scrollLeft", "x"], ["scrollTop", "y"]]) {
+        const own = Object.getOwnPropertyDescriptor(Element.prototype, name);
+        read[name] = own;
+        Object.defineProperty(box, name, { configurable: true, get: () => own.get.call(box) + past[axis], set: (value) => own.set.call(box, value) });
+      }
+      const ends = () => {
+        const across = Math.max(0, box.scrollWidth - box.clientWidth);
+        const fromRight = getComputedStyle(box).direction === "rtl";
+        return { x: fromRight ? [-across, 0] : [0, across], y: [0, Math.max(0, box.scrollHeight - box.clientHeight)] };
+      };
+      const finish = (why) => {
+        delete box.scrollLeft;
+        delete box.scrollTop;
+        box.dispatchEvent(new Event("scroll"));
+        done(why);
+      };
+      // Back from past the ends, by itself, over a little under half a second.
+      const springBack = () => {
+        const from = { ...past };
+        const start = performance.now();
+        const frame = () => {
+          const s = Math.min(1, (performance.now() - start) / 450);
+          past.x = from.x * (1 - s) ** 3;
+          past.y = from.y * (1 - s) ** 3;
+          box.dispatchEvent(new Event("scroll"));
+          if (s < 1) requestAnimationFrame(frame);
+          else finish("stopped");
+        };
+        requestAnimationFrame(frame);
+      };
       const step = new MessageChannel();
       step.port1.onmessage = () => {
         const now = performance.now();
         const dt = Math.min(50, now - last);
         last = now;
-        if (mode === "android" && (Math.abs(box.scrollLeft - Math.round(x)) > 1 || Math.abs(box.scrollTop - Math.round(y)) > 1)) return done("stopped");
+        if (mode === "android" && (Math.abs(read.scrollLeft.get.call(box) - Math.round(x)) > 1 || Math.abs(read.scrollTop.get.call(box) - Math.round(y)) > 1)) return finish("stopped");
         const decay = 0.998 ** dt;
         vx *= decay;
         vy *= decay;
         x += (vx * dt) / 1000;
         y += (vy * dt) / 1000;
-        setters.scrollLeft.call(box, x);
-        setters.scrollTop.call(box, y);
-        if (Math.hypot(vx, vy) < 20) return done("stopped");
+        const { x: [left, right], y: [top, bottom] } = ends();
+        const inside = { x: Math.min(right, Math.max(left, x)), y: Math.min(bottom, Math.max(top, y)) };
+        if (mode === "ios") {
+          // Past an end, a third as far as the momentum would carry it, and slowing hard.
+          for (const axis of ["x", "y"]) {
+            const beyond = (axis === "x" ? x : y) - inside[axis];
+            if (beyond === 0) continue;
+            past[axis] = Math.max(-60, Math.min(60, beyond / 3));
+            if (axis === "x") vx *= 0.8;
+            else vy *= 0.8;
+          }
+        }
+        setters.scrollLeft.call(box, mode === "ios" ? inside.x : x);
+        setters.scrollTop.call(box, mode === "ios" ? inside.y : y);
+        // The browser tells of a scroll it makes; the parts past an end it would not otherwise.
+        if (past.x || past.y) box.dispatchEvent(new Event("scroll"));
+        if (Math.hypot(vx, vy) < 20) return past.x || past.y ? springBack() : finish("stopped");
         requestAnimationFrame(() => step.port2.postMessage(0));
       };
       box.dispatchEvent(new Event("scroll"));
