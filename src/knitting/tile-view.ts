@@ -219,20 +219,20 @@ const spreadOver = (size: number, cell: number) => Math.max(cell / 2, size / 2);
 
 /**
  * How far lines laid out `places` reach before the pivot `at`, a place along
- * the lines as laid out `rest` - those the sheet was last given the size of
- * - in pixels from the chart's near edge: all of those whose middle was
- * well before it then, none of those well after, and those within `spread`
- * of it in part, the nearer before it the more. Lines closed up then stand
- * at a point, and share alike as they open. A line closed up counts as the
- * merest sliver, so that every place reaches a little further than the one
- * before, and the pivot can always be found again from how far the lines
- * reach before it: see pivotAt.
+ * the lines as laid out `ref` - the lines the pivot is measured along, see
+ * keepsRef - in pixels from the chart's near edge: all of those whose middle
+ * was well before it there, none of those well after, and those within
+ * `spread` of it in part, the nearer before it the more. Lines closed up
+ * there stand at a point, and share alike as they open. A line closed up
+ * counts as the merest sliver, so that every place reaches a little further
+ * than the one before, and the pivot can always be found again from how far
+ * the lines reach before it: see pivotAt.
  */
-const reach = (rest: Places, places: Places, at: number, spread: number) => {
+const reach = (ref: Places, places: Places, at: number, spread: number) => {
   const lines = places.size.length - 2;
   let total = 0;
   for (let line = 1; line <= lines; line++) {
-    const middle = rest.start[line] + rest.size[line] / 2;
+    const middle = ref.start[line] + ref.size[line] / 2;
     const part = Math.min(1, Math.max(0, 0.5 + (at - middle) / (2 * spread)));
     if (part > 0) total += part * Math.max(places.size[line], sliver);
   }
@@ -249,13 +249,13 @@ const reachAll = (places: Places) => {
   return total;
 };
 
-/** The pivot: the place along lines laid out `rest` that they reach `length` before. */
-const pivotAt = (rest: Places, length: number, spread: number) => {
+/** The pivot: the place along lines laid out `ref` that lines laid out `rest` reach `length` before. */
+const pivotAt = (ref: Places, rest: Places, length: number, spread: number) => {
   let low = -spread - 1;
-  let high = rest.start[0] + spread + 1;
+  let high = ref.start[0] + spread + 1;
   for (let step = 0; step < 60; step++) {
     const middle = (low + high) / 2;
-    if (reach(rest, rest, middle, spread) < length) low = middle;
+    if (reach(ref, rest, middle, spread) < length) low = middle;
     else high = middle;
   }
   return (low + high) / 2;
@@ -267,19 +267,60 @@ const pivotAt = (rest: Places, length: number, spread: number) => {
  * layer anew every frame, and the lines the room was made for stay the same
  * from one rest to the next.
  */
-const pivots = new WeakMap<Places, { part: number; spread: number; pivot: number; all: number }>();
-const pivotFor = (rest: Places, part: number, spread: number) => {
+const pivots = new WeakMap<Places, { ref: Places; part: number; spread: number; pivot: number; all: number }>();
+const pivotFor = (ref: Places, rest: Places, part: number, spread: number) => {
   let known = pivots.get(rest);
-  if (!known || known.spread !== spread) {
-    known = { part: NaN, spread, pivot: 0, all: reachAll(rest) };
+  if (!known || known.spread !== spread || known.ref !== ref) {
+    known = { ref, part: NaN, spread, pivot: 0, all: reachAll(rest) };
     pivots.set(rest, known);
   }
   if (known.part !== part) {
     known.part = part;
-    known.pivot = pivotAt(rest, part * known.all, spread);
+    known.pivot = pivotAt(ref, rest, part * known.all, spread);
   }
   return known.pivot;
 };
+
+/**
+ * Whether lines the pivot is measured along, laid out `ref`, can stay so
+ * once the lines laid out `rest` are those the sheet has the size of: where
+ * they differ near a box `from` along `rest` and `size` long by no more than
+ * the box's own length, at `cell` a line, and only a line or a few at a
+ * time - as a round of decreases or make-ones closes or opens them.
+ *
+ * Measured along the lines as the sheet last had them, every rest would move
+ * the pivot a little, and a round up into a hat's crown and back down, its
+ * decreases closing columns either side of the box at once, left the chart
+ * a pixel or two further across each time. Measured along the same lines
+ * there and back, the pivot found again is the one it was, and the box comes
+ * back to the pixel. But a block of lines closed up there and open now - a
+ * sleeve's, opened by its rounds coming into view - would stand at its full
+ * length rather than at a point, which the box moves past at once: what of
+ * it opens either side would swing over a pixel of scroll. A line or two on
+ * its own is shared out as evenly as ever. So the lines measured along move
+ * on with the sheet once a block, or more than a box of lines, has changed
+ * round the box. Either way nothing moves for it: at rest, the lines are
+ * those the sheet has the size of, and laid out so they reach just as far
+ * before the pivot, whatever it is measured along.
+ */
+export const keepsRef = (ref: Places, rest: Places, from: number, size: number, cell: number) => {
+  let differs = 0;
+  let run = 0;
+  for (let line = 1; line < rest.size.length - 1; line++) {
+    const at = rest.start[line];
+    if (ref.size[line] > 0 === rest.size[line] > 0 || at < from - size || at > from + 2 * size) {
+      run = 0;
+      continue;
+    }
+    differs += cell;
+    run++;
+    if (run > blockOf || differs > size) return false;
+  }
+  return true;
+};
+
+/** More lines than this side by side, closed one way and open the other, are a block: see keepsRef. */
+const blockOf = 3;
 
 /**
  * How far along lines laid out `places` a box `size` long goes for a scroll
@@ -299,11 +340,11 @@ const pivotFor = (rest: Places, part: number, spread: number) => {
  * A chart the box can't be scrolled along keeps the edge the box is scrolled
  * from where it is, the far edge if `home` is 1.
  */
-export const along = (rest: Places, places: Places, part: number, size: number, near: number, far: number, home: number, cell: number) => {
+export const along = (rest: Places, places: Places, part: number, size: number, near: number, far: number, home: number, cell: number, ref = rest) => {
   const spread = spreadOver(size, cell);
   const room = places.start[0] + near + far - size;
   if (room <= 2) return home ? places.start[0] + far - size : -near;
-  const goes = part <= 0 || part >= 1 ? part : reach(rest, places, pivotFor(rest, part, spread), spread) / reachAll(places);
+  const goes = part <= 0 || part >= 1 ? part : reach(ref, places, pivotFor(ref, rest, part, spread), spread) / reachAll(places);
   return (goes <= 0 ? 0 : goes >= 1 ? room : 1 + goes * (room - 2)) - near;
 };
 
@@ -324,6 +365,8 @@ class Axis {
   target: Places;
   /** The lines the sheet was last given the size of. */
   rest: Places;
+  /** And those where the pivot is measured along: see keepsRef. */
+  ref: Places;
   shift = 0;
   targetShift = 0;
   /** How far the layer is moved on from where the scroll puts it, now and once the lines arrive. */
@@ -339,12 +382,12 @@ class Axis {
   private kept?: { line: number; at: number };
 
   constructor(places: Places) {
-    this.places = this.target = this.rest = places;
+    this.places = this.target = this.rest = this.ref = places;
   }
 
   /** Laid out afresh, at once, with the layer back at the sheet's edge. */
   reset(places: Places) {
-    this.places = this.target = this.rest = places;
+    this.places = this.target = this.rest = this.ref = places;
     this.held = this.targetHeld = 0;
     this.ease = undefined;
     this.speed = undefined;
@@ -506,9 +549,10 @@ class Axis {
    * At rest: the layer put back at the sheet's edge, and the lines as they
    * are made those the sheet has the size of. Says how far it had moved.
    */
-  rebase(): number {
+  rebase(keepRef = false): number {
     const shift = this.shift;
     this.rest = this.places;
+    if (!keepRef) this.ref = this.places;
     this.held = this.targetHeld = 0;
     this.shift = this.targetShift = 0;
     this.kept = undefined;
@@ -805,7 +849,7 @@ export class TileView {
     const home = scrollsFromRight(this.scroller) ? 1 : 0;
     // The sheet is in whole pixels (see size): the part of one it is wider than the lines at rest is room past them.
     const over = roundedUp(this.columns.rest.start[0] + gutter(content.cell));
-    return box - along(this.columns.rest, places, this.part(box + near, room), size, near, far + over, home, content.cell);
+    return box - along(this.columns.rest, places, this.part(box + near, room), size, near, far + over, home, content.cell, this.columns.ref);
   }
 
   /** And down, with rows laid out `places`, the box going past the chart by its padding. */
@@ -821,7 +865,7 @@ export class TileView {
     if (room <= 2) return 0;
     const box = this.within(this.scrolledTo().top - this.sheet.offsetTop, near, room);
     const over = roundedUp(this.rows.rest.start[0]);
-    return box - along(this.rows.rest, places, this.part(box + near, room), size, near, far + over, 0, content.cell);
+    return box - along(this.rows.rest, places, this.part(box + near, room), size, near, far + over, 0, content.cell, this.rows.ref);
   }
 
   /**
@@ -1208,10 +1252,14 @@ export class TileView {
      * can be lost on a phone scrolling the box itself; one not set cannot.
      */
     const { left, top } = this.scrolledTo();
+    // Where the box is on the lines as they are now, to say whether the pivot is measured along them from here on: see keepsRef.
+    const view = this.showing();
+    const keepColumns = keepsRef(this.columns.ref, this.columns.places, view.x, view.width, content.cell);
+    const keepRows = keepsRef(this.rows.ref, this.rows.places, view.y, view.height, content.cell);
     this.sheetWidth(wanted.width, width > 0);
     style.height = `${wanted.height}px`;
-    const x = this.columns.rebase();
-    const y = this.rows.rebase();
+    const x = this.columns.rebase(keepColumns);
+    const y = this.rows.rebase(keepRows);
     this.layer.style.transform = "";
     if (Math.abs(x) >= 0.5) this.scroller.scrollLeft = left - x;
     if (y) this.scroller.scrollTop = top - y;
