@@ -116,7 +116,7 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
       note: "The ribbing: the neck's in the darkest yarn of the hat beside it, the waist's and wrists' in the darkest of the hats beside them, or all in any yarn of the palette. The back neck's short rows are in the first band's background, into which they run on.",
     },
     slotsVaryBySize: true,
-    // Other people's charts, knitted as they drew them, floats as long as they come, caught behind the work; but every round in two yarns, the Shwook Hat's one round in three too (see cuts.ts).
+    // Other people's charts, knitted as they drew them: floats as long as they come, caught behind the work, and every round in two yarns (see cuts.ts for a misprint that put one in three).
     rules: { colours: 2, float: Infinity },
     tensions: { rib: { stitch: 0.9 } },
     stitchNotes: {

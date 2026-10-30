@@ -166,14 +166,13 @@ export const patternOf = (year: number): Pattern => {
 };
 
 /**
- * The stitches the samplers knit in another yarn than their hat's, so that
- * every round is in two: by year, chart, row and stitch, counted as the
- * charts are. Only one hat has a row in three. In 2014's chart B, row 7 -
- * Moorit and Light Fawn - its leaflet puts one stitch a repeat in Natural
- * White, a fleck no lighter than the Light Fawn its mirror is knitted in.
- * In the samplers' colourways that yarn is often dark against the row's
- * two, a spot where the hat has none; it is knitted in Light Fawn, as its
- * mirror is.
+ * Misprints in a hat's chart, put right: by year, chart, row and stitch,
+ * counted as the charts are, and the yarn the stitch is knitted in. The
+ * year files keep each chart as it is printed. 2014's chart B prints one
+ * stitch a repeat of row 7 white, Yarn D; but its own table gives that row
+ * only Yarns A and B, and the stitch's mirror in the row, its first, is B.
+ * Taken as printed, it was the only row of all thirteen hats in three yarns,
+ * and in the samplers' colourways often a dark spot in a pale round.
  */
 const inTwoYarns: { year: number; chart: string; row: number; stitch: number; yarn: string }[] = [
   { year: 2014, chart: "B", row: 7, stitch: 27, yarn: "B" },
