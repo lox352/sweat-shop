@@ -165,6 +165,19 @@ export const patternOf = (year: number): Pattern => {
   return found;
 };
 
+/**
+ * Misprints in a hat's chart, put right: by year, chart, row and stitch,
+ * counted as the charts are, and the yarn the stitch is knitted in. The
+ * year files keep each chart as it is printed. 2014's chart B prints one
+ * stitch a repeat of row 7 white, Yarn D; but its own table gives that row
+ * only Yarns A and B, and the stitch's mirror in the row, its first, is B.
+ * Taken as printed, it was the only row of all thirteen hats in three yarns,
+ * and in the samplers' colourways often a dark spot in a pale round.
+ */
+const inTwoYarns: { year: number; chart: string; row: number; stitch: number; yarn: string }[] = [
+  { year: 2014, chart: "B", row: 7, stitch: 27, yarn: "B" },
+];
+
 /** A hat chart's rows as yarn letters, bottom row first, each row's first stitch first: in its first printing, or another. */
 export const lettersOf = (year: number, chart: string, printing?: string): string[][] => {
   const y = yearOf(year);
@@ -175,7 +188,9 @@ export const lettersOf = (year: number, chart: string, printing?: string): strin
   }
   const rows = y.charts[chart];
   if (!rows) throw new Error(`${year} has no chart ${chart}`);
-  return rows.map((row) => (row.match(/../g) ?? []).map((pair) => pair[0]));
+  const letters = rows.map((row) => (row.match(/../g) ?? []).map((pair) => pair[0]));
+  for (const at of inTwoYarns) if (at.year === year && at.chart === chart) letters[at.row - 1][at.stitch - 1] = at.yarn;
+  return letters;
 };
 
 export const solid = (row: string[]): boolean => new Set(row).size === 1;
