@@ -56,13 +56,13 @@ export const Swatch: React.FC<{ entry: KeyEntry }> = ({ entry }) => {
         entry.id === "pbf" ? (
           // A KFB turned over: its first loop over the stitch below, now on the left.
           <>
-            <Cell x={0} mark={forkMark(0.5, [0.5, 1.5], true, true)} />
+            <Cell x={0} mark={forkMark(0.5, [0.5, 1.5], true)} />
             <Cell x={1} />
           </>
         ) : (
           <>
             <Cell x={0} />
-            <Cell x={1} mark={forkMark(entry.id === "kbf" ? -0.5 : 0.5, [0.5, -0.5], purled, entry.id === "kbf")} />
+            <Cell x={1} mark={forkMark(entry.id === "kbf" ? -0.5 : 0.5, [0.5, -0.5], purled)} />
           </>
         )
       ) : entry.id === "m1" || entry.id === "m1p" ? (

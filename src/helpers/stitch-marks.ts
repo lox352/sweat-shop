@@ -233,31 +233,18 @@ export const makeOneMark = (lean?: "left" | "right", purled = false): Mark | und
  * Points are in the unit cell of the stitch that does the work, so `from` and
  * `to` are cell centres measured from its left edge - 0.5 is its own middle
  * and -0.5 the middle of the cell to its left. Where the point of the V
- * stands is what says which way the increase leans: under the working stitch
- * when the new one is made beside it, as a KFB's is, so one arm stands
- * straight up; or between the two when neither keeps the column. A KBF, whose
- * second loop is lifted out of the stitch below, stands its V on a foot - and
- * so does whatever looks like one from the side the chart shows, its new
- * stitch on its right: a PFB purled back, seen from the right side, and a KFB
- * seen from the wrong side, a PBF. So a V opening to the right always has a
- * foot, and a KFB is never drawn turned round.
+ * stands is what says which way the increase leans: under the stitch that
+ * keeps the column, so one arm stands straight up - a KFB's working stitch,
+ * its new stitch on its left; a KBF's new stitch, lifted out of the stitch
+ * below, on its right, the KFB's mark the other way round - or between the
+ * two when neither keeps the column.
  */
-export const forkMark = (from: number, to: number[], purled = false, lifted = false): Mark => {
+export const forkMark = (from: number, to: number[], purled = false): Mark => {
   const mark: Mark = {
-    strokes: [
-      ...to.map((x): [number, number][] => [
-        [from, far],
-        [x, near],
-      ]),
-      ...(lifted
-        ? [
-            [
-              [from - 0.16, far],
-              [from + 0.16, far],
-            ] as [number, number][],
-          ]
-        : []),
-    ],
+    strokes: to.map((x): [number, number][] => [
+      [from, far],
+      [x, near],
+    ]),
   };
   // Purled - a PFB or a PBF - with a purl's dot beside the arm that stands up, away from the stitch it makes.
   return purled ? dotted(mark, from + (to.some((x) => x < from) ? 0.32 : -0.32), 0.56) : mark;

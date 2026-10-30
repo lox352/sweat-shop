@@ -103,14 +103,12 @@ describe("the symbols for the other side", () => {
       expect(purled.strokes).toEqual(makeOneMark(lean)!.strokes);
       expect(clearance(purled), String(lean)).toBeGreaterThan(0.05);
     }
-    // The stitch a PFB makes is to its left, or to its right on a chart turned over; a PBF's the other way, on a foot.
+    // The stitch a PFB makes is to its left, or to its right on a chart turned over; a PBF's the other way.
     for (const made of [-0.5, 1.5]) {
-      for (const foot of [false, true]) {
-        const mark = forkMark(0.5, [0.5, made], true, foot);
-        expect(clearance(mark), `${made} ${foot}`).toBeGreaterThan(0.05);
-        // Beside the arm that stands up, on the side away from the stitch made.
-        expect(Math.sign(mark.dot!.x - 0.5)).toBe(-Math.sign(made - 0.5));
-      }
+      const mark = forkMark(0.5, [0.5, made], true);
+      expect(clearance(mark), `${made}`).toBeGreaterThan(0.05);
+      // Beside the arm that stands up, on the side away from the stitch made.
+      expect(Math.sign(mark.dot!.x - 0.5)).toBe(-Math.sign(made - 0.5));
     }
     // Drawn from the cell of the loop that does not stand over the stitch below, the same mark in the same place.
     const there = forkMark(1.5, [0.5, 1.5], true).dot!;

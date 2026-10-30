@@ -4,7 +4,7 @@ import { testBandedSweater, testSweater, testSweaterWithShortRows } from "./test
 import { type Face, faceAfter, holdsIn, markAt, needleChangesIn, otherFaceRows, turnsIn } from "./chart-marks";
 import hamefarin from "../data/sweaters/hamefarin";
 import { layOut, layOutSweater, mirrorLayout } from "./layout";
-import { castOnPartWayMark, markFor } from "../helpers/stitch-marks";
+import { castOnPartWayMark, forkMark, markFor } from "../helpers/stitch-marks";
 
 const { stitches, rounds, roundPieces } = buildSweater(testSweater, "one");
 const piece = (id: string) => rounds.filter((_, index) => roundPieces[index] === id);
@@ -132,7 +132,7 @@ describe("an increase on the chart, from either side", () => {
   const byId = new Map(built.stitches.map((stitch) => [stitch.id, stitch]));
   const first = (label: string, type: string) =>
     built.rounds[built.roundLabels.indexOf(label)].find((id) => built.stitches[id].type === type)!;
-  /** What a fork says: which way its new stitch is, and whether it is purled or stands on a foot. */
+  /** What a fork says: which way its new stitch is, whether it is purled, and whether an arm stands straight up. */
   const forkOf = (id: number, face: Face) => {
     const mark = markAt(built.stitches[id], byId, face === "right" ? layout : over, undefined, face)!;
     const strokes = mark.strokes ?? [];
@@ -142,12 +142,14 @@ describe("an increase on the chart, from either side", () => {
     const opens = made > from ? "right" : "left";
     // A purl's dot beside the arm that stands up, away from the stitch made.
     if (mark.dot) expect(Math.sign(mark.dot.x - from)).toBe(opens === "right" ? -1 : 1);
-    return { opens, purled: mark.dot !== undefined, foot: strokes.some(([a, b]) => a[1] === b[1]) };
+    // Nothing drawn across its foot: a KBF is a KFB the other way round, no more.
+    expect(strokes.every(([a, b]) => a[1] !== b[1])).toBe(true);
+    return { opens, purled: mark.dot !== undefined, upright: strokes.some(([a, b]) => a[0] === b[0]), arms: strokes.length };
   };
-  const kfb = { opens: "left", purled: false, foot: false };
-  const kbf = { opens: "right", purled: false, foot: true };
-  const pfb = { opens: "left", purled: true, foot: false };
-  const pbf = { opens: "right", purled: true, foot: true };
+  const kfb = { opens: "left", purled: false, upright: true, arms: 2 };
+  const kbf = { opens: "right", purled: false, upright: true, arms: 2 };
+  const pfb = { opens: "left", purled: true, upright: true, arms: 2 };
+  const pbf = { opens: "right", purled: true, upright: true, arms: 2 };
 
   it("draws a PFB purled back as a KBF from the right side, and as a PFB, its new stitch on its left, from the wrong", () => {
     const purled = first("Yoke · short row 4, wrong side", "kbf");
@@ -155,7 +157,7 @@ describe("an increase on the chart, from either side", () => {
     expect(forkOf(purled, "wrong")).toEqual(pfb);
   });
 
-  it("draws a KFB from the wrong side as a PBF, and a KBF as a PFB, so a fork opening right always stands on a foot", () => {
+  it("draws a KFB from the wrong side as a PBF, and a KBF as a PFB, a fork opening right the mirror image of one opening left", () => {
     const knitted = first("Yoke · short rows, to the end of the round", "kfb");
     expect(forkOf(knitted, "right")).toEqual(kfb);
     expect(forkOf(knitted, "wrong")).toEqual(pbf);
@@ -163,5 +165,13 @@ describe("an increase on the chart, from either side", () => {
     const lifted = raglan.find((id) => built.stitches[id].type === "kbf")!;
     expect(forkOf(lifted, "right")).toEqual(kbf);
     expect(forkOf(lifted, "wrong")).toEqual(pfb);
+  });
+
+  it("draws a KBF as a KFB turned round, as the key shows them: each over the loop that keeps the column, across two cells", () => {
+    // The key's two cells, 0 to 2 across: a KFB's stem over its own stitch on the right, a KBF's over its new one on the left.
+    const kfbMark = forkMark(1.5, [1.5, 0.5]);
+    const kbfMark = forkMark(0.5, [1.5, 0.5]);
+    const flipped = (mark: typeof kfbMark) => mark.strokes!.map((stroke) => stroke.map(([x, y]) => [2 - x, y]));
+    expect(kbfMark.strokes!.map((stroke) => stroke.map(([x, y]) => [x, y])).sort()).toEqual(flipped(kfbMark).sort());
   });
 });
