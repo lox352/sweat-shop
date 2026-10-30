@@ -169,12 +169,13 @@
    * that the page sees it in the frame it is drawn in. What a phone does with
    * a scroll the page sets meanwhile differs: iOS carries on from where the
    * fling had got to, as if it had not been set; Android stops the fling.
-   * Flung into an end, iOS bounces: it goes on past it, slowing hard, telling
-   * the page of scrolls beyond it, and springs back by itself - which this
-   * browser can't, so the box's scroll is read as past the end meanwhile.
+   * Flung into an end, iOS bounces, when `bounce`: it goes on past it,
+   * slowing hard, telling the page of scrolls beyond it, and springs back by
+   * itself - which this browser can't, so the box's scroll is only read as
+   * past the end meanwhile, and nothing on screen moves for it.
    * `vx` and `vy` are in pixels a second, positive scrolling right and down.
    */
-  probe.fling = ({ vx = 0, vy = 0, mode = "ios" }) =>
+  probe.fling = ({ vx = 0, vy = 0, mode = "ios", bounce = false }) =>
     new Promise((done) => {
       const box = scroller();
       if (!box) return done();
@@ -227,7 +228,7 @@
         y += (vy * dt) / 1000;
         const { x: [left, right], y: [top, bottom] } = ends();
         const inside = { x: Math.min(right, Math.max(left, x)), y: Math.min(bottom, Math.max(top, y)) };
-        if (mode === "ios") {
+        if (bounce) {
           // Past an end, a third as far as the momentum would carry it, and slowing hard.
           for (const axis of ["x", "y"]) {
             const beyond = (axis === "x" ? x : y) - inside[axis];
@@ -237,8 +238,8 @@
             else vy *= 0.8;
           }
         }
-        setters.scrollLeft.call(box, mode === "ios" ? inside.x : x);
-        setters.scrollTop.call(box, mode === "ios" ? inside.y : y);
+        setters.scrollLeft.call(box, bounce ? inside.x : x);
+        setters.scrollTop.call(box, bounce ? inside.y : y);
         // The browser tells of a scroll it makes; the parts past an end it would not otherwise.
         if (past.x || past.y) box.dispatchEvent(new Event("scroll"));
         if (Math.hypot(vx, vy) < 20) return past.x || past.y ? springBack() : finish("stopped");

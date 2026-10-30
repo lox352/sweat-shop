@@ -164,7 +164,7 @@ export const scenarios = {
       }
     },
     act: async (page) => {
-      await swipe(page, { dx: -300, dy: -500, speed: 4000 });
+      await swipe(page, { dx: -300, dy: -500, speed: 4000, bounce: true });
     },
   },
   "fling across the body and back": {
