@@ -391,11 +391,12 @@ describe("the stitch markers on the chart", () => {
     expect(paintStartAt(third.passed).drawn(defaultColours.marker, 3)).toEqual([rowOf(third.row)]);
   });
 
-  it("draws the start of the round at the chart's other edge row by row, heavy while its row is worked up to it, with no bars across", () => {
-    // The same line, as the start of the round seen at the other edge: each row's stretch reached in its own row.
-    const edge = { ...line, edge: true };
+  it("draws a start of the round at the chart's other edge in the tenses its own rows say, bars and all", () => {
+    // The same line, at the far edge: each row behind you once the stitch after the marker, its upTo, is worked.
+    const [first, second] = line.route;
+    const upTo = second.passed + 2;
+    const edge = { ...line, atStart: true, edge: true, route: line.route.map((at, k) => (k === 1 ? { ...at, upTo } : at)) };
     const atEdge = sceneOf(view.layout, stitches, view.rounds, { markers: [edge] });
-    const [, second, third] = edge.route;
     const paintEdgeAt = (progress: number) => {
       const state = stateFor(view.layout, { progress });
       const paint = recorder();
@@ -406,15 +407,16 @@ describe("the stitch markers on the chart", () => {
         paint.strokes.filter((one) => one.colour === colour && one.width === width).flatMap((one) => one.points);
       return { rowOf, drawn };
     };
-    // Part way along the second row, short of it: heavy there, and only there; nothing across its ends.
-    const { rowOf, drawn } = paintEdgeAt(second.start);
-    expect(drawn(defaultColours.marker, 3)).toEqual([rowOf(second.row)]);
-    expect(drawn(defaultColours.marker, 2.5)).toEqual([]);
-    expect(drawn(defaultColours.ink, 2.5)).toEqual([]);
-    // Past it in that row, it is behind: the next is heavy only once its own row is begun.
-    const past = paintEdgeAt(second.passed);
-    expect(past.drawn(defaultColours.ink, 2)).toContainEqual(past.rowOf(second.row));
-    expect(past.drawn(defaultColours.marker, 3)).not.toContainEqual(past.rowOf(third.row));
+    // Short of its upTo, the second row's stretch is heavy, the first behind; a bar across where it was placed.
+    const short = paintEdgeAt(upTo - 1);
+    expect(short.drawn(defaultColours.marker, 3)).toEqual([short.rowOf(second.row)]);
+    expect(short.drawn(defaultColours.ink, 2)).toContainEqual(short.rowOf(first.row));
+    expect(short.drawn(defaultColours.ink, 2.5)).not.toHaveLength(0);
+    // At it, behind you, though the next round is not yet begun; and the change is said to touch that row.
+    const reached = paintEdgeAt(upTo);
+    expect(reached.drawn(defaultColours.ink, 2)).toContainEqual(reached.rowOf(second.row));
+    expect(reached.drawn(defaultColours.marker, 3)).toEqual([]);
+    expect(markerRowsChanging(atEdge, upTo - 1, upTo)).toContain(second.row);
   });
 
   it("says which rows working stitches changes the line in, beyond the stitches' own: the row it is reached in next", () => {
