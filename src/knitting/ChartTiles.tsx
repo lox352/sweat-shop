@@ -1,10 +1,14 @@
-import { forwardRef, useImperativeHandle, useLayoutEffect, useRef } from "react";
+import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, type ReactNode } from "react";
 import { TileView, type TileContent } from "./tile-view";
 
 /** What the chart asks of the tiles, where the columns and rows may not be where the layout put them. */
 export interface TilesHandle {
   /** Where a stitch's cell is on the sheet, as the chart is drawn now. */
   place(id: number): { x: number; y: number } | undefined;
+  /** And on what floats over the tiles, moving with them: see TileView.afloat. */
+  placeAfloat(id: number): { x: number; y: number } | undefined;
+  /** How far what floats over the tiles is put along the sheet now. */
+  afloatShift(): { x: number; y: number };
   /** The stitch at a point on screen. */
   stitchAt(clientX: number, clientY: number): number | undefined;
   /** Hold a stitch still while the chart scrolls to it. */
@@ -19,9 +23,11 @@ export interface TilesHandle {
 
 interface ChartTilesProps extends TileContent {
   /** Told whenever the columns or rows move, for anything placed over them. */
-  onMove?: () => void;
+  onMove?: (now?: boolean) => void;
   /** Told how far the stitch being scrolled to has moved across: see TileView.onTargetMoved. */
   onTargetMoved?: (by: number) => void;
+  /** What floats over the tiles, placed by placeAfloat, and carried with them as they slide. */
+  children?: ReactNode;
 }
 
 /**
@@ -29,8 +35,9 @@ interface ChartTilesProps extends TileContent {
  * be worked next and, when asked, closes up the columns no row in view has a
  * stitch in and the rows no column on screen has.
  */
-const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetMoved, ...content }, ref) => {
+const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetMoved, children, ...content }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const afloatRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<TileView>();
 
   /*
@@ -44,6 +51,7 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetM
     const scroller = container?.closest<HTMLElement>(".chart-scroll");
     if (!container || !scroller || !sheet) return;
     const view = new TileView(container, scroller, sheet);
+    view.afloat = afloatRef.current ?? undefined;
     viewRef.current = view;
     return () => {
       view.destroy();
@@ -62,6 +70,8 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetM
 
   useImperativeHandle(ref, () => ({
     place: (id) => viewRef.current?.place(id),
+    placeAfloat: (id) => viewRef.current?.placeAfloat(id),
+    afloatShift: () => viewRef.current?.afloatShift() ?? { x: 0, y: 0 },
     stitchAt: (x, y) => viewRef.current?.stitchAt(x, y),
     hold: (id) => viewRef.current?.hold(id),
     scrolled: () => viewRef.current?.scrolled(),
@@ -69,7 +79,14 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetM
     zoomedTo: (x, y, screenX, screenY) => viewRef.current?.zoomedTo(x, y, screenX, screenY),
   }), []);
 
-  return <div ref={containerRef} className="chart-tiles" style={{ left: -content.margin, right: 0 }} aria-hidden="true" />;
+  return (
+    <>
+      <div ref={containerRef} className="chart-tiles" style={{ left: -content.margin, right: 0 }} aria-hidden="true" />
+      <div ref={afloatRef} className="chart-afloat">
+        {children}
+      </div>
+    </>
+  );
 });
 ChartTiles.displayName = "ChartTiles";
 

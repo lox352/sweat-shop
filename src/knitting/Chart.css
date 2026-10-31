@@ -174,6 +174,21 @@
 }
 
 /* The stitch a tap picked, and the bubble offering to carry on from it. */
+/*
+ * What floats over the tiles - the stitch picked, and what it says of it -
+ * moved with them as they slide with the box's scroll: see TileView.afloat.
+ */
+.chart-afloat {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.chart-afloat > * {
+  pointer-events: auto;
+}
+
 .chart-picked {
   position: absolute;
   border: 2px dashed var(--crimson);

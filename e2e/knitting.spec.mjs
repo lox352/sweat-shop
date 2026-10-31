@@ -664,6 +664,50 @@ test("tapping a stitch on the chart carries on from it, and can be undone", asyn
   await expect(position(page)).toHaveText(original);
 });
 
+test("a stitch picked stays outlined, its note beside it, as the chart slides with its scroll", async ({ page }) => {
+  // The chart's views, to ask where a stitch is drawn: see TileView.probe.
+  await page.addInitScript(() => {
+    window.__chartViews = [];
+  });
+  await knittedTo(page, yokeLastRound - 1);
+  await tapBeside(page, 3);
+  const picker = page.getByRole("dialog", { name: "Yoke, round 75, stitch 4" });
+  await expect(picker).toBeVisible();
+  // The knitting closed, so that the box is not sent back to the stitch to be worked.
+  await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  await expect(picker).toBeVisible();
+  await page.waitForTimeout(600);
+  /*
+   * Up the yoke, a frame at a time: its columns closing up as its rounds
+   * narrow towards the neck, the tiles slide with the box's scroll until it
+   * comes to rest. Every frame, the outline is where the stitch is drawn,
+   * and the note beside it - as far as keeping it on the sheet allows.
+   */
+  const drift = await page.locator(".chart-scroll").evaluate(async (box) => {
+    const view = window.__chartViews.at(-1);
+    const outline = () => document.querySelector(".chart-picked").getBoundingClientRect();
+    const note = () => document.querySelector(".stitch-picker").getBoundingClientRect();
+    const at = outline();
+    const id = view.stitchAt(at.left + at.width / 2, at.top + at.height / 2);
+    const gap = { x: note().left - at.left, y: note().top - at.top };
+    let [most, apart] = [0, 0];
+    for (let frame = 0; frame < 40; frame++) {
+      box.scrollBy(-12, -24);
+      await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+      const sheet = document.querySelector(".chart-sheets").getBoundingClientRect();
+      const place = view.place(id);
+      if (!place) continue;
+      const now = outline();
+      const [x, y] = [sheet.left + place.x - 2, sheet.top + place.y - 2];
+      most = Math.max(most, Math.abs(now.left - x), Math.abs(now.top - y));
+      apart = Math.max(apart, Math.abs(note().left - now.left - gap.x), Math.abs(note().top - now.top - gap.y));
+    }
+    return { most, apart };
+  });
+  expect(drift.most).toBeLessThan(1.5);
+  expect(drift.apart).toBeLessThan(16);
+});
+
 /** Clicks the chart at a point on screen. */
 async function tapAt(page, x, y) {
   await page.locator(".chart-sheets").evaluate((sheet, { x, y }) => {
