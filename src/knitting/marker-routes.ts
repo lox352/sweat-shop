@@ -153,3 +153,65 @@ export const makeOnesAtMarkers = (built: Pick<SweaterStitches, "stitches" | "kni
   }
   return at;
 };
+
+/**
+ * Where a marker is reached part way along a round or a short row: the
+ * stitch worked just before it, with what the marker marks. The knitting
+ * panel stops each run there, so it takes you to the marker, and on from it.
+ *
+ * Most markers stand between the same two stitches' descendants all the way
+ * up: the stitch before is the route's own. The start of the round in a
+ * short row is passed wherever the row crosses the beginning of the round,
+ * part way along it rather than before its first stitch: where the stitches
+ * it is worked over, followed down to the last whole round, go from that
+ * round's end back to its beginning.
+ */
+const passes = new WeakMap<Stitch[], Map<number, string>>();
+export const markersPassed = (built: Pick<SweaterStitches, "stitches" | "knitting">): Map<number, string> => {
+  const { stitches, knitting } = built;
+  const kept = passes.get(stitches);
+  if (kept) return kept;
+  const at = new Map<number, string>();
+  const index = new Map<number, number>();
+  knitting.rounds.forEach((round, k) => round.forEach((id) => index.set(id, k)));
+  const whole = (k: number | undefined) => k !== undefined && knitting.roundKinds[k] !== "right" && knitting.roundKinds[k] !== "wrong";
+  // A stitch's place along the last whole round below it, following each down to the stitch it is worked into.
+  const placeOf = (id: number): { round: number; at: number } | undefined => {
+    let one = id;
+    for (let depth = 0; depth < 64; depth++) {
+      const k = index.get(one);
+      if (k === undefined) return undefined;
+      if (whole(k)) return { round: k, at: knitting.rounds[k].indexOf(one) };
+      const stitch = stitches[one];
+      const below = stitch.links.slice(0, consumption[stitch.type])[0];
+      if (below === undefined) return undefined;
+      one = below;
+    }
+    return undefined;
+  };
+  for (const route of markerRoutes(built)) {
+    for (const round of route.rounds) {
+      if (!round.atStart) {
+        at.set(round.before, route.marker);
+        continue;
+      }
+      if (!round.turned) continue;
+      const k = index.get(round.start);
+      if (k === undefined) continue;
+      const ids = knitting.rounds[k].filter((id) => isFabric(stitches[id]));
+      let last: { id: number; round: number; at: number } | undefined;
+      for (const id of ids) {
+        const place = placeOf(id);
+        if (!place) continue;
+        const size = knitting.rounds[place.round].length;
+        if (last && last.round === place.round && Math.abs(place.at - last.at) > size / 2) {
+          at.set(last.id, route.marker);
+          break;
+        }
+        last = { id, ...place };
+      }
+    }
+  }
+  passes.set(stitches, at);
+  return at;
+};

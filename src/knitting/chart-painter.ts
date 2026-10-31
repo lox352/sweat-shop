@@ -234,9 +234,11 @@ const clearOfEachOther = (rows: number[], top: (row: number) => number, height: 
  * where it was passed in beginning that row's round: now while that round is
  * worked, been once the next is begun, or at the end, once it comes `off`.
  */
-const markerTense = (line: Pick<MarkerLine, "route" | "atStart" | "off">, k: number, progress: number): "been" | "now" | "ahead" => {
+const markerTense = (line: Pick<MarkerLine, "route" | "atStart" | "off" | "edge">, k: number, progress: number): "been" | "now" | "ahead" => {
   const { route } = line;
   const at = route[k];
+  // The start of the round at the chart's other edge: reached in each short row by itself, part way along it.
+  if (line.edge) return progress >= at.passed ? "been" : progress >= at.start - 1 ? "now" : "ahead";
   if (line.atStart) {
     if (progress < at.passed) return "ahead";
     const next = route[k + 1];
@@ -368,6 +370,18 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     while (up <= rows && height[up] <= 0) up++;
     return up;
   };
+  /** Whether a row has a stitch in a column. */
+  const stitchIn = (row: number, c: number) => {
+    const { start, column } = index;
+    let low = start[row];
+    let high = start[row + 1];
+    while (low < high) {
+      const middle = (low + high) >> 1;
+      if (column[middle] < c) low = middle + 1;
+      else high = middle;
+    }
+    return low < start[row + 1] && column[low] === c;
+  };
   for (let row = firstRow - 1; row <= lastRow; row++) {
     if (row > 0 && height[row] <= 0) continue;
     const y = top(row);
@@ -410,6 +424,34 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
   };
   fillRects(light, colours.rule);
   fillRects(heavy, colours.heavy);
+
+  /*
+   * A short row's turned stitch - a German short row's double stitch, pulled
+   * up over the needle by its two legs - is drawn the height of two rows:
+   * its own, and the row above, where nothing stands over it because the
+   * row back begins beside it. One cell across both, its yarn over the rule
+   * between them, outlined as one; its mark stays in its own row, and the
+   * turn's hook still goes from it up into the row above.
+   */
+  const doubles: { x: number; y: number; w: number; h: number; split: number; id: number }[] = [];
+  for (const turn of cell >= detailed ? scene.turns : []) {
+    const row = scene.rowOf[turn.last];
+    const c = scene.columnOf[turn.last];
+    if (!row || height[row] <= 0 || width[c] <= 0) continue;
+    const up = aboveOf(row);
+    if (up > rows || height[up] <= 0 || stitchIn(up, c)) continue;
+    const [x0, x1] = [snap(left[c]), snap(left[c] + width[c])];
+    const [y0, y1] = [snap(top(up)), snap(top(row) + height[row])];
+    if (x1 <= region.x || x0 >= region.x + region.width || y1 <= region.y || y0 >= region.y + region.height) continue;
+    doubles.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0, split: snap(top(row)), id: turn.last });
+  }
+  for (const one of doubles) {
+    ctx.fillStyle = yarnFor(state.palette, scene.stitches[one.id]?.slot ?? "").hex;
+    ctx.fillRect(one.x, one.y, one.w, one.h);
+    if (cell < detailed) continue;
+    const hair = 1 / state.ratio;
+    fillRects([one.x, one.y, one.w, hair, one.x, one.y + one.h - hair, one.w, hair, one.x, one.y, hair, one.h, one.x + one.w - hair, one.y, hair, one.h], colours.rule);
+  }
 
   /* Where one piece meets another: beside each other on screen in a row, and one over the other in a column. */
   const pieceLines: number[] = [];
@@ -533,6 +575,8 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     return out;
   };
   const veil = regionOf((id) => id <= state.progress);
+  // A turned stitch worked: its part in the row above with it.
+  for (const one of doubles) if (one.id <= state.progress) veil.push(one.x, one.y, one.w, one.split - one.y);
   if (veil.length > 0) {
     ctx.globalAlpha = 0.62;
     fillRects(veil, colours.paper);
@@ -806,6 +850,8 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
         into.push(x, top(at.row) + height[at.row], x, top(at.row));
       });
       const [first, last] = [route[0], route[route.length - 1]];
+      // Placed and taken off where the start of the round's own line is, not at the chart's other edge.
+      if (line.edge) continue;
       bars.push({ x: snap(left[first.after]), y: top(first.row) + height[first.row], done: state.progress >= line.placed });
       bars.push({ x: snap(left[last.after]), y: top(last.row), done: state.progress >= (line.off ?? last.passed) });
     }

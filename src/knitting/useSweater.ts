@@ -5,6 +5,7 @@ import { type ChartLayout, layOutSweater } from "./layout";
 import { type RoundIndex, indexRounds } from "./progress";
 import { holdRegions } from "./holds";
 import { type MarkerLine, type View, beginningAt, viewFor } from "./view";
+import { markersPassed } from "./marker-routes";
 import { type ChartView, chartViews, layOutView, markersInView, viewFollowedAt } from "./views";
 
 /**
@@ -65,7 +66,10 @@ export const countedAt = (pattern: SweaterPattern, built: SweaterStitches, progr
   let counted = kept.get(beginning);
   if (!counted) {
     const view = viewFor(built, () => seamLayout(built), beginning);
-    counted = { view, index: indexRounds(view.rounds, view.labels, view.pieces, pattern.pieces, view.kinds, view.rows) };
+    const index = indexRounds(view.rounds, view.labels, view.pieces, pattern.pieces, view.kinds, view.rows);
+    // Every run stops at a marker part way along: see markersPassed.
+    index.markerAfter = markersPassed(built);
+    counted = { view, index };
     kept.set(beginning, counted);
   }
   return counted;

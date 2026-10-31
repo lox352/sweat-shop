@@ -254,6 +254,27 @@ describe("a fork across an increase's two loops, its columns closed up", () => {
     expect(inked.length).toBe(2);
   });
 
+  it("paints a short row's turned stitch the height of two rows where nothing stands over it, its yarn across both", () => {
+    const state = stateFor(layout);
+    const empty = (row: number, column: number) =>
+      ![...layout.cells.values()].some((at) => at.row === row && Math.round(at.column) === column);
+    const tall = scene.turns.filter((turn) => empty(scene.rowOf[turn.last] + 1, scene.columnOf[turn.last]));
+    const short = scene.turns.filter((turn) => !tall.includes(turn));
+    expect(tall.length).toBeGreaterThan(0);
+    const paint = recorder();
+    paintRegion(paint.ctx, { x: 0, y: 0, width: layout.columns * cell + 40, height: layout.rows * cell }, scene, state);
+    const filled = (turn: (typeof scene.turns)[number]) =>
+      paint.rects.filter(
+        (one) => !one.path && one.x === state.left[scene.columnOf[turn.last]] && one.w === cell && one.h === 2 * cell,
+      );
+    for (const turn of tall) {
+      const [hit] = filled(turn);
+      // From the top of the row above to the foot of its own.
+      expect(hit?.y).toBe(state.top[scene.rowOf[turn.last] + 1]);
+    }
+    for (const turn of short) expect(filled(turn)).toEqual([]);
+  });
+
   it("numbers every fifth row and each piece's first down the edge", () => {
     const paint = recorder();
     paintRegion(paint.ctx, { x: 0, y: 0, width: layout.columns * cell + 40, height: layout.rows * cell }, scene, stateFor(layout));
@@ -368,6 +389,32 @@ describe("the stitch markers on the chart", () => {
     expect(changing).toContain(second.row);
     expect(changing).toContain(third.row);
     expect(paintStartAt(third.passed).drawn(defaultColours.marker, 3)).toEqual([rowOf(third.row)]);
+  });
+
+  it("draws the start of the round at the chart's other edge row by row, heavy while its row is worked up to it, with no bars across", () => {
+    // The same line, as the start of the round seen at the other edge: each row's stretch reached in its own row.
+    const edge = { ...line, edge: true };
+    const atEdge = sceneOf(view.layout, stitches, view.rounds, { markers: [edge] });
+    const [, second, third] = edge.route;
+    const paintEdgeAt = (progress: number) => {
+      const state = stateFor(view.layout, { progress });
+      const paint = recorder();
+      paintRegion(paint.ctx, { x: 0, y: 0, width: view.layout.columns * cell + 40, height: view.layout.rows * cell }, atEdge, state);
+      const x = state.left[edge.after];
+      const rowOf = (row: number) => [x, state.top[row] + state.height[row], x, state.top[row]];
+      const drawn = (colour: string, width: number) =>
+        paint.strokes.filter((one) => one.colour === colour && one.width === width).flatMap((one) => one.points);
+      return { rowOf, drawn };
+    };
+    // Part way along the second row, short of it: heavy there, and only there; nothing across its ends.
+    const { rowOf, drawn } = paintEdgeAt(second.start);
+    expect(drawn(defaultColours.marker, 3)).toEqual([rowOf(second.row)]);
+    expect(drawn(defaultColours.marker, 2.5)).toEqual([]);
+    expect(drawn(defaultColours.ink, 2.5)).toEqual([]);
+    // Past it in that row, it is behind: the next is heavy only once its own row is begun.
+    const past = paintEdgeAt(second.passed);
+    expect(past.drawn(defaultColours.ink, 2)).toContainEqual(past.rowOf(second.row));
+    expect(past.drawn(defaultColours.marker, 3)).not.toContainEqual(past.rowOf(third.row));
   });
 
   it("says which rows working stitches changes the line in, beyond the stitches' own: the row it is reached in next", () => {

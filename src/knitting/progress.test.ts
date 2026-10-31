@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { buildSweater } from "./engine";
 import { testSweater, testSweaterWithShortRows } from "./test-sweater";
 import hamefarin from "../data/sweaters/hamefarin";
+import { sweaters } from "../data/sweaters";
+import { countedAt, sweaterStitches } from "./useSweater";
 import {
   currentRun,
   endOfRound,
@@ -160,5 +162,33 @@ describe("short rows", () => {
     const position = positionOf(built.stitches, last(row(5)), rowsIndex);
     expect(position.turnNext).toBeUndefined();
     expect(runInstruction(currentRun(built.stitches, row(5)[0] - 1, rowsIndex)!)).toBe("Knit 5");
+  });
+});
+
+describe("a run up to a marker", () => {
+  // Each Year Once in an L, its third short row: 55 stitches, the start of the round passed after 23.
+  const design = sweaters.find((one) => one.id === "wool-week-strips-once-oldest")!;
+  const built = sweaterStitches(design, "l");
+  const { index } = countedAt(design, built, 0);
+  const row = built.knitting.rounds.filter((_, k) => built.knitting.roundKinds[k] === "right" || built.knitting.roundKinds[k] === "wrong")[2];
+
+  it("stops at it, says which it is, and goes on from it", () => {
+    const [first, then] = upcomingRuns(built.stitches, row[0] - 1, index, 2);
+    expect(first.length).toBe(23);
+    expect(first.marker).toBe("the start of the round");
+    expect(then.length).toBe(32);
+    expect(then.marker).toBeUndefined();
+    expect(then.endId).toBe(row[row.length - 1]);
+  });
+
+  it("stops there however far along the run is begun", () => {
+    const run = currentRun(built.stitches, row[10], index)!;
+    expect(run.length).toBe(12);
+    expect(run.marker).toBe("the start of the round");
+  });
+
+  it("runs on past a marker with nothing to stop it where the index knows of none", () => {
+    const bare = indexRounds(built.knitting.rounds);
+    expect(currentRun(built.stitches, row[0] - 1, bare)!.length).toBe(55);
   });
 });

@@ -568,7 +568,7 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
       </button>
       <p className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
         {where}, stitch {position.stitchInRound}.
-        {run && ` ${runInstruction(run)} in ${yarnFor(palette, run.slot).name}.`}
+        {run && ` ${runInstruction(run)} in ${yarnFor(palette, run.slot).name}${run.marker ? `, to the marker for ${run.marker}` : ""}.`}
         {atMarker && ` M1, then slip the marker for ${atMarker}.`}
       </p>
       <div className="knitting-readout">
@@ -597,6 +597,8 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
             <Swatch run={run} palette={palette} />
             <span className="quiet">
               {runWord(run)} in {yarnFor(palette, run.slot).name}
+              {/* Up to a marker part way along: see markersPassed. */}
+              {run.marker && <>, to the marker for {run.marker}</>}
               {ahead.length > 0 && (
                 <>
                   , then{" "}
