@@ -210,11 +210,19 @@ const Chart: React.FC<ChartProps> = ({
   );
   const face = faceAfter(turnIds, progress);
   const layout = useMemo(() => (face === "wrong" ? mirrorLayout(laid) : laid), [laid, face]);
-  // Turned over with it: the line to the left of a column, to the left of the column on its other side.
+  /*
+   * Turned over with it: the line to the left of a column, to the left of
+   * the column on its other side - row by row too, as each row's stretch is
+   * drawn where its route says.
+   */
   const markerLines = useMemo(
     () =>
       face === "wrong"
-        ? (markers ?? []).map((line) => ({ ...line, after: laid.columns - line.after }))
+        ? (markers ?? []).map((line) => ({
+            ...line,
+            after: laid.columns - line.after,
+            route: line.route.map((row) => ({ ...row, after: laid.columns - row.after })),
+          }))
         : (markers ?? []),
     [markers, face, laid.columns],
   );

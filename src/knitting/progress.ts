@@ -48,6 +48,12 @@ export interface RoundIndex {
   roundKinds: RoundKind[];
   /** What each round is numbered, by its place from 0: its row of the chart. */
   rows: number[];
+  /**
+   * Where a marker is reached part way along a round or row: the stitch just
+   * before it, with what the marker marks. A run stops there. See
+   * marker-routes' markersPassed.
+   */
+  markerAfter?: Map<number, string>;
 }
 
 export const indexRounds = (
@@ -261,6 +267,8 @@ export interface Run {
    * purl, "(k1, p1)". A rib bound off in pattern is one too.
    */
   repeat?: { type: StitchType; count: number }[];
+  /** The marker reached at its end, part way along the round: what it marks. */
+  marker?: string;
 }
 
 /** A stitch as it is worked: one of the sweater's own, or a KFB worked from the wrong side, a PFB. */
@@ -393,6 +401,7 @@ export const currentRun = (
         startId,
         endId: second.id,
         ...(first.wrongSide ? { wrongSide: true } : {}),
+        ...(index.markerAfter?.has(second.id) ? { marker: index.markerAfter.get(second.id)! } : {}),
       };
     }
   }
@@ -404,8 +413,11 @@ export const currentRun = (
     Boolean(candidate.wrongSide) === Boolean(first.wrongSide) &&
     index.roundOf.get(candidate.id) === round;
 
+  // Up to a marker part way along, and no further: the run takes you to it.
+  const stops = index.markerAfter;
+  const markerAt = (id: number) => (stops?.has(id) ? { marker: stops.get(id)! } : {});
   let endId = startId;
-  for (let id = startId + 1; ; id++) {
+  for (let id = startId + 1; !stops?.has(endId); id++) {
     const candidate = stitches[id];
     if (!alongside(candidate) || candidate.type !== type) break;
     endId = id;
@@ -428,6 +440,7 @@ export const currentRun = (
       let end = startId;
       for (let id = startId; alongside(stitches[id]) && stitches[id].type === unit[(id - startId) % unit.length]; id++) {
         end = id;
+        if (stops?.has(id)) break;
       }
       if (end - startId + 1 >= 2 * unit.length) {
         return {
@@ -441,6 +454,7 @@ export const currentRun = (
             { type, count: knits },
             { type: partner, count: purls },
           ],
+          ...markerAt(end),
         };
       }
     }
@@ -453,6 +467,7 @@ export const currentRun = (
     startId,
     endId,
     ...(first.wrongSide ? { wrongSide: true } : {}),
+    ...markerAt(endId),
   };
 };
 

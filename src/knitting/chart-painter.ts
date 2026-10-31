@@ -234,9 +234,11 @@ const clearOfEachOther = (rows: number[], top: (row: number) => number, height: 
  * where it was passed in beginning that row's round: now while that round is
  * worked, been once the next is begun, or at the end, once it comes `off`.
  */
-const markerTense = (line: Pick<MarkerLine, "route" | "atStart" | "off">, k: number, progress: number): "been" | "now" | "ahead" => {
+const markerTense = (line: Pick<MarkerLine, "route" | "atStart" | "off" | "edge">, k: number, progress: number): "been" | "now" | "ahead" => {
   const { route } = line;
   const at = route[k];
+  // The start of the round at the chart's other edge: reached in each short row by itself, part way along it.
+  if (line.edge) return progress >= at.passed ? "been" : progress >= at.start - 1 ? "now" : "ahead";
   if (line.atStart) {
     if (progress < at.passed) return "ahead";
     const next = route[k + 1];
@@ -806,6 +808,8 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
         into.push(x, top(at.row) + height[at.row], x, top(at.row));
       });
       const [first, last] = [route[0], route[route.length - 1]];
+      // Placed and taken off where the start of the round's own line is, not at the chart's other edge.
+      if (line.edge) continue;
       bars.push({ x: snap(left[first.after]), y: top(first.row) + height[first.row], done: state.progress >= line.placed });
       bars.push({ x: snap(left[last.after]), y: top(last.row), done: state.progress >= (line.off ?? last.passed) });
     }

@@ -412,6 +412,17 @@ export const markersInView = (
       const route = startLine(rows);
       return [{ ...line, after: route[0].after, from: route[0].row, to: route[route.length - 1].row, route }];
     }
+    if (line.edge) {
+      // At the chart's other edge, to the left of the stitch there: wherever the view has that column, beside it.
+      const rows = line.route.flatMap((row) => {
+        const at = column(row.after);
+        return at === undefined ? [] : [{ ...row, after: Math.round(at) }];
+      });
+      if (rows.length === 0) return [];
+      const after = Math.max(...rows.map((row) => row.after));
+      const route = rows.map((row) => ({ ...row, after }));
+      return [{ ...line, after, from: route[0].row, to: route[route.length - 1].row, route }];
+    }
     const after = boundary(line.after);
     if (after === undefined) return [];
     const route = line.route.flatMap((row) => {
