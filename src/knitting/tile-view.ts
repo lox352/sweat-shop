@@ -637,8 +637,21 @@ export class TileView {
   private toTell = false;
   /** How many columns and rows show, as the tiles' data attributes say. */
   private shown = "";
-  /** Told when lines move, for anything placed over the chart outside the tiles. */
-  onMove?: () => void;
+  /**
+   * Told when lines move, for anything placed over the chart outside the
+   * tiles: `now` from a frame of the chart's own, where what is placed over
+   * it should be placed again before the frame is drawn, or it lags the
+   * tiles by a frame.
+   */
+  onMove?: (now?: boolean) => void;
+  /**
+   * What is placed over the tiles and moves with them, if anything: given
+   * the layer's own shift every frame, so that what is on it stays on its
+   * stitch however the layer slides with the box's scroll (see along).
+   */
+  afloat?: HTMLElement;
+  /** How far the layer is put along now, in whole pixels of the screen: see onPixels. */
+  private drawn = { x: 0, y: 0 };
   /**
    * Told how far across the stitch being scrolled to has been moved: by
    * keeping the box inside the chart, which comes before holding it still.
@@ -791,6 +804,13 @@ export class TileView {
     this.ratio = ratio;
     if (!same) this.version++;
     else if (was.progress !== content.progress) this.progressed(was.progress, content.progress);
+    /*
+     * Drawn again with nothing new to show - what is placed over the tiles
+     * placed again, as the lines move - there is nothing to bring up to date
+     * here: the frame under way does that. Brought up to date anyway, the
+     * lines eased on a step after what was placed over them was placed.
+     */
+    if (same && was.progress === content.progress && was.follow === content.follow) return;
     this.update(true);
   }
 
@@ -1272,7 +1292,7 @@ export class TileView {
     style.height = `${wanted.height}px`;
     const x = this.columns.rebase(keepColumns);
     const y = this.rows.rebase(keepRows);
-    this.layer.style.transform = "";
+    this.shiftLayer(0, 0);
     if (Math.abs(x) >= 0.5) this.scroller.scrollLeft = left - x;
     if (y) this.scroller.scrollTop = top - y;
     return shifted;
@@ -1332,7 +1352,7 @@ export class TileView {
     this.columns.follow();
     this.rows.follow();
     const [x, y] = this.onPixels(this.columns.shift, this.rows.shift);
-    this.layer.style.transform = x || y ? `translate(${x}px, ${y}px)` : "";
+    this.shiftLayer(x, y);
     this.paintTiles(content, time, moved);
     this.placeNext(content);
     if (this.columns.moving || this.rows.moving) this.schedule();
@@ -1342,7 +1362,7 @@ export class TileView {
         this.schedule();
       } else {
         this.toTell = false;
-        this.onMove?.();
+        this.onMove?.(true);
       }
     }
   }
@@ -1517,6 +1537,29 @@ export class TileView {
   }
 
   /** The outline round the stitch to be worked next, on the layer with the tiles. */
+  /** The layer, and what floats over it, put `x` and `y` along from the sheet's corner. */
+  private shiftLayer(x: number, y: number) {
+    const transform = x || y ? `translate(${x}px, ${y}px)` : "";
+    this.layer.style.transform = transform;
+    if (this.afloat) this.afloat.style.transform = transform;
+    this.drawn = { x, y };
+  }
+
+  /**
+   * Where a stitch's cell is on what floats over the tiles: where it is on
+   * the sheet less how far the layer is put along, which the float is put
+   * along too.
+   */
+  placeAfloat(id: number): { x: number; y: number } | undefined {
+    const at = this.place(id);
+    return at && { x: at.x - this.drawn.x, y: at.y - this.drawn.y };
+  }
+
+  /** How far what floats over the tiles is put along the sheet now. */
+  afloatShift(): { x: number; y: number } {
+    return this.drawn;
+  }
+
   private placeNext(content: TileContent) {
     const at = content.follow === undefined ? undefined : this.placeOnLayer(content.follow);
     this.next.hidden = !at;
@@ -1704,7 +1747,7 @@ export class TileView {
     this.sheet.style.width = `${size.width}px`;
     this.sheet.style.height = `${size.height}px`;
     for (const axis of [this.columns, this.rows]) axis.shift = axis.targetShift = 0;
-    this.layer.style.transform = "";
+    this.shiftLayer(0, 0);
     this.version++;
     this.onMove?.();
     this.schedule();
@@ -1748,7 +1791,7 @@ export class TileView {
     this.sheet.style.height = `${size.height}px`;
     // Where the scroll puts it once there, the lines being those the sheet has the size of.
     for (const axis of [this.columns, this.rows]) axis.shift = axis.targetShift = 0;
-    this.layer.style.transform = "";
+    this.shiftLayer(0, 0);
     this.version++;
     this.onMove?.();
     // Painted once the box has its new scroll.

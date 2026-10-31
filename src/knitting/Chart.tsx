@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Stitch, isStep } from "../types/Stitch";
 import { type ChartLayout, layOutSweater, mirrorLayout } from "./layout";
 import { scrollAcross } from "./scroll-corner";
@@ -582,39 +583,42 @@ const Chart: React.FC<ChartProps> = ({
             margin={leftMargin(cellSize)}
             follow={nextId}
             collapse
-            onMove={picked !== undefined ? moved : undefined}
+            // Placed again in the same frame as the tiles, or it would lag them a frame as lines open and close.
+            onMove={picked !== undefined ? (now) => (now ? flushSync(moved) : moved()) : undefined}
             onTargetMoved={targetMoved}
-          />
-          {picked !== undefined && (
-            <StitchPicker
-              place={(id) => tilesRef.current?.place(id)}
-              chartWidth={sheetRef.current?.offsetWidth ?? 0}
-              note={pickerNote?.(picked)}
-              entry={keyEntryAt(stitches, picked, stitchNotes, face)}
-              labels={labels}
-              names={names}
-              yarn={stitches[picked] && yarnFor(palette, stitches[picked].slot)}
-              otherFace={(() => {
-                const row = layout.cells.get(picked)?.row;
-                return row !== undefined && hatch.some(([from, to]) => row >= from && row <= to);
-              })()}
-              onHold={(() => {
-                const region = onHold.find((one) => one.region.has(picked));
-                return region && {
-                  piece: pieces?.find((piece) => piece.id === region.holder)?.label ?? region.holder,
-                  waiting: region.stitches.includes(picked),
-                };
-              })()}
-              id={picked}
-              stitches={stitches}
-              rounds={rounds}
-              layout={layout}
-              cell={cellSize}
-              progress={progress}
-              onJump={onJump}
-              onClose={closePicker}
-            />
-          )}
+          >
+            {picked !== undefined && (
+              <StitchPicker
+                place={(id) => tilesRef.current?.placeAfloat(id)}
+                chartWidth={sheetRef.current?.offsetWidth ?? 0}
+                along={tilesRef.current?.afloatShift().x ?? 0}
+                note={pickerNote?.(picked)}
+                entry={keyEntryAt(stitches, picked, stitchNotes, face)}
+                labels={labels}
+                names={names}
+                yarn={stitches[picked] && yarnFor(palette, stitches[picked].slot)}
+                otherFace={(() => {
+                  const row = layout.cells.get(picked)?.row;
+                  return row !== undefined && hatch.some(([from, to]) => row >= from && row <= to);
+                })()}
+                onHold={(() => {
+                  const region = onHold.find((one) => one.region.has(picked));
+                  return region && {
+                    piece: pieces?.find((piece) => piece.id === region.holder)?.label ?? region.holder,
+                    waiting: region.stitches.includes(picked),
+                  };
+                })()}
+                id={picked}
+                stitches={stitches}
+                rounds={rounds}
+                layout={layout}
+                cell={cellSize}
+                progress={progress}
+                onJump={onJump}
+                onClose={closePicker}
+              />
+            )}
+          </ChartTiles>
         </div>
       </div>
       <StitchLegend stitches={stitches} notes={stitchNotes} needles={needles} holds={holds} turns={turns} face={face} />

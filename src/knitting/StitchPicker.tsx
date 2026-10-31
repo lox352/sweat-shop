@@ -46,11 +46,15 @@ const StitchPicker: React.FC<{
   onHold?: { piece: string; waiting: boolean };
   /** Anything more to say about the stitch, below what it is. */
   note?: React.ReactNode;
-  /** Where a stitch is on the chart, as the tiles have the columns and rows now. */
+  /**
+   * Where a stitch is over the chart, as the tiles have the columns and rows
+   * now: on what floats over the tiles, which moves with them as they slide.
+   */
   place: (id: number) => { x: number; y: number } | undefined;
-  /** And how wide the chart is then. */
+  /** And how wide the chart's sheet is then, and how far along it what floats over the tiles is put. */
   chartWidth: number;
-}> = ({ id, stitches, rounds, layout, cell, progress, onJump, onClose, entry, yarn, labels, names, otherFace, onHold, note, place, chartWidth }) => {
+  along: number;
+}> = ({ id, stitches, rounds, layout, cell, progress, onJump, onClose, entry, yarn, labels, names, otherFace, onHold, note, place, chartWidth, along }) => {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -71,9 +75,10 @@ const StitchPicker: React.FC<{
   const needles = stitches[id]?.needles;
   const joinsAfter = stitches[id + 1]?.type === "join";
   const bubble = explains || otherFace || onHold ? explainingWidth : bubbleWidth;
+  // Kept on the sheet, which is `along` before what the stitch is placed on.
   const left = Math.min(
-    Math.max(x + cell / 2 - bubble / 2, 4),
-    Math.max(width - bubble - 4, 4),
+    Math.max(x + cell / 2 - bubble / 2, 4 - along),
+    Math.max(width - bubble - 4, 4) - along,
   );
   // Above the stitch, unless that would run off the top of the chart.
   const below = y < 96;
