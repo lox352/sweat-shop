@@ -6,7 +6,8 @@ import { consumption } from "../types/StitchType";
  *
  * A stitch is drawn square to the fabric around it: across, towards the
  * stitch before it in its round, and up, from what it was worked into to it -
- * the way the knitting grew. Both come from the stitch's own links, so they
+ * the way the knitting grew - the other way across for a stitch worked from
+ * the wrong side, so that it faces out too. Both come from the stitch's own links, so they
  * hold wherever the fabric goes: round the body, out along a sleeve, over
  * the bend under an arm, where no one axis would do for all of them.
  *
@@ -55,6 +56,8 @@ export const neighboursOf = (stitches: Stitch[], rounds: number[][]): Neighbours
       pairs[at] = stitch.id;
       pairs[at + 1] = after[stitch.id];
     }
+    // A stitch worked from the wrong side, on a short row knitted back, is worked towards the round's start: turned about, it faces out as the rest do.
+    if (stitch.wrongSide) [pairs[at], pairs[at + 1]] = [pairs[at + 1], pairs[at]];
     // Of what it works, the middle, as the chart anchors a decrease.
     const worked = stitch.links.slice(0, consumption[stitch.type]).filter(fabric);
     const below = worked.length > 0 ? worked[Math.floor(worked.length / 2)] : stitch.from;
