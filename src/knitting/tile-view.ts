@@ -284,9 +284,9 @@ const pivotFor = (ref: Places, rest: Places, part: number, spread: number) => {
 /**
  * Whether lines the pivot is measured along, laid out `ref`, can stay so
  * once the lines laid out `rest` are those the sheet has the size of: where
- * they differ near a box `from` along `rest` and `size` long by no more than
- * the box's own length, at `cell` a line, and only a line or a few at a
- * time - as a round of decreases or make-ones closes or opens them.
+ * they differ by no more than the length `size` of the box, at `cell` a
+ * line, and only a line or a few at a time - as a round of decreases or
+ * make-ones closes or opens them.
  *
  * Measured along the lines as the sheet last had them, every rest would move
  * the pivot a little, and a round up into a hat's crown and back down, its
@@ -298,17 +298,19 @@ const pivotFor = (ref: Places, rest: Places, part: number, spread: number) => {
  * length rather than at a point, which the box moves past at once: what of
  * it opens either side would swing over a pixel of scroll. A line or two on
  * its own is shared out as evenly as ever. So the lines measured along move
- * on with the sheet once a block, or more than a box of lines, has changed
- * round the box. Either way nothing moves for it: at rest, the lines are
- * those the sheet has the size of, and laid out so they reach just as far
- * before the pivot, whatever it is measured along.
+ * on with the sheet once a block, or more than a box of lines, has changed.
+ * Anywhere along the chart, not only round the box: where the lines were
+ * measured along is where the pivot is, and lines changed well away from
+ * the box move it there, so that lines off screen would count as round the
+ * pivot, and opening, move what is on it. Either way nothing moves for it:
+ * at rest, the lines are those the sheet has the size of, and laid out so
+ * they reach just as far before the pivot, whatever it is measured along.
  */
-export const keepsRef = (ref: Places, rest: Places, from: number, size: number, cell: number) => {
+export const keepsRef = (ref: Places, rest: Places, size: number, cell: number) => {
   let differs = 0;
   let run = 0;
   for (let line = 1; line < rest.size.length - 1; line++) {
-    const at = rest.start[line];
-    if (ref.size[line] > 0 === rest.size[line] > 0 || at < from - size || at > from + 2 * size) {
+    if (ref.size[line] > 0 === rest.size[line] > 0) {
       run = 0;
       continue;
     }
@@ -1252,10 +1254,10 @@ export class TileView {
      * can be lost on a phone scrolling the box itself; one not set cannot.
      */
     const { left, top } = this.scrolledTo();
-    // Where the box is on the lines as they are now, to say whether the pivot is measured along them from here on: see keepsRef.
+    // Whether the pivot is measured along the lines as they are now from here on: see keepsRef.
     const view = this.showing();
-    const keepColumns = keepsRef(this.columns.ref, this.columns.places, view.x, view.width, content.cell);
-    const keepRows = keepsRef(this.rows.ref, this.rows.places, view.y, view.height, content.cell);
+    const keepColumns = keepsRef(this.columns.ref, this.columns.places, view.width, content.cell);
+    const keepRows = keepsRef(this.rows.ref, this.rows.places, view.height, content.cell);
     this.sheetWidth(wanted.width, width > 0);
     style.height = `${wanted.height}px`;
     const x = this.columns.rebase(keepColumns);
@@ -1417,11 +1419,20 @@ export class TileView {
       } else if (time - heading.at[axis] > headingFor) heading[axis] = 0;
     }
     this.lastView = { x: view.x, y: view.y };
+    /*
+     * Lines easing open or shut slide the box across them one way while the
+     * scroll may take it the other, and which way it went last frame says
+     * little of the next: a fling begun as columns ease went the width of
+     * the margin and more the other way in a frame, and showed old chart
+     * along its leading edge. So across lines that are easing, it is `ahead`
+     * either side.
+     */
+    const [easeX, easeY] = [this.columns.moving, this.rows.moving];
     const shown: Rect = {
-      x0: view.x - (heading.x < 0 ? ahead : easingMargin),
-      y0: view.y - (heading.y < 0 ? ahead : easingMargin),
-      x1: view.x + view.width + (heading.x > 0 ? ahead : easingMargin),
-      y1: view.y + view.height + (heading.y > 0 ? ahead : easingMargin),
+      x0: view.x - (easeX || heading.x < 0 ? ahead : easingMargin),
+      y0: view.y - (easeY || heading.y < 0 ? ahead : easingMargin),
+      x1: view.x + view.width + (easeX || heading.x > 0 ? ahead : easingMargin),
+      y1: view.y + view.height + (easeY || heading.y > 0 ? ahead : easingMargin),
     };
     const partOf = (tile: Tile): Rect => ({
       x0: Math.max(tile.x, shown.x0),
