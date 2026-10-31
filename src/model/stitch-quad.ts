@@ -18,9 +18,10 @@ import * as THREE from "three";
  * fragment shader throws away what lies outside the chevron.
  *
  * Inside it, the two legs of the V are shaded light along their middles and
- * dark at the gap between them and at the stitch's edges; a purl is a bump
- * across the stitch instead. The inside of the sweater, seen through the
- * neck or a cuff, is the same drawn darker.
+ * dark at the gap between them and at the stitch's edges. The inside of the
+ * sweater, seen through the neck or a cuff, is the same drawn darker, and so
+ * is a purl, which is a knit seen from behind: a rib's purls sink between its
+ * knits, and the rib reads as ribbed.
  *
  * In the quad's own space x runs across the stitch and y the way the
  * knitting grew, from the stitch below to the one above, both a stitch long;
@@ -39,6 +40,9 @@ export const chevronDepth = 0.35;
  * both stitches are at their darkest there.
  */
 export const overlap = 0.14;
+
+/** How much darker a stitch seen from behind is drawn: the sweater's inside, and a purl. */
+export const insideShade = 0.45;
 
 export const createStitchGeometry = (): THREE.BufferGeometry => {
   const geometry = new THREE.BufferGeometry();
@@ -78,18 +82,15 @@ const fragmentBody = /* glsl */ `
   if (s < ${(-overlap / 2).toFixed(4)} || s > ${(1 + overlap / 2).toFixed(4)}) discard;
   s = clamp(s, 0.0, 1.0);
   float w = clamp(abs(vUv.x - 0.5) * 2.0, 0.0, 1.0);
-  float shade;
-  if (vPurl > 0.5) {
-    shade = 0.5 + 0.5 * pow(sin(3.14159 * s), 0.8) * (0.75 + 0.25 * sin(3.14159 * vUv.x));
-  } else {
-    shade = 0.42 + 0.58 * pow(sin(3.14159 * w) * sin(3.14159 * s), 0.55);
-  }
+  float shade = 0.42 + 0.58 * pow(sin(3.14159 * w) * sin(3.14159 * s), 0.55);
   // A stitch a pixel or two across is too small to shade: shading it only
   // shimmers. Fade to its average as it shrinks.
   vec2 footprint = fwidth(vUv);
   float detail = clamp(1.6 - 2.8 * max(footprint.x, footprint.y), 0.0, 1.0);
   shade = mix(0.72, shade, detail);
-  if (!gl_FrontFacing) shade *= 0.45;
+  // A purl is a knit from behind, and drawn as one: the same V, in shadow,
+  // as a rib's purls sink between its knits.
+  if (!gl_FrontFacing || vPurl > 0.5) shade *= ${insideShade.toFixed(2)};
   diffuseColor.rgb *= shade;
 }
 `;

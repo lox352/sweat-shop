@@ -72,6 +72,20 @@ describe.each(cases)("how the stitches of %s face", (_, built) => {
     });
     expect(agreeing / count).toBeGreaterThan(0.99);
   });
+
+  // The back neck's short rows knitted back from the wrong side among them, turned about to face out as well.
+  it("faces the stitches worked from the wrong side the way the ones below them face", () => {
+    const place = new Map(drawn.map((stitch, index) => [stitch.id, index]));
+    let [agreeing, count] = [0, 0];
+    drawn.forEach((stitch, index) => {
+      const below = place.get(pairs[index * 4 + 3]);
+      if (!stitch.wrongSide || pairs[index * 4 + 2] !== stitch.id || below === undefined) return;
+      count++;
+      if (dot(normals[index], normals[below]) > 0) agreeing++;
+    });
+    expect(count).toBeGreaterThan(0);
+    expect(agreeing / count).toBeGreaterThan(0.95);
+  });
 });
 
 describe("the edges of the silhouette", () => {
