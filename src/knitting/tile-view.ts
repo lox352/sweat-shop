@@ -748,6 +748,16 @@ export class TileView {
    */
   show(content: TileContent) {
     const was = this.content;
+    /*
+     * The stitch being worked, held still while it showed, stays held when
+     * it stops being outlined - the knitting closed - until the box comes to
+     * rest: rounds out of view closing up as the box shows more of the chart
+     * would otherwise slide it a few pixels, and the chart be seen to move.
+     */
+    if (was?.follow !== undefined && content.follow === undefined && was.scene === content.scene && this.target === undefined && this.followShowing()) {
+      this.target = was.follow;
+      this.movedAt = performance.now();
+    }
     this.content = content;
     const ratio = Math.min(window.devicePixelRatio || 1, 3);
     if (!was || was.scene !== content.scene || !!was.collapse !== !!content.collapse) {
