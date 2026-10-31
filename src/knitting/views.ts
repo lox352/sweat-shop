@@ -402,6 +402,17 @@ export const markersInView = (
   column: (column: number) => number | undefined = () => undefined,
 ): MarkerLine[] =>
   lines.flatMap((line) => {
+    if (line.edge) {
+      // At the chart's far edge, to the left of the stitch before it there: wherever the view has that column, beside it.
+      const rows = line.route.flatMap((row) => {
+        const at = column(row.after);
+        return at === undefined ? [] : [{ ...row, after: Math.round(at) }];
+      });
+      if (rows.length === 0) return [];
+      const after = Math.max(...rows.map((row) => row.after));
+      const route = rows.map((row) => ({ ...row, after }));
+      return [{ ...line, after, from: route[0].row, to: route[route.length - 1].row, route }];
+    }
     if (line.atStart) {
       // Beside the first stitch of each of its rows the view has, at the edge of the view if that is where they are.
       const rows = line.route.flatMap((row) => {
@@ -411,17 +422,6 @@ export const markersInView = (
       if (rows.length === 0) return [];
       const route = startLine(rows);
       return [{ ...line, after: route[0].after, from: route[0].row, to: route[route.length - 1].row, route }];
-    }
-    if (line.edge) {
-      // At the chart's other edge, to the left of the stitch there: wherever the view has that column, beside it.
-      const rows = line.route.flatMap((row) => {
-        const at = column(row.after);
-        return at === undefined ? [] : [{ ...row, after: Math.round(at) }];
-      });
-      if (rows.length === 0) return [];
-      const after = Math.max(...rows.map((row) => row.after));
-      const route = rows.map((row) => ({ ...row, after }));
-      return [{ ...line, after, from: route[0].row, to: route[route.length - 1].row, route }];
     }
     const after = boundary(line.after);
     if (after === undefined) return [];

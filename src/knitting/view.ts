@@ -59,12 +59,9 @@ export interface MarkerLine {
    */
   atStart?: boolean;
   /**
-   * The start of the round again, at the chart's other edge, beside the
-   * short rows that cross it: the chart is cut at the beginning of the
-   * round, so its left edge and its right are the same place on the needles,
-   * and a short row passes the marker between them. Drawn row by row, each
-   * reached in its own row, with no bars across: it is placed and taken off
-   * where the start of the round's line is.
+   * A start of the round's line at the chart's far edge too, where the chart
+   * is cut along it: beside the stitch before it each time it is reached, a
+   * row down from where it is up the near edge. See view's farEdge.
    */
   edge?: boolean;
 }
@@ -87,6 +84,8 @@ export interface MarkerRow {
   start: number;
   /** For a marker at the start of the round, the column of the round's first stitch, which it stands beside: see atStart. */
   beside?: number;
+  /** For a marker at the start of the round, when it is behind you there: the step the next round is begun after. See farEdge. */
+  upTo?: number;
 }
 
 /** Every step placing a new beginning of the round, once a sweater: most have none. */
@@ -311,47 +310,71 @@ const markerLines = (built: SweaterStitches, cellOf: (id: number) => Cell | unde
     if (route.length === 0) return [];
     const lined = atStart ? startLine(route) : route;
     const line: MarkerLine = { marker, after: lined[0].after, from: lined[0].row, to: lined[lined.length - 1].row, placed, ...(off === undefined ? {} : { off }), route: lined, ...(atStart ? { atStart } : {}) };
-    return atStart ? [line, ...seamEdges(built, marker, placed, rounds, cellOf)] : [line];
+    return atStart ? [line, ...farEdge(built, marker, placed, off, rounds, cellOf)] : [line];
   });
 
 /**
- * The start of the round at the chart's other edge, beside the short rows
- * that cross it: a line for each run of them, one above another, up the
- * boundary on the far side of the stitch at that edge. See MarkerLine.edge.
+ * A marker at the start of the round at the chart's other edge as well,
+ * where the chart is cut along it. Each time the marker is reached it is
+ * between two stitches: the last before it, and the first after it. Where
+ * the chart is cut along the marker - as it is unwound along the start of
+ * the round - those two are at its opposite edges, the one before it at the
+ * far edge of its row, and the one after at the near edge of the row it
+ * begins: the chart is a spiral, and its far edge joins its near one a row
+ * up. So the marker is drawn beside both: up the near edge, as the start of
+ * the round's own line, and up the far edge beside the stitch before it,
+ * a row down - or in the same row, for a short row that crosses the
+ * beginning of the round part way along - in the same tense, row for row:
+ * now while the round it begins is worked, behind once the next is begun,
+ * and dashed to come. Where the chart is cut elsewhere - the beginning of
+ * the round moved, as the Paul Klee Sweater's is - the two stand side by
+ * side, and the marker is drawn once, between them. See MarkerLine.edge.
  */
-const seamEdges = (
+const farEdge = (
   built: SweaterStitches,
   marker: string,
   placed: number,
-  rounds: { start: number; turned?: boolean }[],
+  off: number | undefined,
+  rounds: { before: number; after: number; start: number; turned?: boolean }[],
   cellOf: (id: number) => Cell | undefined,
 ): MarkerLine[] => {
   const { stitches, knitting } = built;
   const passed = markersPassed(built);
   const roundAt = new Map<number, number[]>();
   knitting.rounds.forEach((round) => roundAt.set(round[0], round));
+  const fabricOf = (ids: number[]) => ids.filter((id) => isFabric(stitches[id]));
   const rows: MarkerRow[] = [];
-  for (const round of rounds) {
-    if (!round.turned) continue;
-    const ids = (roundAt.get(round.start) ?? []).filter((id) => isFabric(stitches[id]));
-    const k = ids.findIndex((id) => passed.get(id) === marker);
-    if (k < 0 || k + 1 >= ids.length) continue;
-    // Of the two either side of where it is passed, the one at the chart's far edge: the line stands to its left.
-    const sides = [cellOf(ids[k]), cellOf(ids[k + 1])].filter((cell): cell is Cell => cell !== undefined);
-    if (sides.length < 2) continue;
-    const far = sides[0].column > sides[1].column ? sides[0] : sides[1];
-    rows.push({ row: sides[0].row, after: Math.round(far.column), passed: ids[k], start: round.start });
-  }
-  // A line for each run of rows one above another, all up the one boundary, the furthest out.
-  const runs: MarkerRow[][] = [];
-  for (const row of rows.sort((a, b) => a.row - b.row)) {
-    const last = runs[runs.length - 1];
-    if (last && row.row === last[last.length - 1].row + 1) last.push(row);
-    else if (!last || row.row !== last[last.length - 1].row) runs.push([row]);
-  }
-  return runs.map((run) => {
-    const after = Math.max(...run.map((row) => row.after));
-    const route = run.map((row) => ({ ...row, after }));
-    return { marker, after, from: route[0].row, to: route[route.length - 1].row, placed, route, edge: true };
+  rounds.forEach((round, k) => {
+    // The stitches either side of it where it is reached: across the start of the round, or across a short row part way along.
+    let [before, after] = [k === 0 ? fabricBefore(built, placed) : round.before, round.after];
+    const ids = fabricOf(roundAt.get(round.start) ?? []);
+    if (round.turned) {
+      // A short row that crosses it part way along; one that begins at it is across the start of the round, as a round is.
+      const at = ids.findIndex((id) => passed.get(id) === marker);
+      if (at >= 0 && at + 1 < ids.length) [before, after] = [ids[at], ids[at + 1]];
+    }
+    const [a, b] = [cellOf(before), cellOf(after)];
+    if (!a || !b) return;
+    // Which way the row it begins runs across the chart, from its first two stitches: leftwards, up the columns, as most do.
+    const [first, second] = [cellOf(ids[0]), cellOf(ids[1])];
+    const leftwards = !first || !second || second.column >= first.column;
+    // From one to the next against the way the row runs: back across the chart, from one edge to the other.
+    if (leftwards ? b.column >= a.column : b.column <= a.column) return;
+    const next = rounds[k + 1];
+    rows.push({
+      row: a.row,
+      after: Math.round(a.column),
+      passed: k === 0 ? placed : round.before,
+      start: round.start,
+      ...(next ? { upTo: next.before } : off === undefined ? {} : { upTo: off }),
+    });
   });
+  if (rows.length === 0) return [];
+  // Up the one boundary, the furthest out, as the start of the round's own line is up the nearest; a row reached twice, as it was last.
+  const byRow = new Map<number, MarkerRow>();
+  for (const row of rows) byRow.set(row.row, row);
+  const route = [...byRow.values()].sort((x, y) => x.row - y.row);
+  const after = Math.max(...route.map((row) => row.after));
+  const lined = route.map((row) => ({ ...row, after }));
+  return [{ marker, after, from: lined[0].row, to: lined[lined.length - 1].row, placed, ...(off === undefined ? {} : { off }), route: lined, atStart: true, edge: true }];
 };

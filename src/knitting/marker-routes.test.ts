@@ -3,7 +3,7 @@ import { buildSweater } from "./engine";
 import { makeOnesAtMarkers, markerRoutes, markersPassed } from "./marker-routes";
 import { raglanLine, testSweaterWithMarkers } from "./test-sweater";
 import { seamLayout } from "./useSweater";
-import { viewFor } from "./view";
+import { type MarkerLine, viewAt, viewFor } from "./view";
 import paulKlee from "../data/sweaters/paul-klee";
 import { sweaters } from "../data/sweaters";
 import { isStep } from "../types/Stitch";
@@ -76,17 +76,29 @@ describe("where a marker is reached part way along a round or a short row", () =
     }
   });
 
-  it("is drawn at the chart's other edge too, beside the short rows that cross it, as well as up its own", () => {
+  it("is drawn at the chart's other edge too, a row down where the rounds join up the spiral, in the same tense row for row", () => {
     const layout = seamLayout(built);
     const lines = viewFor(built, () => layout, undefined).markers.filter((one) => one.marker === "the start of the round");
     const [own, edge] = [lines.filter((one) => !one.edge), lines.filter((one) => one.edge)];
-    expect(own.map((one) => one.after)).toEqual([0]);
-    // One line, up the left-hand edge, a row for each short row that crosses it: the second to the sixth, one above another.
+    expect(own).toHaveLength(1);
+    expect(own[0].after).toBe(0);
+    // One line up the left-hand edge, beside the last stitch of the round below each of the start's own rows.
     expect(edge).toHaveLength(1);
-    expect(edge[0].after).toBe(layout.columns);
-    const rows = shortRows.slice(1, -1).map((row) => layout.cells.get(row[0])!.row);
-    expect(edge[0].route.map((at) => at.row)).toEqual(rows);
-    expect(edge[0].route.map((at) => at.passed)).toEqual(shortRows.slice(1, -1).map((row) => row.find((id) => passed.has(id))));
+    const [right, left] = [own[0], edge[0]];
+    expect(left.after).toBe(layout.columns);
+    expect([left.from, left.to]).toEqual([right.from - 1, right.to - 1]);
+    // In the same rows as theirs, the short rows that cross it part way along; and not beside the first, which turns short of that edge.
+    const rowOf = (row: number[]) => layout.cells.get(row[0])!.row;
+    for (const row of shortRows.slice(1, -1)) expect(left.route.find((at) => at.passed === right.route.find((one) => one.row === rowOf(row))!.passed)!.row).toBe(rowOf(row));
+    const missing = Array.from({ length: left.to - left.from + 1 }, (_, k) => left.from + k).filter((row) => !left.route.some((at) => at.row === row));
+    expect(missing).toEqual([rowOf(shortRows[0])]);
+    // Each reached as the right-hand one is, and behind you when it is: once the round after is begun, or the marker comes off.
+    right.route.forEach((at, k) => {
+      const twin = left.route.find((one) => one.passed === at.passed);
+      if (!twin) return;
+      expect(twin.upTo).toBe(right.route[k + 1]?.passed ?? right.off);
+    });
+    expect(left.route.every((at) => right.route.some((one) => one.passed === at.passed))).toBe(true);
   });
 
   it("is between the same two stitches' descendants, for a marker that is not the start of the round", () => {
@@ -96,5 +108,39 @@ describe("where a marker is reached part way along a round or a short row", () =
       // Where two come off together, at the divide, the steps taking them off stop the run there already.
       for (const round of route.rounds.filter((one) => !one.atStart && !one.takenOff)) expect(at.get(round.before)).toBe(route.marker);
     }
+  });
+});
+
+describe("a marker where the chart is cut", () => {
+  // The test sweater, a marker placed at the start of the round in its band, and the beginning of the round moved at the divide.
+  const pattern = testSweaterWithMarkers();
+  const band = pattern.sizes[0].sections[1].rounds.find((spec) => spec.type === "chart" && spec.chart === "band");
+  if (band?.type !== "chart") throw new Error("the test sweater has no band");
+  band.markers = [{ after: 0, place: "the start of the round" }, ...(band.markers ?? [])];
+  const built = buildSweater(pattern, "one");
+  const layout = seamLayout(built);
+  const start = (view: { markers: MarkerLine[] }) => view.markers.filter((line) => line.marker === "the start of the round");
+
+  it("is drawn at both edges while the chart is unwound along it, the far one a row down, reached as the near one is", () => {
+    const [near, far] = start(viewFor(built, () => layout, undefined));
+    expect([near.edge, far.edge]).toEqual([undefined, true]);
+    expect([near.after, far.after]).toEqual([0, layout.columns]);
+    expect(far.route.map((at) => at.row)).toEqual(near.route.map((at) => at.row - 1));
+    expect(far.route.map((at) => at.passed)).toEqual(near.route.map((at) => at.passed));
+    expect(far.route.map((at) => at.upTo)).toEqual([...near.route.slice(1).map((at) => at.passed), near.off]);
+  });
+
+  it("is drawn once, between its two stitches, where the beginning of the round is moved and the chart cut elsewhere", () => {
+    const moved = viewAt(built, layout, built.stitches.length - 1);
+    expect(moved.beginning).toBeDefined();
+    const lines = start(moved);
+    expect(lines).toHaveLength(1);
+    const [line] = lines;
+    expect(line.edge).toBeUndefined();
+    expect(new Set(line.route.map((at) => at.after)).size).toBe(1);
+    expect(line.after).toBeGreaterThan(0);
+    expect(line.after).toBeLessThan(layout.columns);
+    // And no marker is at the far edge at all.
+    expect(moved.markers.filter((one) => one.edge || one.after >= layout.columns)).toEqual([]);
   });
 });
