@@ -254,6 +254,27 @@ describe("a fork across an increase's two loops, its columns closed up", () => {
     expect(inked.length).toBe(2);
   });
 
+  it("paints a short row's turned stitch the height of two rows where nothing stands over it, its yarn across both", () => {
+    const state = stateFor(layout);
+    const empty = (row: number, column: number) =>
+      ![...layout.cells.values()].some((at) => at.row === row && Math.round(at.column) === column);
+    const tall = scene.turns.filter((turn) => empty(scene.rowOf[turn.last] + 1, scene.columnOf[turn.last]));
+    const short = scene.turns.filter((turn) => !tall.includes(turn));
+    expect(tall.length).toBeGreaterThan(0);
+    const paint = recorder();
+    paintRegion(paint.ctx, { x: 0, y: 0, width: layout.columns * cell + 40, height: layout.rows * cell }, scene, state);
+    const filled = (turn: (typeof scene.turns)[number]) =>
+      paint.rects.filter(
+        (one) => !one.path && one.x === state.left[scene.columnOf[turn.last]] && one.w === cell && one.h === 2 * cell,
+      );
+    for (const turn of tall) {
+      const [hit] = filled(turn);
+      // From the top of the row above to the foot of its own.
+      expect(hit?.y).toBe(state.top[scene.rowOf[turn.last] + 1]);
+    }
+    for (const turn of short) expect(filled(turn)).toEqual([]);
+  });
+
   it("numbers every fifth row and each piece's first down the edge", () => {
     const paint = recorder();
     paintRegion(paint.ctx, { x: 0, y: 0, width: layout.columns * cell + 40, height: layout.rows * cell }, scene, stateFor(layout));
