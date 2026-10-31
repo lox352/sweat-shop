@@ -223,14 +223,26 @@ for (const taller of [false, true]) {
       const place = window.__chartViews.at(-1).place(id);
       return { right: box.left + place.x, top: box.top + place.y };
     }, id);
-    const before = await at();
+    // Where it is once it has stopped moving, and where it was on the way, to tell of if it moved.
+    const still = async () => {
+      const seen = [await at()];
+      for (let k = 0; k < 30; k++) {
+        await page.waitForTimeout(100);
+        seen.push(await at());
+        const [a, b, c] = seen.slice(-3);
+        if (c && a.top === c.top && b.top === c.top && a.right === c.right && b.right === c.right) break;
+      }
+      return { at: seen[seen.length - 1], seen: JSON.stringify(seen) };
+    };
+    const before = await still();
     await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
     await expect(page.getByRole("region", { name: "Your progress" })).toBeVisible();
     // At rest, every round and column that is going to close up or open has.
     await page.waitForTimeout(400);
-    const after = await at();
-    expect(Math.abs(after.top - before.top)).toBeLessThan(2);
-    expect(Math.abs(after.right - before.right)).toBeLessThan(2);
+    const after = await still();
+    const moved = `before ${before.seen}, after ${after.seen}`;
+    expect(Math.abs(after.at.top - before.at.top), moved).toBeLessThan(2);
+    expect(Math.abs(after.at.right - before.at.right), moved).toBeLessThan(2);
   });
 }
 
