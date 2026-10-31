@@ -177,53 +177,62 @@ test("the chart is its own page, and closing the knitting keeps you on it", asyn
   await expect(page.getByRole("heading", { name: "Sweat Shop", level: 1, exact: true })).toBeVisible();
 });
 
-test("knitting fills the screen, says how to work the round's stitches, and closing it leaves the chart still", async ({ page }) => {
-  // The chart's views, to ask where a stitch is drawn: see TileView.probe.
-  await page.addInitScript(() => {
-    window.__chartViews = [];
+/*
+ * And in a window taller than either device's: closing the knitting there,
+ * rounds out of view closing up slid the stitch about to be worked 5px, which
+ * the fonts on CI's runners alone were enough to bring about.
+ */
+for (const taller of [false, true]) {
+  test(`knitting fills the screen, says how to work the round's stitches, and closing it leaves the chart still${taller ? ", in a taller window" : ""}`, async ({ page }, info) => {
+    test.skip(taller && info.project.use.isMobile === true, "a phone's window is the phone's");
+    // The chart's views, to ask where a stitch is drawn: see TileView.probe.
+    await page.addInitScript(() => {
+      window.__chartViews = [];
+    });
+    if (taller) await page.setViewportSize({ ...page.viewportSize(), height: 840 });
+    await start(page);
+    // The cast-on, twelve rounds of rib, the short rows, then the first increase round.
+    await workRounds(page, 20);
+    await expect(position(page)).toContainText("Yoke, round 21, stitch 1.");
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1)).toBe(true);
+
+    const hint = page.getByRole("list", { name: "Stitches in this round" });
+    await expect(hint).toContainText("Make one");
+
+    await page.getByRole("button", { name: "Key", exact: true }).click();
+    const key = page.getByRole("dialog", { name: "Key" });
+    await expect(key).toContainText("Admiral Navy");
+    await key.getByRole("button", { name: "Close the key" }).click();
+    await expect(key).toBeHidden();
+
+    // The stitch about to be worked says what it is.
+    await tapBeside(page, 0);
+    const picker = page.getByRole("dialog", { name: /^Yoke, round 21, stitch 1$/ });
+    await expect(picker).toContainText("Knit");
+    await picker.getByRole("button", { name: "Close" }).click();
+
+    /*
+     * Where the stitch about to be worked is on screen. Not where the sheet's
+     * edge is: rounds out of view closing up above as the box grows move that
+     * edge, and nothing the knitter can see.
+     */
+    const id = await page.evaluate(() => window.__chartViews.at(-1).probe().follow);
+    expect(id).toBeGreaterThan(0);
+    const at = () => page.locator(".chart-sheets").evaluate((sheet, id) => {
+      const box = sheet.getBoundingClientRect();
+      const place = window.__chartViews.at(-1).place(id);
+      return { right: box.left + place.x, top: box.top + place.y };
+    }, id);
+    const before = await at();
+    await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Your progress" })).toBeVisible();
+    // At rest, every round and column that is going to close up or open has.
+    await page.waitForTimeout(400);
+    const after = await at();
+    expect(Math.abs(after.top - before.top)).toBeLessThan(2);
+    expect(Math.abs(after.right - before.right)).toBeLessThan(2);
   });
-  await start(page);
-  // The cast-on, twelve rounds of rib, the short rows, then the first increase round.
-  await workRounds(page, 20);
-  await expect(position(page)).toContainText("Yoke, round 21, stitch 1.");
-  expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1)).toBe(true);
-
-  const hint = page.getByRole("list", { name: "Stitches in this round" });
-  await expect(hint).toContainText("Make one");
-
-  await page.getByRole("button", { name: "Key", exact: true }).click();
-  const key = page.getByRole("dialog", { name: "Key" });
-  await expect(key).toContainText("Admiral Navy");
-  await key.getByRole("button", { name: "Close the key" }).click();
-  await expect(key).toBeHidden();
-
-  // The stitch about to be worked says what it is.
-  await tapBeside(page, 0);
-  const picker = page.getByRole("dialog", { name: /^Yoke, round 21, stitch 1$/ });
-  await expect(picker).toContainText("Knit");
-  await picker.getByRole("button", { name: "Close" }).click();
-
-  /*
-   * Where the stitch about to be worked is on screen. Not where the sheet's
-   * edge is: rounds out of view closing up above as the box grows move that
-   * edge, and nothing the knitter can see.
-   */
-  const id = await page.evaluate(() => window.__chartViews.at(-1).probe().follow);
-  expect(id).toBeGreaterThan(0);
-  const at = () => page.locator(".chart-sheets").evaluate((sheet, id) => {
-    const box = sheet.getBoundingClientRect();
-    const place = window.__chartViews.at(-1).place(id);
-    return { right: box.left + place.x, top: box.top + place.y };
-  }, id);
-  const before = await at();
-  await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
-  await expect(page.getByRole("region", { name: "Your progress" })).toBeVisible();
-  // At rest, every round and column that is going to close up or open has.
-  await page.waitForTimeout(400);
-  const after = await at();
-  expect(Math.abs(after.top - before.top)).toBeLessThan(2);
-  expect(Math.abs(after.right - before.right)).toBeLessThan(2);
-});
+}
 
 test("the chart keeps its bottom right corner when its window is resized for a moment", async ({ page }) => {
   await start(page);
