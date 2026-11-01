@@ -102,6 +102,19 @@
   };
 
   const round = (n) => Math.round(n * 100) / 100;
+  /*
+   * How far the tiles' layer is moved, as it is drawn: by its style, or by
+   * the animations the view slides it with as the box scrolls (see
+   * TileView.slideWithScroll), whichever moves it. Nothing, unmoved.
+   */
+  const layerShift = (layer) => {
+    if (!layer) return "";
+    const style = getComputedStyle(layer);
+    const across = style.translate === "none" ? 0 : parseFloat(style.translate) || 0;
+    const matrix = style.transform === "none" ? null : new DOMMatrixReadOnly(style.transform);
+    const [x, y] = [across + (matrix?.m41 ?? 0), matrix?.m42 ?? 0];
+    return x || y ? `translate(${x}px, ${y}px)` : "";
+  };
   // Each view numbered as it is first seen: a new one is a new chart, the knitting gone on to another view.
   const serials = new WeakMap();
   const serialOf = (v) => {
@@ -142,7 +155,7 @@
       s: state,
       box: { left: round(rect.left), top: round(rect.top), width: round(rect.width), height: round(rect.height) },
       sheetRect: { left: round(sheet.left), top: round(sheet.top) },
-      transform: box.querySelector(".chart-layer")?.style.transform ?? "",
+      transform: layerShift(box.querySelector(".chart-layer")),
       a: anchors,
       next,
       vw: innerWidth,

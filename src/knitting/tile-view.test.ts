@@ -4,7 +4,7 @@ import { layOutSweater } from "./layout";
 import { sceneOf } from "./chart-scene";
 import { defaultColours, gutter } from "./chart-painter";
 import { LiveColumns, mapOf } from "./column-window";
-import { TileView, type TileContent, tileSize, along, type Places } from "./tile-view";
+import { TileView, type TileContent, tileSize, along, type Places, Reach, reach } from "./tile-view";
 import { testSweater } from "./test-sweater";
 import type { Palette } from "./palette";
 
@@ -969,5 +969,37 @@ describe("where the box goes as lines open and close", () => {
     const mostlyRight = shares.filter((share) => share.left <= 0.2).map((share) => share.across);
     const mostlyLeft = shares.filter((share) => share.left >= 0.8).map((share) => share.across);
     expect(Math.min(...mostlyRight) - Math.max(...mostlyLeft)).toBeGreaterThanOrEqual(size / 2);
+  });
+});
+
+describe("how far lines reach, worked out ahead", () => {
+  // Lines of 16px with every third closed up, laid out along themselves and along those with every fifth closed instead.
+  const placesOf = (closed: (line: number) => boolean): Places => {
+    const lines = 60;
+    const start = new Float64Array(lines + 2);
+    const size = new Float64Array(lines + 2);
+    let at = 0;
+    for (let line = lines; line >= 1; line--) {
+      start[line] = at;
+      size[line] = closed(line) ? 0 : 16;
+      at += size[line];
+    }
+    start[0] = at;
+    return { start, size };
+  };
+  const ref = placesOf((line) => line % 5 === 0);
+  const places = placesOf((line) => line % 3 === 0);
+
+  it("is just as far, before every place along the lines, as counting them one by one", () => {
+    const ahead = new Reach(ref, places, 120);
+    for (let at = -200; at <= ref.start[0] + 200; at += 7.3) expect(ahead.before(at)).toBeCloseTo(reach(ref, places, at, 120), 6);
+  });
+
+  it("finds the place they reach a length before, the other way", () => {
+    const ahead = new Reach(ref, places, 120);
+    for (let at = 0; at <= ref.start[0]; at += 11.1) {
+      const length = reach(ref, places, at, 120);
+      if (length > 0) expect(reach(ref, places, ahead.where(length), 120)).toBeCloseTo(length, 6);
+    }
   });
 });
