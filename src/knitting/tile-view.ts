@@ -428,11 +428,12 @@ export const along = (rest: Places, places: Places, part: number, size: number, 
 /** A scroll timeline, which the DOM's types here have yet to name. */
 type Timeline = AnimationTimeline;
 type TimelineMaker = new (options: { source: Element; axis: "x" | "y" }) => Timeline;
-/** What a slide's keyframes were made for: the lines, the box, and the stretch of scroll sampled. */
+/** What a slide's keyframes were made for: the lines, the box, and the stretch of scroll sampled - or lines easing, which move on. */
 interface Made {
   key: string;
   from: number;
   to: number;
+  easing: boolean;
 }
 
 /**
@@ -1699,6 +1700,12 @@ export class TileView {
    * same frame. They are made again when the lines move, what is held
    * changes, the sheet changes size or the box nears the end of the stretch
    * sampled; never only for a scroll.
+   *
+   * But not while the lines ease: they move every frame, and the keyframes
+   * made afresh every frame cost the browser frames of its own - a third as
+   * many again went missing, and the lines lurched open. Meanwhile the
+   * layer is held where it goes at the box's scroll, put there from here
+   * each frame, as without the timelines; the stutter was as much less.
    */
   private slideWithScroll() {
     const slider = this.slider!;
@@ -1764,11 +1771,11 @@ export class TileView {
       const made = slider.made[name];
       const reach = 2 * size;
       // Still good: the same lines, held the same, and the box well inside the stretch sampled, or that stretch reaching the end.
-      if (made && made.key === key && (at - made.from >= size || made.from <= lowest) && (made.to - at >= size || made.to >= highest)) continue;
+      if (made && !made.easing && made.key === key && (at - made.from >= size || made.from <= lowest) && (made.to - at >= size || made.to >= highest)) continue;
       const from = Math.max(lowest, at - reach);
       const to = Math.min(highest, at + reach);
       let frames: Keyframe[];
-      if (highest - lowest <= 1) {
+      if (highest - lowest <= 1 || axis.moving) {
         const by = snap(origin[side] - at, slide(at) + axis.held);
         frames = [{ offset: 0, ...frame(by) }, { offset: 1, ...frame(by) }];
       } else {
@@ -1794,7 +1801,7 @@ export class TileView {
           });
       }
       for (const animations of slider.moved.values()) (animations[index].effect as KeyframeEffect).setKeyframes(frames);
-      slider.made[name] = { key, from, to };
+      slider.made[name] = { key, from, to, easing: axis.moving };
     }
   }
 

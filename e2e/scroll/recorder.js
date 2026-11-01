@@ -164,10 +164,23 @@
     });
   };
 
-  // Sampled once the frame has been drawn: a task posted from the frame runs after it.
+  /*
+   * Sampled once the frame has been drawn: a task posted from the frame runs
+   * after it. Once a frame: a task late for one frame runs after the next has
+   * begun, and samples that. And before the fling below scrolls the box on,
+   * in a task of its own after the frame: sampled after, what is read of the
+   * box was never on screen - the scroll is drawn in the next frame, once the
+   * page has had it.
+   */
   const channel = new MessageChannel();
   let pending = 0;
-  channel.port1.onmessage = () => sample(pending);
+  let sampled = 0;
+  const sampleFrame = () => {
+    if (!probe.recording || sampled === pending) return;
+    sampled = pending;
+    sample(pending);
+  };
+  channel.port1.onmessage = sampleFrame;
   const tick = (time) => {
     if (!probe.recording) return;
     pending = time;
@@ -251,6 +264,7 @@
             else vy *= 0.8;
           }
         }
+        sampleFrame();
         setters.scrollLeft.call(box, bounce ? inside.x : x);
         setters.scrollTop.call(box, bounce ? inside.y : y);
         // The browser tells of a scroll it makes; the parts past an end it would not otherwise.
