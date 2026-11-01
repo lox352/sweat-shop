@@ -437,13 +437,15 @@ interface Made {
 
 /**
  * The browser's scroll timelines, where it has them and they are not turned
- * off (`window.__noSlider`, for the scroll harness to measure the chart
- * without them): see slideWithScroll.
+ * off - by `window.__noSlider`, for the stutter lab to measure the chart
+ * without them, or `slider=off` in the address, to try it so on a phone:
+ * see slideWithScroll.
  */
 const scrollTimelines = (): TimelineMaker | undefined => {
   if (typeof window === "undefined") return undefined;
   const found = window as unknown as { ScrollTimeline?: TimelineMaker; __noSlider?: boolean };
-  return found.__noSlider ? undefined : found.ScrollTimeline;
+  if (found.__noSlider || /[?&]slider=off\b/.test(window.location.href)) return undefined;
+  return found.ScrollTimeline;
 };
 
 /** Each layout of lines a number of its own, to tell whether a slide's keyframes were made for it: see slideWithScroll. */

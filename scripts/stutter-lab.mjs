@@ -15,7 +15,7 @@
  * scrolls (see TileView.slideWithScroll), and without (`--without`).
  *
  *   npm run build && npm run preview -- --port 4319 &
- *   xvfb-run -a -s "-screen 0 1280x1024x24" node scripts/stutter-lab.mjs out/run [--without]
+ *   xvfb-run -a -s "-screen 0 1280x1024x24" node scripts/stutter-lab.mjs out/run [--without] [--throttle 4]
  *   python3 scripts/stutter-lab.py out/run.mkv ...
  *
  * Needs Xvfb, ffmpeg with x11grab, and Python with numpy.
@@ -25,12 +25,23 @@ import { spawn } from "node:child_process";
 import { chromium } from "playwright";
 
 const args = process.argv.slice(2);
-const out = args.find((arg) => !arg.startsWith("--"));
+const out = args.find((arg, k) => !arg.startsWith("--") && !args[k - 1]?.startsWith("--throttle"));
 if (!out || !process.env.DISPLAY) {
   console.error("usage: xvfb-run ... node scripts/stutter-lab.mjs <out> [--without]");
   process.exit(1);
 }
 const without = args.includes("--without");
+const option = (name, fallback) => {
+  const at = args.indexOf(`--${name}`);
+  return at >= 0 ? args[at + 1] : fallback;
+};
+/*
+ * The page slowed as a phone's is against this machine (see scroll-lab.mjs):
+ * quick enough, the page puts the layer in the same frame the browser
+ * scrolls the box in, and this browser shows no stutter that an iPhone,
+ * whose page hears of each scroll a frame after it is drawn, does.
+ */
+const throttle = Number(option("throttle", "4"));
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM || undefined,
@@ -63,10 +74,15 @@ const box = await page.locator(".chart-scroll").boundingBox();
 const ffmpeg = spawn("ffmpeg", ["-v", "error", "-y", "-f", "x11grab", "-framerate", "60", "-video_size", "440x920", "-i", `${process.env.DISPLAY}+0,0`, "-c:v", "libx264rgb", "-qp", "0", "-preset", "ultrafast", `${out}.mkv`], { stdio: "inherit" });
 await page.waitForTimeout(800);
 
-// Four strokes of a finger 300 pixels across the box, each in 0.4 seconds.
+/*
+ * Six strokes of a finger 300 pixels across the box, each in 0.4 seconds,
+ * one straight after another: the chart never comes to rest between them,
+ * so its layer slides with the scroll throughout, as columns open.
+ */
 const session = await context.newCDPSession(page);
+if (throttle > 1) await session.send("Emulation.setCPUThrottlingRate", { rate: throttle });
 const [x, y] = [box.x + box.width / 2, box.y + box.height * 0.6];
-for (let stroke = 0; stroke < 4; stroke++) {
+for (let stroke = 0; stroke < 6; stroke++) {
   const steps = 24;
   const from = x - 150;
   await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: from, y }] });
@@ -77,7 +93,7 @@ for (let stroke = 0; stroke < 4; stroke++) {
     await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: from + (300 * k) / steps, y }] });
   }
   await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  await page.waitForTimeout(120);
+  await page.waitForTimeout(16);
 }
 await page.waitForTimeout(500);
 ffmpeg.kill("SIGINT");
