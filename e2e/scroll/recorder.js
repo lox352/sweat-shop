@@ -102,6 +102,19 @@
   };
 
   const round = (n) => Math.round(n * 100) / 100;
+  /*
+   * How far the tiles' layer is moved, as it is drawn: by its style, or by
+   * the animations the view slides it with as the box scrolls (see
+   * TileView.slideWithScroll), whichever moves it. Nothing, unmoved.
+   */
+  const layerShift = (layer) => {
+    if (!layer) return "";
+    const style = getComputedStyle(layer);
+    const across = style.translate === "none" ? 0 : parseFloat(style.translate) || 0;
+    const matrix = style.transform === "none" ? null : new DOMMatrixReadOnly(style.transform);
+    const [x, y] = [across + (matrix?.m41 ?? 0), matrix?.m42 ?? 0];
+    return x || y ? `translate(${x}px, ${y}px)` : "";
+  };
   // Each view numbered as it is first seen: a new one is a new chart, the knitting gone on to another view.
   const serials = new WeakMap();
   const serialOf = (v) => {
@@ -142,7 +155,7 @@
       s: state,
       box: { left: round(rect.left), top: round(rect.top), width: round(rect.width), height: round(rect.height) },
       sheetRect: { left: round(sheet.left), top: round(sheet.top) },
-      transform: box.querySelector(".chart-layer")?.style.transform ?? "",
+      transform: layerShift(box.querySelector(".chart-layer")),
       a: anchors,
       next,
       vw: innerWidth,
@@ -151,10 +164,23 @@
     });
   };
 
-  // Sampled once the frame has been drawn: a task posted from the frame runs after it.
+  /*
+   * Sampled once the frame has been drawn: a task posted from the frame runs
+   * after it. Once a frame: a task late for one frame runs after the next has
+   * begun, and samples that. And before the fling below scrolls the box on,
+   * in a task of its own after the frame: sampled after, what is read of the
+   * box was never on screen - the scroll is drawn in the next frame, once the
+   * page has had it.
+   */
   const channel = new MessageChannel();
   let pending = 0;
-  channel.port1.onmessage = () => sample(pending);
+  let sampled = 0;
+  const sampleFrame = () => {
+    if (!probe.recording || sampled === pending) return;
+    sampled = pending;
+    sample(pending);
+  };
+  channel.port1.onmessage = sampleFrame;
   const tick = (time) => {
     if (!probe.recording) return;
     pending = time;
@@ -238,6 +264,7 @@
             else vy *= 0.8;
           }
         }
+        sampleFrame();
         setters.scrollLeft.call(box, bounce ? inside.x : x);
         setters.scrollTop.call(box, bounce ? inside.y : y);
         // The browser tells of a scroll it makes; the parts past an end it would not otherwise.

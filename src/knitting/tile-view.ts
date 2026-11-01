@@ -228,7 +228,7 @@ const spreadOver = (size: number, cell: number) => Math.max(cell / 2, size / 2);
  * than the one before, and the pivot can always be found again from how far
  * the lines reach before it: see pivotAt.
  */
-const reach = (ref: Places, places: Places, at: number, spread: number) => {
+export const reach = (ref: Places, places: Places, at: number, spread: number) => {
   const lines = places.size.length - 2;
   let total = 0;
   for (let line = 1; line <= lines; line++) {
@@ -244,41 +244,116 @@ const sliver = 1e-6;
 
 /** How far lines laid out `places` reach in all. */
 const reachAll = (places: Places) => {
-  let total = 0;
-  for (let line = 1; line < places.size.length - 1; line++) total += Math.max(places.size[line], sliver);
+  let total = alls.get(places);
+  if (total === undefined) {
+    total = 0;
+    for (let line = 1; line < places.size.length - 1; line++) total += Math.max(places.size[line], sliver);
+    alls.set(places, total);
+  }
   return total;
+};
+const alls = new WeakMap<Places, number>();
+
+/**
+ * How far lines laid out `places` reach before every place along lines laid
+ * out `ref`, at once: see reach, which this is, worked out ahead. Each line
+ * counts in part over `spread` either side of its middle, the more the
+ * further on, so how far they reach is a run of straight stretches, bending
+ * where a line begins or ends counting in part. Found once for the lines,
+ * how far they reach before a place is then a search among the bends, and
+ * the place they reach a length before is the same search the other way:
+ * the layer is put for many scrolls at once as the box scrolls (see
+ * slideWithScroll), and each, worked out line by line, was most of a
+ * frame's work.
+ */
+export class Reach {
+  /** Where each bend is, how far the lines reach there, and how much further they reach a pixel on. */
+  private readonly at: Float64Array;
+  private readonly reaches: Float64Array;
+  private readonly slopes: Float64Array;
+
+  constructor(ref: Places, places: Places, spread: number) {
+    const lines = places.size.length - 2;
+    const bends: { at: number; by: number }[] = [];
+    for (let line = 1; line <= lines; line++) {
+      const middle = ref.start[line] + ref.size[line] / 2;
+      const by = Math.max(places.size[line], sliver) / (2 * spread);
+      bends.push({ at: middle - spread, by }, { at: middle + spread, by: -by });
+    }
+    bends.sort((a, b) => a.at - b.at);
+    this.at = new Float64Array(bends.length);
+    this.reaches = new Float64Array(bends.length);
+    this.slopes = new Float64Array(bends.length);
+    let [reached, slope] = [0, 0];
+    bends.forEach((bend, k) => {
+      if (k > 0) reached += slope * (bend.at - bends[k - 1].at);
+      slope += bend.by;
+      this.at[k] = bend.at;
+      this.reaches[k] = reached;
+      this.slopes[k] = Math.max(0, slope);
+    });
+  }
+
+  /** How far the lines reach before `at`. */
+  before(at: number) {
+    const k = this.last(this.at, at, (value, to) => value <= to);
+    return k < 0 ? 0 : this.reaches[k] + this.slopes[k] * (at - this.at[k]);
+  }
+
+  /** Where the lines have reached `length`. */
+  where(length: number) {
+    const k = this.last(this.reaches, length, (value, to) => value < to);
+    if (k < 0) return this.at[0] ?? 0;
+    return this.slopes[k] > 0 ? this.at[k] + (length - this.reaches[k]) / this.slopes[k] : this.at[k];
+  }
+
+  /** The last of `values`, which never fall, that is still short of `to`, or -1. */
+  private last(values: Float64Array, to: number, short: (value: number, to: number) => boolean) {
+    let [low, high] = [-1, values.length - 1];
+    while (low < high) {
+      const middle = Math.ceil((low + high) / 2);
+      if (short(values[middle], to)) low = middle;
+      else high = middle - 1;
+    }
+    return low;
+  }
+}
+
+/** The Reach of lines laid out `places` along those laid out `ref`, kept while they are asked of again. */
+const reaches = new WeakMap<Places, { ref: Places; spread: number; reach: Reach }>();
+const reachOf = (ref: Places, places: Places, spread: number) => {
+  let known = reaches.get(places);
+  if (!known || known.ref !== ref || known.spread !== spread) {
+    known = { ref, spread, reach: new Reach(ref, places, spread) };
+    reaches.set(places, known);
+  }
+  return known.reach;
 };
 
 /** The pivot: the place along lines laid out `ref` that lines laid out `rest` reach `length` before. */
-const pivotAt = (ref: Places, rest: Places, length: number, spread: number) => {
-  let low = -spread - 1;
-  let high = ref.start[0] + spread + 1;
-  for (let step = 0; step < 60; step++) {
-    const middle = (low + high) / 2;
-    if (reach(ref, rest, middle, spread) < length) low = middle;
-    else high = middle;
-  }
-  return (low + high) / 2;
-};
+const pivotAt = (ref: Places, rest: Places, length: number, spread: number) => reachOf(ref, rest, spread).where(length);
 
 /**
  * The pivot for a scroll the part `part` of the way along lines laid out
- * `rest`, remembered for the last part asked of each: the scroll puts the
+ * `rest`, remembered for every part asked of each: the scroll puts the
  * layer anew every frame, and the lines the room was made for stay the same
  * from one rest to the next.
  */
-const pivots = new WeakMap<Places, { ref: Places; part: number; spread: number; pivot: number; all: number }>();
+const pivots = new WeakMap<Places, { ref: Places; spread: number; pivots: Map<number, number>; all: number }>();
 const pivotFor = (ref: Places, rest: Places, part: number, spread: number) => {
   let known = pivots.get(rest);
   if (!known || known.spread !== spread || known.ref !== ref) {
-    known = { ref, part: NaN, spread, pivot: 0, all: reachAll(rest) };
+    known = { ref, spread, pivots: new Map(), all: reachAll(rest) };
     pivots.set(rest, known);
   }
-  if (known.part !== part) {
-    known.part = part;
-    known.pivot = pivotAt(ref, rest, part * known.all, spread);
+  let pivot = known.pivots.get(part);
+  if (pivot === undefined) {
+    // Asked of many parts at once to slide the layer with the scroll (see slideWithScroll), and kept for the next frame's.
+    if (known.pivots.size > 4096) known.pivots.clear();
+    pivot = pivotAt(ref, rest, part * known.all, spread);
+    known.pivots.set(part, pivot);
   }
-  return known.pivot;
+  return pivot;
 };
 
 /**
@@ -346,9 +421,37 @@ export const along = (rest: Places, places: Places, part: number, size: number, 
   const spread = spreadOver(size, cell);
   const room = places.start[0] + near + far - size;
   if (room <= 2) return home ? places.start[0] + far - size : -near;
-  const goes = part <= 0 || part >= 1 ? part : reach(ref, places, pivotFor(ref, rest, part, spread), spread) / reachAll(places);
+  const goes = part <= 0 || part >= 1 ? part : reachOf(ref, places, spread).before(pivotFor(ref, rest, part, spread)) / reachAll(places);
   return (goes <= 0 ? 0 : goes >= 1 ? room : 1 + goes * (room - 2)) - near;
 };
+
+/** A scroll timeline, which the DOM's types here have yet to name. */
+type Timeline = AnimationTimeline;
+type TimelineMaker = new (options: { source: Element; axis: "x" | "y" }) => Timeline;
+/** What a slide's keyframes were made for: the lines, the box, and the stretch of scroll sampled - or lines easing, which move on. */
+interface Made {
+  key: string;
+  from: number;
+  to: number;
+  easing: boolean;
+}
+
+/**
+ * The browser's scroll timelines, where it has them and they are not turned
+ * off - by `window.__noSlider`, for the stutter lab to measure the chart
+ * without them, or `slider=off` in the address, to try it so on a phone:
+ * see slideWithScroll.
+ */
+const scrollTimelines = (): TimelineMaker | undefined => {
+  if (typeof window === "undefined") return undefined;
+  const found = window as unknown as { ScrollTimeline?: TimelineMaker; __noSlider?: boolean };
+  if (found.__noSlider || /[?&]slider=off\b/.test(window.location.href)) return undefined;
+  return found.ScrollTimeline;
+};
+
+/** Each layout of lines a number of its own, to tell whether a slide's keyframes were made for it: see slideWithScroll. */
+const placesIds = new WeakMap<Places, number>();
+let placesCount = 0;
 
 /** Nought for what the sums of a slide come to by way of rounding: far less than a pixel. */
 const clean = (shift: number) => (Math.abs(shift) < 1e-6 ? 0 : shift);
@@ -653,6 +756,17 @@ export class TileView {
   /** How far the layer is put along now, in whole pixels of the screen: see onPixels. */
   private drawn = { x: 0, y: 0 };
   /**
+   * The browser moving the layer, and what floats over it, with the box's
+   * scroll itself, where it can: see slideWithScroll. Each element's
+   * animations across and down, and what they were last made for.
+   */
+  private slider?: {
+    across: Timeline;
+    down: Timeline;
+    moved: Map<HTMLElement, [Animation, Animation]>;
+    made: { across?: Made; down?: Made };
+  };
+  /**
    * Told how far across the stitch being scrolled to has been moved: by
    * keeping the box inside the chart, which comes before holding it still.
    * Wherever the box was sent was worked out from where the stitch was, so it
@@ -681,6 +795,15 @@ export class TileView {
     this.layer = document.createElement("div");
     this.layer.className = "chart-layer";
     container.appendChild(this.layer);
+    const Timeline = scrollTimelines();
+    if (Timeline) {
+      this.slider = {
+        across: new Timeline({ source: scroller, axis: "x" }),
+        down: new Timeline({ source: scroller, axis: "y" }),
+        moved: new Map(),
+        made: {},
+      };
+    }
     this.next = document.createElement("div");
     this.next.className = "chart-next";
     this.next.hidden = true;
@@ -865,7 +988,7 @@ export class TileView {
    * past the chart by its own padding, the margin left for a join's arrow,
    * and the round numbers.
    */
-  private slideAcross(places: Places): number {
+  private slideAcross(places: Places, left = this.scrolledTo().left): number {
     const content = this.content;
     const width = parseFloat(this.sheet.style.width) || 0;
     // A sheet with no size yet has no room to scroll along: the layer stays at its edge.
@@ -877,7 +1000,7 @@ export class TileView {
     const room = width - gutter(content.cell) + near + far - size;
     // A sheet the box can't be scrolled along leaves the layer at its edge.
     if (room <= 2) return 0;
-    const box = this.within(this.scrolledTo().left - this.sheet.offsetLeft, near, room);
+    const box = this.within(left - this.sheet.offsetLeft, near, room);
     const home = scrollsFromRight(this.scroller) ? 1 : 0;
     // The sheet is in whole pixels (see size): the part of one it is wider than the lines at rest is room past them.
     const over = roundedUp(this.columns.rest.start[0] + gutter(content.cell));
@@ -885,7 +1008,7 @@ export class TileView {
   }
 
   /** And down, with rows laid out `places`, the box going past the chart by its padding. */
-  private slideDown(places: Places): number {
+  private slideDown(places: Places, top = this.scrolledTo().top): number {
     const content = this.content;
     const height = parseFloat(this.sheet.style.height) || 0;
     if (!content?.collapse || height <= 0) return 0;
@@ -895,7 +1018,7 @@ export class TileView {
     const size = this.scroller.clientHeight;
     const room = height + near + far - size;
     if (room <= 2) return 0;
-    const box = this.within(this.scrolledTo().top - this.sheet.offsetTop, near, room);
+    const box = this.within(top - this.sheet.offsetTop, near, room);
     const over = roundedUp(this.rows.rest.start[0]);
     return box - along(this.rows.rest, places, this.part(box + near, room), size, near, far + over, 0, content.cell, this.rows.ref);
   }
@@ -1536,13 +1659,150 @@ export class TileView {
     };
   }
 
-  /** The outline round the stitch to be worked next, on the layer with the tiles. */
-  /** The layer, and what floats over it, put `x` and `y` along from the sheet's corner. */
+  /**
+   * The layer, and what floats over it, put `x` and `y` along from the
+   * sheet's corner: by the browser itself as the box scrolls, where it can
+   * (see slideWithScroll), and here otherwise.
+   */
   private shiftLayer(x: number, y: number) {
+    this.drawn = { x, y };
+    if (this.slider) {
+      // Where it is now, under the keyframes: what shows when the box can't be scrolled that way, and its timeline is idle.
+      for (const element of [this.layer, this.afloat]) {
+        if (!element) continue;
+        element.style.translate = x ? `${x}px 0px` : "";
+        element.style.transform = y ? `translateY(${y}px)` : "";
+      }
+      this.slideWithScroll();
+      return;
+    }
     const transform = x || y ? `translate(${x}px, ${y}px)` : "";
     this.layer.style.transform = transform;
     if (this.afloat) this.afloat.style.transform = transform;
-    this.drawn = { x, y };
+  }
+
+  /**
+   * The layer slid with the box's scroll by the browser, as it draws each
+   * frame, rather than here once it has told of the scroll.
+   *
+   * Until the chart comes to rest, where the layer goes depends on the
+   * scroll (see along). Put there from here, it is put a frame after the
+   * scroll it was worked out for: a phone scrolls the box itself, frame by
+   * frame, and tells the page of it after. Wherever the layer slides, the
+   * chart then went on unevenly, a step ahead of where it should be on one
+   * frame and behind it on the next, and now and then back a few pixels -
+   * the stutter an iPhone showed across the bottom of the chart.
+   *
+   * So the layer is given keyframes over the box's scroll timelines: where
+   * it goes at scrolls up to two boxes either side of the box, a 32nd of a
+   * box apart - the slide bends sharply where a block of lines opens - and
+   * at either end. The browser puts it between them as it scrolls, in the
+   * same frame. They are made again when the lines move, what is held
+   * changes, the sheet changes size or the box nears the end of the stretch
+   * sampled; never only for a scroll.
+   *
+   * But not while the lines ease: they move every frame, and the keyframes
+   * made afresh every frame cost the browser frames of its own - a third as
+   * many again went missing, and the lines lurched open. Meanwhile the
+   * layer is held where it goes at the box's scroll, put there from here
+   * each frame, as without the timelines; the stutter was as much less.
+   */
+  private slideWithScroll() {
+    const slider = this.slider!;
+    for (const element of [this.layer, this.afloat]) {
+      if (!element || slider.moved.has(element)) continue;
+      const still = [{ translate: "0px 0px" }, { translate: "0px 0px" }];
+      const across = element.animate(still, { timeline: slider.across, fill: "both" } as KeyframeAnimationOptions);
+      const down = element.animate([{ transform: "none" }, { transform: "none" }], { timeline: slider.down, fill: "both" } as KeyframeAnimationOptions);
+      slider.moved.set(element, [across, down]);
+      slider.made = {};
+    }
+    const box = this.scroller;
+    const ratio = window.devicePixelRatio || 1;
+    const snap = (at: number, by: number) => clean(Math.round((at + by) * ratio) / ratio - at);
+    const scroll = this.scrolledTo();
+    /*
+     * Where the tiles' box would be on screen with the box scrolled to
+     * nought: at a scroll, that less the scroll (see onPixels). By the
+     * scroll as drawn, which is where the tiles' box is: the scroll harness
+     * tells of scrolls past an end, as an iPhone bounces, without the box
+     * going past it (see e2e/scroll/recorder.js).
+     */
+    const drawnAt = (name: "scrollLeft" | "scrollTop") => Object.getOwnPropertyDescriptor(Element.prototype, name)!.get!.call(box) as number;
+    const rect = this.container.getBoundingClientRect();
+    const origin = { left: rect.left + drawnAt("scrollLeft"), top: rect.top + drawnAt("scrollTop") };
+    const ids = (places: Places) => {
+      let id = placesIds.get(places);
+      if (id === undefined) placesIds.set(places, (id = ++placesCount));
+      return id;
+    };
+    const axes = [
+      {
+        name: "across" as const,
+        axis: this.columns,
+        at: scroll.left,
+        range: scrollAcross(box),
+        size: box.clientWidth,
+        // Scrolled from the right, the timeline begins at the right-hand edge.
+        progress: (at: number, [lowest, highest]: [number, number]) => (scrollsFromRight(box) ? highest - at : at - lowest) / (highest - lowest),
+        slide: (at: number) => this.slideAcross(this.columns.places, at),
+        side: "left" as const,
+        frame: (by: number) => ({ translate: `${by}px 0px` }),
+        index: 0,
+        sheet: `${this.sheet.style.width}|${this.sheet.offsetLeft}|${Math.round(origin.left * ratio)}`,
+      },
+      {
+        name: "down" as const,
+        axis: this.rows,
+        at: scroll.top,
+        range: [0, Math.max(0, box.scrollHeight - box.clientHeight)] as [number, number],
+        size: box.clientHeight,
+        progress: (at: number, [lowest, highest]: [number, number]) => (at - lowest) / (highest - lowest),
+        slide: (at: number) => this.slideDown(this.rows.places, at),
+        side: "top" as const,
+        frame: (by: number) => ({ transform: `translateY(${by}px)` }),
+        index: 1,
+        sheet: `${this.sheet.style.height}|${this.sheet.offsetTop}|${Math.round(origin.top * ratio)}`,
+      },
+    ];
+    for (const { name, axis, at, range, size, progress, slide, side, frame, index, sheet } of axes) {
+      const [lowest, highest] = range;
+      const key = `${ids(axis.places)}|${ids(axis.rest)}|${ids(axis.ref)}|${axis.held}|${lowest}|${highest}|${size}|${sheet}`;
+      const made = slider.made[name];
+      const reach = 2 * size;
+      // Still good: the same lines, held the same, and the box well inside the stretch sampled, or that stretch reaching the end.
+      if (made && !made.easing && made.key === key && (at - made.from >= size || made.from <= lowest) && (made.to - at >= size || made.to >= highest)) continue;
+      const from = Math.max(lowest, at - reach);
+      const to = Math.min(highest, at + reach);
+      let frames: Keyframe[];
+      if (highest - lowest <= 1 || axis.moving) {
+        const by = snap(origin[side] - at, slide(at) + axis.held);
+        frames = [{ offset: 0, ...frame(by) }, { offset: 1, ...frame(by) }];
+      } else {
+        // At the same scrolls each time they are made, whatever the box's own: made afresh as lines ease, the layer then goes between the same points.
+        // On whole pixels of the screen, as the scroll is, so that the steps between keyframes are too: see below.
+        const step = Math.max(2, Math.round((size / 32) * ratio) / ratio);
+        const scrolls = new Set([lowest, highest]);
+        for (let s = lowest + Math.ceil((from - lowest) / step) * step; s <= to; s += step) scrolls.add(s);
+        frames = [...scrolls]
+          .map((s) => ({ offset: progress(s, range), by: snap(origin[side] - s, slide(s) + axis.held) }))
+          .sort((a, b) => a.offset - b.offset)
+          .map(({ offset, by }, k, all) => {
+            /*
+             * Between keyframes the layer goes a whole pixel of the screen at a
+             * time, never a part of one, as onPixels puts it: put a part of a
+             * pixel off, the tiles are smeared. Each keyframe is on a whole
+             * pixel at its own scroll, and the scrolls sampled are whole pixels
+             * apart, so they are a whole number of pixels apart too, and as
+             * many steps as that keeps the layer on them.
+             */
+            const pixels = k + 1 < all.length ? Math.round(Math.abs(all[k + 1].by - by) * ratio) : 0;
+            return { offset: Math.min(1, Math.max(0, offset)), ...frame(by), ...(pixels > 0 ? { easing: `steps(${pixels}, jump-end)` } : {}) };
+          });
+      }
+      for (const animations of slider.moved.values()) (animations[index].effect as KeyframeEffect).setKeyframes(frames);
+      slider.made[name] = { key, from, to, easing: axis.moving };
+    }
   }
 
   /**
@@ -1560,6 +1820,7 @@ export class TileView {
     return this.drawn;
   }
 
+  /** The outline round the stitch to be worked next, on the layer with the tiles. */
   private placeNext(content: TileContent) {
     const at = content.follow === undefined ? undefined : this.placeOnLayer(content.follow);
     this.next.hidden = !at;

@@ -76,6 +76,12 @@ test.describe("the chart moves smoothly", () => {
         // What a scenario is known to do worse than the rest, and is held to instead: see its `known`.
         const limit = { ...limits, ...scenario.known };
         await info.attach("measures.json", { body: JSON.stringify(measured, null, 1), contentType: "application/json" });
+        // Old chart showing, the frames that showed it, in the log: CI's browser is not always to be had elsewhere.
+        if (measured.painting.unpaintedMax > limit.unpainted || measured.painting.unpaintedNearMax > limit.unpaintedNear) {
+          const shown = recording.frames.filter((f) => (f.s?.unpaintedNear ?? 0) > 0);
+          const around = recording.frames.filter((f) => shown.some((g) => Math.abs(g.t - f.t) < 120));
+          console.log(`old chart showing in ${shown.length} frames:\n${around.map((f) => JSON.stringify({ t: f.t, ts: f.ts, u: f.s?.unpainted, n: f.s?.unpaintedNear, scroll: f.s?.scroll, sheet: f.s?.sheet, shift: f.s?.shift, moving: f.s?.moving, chart: f.s?.chart, layer: f.transform })).join("\n")}`);
+        }
 
         expect(errors).toEqual([]);
         expect(measured.frames, "frames recorded").toBeGreaterThan(30);
