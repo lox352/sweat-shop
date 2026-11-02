@@ -178,6 +178,22 @@
  * What floats over the tiles - the stitch picked, and what it says of it -
  * moved with them as they slide with the box's scroll: see TileView.afloat.
  */
+/*
+ * What floats over the tiles, clipped to the sheet as the tiles are: slid
+ * with them, often hundreds of pixels, it would otherwise reach past the
+ * sheet, and the box's scroll would reach as far - not where the slide's
+ * keyframes were made for, nor where the browser, scrolling, reads them:
+ * a phone showed the chart jolting, torn and blank. Clipped without
+ * becoming a box that scrolls itself, where the browser can.
+ */
+.chart-afloat-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  overflow: clip;
+  pointer-events: none;
+}
+
 .chart-afloat {
   position: absolute;
   top: 0;
