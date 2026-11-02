@@ -55,6 +55,14 @@ import { torn } from "./zoom";
 export const tileSize = 256;
 /** How far past the box tiles are kept painted, for the next moment's scrolling. */
 const ahead = 128;
+/**
+ * And on the side the box is going, as far as it goes in this many
+ * milliseconds, up to `furthest`: flung, an iPhone scrolled the box 100
+ * points a frame, two frames and more before the page painted for it, and
+ * the chart's leading edge came in blank, painted a frame later.
+ */
+const lead = 80;
+const furthest = 384;
 /** The most canvases kept beyond those in view: at three device pixels to one, about two megabytes each. */
 const most = 24;
 /**
@@ -732,7 +740,7 @@ export class TileView {
   private cost = 0;
   /** Where the box showed the chart when the tiles were last painted, and which way it was last seen going, and when. */
   private lastView = { x: 0, y: 0 };
-  private heading = { x: 0, y: 0, at: { x: 0, y: 0 } };
+  private heading = { x: 0, y: 0, at: { x: 0, y: 0 }, speed: { x: 0, y: 0 }, time: 0 };
   /** How many tiles have been painted, and how long that took: for the scroll harness. */
   private paints = 0;
   private paintTime = 0;
@@ -1509,6 +1517,31 @@ export class TileView {
 
   private paintTiles(content: TileContent, time: number, moved: boolean) {
     const view = this.showing();
+    // Which way the box is going, and how fast: see below, and `lead`.
+    const { heading } = this;
+    // At least a frame, the box having gone as far in no time at all only as a frame's worth.
+    const since = Math.max(16, time - heading.time);
+    for (const axis of ["x", "y"] as const) {
+      const by = view[axis] - this.lastView[axis];
+      if (Math.abs(by) > 0.5) {
+        heading[axis] = Math.sign(by);
+        heading.at[axis] = time;
+        heading.speed[axis] = heading.speed[axis] / 2 + Math.abs(by) / since / 2;
+      } else if (time - heading.at[axis] > headingFor) {
+        heading[axis] = 0;
+        heading.speed[axis] = 0;
+      }
+    }
+    heading.time = time;
+    this.lastView = { x: view.x, y: view.y };
+    // How far past the box to paint on each side: further on the side it is going, the faster it goes.
+    const onward = (axis: "x" | "y") => Math.min(furthest, Math.max(ahead, heading.speed[axis] * lead));
+    const past = {
+      x0: heading.x < 0 ? onward("x") : ahead,
+      x1: heading.x > 0 ? onward("x") : ahead,
+      y0: heading.y < 0 ? onward("y") : ahead,
+      y1: heading.y > 0 ? onward("y") : ahead,
+    };
     const { margin } = content;
     const size = this.size();
     const chartWidth = size.width + margin;
@@ -1523,7 +1556,7 @@ export class TileView {
       ...span(y0, y1, chartHeight),
     ];
     const [vx0, vx1, vy0, vy1] = near(view.x, view.x + view.width, view.y, view.y + view.height);
-    const [tx0, tx1, ty0, ty1] = near(view.x - ahead, view.x + view.width + ahead, view.y - ahead, view.y + view.height + ahead);
+    const [tx0, tx1, ty0, ty1] = near(view.x - past.x0, view.x + view.width + past.x1, view.y - past.y0, view.y + view.height + past.y1);
     const state = this.stateFor(content);
     this.clock++;
     const wanted = new Set<string>();
@@ -1563,15 +1596,6 @@ export class TileView {
      * on the next by a frame's worth and more.
      */
     const easing = this.columns.moving || this.rows.moving;
-    const { heading } = this;
-    for (const axis of ["x", "y"] as const) {
-      const by = view[axis] - this.lastView[axis];
-      if (Math.abs(by) > 0.5) {
-        heading[axis] = Math.sign(by);
-        heading.at[axis] = time;
-      } else if (time - heading.at[axis] > headingFor) heading[axis] = 0;
-    }
-    this.lastView = { x: view.x, y: view.y };
     /*
      * Lines easing open or shut slide the box across them one way while the
      * scroll may take it the other, and which way it went last frame says
@@ -1582,10 +1606,10 @@ export class TileView {
      */
     const [easeX, easeY] = [this.columns.moving, this.rows.moving];
     const shown: Rect = {
-      x0: view.x - (easeX || heading.x < 0 ? ahead : easingMargin),
-      y0: view.y - (easeY || heading.y < 0 ? ahead : easingMargin),
-      x1: view.x + view.width + (easeX || heading.x > 0 ? ahead : easingMargin),
-      y1: view.y + view.height + (easeY || heading.y > 0 ? ahead : easingMargin),
+      x0: view.x - (easeX || heading.x < 0 ? past.x0 : easingMargin),
+      y0: view.y - (easeY || heading.y < 0 ? past.y0 : easingMargin),
+      x1: view.x + view.width + (easeX || heading.x > 0 ? past.x1 : easingMargin),
+      y1: view.y + view.height + (easeY || heading.y > 0 ? past.y1 : easingMargin),
     };
     const partOf = (tile: Tile): Rect => ({
       x0: Math.max(tile.x, shown.x0),
