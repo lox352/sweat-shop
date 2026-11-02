@@ -113,8 +113,10 @@ describe("the chart on tiles", () => {
     painted = [];
     scroller.scrollLeft = tileSize;
     view.update();
-    // A column of tiles comes into view; the rest were painted already.
-    expect(painted.length).toBe(2);
+    // A column of tiles comes into view, and - the box having gone a tile in a frame, fast - the column past it too, on the way; the rest were painted already.
+    expect(painted.length).toBe(4);
+    // Painted from where each tile is, the chart moved under it: the columns two and three tiles along.
+    expect(new Set(painted.map((at) => -Number(at.split("|")[0])))).toEqual(new Set([2 * tileSize, 3 * tileSize]));
     view.destroy();
   });
 });
