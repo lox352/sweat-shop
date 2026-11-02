@@ -1789,6 +1789,11 @@ export class TileView {
         const step = Math.max(2, Math.round((size / 16) * ratio) / ratio);
         const scrolls = new Set([lowest, highest]);
         for (let s = lowest + Math.ceil((from - lowest) / step) * step; s <= to; s += step) scrolls.add(s);
+        // And every half a box for two boxes beyond, should the browser scroll on that far before they are made again.
+        const far = step * Math.max(1, Math.round(size / 2 / step));
+        for (let k = 1; k <= 4; k++) {
+          for (const s of [from - k * far, to + k * far]) if (s > lowest && s < highest) scrolls.add(lowest + Math.round((s - lowest) / step) * step);
+        }
         frames = [...scrolls]
           .map((s) => ({ offset: progress(s, range), by: snap(origin[side] - s, slide(s) + axis.held) }))
           .sort((a, b) => a.offset - b.offset)

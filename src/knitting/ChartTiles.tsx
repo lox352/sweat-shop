@@ -82,8 +82,11 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetM
   return (
     <>
       <div ref={containerRef} className="chart-tiles" style={{ left: -content.margin, right: 0 }} aria-hidden="true" />
-      <div ref={afloatRef} className="chart-afloat">
-        {children}
+      {/* Clipped to the sheet, as the tiles are: see .chart-afloat-clip. */}
+      <div className="chart-afloat-clip">
+        <div ref={afloatRef} className="chart-afloat">
+          {children}
+        </div>
       </div>
     </>
   );
