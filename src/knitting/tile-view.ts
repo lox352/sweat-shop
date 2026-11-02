@@ -744,6 +744,9 @@ export class TileView {
   /** How many tiles have been painted, and how long that took: for the scroll harness. */
   private paints = 0;
   private paintTime = 0;
+  private hud?: Hud;
+  /** How far past the box tiles were last painted, each side: see paintTiles. */
+  private past = { x0: 0, x1: 0, y0: 0, y1: 0 };
   /** Lines moved while the chart was being drawn, which is told of on the next frame instead. */
   private toTell = false;
   /** How many columns and rows show, as the tiles' data attributes say. */
@@ -826,6 +829,9 @@ export class TileView {
       this.watch.observe(scroller);
     }
     registry()?.push(this);
+    // Diagnostics for a phone, from the address: see Hud, and .chart-tiles-layered.
+    if (/[?&]hud\b/.test(window.location.href)) this.hud = new Hud();
+    if (/[?&]tiles=layered\b/.test(window.location.href)) container.classList.add("chart-tiles-layered");
   }
 
   /** What the scroll harness reads of the view: see ViewProbe. */
@@ -1485,6 +1491,7 @@ export class TileView {
     const [x, y] = this.onPixels(this.columns.shift, this.rows.shift);
     this.shiftLayer(x, y);
     this.paintTiles(content, time, moved);
+    this.hud?.frame(time, this.paints, this.paintTime, this.heading, this.past, this.paintedAhead());
     this.placeNext(content);
     if (this.columns.moving || this.rows.moving) this.schedule();
     if (moved || rebased || this.toTell) {
@@ -1542,6 +1549,7 @@ export class TileView {
       y0: heading.y < 0 ? onward("y") : ahead,
       y1: heading.y > 0 ? onward("y") : ahead,
     };
+    this.past = past;
     const { margin } = content;
     const size = this.size();
     const chartWidth = size.width + margin;
@@ -2133,7 +2141,37 @@ export class TileView {
   }
 
   /** Let go of every canvas: a canvas's memory is only given back once it has no size. */
+  /**
+   * How much of the strip a tile wide just past the box, on the side it is
+   * going, is painted: what the next moment's scrolling shows. Across, if it
+   * is going across, else down; nothing, at rest.
+   */
+  private paintedAhead(): number | undefined {
+    const { heading } = this;
+    const axis = heading.x ? "x" : heading.y ? "y" : undefined;
+    if (!axis) return undefined;
+    const view = this.showing();
+    const strip: Rect =
+      axis === "x"
+        ? heading.x < 0
+          ? { x0: view.x - tileSize, y0: view.y, x1: view.x, y1: view.y + view.height }
+          : { x0: view.x + view.width, y0: view.y, x1: view.x + view.width + tileSize, y1: view.y + view.height }
+        : heading.y < 0
+          ? { x0: view.x, y0: view.y - tileSize, x1: view.x + view.width, y1: view.y }
+          : { x0: view.x, y0: view.y + view.height, x1: view.x + view.width, y1: view.y + view.height + tileSize };
+    const area = (r: Rect) => Math.max(0, r.x1 - r.x0) * Math.max(0, r.y1 - r.y0);
+    let got = 0;
+    for (const tile of this.tiles.values()) {
+      if (tile.painted !== this.version) continue;
+      const whole = { x0: tile.x, y0: tile.y, x1: tile.x + tileSize, y1: tile.y + tileSize };
+      const done = tile.part ?? whole;
+      got += area({ x0: Math.max(strip.x0, whole.x0, done.x0), y0: Math.max(strip.y0, whole.y0, done.y0), x1: Math.min(strip.x1, whole.x1, done.x1), y1: Math.min(strip.y1, whole.y1, done.y1) });
+    }
+    return area(strip) > 0 ? got / area(strip) : undefined;
+  }
+
   destroy() {
+    this.hud?.remove();
     const views = registry();
     if (views?.includes(this)) views.splice(views.indexOf(this), 1);
     cancelAnimationFrame(this.frame);
@@ -2151,5 +2189,50 @@ export class TileView {
     this.layer.remove();
     this.tiles.clear();
     this.spare = [];
+  }
+}
+
+/**
+ * A few lines over the chart, from `hud` in the address, for a phone's screen
+ * recording to show what the page itself does as it scrolls - which the
+ * recording otherwise doesn't: the frames the page gets a second and the
+ * longest gap between them, the tiles it paints and how long they take, how
+ * fast it takes the box to be going and how far past it it paints, and how
+ * much of the next tile's width past the box is painted already.
+ */
+class Hud {
+  private readonly element = document.createElement("div");
+  private frames: { time: number; paints: number; paintTime: number }[] = [];
+  private shown = 0;
+
+  constructor() {
+    const style = this.element.style;
+    style.cssText =
+      "position:fixed;left:4px;top:calc(env(safe-area-inset-top,0px) + 4px);z-index:2147483647;pointer-events:none;" +
+      "font:11px/1.3 ui-monospace,Menlo,monospace;color:#fff;background:rgba(0,0,0,.72);padding:3px 5px;border-radius:4px;white-space:pre";
+    document.body.appendChild(this.element);
+  }
+
+  frame(time: number, paints: number, paintTime: number, heading: { x: number; y: number; speed: { x: number; y: number } }, past: Rect, ahead: number | undefined) {
+    this.frames.push({ time, paints, paintTime });
+    while (this.frames.length > 1 && time - this.frames[0].time > 1000) this.frames.shift();
+    // A few times a second: what it shows is read off a recording, frame by frame.
+    if (time - this.shown < 50) return;
+    this.shown = time;
+    const first = this.frames[0];
+    const span = Math.max(1, time - first.time);
+    let gap = 0;
+    for (let k = 1; k < this.frames.length; k++) gap = Math.max(gap, this.frames[k].time - this.frames[k - 1].time);
+    const round = (n: number) => Math.round(n);
+    this.element.textContent = [
+      `page ${round(((this.frames.length - 1) * 1000) / span)} fps  gap ${round(gap)} ms`,
+      `paint ${paints - first.paints} tiles ${round(paintTime - first.paintTime)} ms /s`,
+      `speed ${heading.speed.x.toFixed(1)},${heading.speed.y.toFixed(1)} px/ms  past ${round(past.x0)}|${round(past.x1)} ${round(past.y0)}|${round(past.y1)}`,
+      `ahead painted ${ahead === undefined ? "-" : `${round(ahead * 100)}%`}`,
+    ].join("\n");
+  }
+
+  remove() {
+    this.element.remove();
   }
 }
