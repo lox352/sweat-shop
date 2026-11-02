@@ -15,8 +15,13 @@
  * scrolls (see TileView.slideWithScroll), and without (`--without`).
  *
  *   npm run build && npm run preview -- --port 4319 &
- *   xvfb-run -a -s "-screen 0 1280x1024x24" node scripts/stutter-lab.mjs out/run [--without] [--throttle 4]
+ *   xvfb-run -a -s "-screen 0 1280x1024x24" node scripts/stutter-lab.mjs out/run [--without] [--throttle 4] [--diagonal] [--progress 6000]
  *   python3 scripts/stutter-lab.py out/run.mkv ...
+ *
+ * `--diagonal` draws the finger down and to the right as well, scrolling up
+ * and left; `--progress` starts the knitting further on (6000: in the yoke,
+ * with rounds above to scroll up into). A phone's own screen recording is
+ * measured by scripts/stutter-judge.py.
  *
  * Needs Xvfb, ffmpeg with x11grab, and Python with numpy.
  * CHROMIUM may name a browser to use in place of Playwright's own.
@@ -60,12 +65,12 @@ const page = await context.newPage();
 if (without) await page.addInitScript(() => (window.__noSlider = true));
 // Each Year Once in a large, in its back neck's short rows: dragging across, columns open and close up as they come into view.
 await page.goto("");
-await page.evaluate(() => {
+await page.evaluate((progress) => {
   const now = new Date().toISOString();
   const id = "project-1760000000000";
   localStorage.clear();
-  localStorage.setItem(id, JSON.stringify({ version: 1, id, sweaterId: "wool-week-strips-once-oldest", sizeId: "l", colourwayId: "early-light", progress: 1700, startedAt: now, updatedAt: now }));
-});
+  localStorage.setItem(id, JSON.stringify({ version: 1, id, sweaterId: "wool-week-strips-once-oldest", sizeId: "l", colourwayId: "early-light", progress, startedAt: now, updatedAt: now }));
+}, Number(option("progress", "1700")));
 await page.goto("#/project/1760000000000/chart?knitting=1");
 await page.waitForSelector(".chart-tiles canvas", { timeout: 60000 });
 await page.waitForTimeout(2500);
@@ -81,16 +86,19 @@ await page.waitForTimeout(800);
  */
 const session = await context.newCDPSession(page);
 if (throttle > 1) await session.send("Emulation.setCPUThrottlingRate", { rate: throttle });
-const [x, y] = [box.x + box.width / 2, box.y + box.height * 0.6];
+const [x, y] = [box.x + box.width / 2, box.y + box.height * 0.5];
+// Diagonal, as a finger drawn down and to the right: the chart scrolls up and left, up the yoke, its columns closing.
+const [ddx, ddy] = args.includes("--diagonal") ? [300, 160] : [300, 0];
 for (let stroke = 0; stroke < 6; stroke++) {
   const steps = 24;
-  const from = x - 150;
-  await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: from, y }] });
+  const from = x - ddx / 2;
+  const fromY = y - ddy / 2;
+  await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: from, y: fromY }] });
   const began = Date.now();
   for (let k = 1; k <= steps; k++) {
     const wait = began + (k * 1000) / 60 - Date.now();
     if (wait > 0) await new Promise((done) => setTimeout(done, wait));
-    await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: from + (300 * k) / steps, y }] });
+    await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: from + (ddx * k) / steps, y: fromY + (ddy * k) / steps }] });
   }
   await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await page.waitForTimeout(16);

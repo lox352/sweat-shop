@@ -428,7 +428,7 @@ export const along = (rest: Places, places: Places, part: number, size: number, 
 /** A scroll timeline, which the DOM's types here have yet to name. */
 type Timeline = AnimationTimeline;
 type TimelineMaker = new (options: { source: Element; axis: "x" | "y" }) => Timeline;
-/** What a slide's keyframes were made for: the lines, the box, and the stretch of scroll sampled - or lines easing, which move on. */
+/** What a slide's keyframes were made for: the lines, the box, and the stretch of scroll sampled - and whether lines were easing, which move on. */
 interface Made {
   key: string;
   from: number;
@@ -1694,18 +1694,21 @@ export class TileView {
    * the stutter an iPhone showed across the bottom of the chart.
    *
    * So the layer is given keyframes over the box's scroll timelines: where
-   * it goes at scrolls up to two boxes either side of the box, a 32nd of a
-   * box apart - the slide bends sharply where a block of lines opens - and
-   * at either end. The browser puts it between them as it scrolls, in the
-   * same frame. They are made again when the lines move, what is held
-   * changes, the sheet changes size or the box nears the end of the stretch
-   * sampled; never only for a scroll.
+   * it goes at scrolls up to a box either side of the box, a 16th of a box
+   * apart - the slide bends sharply where a block of lines opens - and at
+   * either end. The browser puts it between them as it scrolls, in the same
+   * frame. They are made again when the lines move, what is held changes,
+   * the sheet changes size or the box comes within half a box of the end of
+   * the stretch sampled; never only for a scroll. While lines ease they move
+   * every frame, and the keyframes are made every frame, for half a box
+   * either side: few enough that the browser drops no more frames for it
+   * than for the layer held still.
    *
-   * But not while the lines ease: they move every frame, and the keyframes
-   * made afresh every frame cost the browser frames of its own - a third as
-   * many again went missing, and the lines lurched open. Meanwhile the
-   * layer is held where it goes at the box's scroll, put there from here
-   * each frame, as without the timelines; the stutter was as much less.
+   * Never held still meanwhile, though, put where it goes from here: on an
+   * iPhone, scrolling diagonally up a yoke whose columns eased on and off,
+   * the layer went back and forth between where the browser put it and where
+   * it had been a frame before - by as far as the box scrolls in a frame,
+   * through the slide: 51 points one way, 29 back the next.
    */
   private slideWithScroll() {
     const slider = this.slider!;
@@ -1769,19 +1772,21 @@ export class TileView {
       const [lowest, highest] = range;
       const key = `${ids(axis.places)}|${ids(axis.rest)}|${ids(axis.ref)}|${axis.held}|${lowest}|${highest}|${size}|${sheet}`;
       const made = slider.made[name];
-      const reach = 2 * size;
+      const easing = axis.moving;
+      // Half as far while lines ease, made again every frame.
+      const reach = easing ? size / 2 : size;
       // Still good: the same lines, held the same, and the box well inside the stretch sampled, or that stretch reaching the end.
-      if (made && !made.easing && made.key === key && (at - made.from >= size || made.from <= lowest) && (made.to - at >= size || made.to >= highest)) continue;
+      if (made && !made.easing && made.key === key && (at - made.from >= reach / 2 || made.from <= lowest) && (made.to - at >= reach / 2 || made.to >= highest)) continue;
       const from = Math.max(lowest, at - reach);
       const to = Math.min(highest, at + reach);
       let frames: Keyframe[];
-      if (highest - lowest <= 1 || axis.moving) {
+      if (highest - lowest <= 1) {
         const by = snap(origin[side] - at, slide(at) + axis.held);
         frames = [{ offset: 0, ...frame(by) }, { offset: 1, ...frame(by) }];
       } else {
         // At the same scrolls each time they are made, whatever the box's own: made afresh as lines ease, the layer then goes between the same points.
         // On whole pixels of the screen, as the scroll is, so that the steps between keyframes are too: see below.
-        const step = Math.max(2, Math.round((size / 32) * ratio) / ratio);
+        const step = Math.max(2, Math.round((size / 16) * ratio) / ratio);
         const scrolls = new Set([lowest, highest]);
         for (let s = lowest + Math.ceil((from - lowest) / step) * step; s <= to; s += step) scrolls.add(s);
         frames = [...scrolls]
@@ -1801,7 +1806,7 @@ export class TileView {
           });
       }
       for (const animations of slider.moved.values()) (animations[index].effect as KeyframeEffect).setKeyframes(frames);
-      slider.made[name] = { key, from, to, easing: axis.moving };
+      slider.made[name] = { key, from, to, easing };
     }
   }
 
