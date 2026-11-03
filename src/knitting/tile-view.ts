@@ -224,8 +224,20 @@ const keepMode = (): "off" | "always" | "moving" => {
   return (found as "off" | "always" | "moving" | undefined) ?? "moving";
 };
 
-/** `glide=hold` in the address holds the stitch the box glides to still even out of sight, as before: see TileView.awayAcross. */
-const glideHoldsView = () => typeof window !== "undefined" && !/[?&]glide=hold\b/.test(window.location.href);
+/**
+ * What the box gliding to a stitch holds still as lines move, from `glide=`
+ * in the address, to compare: `hold`, the stitch however far out of sight;
+ * `middle`, the middle of the box while the stitch is out of sight (see
+ * TileView.awayAcross); `pivot`, nothing while it is out of sight, the lines
+ * opening about the scroll's own pivot as for a scroll by hand; `aim`,
+ * nothing at all, the box sent where the stitch will be once there, worked
+ * out ahead (see TileView.destination).
+ */
+export type GlideMode = "hold" | "middle" | "pivot" | "aim";
+export const glideMode = (): GlideMode => {
+  const found = typeof window === "undefined" ? undefined : /[?&]glide=(hold|middle|pivot|aim)\b/.exec(window.location.href)?.[1];
+  return (found as GlideMode | undefined) ?? "middle";
+};
 
 const reducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -1141,8 +1153,11 @@ export class TileView {
           if (away !== undefined) {
             // Where the stitch the box is going to will be, before and after: the box is sent on by as much.
             const before = this.columns.targetShift + this.columns.target.start[away.target];
-            this.columns.retarget(to, away.middle);
-            this.keepColumnsInBox(false);
+            if (glideMode() === "pivot") this.columns.send(to);
+            else {
+              this.columns.retarget(to, away.middle);
+              this.keepColumnsInBox(false);
+            }
             const by = this.columns.targetShift + to.start[away.target] - before;
             if (Math.abs(by) >= 0.5) this.onTargetMoved?.(by);
           } else if (held !== undefined) {
@@ -1181,9 +1196,9 @@ export class TileView {
    * Measured by the box's outer size, so a scrollbar coming or going cannot
    * feed back into it; and so are the columns on screen.
    */
-  private rowsInView(y: number): [number, number] {
+  private rowsInView(y: number, places: Places = this.rows.target): [number, number] {
     const lines = this.content!.scene.layout.rows;
-    const { start, size } = this.rows.target;
+    const { start, size } = places;
     const span = this.scroller.offsetHeight;
     const within = (from: number) => rowsWithin(start, size, lines, from, from + span);
     let [first, last] = within(y);
@@ -1192,9 +1207,9 @@ export class TileView {
   }
 
   /** The columns on screen, by where they are going: those any part of which is in the box, and never none, as for the rows. */
-  private onScreen(x: number): Int32Array {
-    const order = this.columnMap!.order;
-    const { start, size } = this.columns.target;
+  private onScreen(x: number, map: ColumnMap = this.columnMap!, places: Places = this.columns.target): Int32Array {
+    const order = map.order;
+    const { start, size } = places;
     const span = this.scroller.offsetWidth;
     const firstWhere = (test: (k: number) => boolean) => {
       let low = 0;
@@ -1313,7 +1328,8 @@ export class TileView {
    * Once the stitch is in the box, it is held still as ever.
    */
   private awayAcross(): { middle: number; target: number } | undefined {
-    if (!glideHoldsView() || this.point || this.target === undefined) return undefined;
+    const mode = glideMode();
+    if ((mode !== "middle" && mode !== "pivot") || this.point || this.target === undefined) return undefined;
     const { scene, cell } = this.content!;
     if (!scene.rowOf[this.target]) return undefined;
     const target = scene.columnOf[this.target];
@@ -1325,6 +1341,70 @@ export class TileView {
     const middle = lineAt(this.columns.places, scene.layout.columns, view.x + view.width / 2, cell, 1).line;
     if (middle < 1 || middle > scene.layout.columns) return undefined;
     return { middle, target };
+  }
+
+  /**
+   * Where to send the box for the stitch `id` to come to rest `inBox` - from
+   * the box's top left - once it is there, with the lines then showing laid
+   * out as they will be, and nothing held still on the way: the lines open
+   * and close about the scroll's own pivot (see along) as the box goes, as
+   * for a scroll by hand, and arrive at their places with the box. Worked out
+   * ahead, as settle would at each scroll: for the lines as they are going,
+   * the scroll that puts the stitch there - where the box is along the chart
+   * only ever grows as it scrolls on, so it is found by halving - then the
+   * rows in view there, the columns those need, and the rows those columns
+   * need, and again, until the lines stop changing. A scroll the box can't
+   * take is held at the end it can. In the box's own scroll, as `scrollTo`.
+   */
+  destination(id: number, inBox: { x: number; y: number }): { left: number; top: number } | undefined {
+    const content = this.content;
+    if (!content?.collapse || !this.liveColumns || !this.liveRows || !this.columnMap) return undefined;
+    const { scene, cell } = content;
+    const row = scene.rowOf[id];
+    if (!row) return undefined;
+    const column = scene.columnOf[id];
+    const box = this.scroller;
+    const [lowest, highest] = scrollAcross(box);
+    const deepest = Math.max(0, box.scrollHeight - box.clientHeight);
+    const sheetLeft = this.sheet.offsetLeft;
+    const sheetTop = this.sheet.offsetTop;
+    // The scroll, between `low` and `high`, at which `off` - how far the stitch is from where it should be - comes to nought.
+    const solve = (low: number, high: number, off: (at: number) => number) => {
+      if (high <= low || off(low) >= 0) return low;
+      if (off(high) <= 0) return high;
+      for (let k = 0; k < 48 && high - low > 0.01; k++) {
+        const mid = (low + high) / 2;
+        if (off(mid) < 0) low = mid;
+        else high = mid;
+      }
+      return (low + high) / 2;
+    };
+    let columns = this.columns.target;
+    let rows = this.rows.target;
+    let left = box.scrollLeft;
+    let top = box.scrollTop;
+    for (let round = 0; round < 8; round++) {
+      const across = (at: number) => this.slideAcross(columns, at) + this.columns.targetHeld;
+      const down = (at: number) => this.slideDown(rows, at) + this.rows.targetHeld;
+      left = solve(lowest, highest, (at) => at - (sheetLeft + across(at) + columns.start[column] - inBox.x));
+      top = solve(0, deepest, (at) => at - (sheetTop + down(at) + rows.start[row] - inBox.y));
+      // What the box shows there, from the chart's own top left, and the lines it needs.
+      const x = left - sheetLeft - across(left);
+      const y = top - sheetTop - down(top);
+      const live = new LiveColumns(this.liveColumns.index);
+      live.moveTo(...this.rowsInView(y, rows));
+      const nextMap = mapOf(live);
+      const nextColumns = columnPlaces(nextMap, cell, scene.breaks);
+      const liveRows = new LiveRows(this.liveRows.index);
+      liveRows.moveTo(this.onScreen(x, nextMap, nextColumns));
+      const nextRows = rowPlaces(rowMapOf(liveRows), cell);
+      const same = (a: Places, b: Places) => a.start.length === b.start.length && a.start.every((v, k) => Math.abs(v - b.start[k]) < 0.01);
+      const settled = same(nextColumns, columns) && same(nextRows, rows);
+      columns = nextColumns;
+      rows = nextRows;
+      if (settled) break;
+    }
+    return { left, top };
   }
 
   /** And which row, likewise. */

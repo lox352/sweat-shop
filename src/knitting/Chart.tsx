@@ -19,6 +19,7 @@ import { useSettings } from "../helpers/settings";
 import type { SweaterPattern } from "../data/sweaters/types";
 import { usePinchZoom } from "./usePinchZoom";
 import { Glide } from "./glide";
+import { glideMode } from "./tile-view";
 import { leastCell, minCell, stepCell } from "./zoom";
 import "./Chart.css";
 
@@ -365,6 +366,14 @@ const Chart: React.FC<ChartProps> = ({
        * TileView.jumpTo).
        */
       let placed: { x: number; y: number } | undefined;
+      // Or, to compare, sent where it will be once there, worked out ahead, with nothing held: see TileView.destination.
+      const ahead = !afresh && glideMode() === "aim" ? tilesRef.current?.destination(nextId, inBox) : undefined;
+      if (ahead) {
+        tilesRef.current?.hold(undefined);
+        aimedAt.current = { left: ahead.left, top: Math.max(ahead.top, 0), behavior };
+        send();
+        return;
+      }
       if (afresh) placed = tilesRef.current?.jumpTo(nextId, inBox);
       else {
         tilesRef.current?.hold(nextId);
