@@ -59,7 +59,9 @@ const ahead = 128;
  * And on the side the box is going, as far as it goes in this many
  * milliseconds, up to `furthest`: flung, an iPhone scrolled the box 100
  * points a frame, two frames and more before the page painted for it, and
- * the chart's leading edge came in blank, painted a frame later.
+ * the chart's leading edge came in blank, painted a frame later. Each tile
+ * is padded as far, unseen, for Safari to keep its picture ready: see
+ * `.chart-tiles canvas`.
  */
 const lead = 80;
 const furthest = 384;
@@ -832,6 +834,7 @@ export class TileView {
     // Diagnostics for a phone, from the address: see Hud, and .chart-tiles-layered.
     if (/[?&]hud\b/.test(window.location.href)) this.hud = new Hud();
     if (/[?&]tiles=layered\b/.test(window.location.href)) container.classList.add("chart-tiles-layered");
+    if (/[?&]tiles=unpadded\b/.test(window.location.href)) container.classList.add("chart-tiles-unpadded");
   }
 
   /** What the scroll harness reads of the view: see ViewProbe. */
@@ -2140,7 +2143,6 @@ export class TileView {
     this.spare.push(tile.canvas);
   }
 
-  /** Let go of every canvas: a canvas's memory is only given back once it has no size. */
   /**
    * How much of the strip a tile wide just past the box, on the side it is
    * going, is painted: what the next moment's scrolling shows. Across, if it
@@ -2170,6 +2172,7 @@ export class TileView {
     return area(strip) > 0 ? got / area(strip) : undefined;
   }
 
+  /** Let go of every canvas: a canvas's memory is only given back once it has no size. */
   destroy() {
     this.hud?.remove();
     const views = registry();
