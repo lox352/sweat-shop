@@ -106,6 +106,49 @@ describe("the chart on tiles", () => {
     view.destroy();
   });
 
+  it("keeps the tiles near the box on the layer Safari keeps the pictures of, and puts none on the page unpainted", () => {
+    const { scroller, sheet, container } = box(300, 200);
+    const view = new TileView(container, scroller, sheet);
+    view.show(content());
+    const hot = container.querySelector(".chart-hot")!;
+    // Every tile wanted, painted, on the hot layer; none anywhere else.
+    expect(hot.querySelectorAll("canvas").length).toBe(4);
+    expect(container.querySelectorAll("canvas").length).toBe(4);
+    // Scrolled on a tile, those it had are kept for scrolling back, but off the hot layer, which has those wanted now.
+    scroller.scrollLeft = 2 * tileSize;
+    view.update();
+    const kept = container.querySelectorAll(".chart-layer > canvas");
+    expect(kept.length).toBeGreaterThan(0);
+    for (const canvas of hot.querySelectorAll("canvas")) expect([...kept]).not.toContain(canvas);
+    // And back: the same canvases on the hot layer again, painted already.
+    painted = [];
+    scroller.scrollLeft = 0;
+    view.update();
+    view.update();
+    expect(painted).toEqual([]);
+    expect(hot.querySelectorAll("canvas").length).toBe(4);
+    view.destroy();
+    expect(container.querySelectorAll("canvas").length).toBe(0);
+  });
+
+  it("keeps them so only while the box moves", () => {
+    let now = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    const { scroller, sheet, container } = box(300, 200);
+    const view = new TileView(container, scroller, sheet);
+    view.show(content());
+    expect(container.classList.contains("chart-tiles-keep")).toBe(false);
+    scroller.dispatchEvent(new Event("scroll"));
+    expect(container.classList.contains("chart-tiles-keep")).toBe(true);
+    view.update();
+    expect(container.classList.contains("chart-tiles-keep")).toBe(true);
+    // At rest a while after the last scroll.
+    now += 200;
+    view.update();
+    expect(container.classList.contains("chart-tiles-keep")).toBe(false);
+    view.destroy();
+  });
+
   it("follows the box as it scrolls, keeping the tiles it has painted", () => {
     const { scroller, sheet, container } = box(300, 200);
     const view = new TileView(container, scroller, sheet);

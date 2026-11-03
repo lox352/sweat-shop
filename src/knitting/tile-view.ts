@@ -130,6 +130,8 @@ interface Tile {
   /** Painted only in part, while lines eased: that part, from the chart's own top left, and the rest stale. */
   part?: Rect;
   used: number;
+  /** Put in its place on the layer: only once first painted, see paint. */
+  placed: boolean;
 }
 
 interface Rect {
@@ -210,6 +212,16 @@ const lineAt = (places: Places, lines: number, at: number, cell: number, ratio: 
   }
   if (found < 0) return { line: lines + 1, offset: 0 };
   return { line: found, offset: (Math.min(at - start[found], size[found]) / size[found]) * cell };
+};
+
+/**
+ * Keeping the tiles about to scroll into view ready for Safari (see
+ * TileView.hot): `keep=always`, `keep=moving` - only while the box is
+ * scrolling - or `keep=off`, from the address.
+ */
+const keepMode = (): "off" | "always" | "moving" => {
+  const found = typeof window === "undefined" ? undefined : /[?&]keep=(off|always|moving)\b/.exec(window.location.href)?.[1];
+  return (found as "off" | "always" | "moving" | undefined) ?? "moving";
 };
 
 const reducedMotion = () =>
@@ -721,6 +733,13 @@ export class TileView {
 
   /** The layer the tiles and the next stitch's outline are on, moved across the sheet by the axes' shifts. */
   private readonly layer: HTMLDivElement;
+  /**
+   * The tiles in view and painted ahead of it, on a layer of their own that
+   * Safari keeps the pictures of: see `.chart-tiles-keep`. The rest - tiles
+   * kept for scrolling back - are on the layer itself.
+   */
+  private readonly hot: HTMLDivElement;
+  private readonly keeping = keepMode();
   private readonly next: HTMLDivElement;
   private columns = new Axis({ start: new Float64Array(0), size: new Float64Array(0) });
   private rows = new Axis({ start: new Float64Array(0), size: new Float64Array(0) });
@@ -732,6 +751,8 @@ export class TileView {
   private before?: { columns: Places; rows: Places; x: number; y: number; cell: number };
   /** A stitch to hold still while lines move: one the chart is scrolling to. */
   private target?: number;
+  /** Or the stitch being worked as the knitting closed, held still until rest whatever the box is no longer sent to: see show. */
+  private stillFor?: number;
   /** A column and row to hold still while lines move: those a zoom was about. */
   private point?: { column: number; row: number };
   private touching = false;
@@ -788,6 +809,7 @@ export class TileView {
 
   private readonly onScroll = () => {
     this.movedAt = performance.now();
+    if (this.keeping === "moving") this.container.classList.add("chart-tiles-keep");
     this.schedule();
   };
   private readonly onTouch = (event: TouchEvent) => {
@@ -815,6 +837,10 @@ export class TileView {
         made: {},
       };
     }
+    this.hot = document.createElement("div");
+    this.hot.className = "chart-hot";
+    this.layer.appendChild(this.hot);
+    if (this.keeping === "always") container.classList.add("chart-tiles-keep");
     this.next = document.createElement("div");
     this.next.className = "chart-next";
     this.next.hidden = true;
@@ -903,9 +929,19 @@ export class TileView {
      * it stops being outlined - the knitting closed - until the box comes to
      * rest: rounds out of view closing up as the box shows more of the chart
      * would otherwise slide it a few pixels, and the chart be seen to move.
+     * Held so even once the box is no longer being sent to it (see hold),
+     * which the page says as the knitting closes, before or after this: let
+     * go of then, the rounds eased shut with nothing held, and the stitch
+     * slid 5 pixels down, as the knitting closed, more often than not.
      */
-    if (was?.follow !== undefined && content.follow === undefined && was.scene === content.scene && this.target === undefined && this.followShowing()) {
-      this.target = was.follow;
+    if (
+      was?.follow !== undefined &&
+      content.follow === undefined &&
+      was.scene === content.scene &&
+      (this.target === undefined || this.target === was.follow) &&
+      this.followShowing()
+    ) {
+      this.target = this.stillFor = was.follow;
       this.movedAt = performance.now();
     }
     this.content = content;
@@ -1409,6 +1445,7 @@ export class TileView {
       return false;
     }
     this.target = undefined;
+    this.stillFor = undefined;
     this.point = undefined;
     if (!shifted && width === wanted.width && height === wanted.height) return false;
     /*
@@ -1491,6 +1528,11 @@ export class TileView {
     const [x, y] = this.onPixels(this.columns.shift, this.rows.shift);
     this.shiftLayer(x, y);
     this.paintTiles(content, time, moved);
+    if (this.keeping === "moving" && this.container.classList.contains("chart-tiles-keep")) {
+      const resting = !this.touching && !this.columns.moving && !this.rows.moving && time - this.movedAt >= settling;
+      if (resting) this.container.classList.remove("chart-tiles-keep");
+      else this.schedule();
+    }
     this.hud?.frame(time, this.paints, this.paintTime, this.heading, this.past, this.paintedAhead());
     this.placeNext(content);
     if (this.columns.moving || this.rows.moving) this.schedule();
@@ -1576,9 +1618,7 @@ export class TileView {
         let tile = this.tiles.get(key);
         if (!tile) {
           const canvas = this.canvas();
-          tile = { key, tx, x: 0, y: ty * tileSize, canvas, painted: -1, used: 0 };
-          canvas.style.left = `${tx * tileSize}px`;
-          canvas.style.top = `${ty * tileSize}px`;
+          tile = { key, tx, x: 0, y: ty * tileSize, canvas, painted: -1, used: 0, placed: false };
           this.tiles.set(key, tile);
         }
         // From the chart's own left edge, which moves against the tiles as the room left of it does with the cell size.
@@ -1668,6 +1708,14 @@ export class TileView {
 
   /** Keep only as many canvases as a phone can spare, beyond those `wanted`: the longest unused go first. */
   private keep(wanted: Set<string>) {
+    // The tiles wanted on the layer Safari keeps the pictures of, and the rest off it.
+    if (this.keeping !== "off") {
+      for (const tile of this.tiles.values()) {
+        if (!tile.placed) continue;
+        const parent = wanted.has(tile.key) ? this.hot : this.layer;
+        if (tile.canvas.parentNode !== parent) parent.appendChild(tile.canvas);
+      }
+    }
     if (this.tiles.size <= most) return;
     const old = [...this.tiles.values()].filter((tile) => !wanted.has(tile.key)).sort((a, b) => a.used - b.used);
     for (const tile of old.slice(0, this.tiles.size - most)) this.release(tile);
@@ -1948,7 +1996,10 @@ export class TileView {
    * lasts until the scroll has had time to begin.
    */
   hold(id: number | undefined) {
+    // Let go of, the stitch being worked as the knitting closed stays held until rest: see show.
+    if (id === undefined && this.stillFor !== undefined && this.target === this.stillFor) return;
     this.target = id;
+    this.stillFor = undefined;
     this.movedAt = performance.now();
     this.schedule();
   }
@@ -2026,6 +2077,7 @@ export class TileView {
     if (!content.collapse || !row || !this.columnMap || !this.rowMap) return this.place(id);
     const column = scene.columnOf[id];
     this.target = id;
+    this.stillFor = undefined;
     this.point = undefined;
     this.movedAt = performance.now();
     const place = () => ({ x: this.columns.places.start[column], y: this.rows.places.start[row] });
@@ -2108,13 +2160,22 @@ export class TileView {
     const canvas = document.createElement("canvas");
     canvas.style.width = `${tileSize}px`;
     canvas.style.height = `${tileSize}px`;
-    this.layer.appendChild(canvas);
+    // Put on the layer once painted: see paint.
     return canvas;
   }
 
-  /** Paint a tile, or only `part` of it. */
+  /**
+   * Paint a tile, or only `part` of it. A tile is put in its place only once
+   * first painted, and then whole: until then its canvas shows whatever it
+   * last showed - another tile's square, the chart a while ago, or black -
+   * and Safari keeps the pictures of the tiles near the box ready (see
+   * `.chart-tiles-keep`), which a fling carries into view before the page
+   * paints them. Flung up the yoke in the iOS Simulator, a strip of rows from
+   * the foot of the box flashed at its top, there and past the chart's edge.
+   */
   private paint(tile: Tile, content: TileContent, state: PaintState, part?: Rect) {
     const began = performance.now();
+    if (!tile.placed) part = undefined;
     const side = Math.round(tileSize * this.ratio);
     if (tile.canvas.width !== side) {
       tile.canvas.width = side;
@@ -2130,13 +2191,20 @@ export class TileView {
     paintRegion(ctx, region, content.scene, state);
     tile.painted = this.version;
     tile.part = part;
+    if (!tile.placed) {
+      tile.canvas.style.left = `${tile.tx * tileSize}px`;
+      tile.canvas.style.top = `${tile.y}px`;
+      (this.keeping === "off" ? this.layer : this.hot).appendChild(tile.canvas);
+      tile.placed = true;
+    }
     this.paints++;
     this.paintTime += performance.now() - began;
   }
 
   private release(tile: Tile) {
     this.tiles.delete(tile.key);
-    tile.canvas.style.left = "-9999px";
+    // Off the page, where it is no layer at all, until it is wanted again.
+    tile.canvas.remove();
     this.spare.push(tile.canvas);
   }
 

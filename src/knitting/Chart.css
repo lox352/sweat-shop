@@ -278,6 +278,34 @@
   display: block;
 }
 
+/* The tiles in view and painted ahead of it: see TileView.hot. */
+.chart-hot {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/*
+ * Safari keeps the picture of a layer only while it meets the box - not a
+ * pixel past it - but of every layer inside one with a transform animation
+ * running, wherever they are. A tile painted ahead and scrolled into view
+ * by the browser was otherwise blank until the page next handed its layers
+ * over. So the tiles near the box are kept inside one, its animation going
+ * nowhere: no picture is moved, and none is drawn any larger.
+ */
+.chart-tiles-keep .chart-hot {
+  animation: chart-keep 1s linear infinite;
+}
+
+@keyframes chart-keep {
+  from {
+    transform: translateZ(0);
+  }
+  to {
+    transform: translateZ(0.01px);
+  }
+}
+
 /*
  * To try on a phone, from `tiles=layered` in the address: each tile a layer
  * of its own for the browser to put together, painted or not as it comes
