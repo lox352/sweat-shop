@@ -17,8 +17,10 @@ export interface TilesHandle {
   scrolled(): { left: number; top: number } | undefined;
   /** The box about to be sent straight to a stitch: see TileView.jumpTo. */
   jumpTo(id: number, inBox: { x: number; y: number }): { x: number; y: number } | undefined;
-  /** Where to send the box for a stitch to come to rest in it: see TileView.aimTo. */
-  aimTo(id: number, inBox: { x: number; y: number }): { left: number; top: number } | undefined;
+  /** Glide a stitch into place in the box, or put it there at once: see TileView.glideTo. */
+  glideTo(id: number, inBox: { x: number; y: number }, smooth: boolean): void;
+  /** Stop gliding where the box is. */
+  stopGlide(): void;
   /** After a zoom, where the point zoomed about has got to on the sheet; see TileView.zoomedTo. */
   zoomedTo(x: number, y: number, screenX: number, screenY: number): { x: number; y: number } | undefined;
 }
@@ -28,8 +30,6 @@ interface ChartTilesProps extends TileContent {
   onMove?: (now?: boolean) => void;
   /** Told how far the stitch being scrolled to has moved across: see TileView.onTargetMoved. */
   onTargetMoved?: (by: number) => void;
-  /** Told where to send the box instead, for the stitch it is going to: see TileView.onAim. */
-  onAim?: (to: { left: number; top: number }) => void;
   /** What floats over the tiles, placed by placeAfloat, and carried with them as they slide. */
   children?: ReactNode;
 }
@@ -39,7 +39,7 @@ interface ChartTilesProps extends TileContent {
  * be worked next and, when asked, closes up the columns no row in view has a
  * stitch in and the rows no column on screen has.
  */
-const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetMoved, onAim, children, ...content }, ref) => {
+const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetMoved, children, ...content }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const afloatRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<TileView>();
@@ -69,7 +69,6 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetM
     if (!view) return;
     view.onMove = onMove;
     view.onTargetMoved = onTargetMoved;
-    view.onAim = onAim;
     view.show(content);
   });
 
@@ -81,7 +80,8 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetM
     hold: (id) => viewRef.current?.hold(id),
     scrolled: () => viewRef.current?.scrolled(),
     jumpTo: (id, inBox) => viewRef.current?.jumpTo(id, inBox),
-    aimTo: (id, inBox) => viewRef.current?.aimTo(id, inBox),
+    glideTo: (id, inBox, smooth) => viewRef.current?.glideTo(id, inBox, smooth),
+    stopGlide: () => viewRef.current?.stopGlide(),
     zoomedTo: (x, y, screenX, screenY) => viewRef.current?.zoomedTo(x, y, screenX, screenY),
   }), []);
 

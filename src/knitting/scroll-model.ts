@@ -260,3 +260,56 @@ export const absorb = (course: Course, box: number, held: number): { box: number
   const to = scrollFor(course, x);
   return { box: to, held: boxAt(course, to) - x };
 };
+
+/**
+ * The chart opened out: every line showing, a cell each, so that every
+ * point of it has a place there whatever is open or closed up on screen - a
+ * place along the chart that is the same however the box came to be where
+ * it is (see universalOf, placeOf). A line closed up is a point on screen
+ * and a cell here.
+ */
+
+/**
+ * The line a point `x` along lines laid out `places` is in, and how far in:
+ * lines run from the far edge, line 0, to the near edge past the last, each
+ * standing as far in as the lines showing beyond it reach, so a line's start
+ * only falls as the lines go on. Of those starting at or before the point,
+ * the first: a line showing, or the edge. Past either edge, that edge.
+ */
+const lineFor = (places: Places, x: number): { line: number; into: number } => {
+  const { start } = places;
+  const lines = start.length - 2;
+  if (x >= start[0]) return { line: 0, into: x - start[0] };
+  if (x < start[lines + 1]) return { line: lines + 1, into: x - start[lines + 1] };
+  let [low, high] = [1, lines + 1];
+  while (low < high) {
+    const mid = (low + high) >> 1;
+    if (start[mid] <= x) high = mid;
+    else low = mid + 1;
+  }
+  return { line: low, into: x - start[low] };
+};
+
+/**
+ * Where on the chart opened out (`open`) the point `x` along lines laid out
+ * `places` is. In a line showing, as far into it; in a gap the chart is
+ * torn at, or beyond a line's end, at that line's end.
+ */
+export const universalOf = (places: Places, open: Places, x: number): number => {
+  const { line, into } = lineFor(places, x);
+  const lines = places.start.length - 2;
+  if (line === 0 || line === lines + 1) return open.start[line] + into;
+  return open.start[line] + Math.min(Math.max(into, 0), places.size[line]);
+};
+
+/**
+ * And back: where along lines laid out `places` the point `u` on the chart
+ * opened out is. In a line showing, as far into it; in one closed up, at its
+ * place, a point.
+ */
+export const placeOf = (places: Places, open: Places, u: number): number => {
+  const { line, into } = lineFor(open, u);
+  const lines = places.start.length - 2;
+  if (line === 0 || line === lines + 1) return places.start[line] + into;
+  return places.start[line] + Math.min(Math.max(into, 0), places.size[line]);
+};
