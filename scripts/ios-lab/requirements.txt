@@ -1,0 +1,3 @@
+numpy
+websocket-client
+scipy  # only for JUDGE=1 (scripts/stutter-judge.py)
