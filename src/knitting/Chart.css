@@ -273,9 +273,29 @@
   left: 0;
 }
 
+/*
+ * Each tile reaching, unseen, as far past its square as tiles are painted
+ * past the box (see `furthest` in tile-view.ts): see-through padding, the
+ * tile drawn where it was. Safari makes every canvas a layer of its own and
+ * keeps a layer's picture only while the layer meets the box - not a pixel
+ * past it, however the box is scrolling. A tile painted ahead and scrolled
+ * in by the browser then came in blank, a frame or two, until the page next
+ * handed its layers over: at the leading edge, a stripe every tile's width.
+ * Padded, a tile meets the box while it is still that far away, and is
+ * shown the moment it scrolls in.
+ */
 .chart-tiles canvas {
   position: absolute;
   display: block;
+  box-sizing: content-box;
+  padding: 384px;
+  margin: -384px;
+}
+
+/* To try on a phone without, from `tiles=unpadded` in the address. */
+.chart-tiles-unpadded canvas {
+  padding: 0;
+  margin: 0;
 }
 
 /*
