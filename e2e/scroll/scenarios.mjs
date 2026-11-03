@@ -316,6 +316,36 @@ export const scenarios = {
       }
     },
   },
+  /*
+   * A round ended part way along it, the box gliding right across the chart
+   * to where the next one begins, in a phone's box the size of an iPhone 17
+   * Pro's: columns open on the way between the box and the stitch it is
+   * going to, and held still, that stitch pushed what was in the box 448
+   * pixels in a frame. An iPhone 13's box closes and opens other columns,
+   * and never saw it.
+   */
+  "knit to the end of a round part way along, the box crossing the chart": {
+    input: "touch",
+    known: { lurches: 0 },
+    setup: async (page) => {
+      await page.setViewportSize({ width: 402, height: 714 });
+      await open(page, { choices: eachYearOnce, progress: 4000, knitting: true });
+    },
+    act: async (page) => {
+      // Twelve stitches along, as a knitter would be, then on to the next round.
+      for (let k = 0; k < 12; k++) {
+        await page.getByRole("button", { name: /^Knit / }).click();
+        await page.waitForTimeout(300);
+      }
+      for (let k = 0; k < 3; k++) {
+        await page.evaluate(() => window.__scrollProbe.mark("end of round"));
+        const step = page.getByRole("button", { name: /^(Joined|Changed|Held|On the needles|Turned|Placed|Taken off): carry on$/ });
+        if (await step.isVisible()) await step.click();
+        else await page.getByRole("button", { name: /^End of (round|row)$/ }).click();
+        await page.waitForTimeout(900);
+      }
+    },
+  },
   "knit across the divide": {
     input: "any",
     setup: (page) => open(page, { choices: eachYearOnce, progress: 0, knitting: true }),

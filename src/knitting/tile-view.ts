@@ -224,6 +224,9 @@ const keepMode = (): "off" | "always" | "moving" => {
   return (found as "off" | "always" | "moving" | undefined) ?? "moving";
 };
 
+/** `glide=hold` in the address holds the stitch the box glides to still even out of sight, as before: see TileView.awayAcross. */
+const glideHoldsView = () => typeof window !== "undefined" && !/[?&]glide=hold\b/.test(window.location.href);
+
 const reducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
@@ -1134,7 +1137,15 @@ export class TileView {
           this.anchorColumns();
         } else {
           const held = this.columnHeld();
-          if (held !== undefined) {
+          const away = held === undefined ? undefined : this.awayAcross();
+          if (away !== undefined) {
+            // Where the stitch the box is going to will be, before and after: the box is sent on by as much.
+            const before = this.columns.targetShift + this.columns.target.start[away.target];
+            this.columns.retarget(to, away.middle);
+            this.keepColumnsInBox(false);
+            const by = this.columns.targetShift + to.start[away.target] - before;
+            if (Math.abs(by) >= 0.5) this.onTargetMoved?.(by);
+          } else if (held !== undefined) {
             this.columns.retarget(to, held);
             this.keepColumnsInBox();
           } else this.columns.send(to);
@@ -1290,6 +1301,32 @@ export class TileView {
     return undefined;
   }
 
+  /**
+   * While the box glides to a stitch out of sight across - the start of the
+   * next round, on the chart's far side - the column in the middle of the
+   * box, rather than that stitch, to hold still as the columns move, and
+   * that stitch's column: what is in the box stays put, the lines opening
+   * and closing about its middle, and the box is sent on by however far the
+   * stitch is carried (see settle). Held still itself, columns opening
+   * between the box and it carried everything in the box by as much: 28 of
+   * them at once, 448 pixels in a frame, on going on to the next round.
+   * Once the stitch is in the box, it is held still as ever.
+   */
+  private awayAcross(): { middle: number; target: number } | undefined {
+    if (!glideHoldsView() || this.point || this.target === undefined) return undefined;
+    const { scene, cell } = this.content!;
+    if (!scene.rowOf[this.target]) return undefined;
+    const target = scene.columnOf[this.target];
+    const view = this.showing();
+    const { start, size } = this.columns.places;
+    const left = start[target];
+    const right = left + Math.max(size[target], cell);
+    if (right > view.x && left < view.x + view.width) return undefined;
+    const middle = lineAt(this.columns.places, scene.layout.columns, view.x + view.width / 2, cell, 1).line;
+    if (middle < 1 || middle > scene.layout.columns) return undefined;
+    return { middle, target };
+  }
+
   /** And which row, likewise. */
   private rowHeld(): number | undefined {
     const { scene, follow } = this.content!;
@@ -1338,7 +1375,7 @@ export class TileView {
    * scroll a phone can lose. A chart narrower than the box has nothing to
    * scroll, and is left as it is.
    */
-  private keepColumnsInBox() {
+  private keepColumnsInBox(report = true) {
     if (this.point) return;
     const size = this.scroller.clientWidth;
     // The chart, its round numbers, and the box's own padding past them.
@@ -1364,7 +1401,7 @@ export class TileView {
       if (this.columns.targetShift > most) this.columns.targetShift = most;
     }
     const by = this.columns.targetShift - was;
-    if (this.target !== undefined && Math.abs(by) >= 0.5) this.onTargetMoved?.(by);
+    if (report && this.target !== undefined && Math.abs(by) >= 0.5) this.onTargetMoved?.(by);
   }
 
   /** The chart's width on the sheet, with room for the round numbers, and its height. */
