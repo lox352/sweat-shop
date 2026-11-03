@@ -1386,6 +1386,10 @@ export class TileView {
      * moved beyond that - nothing, when the columns that closed were all to
      * the left of the line held, as they most often are. A scroll set here
      * can be lost on a phone scrolling the box itself; one not set cannot.
+     * It is what is held taken into the scroll, as a glide takes it each
+     * frame (see absorb), where the lines the scroll is measured along are
+     * made those showing: then the scroll puts the box just as far along as
+     * it is, and what was held, the layer's shift, is the scroll's to make.
      */
     const { left, top } = this.scrolledTo();
     // Whether the pivot is measured along the lines as they are now from here on: see keepsRef.
