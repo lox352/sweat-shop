@@ -59,9 +59,7 @@ const ahead = 128;
  * And on the side the box is going, as far as it goes in this many
  * milliseconds, up to `furthest`: flung, an iPhone scrolled the box 100
  * points a frame, two frames and more before the page painted for it, and
- * the chart's leading edge came in blank, painted a frame later. Each tile
- * is padded as far, unseen, for Safari to keep its picture ready: see
- * `.chart-tiles canvas`.
+ * the chart's leading edge came in blank, painted a frame later.
  */
 const lead = 80;
 const furthest = 384;
@@ -834,7 +832,6 @@ export class TileView {
     // Diagnostics for a phone, from the address: see Hud, and .chart-tiles-layered.
     if (/[?&]hud\b/.test(window.location.href)) this.hud = new Hud();
     if (/[?&]tiles=layered\b/.test(window.location.href)) container.classList.add("chart-tiles-layered");
-    if (/[?&]tiles=unpadded\b/.test(window.location.href)) container.classList.add("chart-tiles-unpadded");
   }
 
   /** What the scroll harness reads of the view: see ViewProbe. */
