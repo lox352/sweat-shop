@@ -77,9 +77,16 @@ export const motionOf = (frames) => {
       dxs.push(a[1] - b[1]);
       dys.push(a[2] - b[2]);
     }
-    // The box's own scroll, and the box itself moving with the page's: both move what is in it, and neither is the chart's doing.
-    const scrollX = now.s.scroll.left - was.s.scroll.left - (now.box.left - was.box.left);
-    const scrollY = now.s.scroll.top - was.s.scroll.top - (now.box.top - was.box.top);
+    /*
+     * The box's own scroll, and the box itself moving with the page's: both
+     * move what is in it, and neither is the chart's doing. But not what the
+     * view moved the scroll by to take in what was held, which moves nothing
+     * on screen (see TileView.absorb).
+     */
+    const absorbedX = (now.s.absorbed?.x ?? 0) - (was.s.absorbed?.x ?? 0);
+    const absorbedY = (now.s.absorbed?.y ?? 0) - (was.s.absorbed?.y ?? 0);
+    const scrollX = now.s.scroll.left - was.s.scroll.left - absorbedX - (now.box.left - was.box.left);
+    const scrollY = now.s.scroll.top - was.s.scroll.top - absorbedY - (now.box.top - was.box.top);
     if (dxs.length === 0) {
       out.push({ i, dx: NaN, dy: NaN, scrollX, scrollY, ux: NaN, uy: NaN, n: 0 });
       continue;

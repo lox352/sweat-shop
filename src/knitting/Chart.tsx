@@ -332,7 +332,14 @@ const Chart: React.FC<ChartProps> = ({
   useEffect(() => {
     const scroller = scrollRef.current;
     if (!scroller) return;
-    const made = new Glide(scroller, () => tilesRef.current?.scrolled());
+    const made = new Glide(scroller, () => {
+      // What was held taken into the scroll as it glides (see TileView.absorb): the way there, and where it goes, moved on by as much.
+      const by = tilesRef.current?.scrolled();
+      if (!by || (!by.left && !by.top)) return;
+      made.shift(by);
+      const aimed = aimedAt.current;
+      if (aimed) aimedAt.current = { ...aimed, left: aimed.left + by.left, top: aimed.top + by.top };
+    });
     glide.current = made;
     return () => {
       made.destroy();

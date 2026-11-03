@@ -16,7 +16,7 @@ import {
 } from "./column-window";
 import type { Palette } from "./palette";
 import { torn } from "./zoom";
-import { type Places, along } from "./scroll-model";
+import { type Course, type Places, absorb, boxAt } from "./scroll-model";
 export { type Places, Reach, along, reach } from "./scroll-model";
 
 /**
@@ -420,6 +420,12 @@ class Axis {
     return this.ease !== undefined;
   }
 
+  /** What is held made `held`, now and once the lines arrive, the box's scroll having taken the rest of it (see TileView.absorb). */
+  absorbed(held: number) {
+    this.held = this.targetHeld = held;
+    this.follow();
+  }
+
   /**
    * A frame of the easing, or its end at once when `finish`: each line on a
    * cubic from where it was and how fast it was going when the easing began
@@ -534,6 +540,8 @@ export interface ViewProbe {
   /** How many tiles have been painted since the view was made, and how long that took in all, in milliseconds. */
   paints: number;
   paintTime: number;
+  /** How far the box's scroll has been moved in all to take in what was held, nothing on screen moving for it: see TileView.absorb. */
+  absorbed: { x: number; y: number };
 }
 
 type Registry = { __chartViews?: TileView[] };
@@ -587,6 +595,8 @@ export class TileView {
   /** How many tiles have been painted, and how long that took: for the scroll harness. */
   private paints = 0;
   private paintTime = 0;
+  /** How far the box's scroll has been moved in all to take in what was held: for the scroll harness. */
+  private absorbedTotal = { x: 0, y: 0 };
   private hud?: Hud;
   /** How far past the box tiles were last painted, each side: see paintTiles. */
   private past = { x0: 0, x1: 0, y0: 0, y1: 0 };
@@ -737,6 +747,7 @@ export class TileView {
       cost: this.cost,
       paints: this.paints,
       paintTime: this.paintTime,
+      absorbed: { ...this.absorbedTotal },
     };
   }
 
@@ -861,38 +872,55 @@ export class TileView {
    * and the round numbers.
    */
   private slideAcross(places: Places, left = this.scrolledTo().left): number {
+    const course = this.courseAcross(places);
+    if (!course) return 0;
+    const box = this.within(left - this.sheet.offsetLeft, course.near, course.room);
+    return box - boxAt(course, box);
+  }
+
+  /**
+   * The way across as the box's scroll sees it, with columns laid out
+   * `places` (see Course): nothing while the sheet has no size yet, or no
+   * room to scroll along, when the layer stays at its edge. The box goes
+   * past the chart by its own padding, the margin left for a join's arrow,
+   * and the round numbers.
+   */
+  private courseAcross(places: Places): Course | undefined {
     const content = this.content;
     const width = parseFloat(this.sheet.style.width) || 0;
-    // A sheet with no size yet has no room to scroll along: the layer stays at its edge.
-    if (!content?.collapse || width <= 0) return 0;
+    if (!content?.collapse || width <= 0) return undefined;
     const style = getComputedStyle(this.scroller);
     const near = (parseFloat(style.paddingLeft) || 0) + content.margin;
     const far = gutter(content.cell) + (parseFloat(style.paddingRight) || 0);
     const size = this.scroller.clientWidth;
     const room = width - gutter(content.cell) + near + far - size;
-    // A sheet the box can't be scrolled along leaves the layer at its edge.
-    if (room <= 2) return 0;
-    const box = this.within(left - this.sheet.offsetLeft, near, room);
+    if (room <= 2) return undefined;
     const home = scrollsFromRight(this.scroller) ? 1 : 0;
     // The sheet is in whole pixels (see size): the part of one it is wider than the lines at rest is room past them.
     const over = roundedUp(this.columns.rest.start[0] + gutter(content.cell));
-    return box - along(this.columns.rest, places, this.part(box + near, room), size, near, far + over, home, content.cell, this.columns.ref);
+    return { places, rest: this.columns.rest, ref: this.columns.ref, size, near, far: far + over, room, home, cell: content.cell };
   }
 
   /** And down, with rows laid out `places`, the box going past the chart by its padding. */
   private slideDown(places: Places, top = this.scrolledTo().top): number {
+    const course = this.courseDown(places);
+    if (!course) return 0;
+    const box = this.within(top - this.sheet.offsetTop, course.near, course.room);
+    return box - boxAt(course, box);
+  }
+
+  private courseDown(places: Places): Course | undefined {
     const content = this.content;
     const height = parseFloat(this.sheet.style.height) || 0;
-    if (!content?.collapse || height <= 0) return 0;
+    if (!content?.collapse || height <= 0) return undefined;
     const style = getComputedStyle(this.scroller);
     const near = parseFloat(style.paddingTop) || 0;
     const far = parseFloat(style.paddingBottom) || 0;
     const size = this.scroller.clientHeight;
     const room = height + near + far - size;
-    if (room <= 2) return 0;
-    const box = this.within(top - this.sheet.offsetTop, near, room);
+    if (room <= 2) return undefined;
     const over = roundedUp(this.rows.rest.start[0]);
-    return box - along(this.rows.rest, places, this.part(box + near, room), size, near, far + over, 0, content.cell, this.rows.ref);
+    return { places, rest: this.rows.rest, ref: this.rows.ref, size, near, far: far + over, room, home: 0, cell: content.cell };
   }
 
   /**
@@ -904,10 +932,6 @@ export class TileView {
     return Math.min(room - near, Math.max(-near, at));
   }
 
-  /** How far along `room` a box `at` along it is: at an end within a pixel of one, a scroll being whole pixels. */
-  private part(at: number, room: number) {
-    return Math.min(1, Math.max(0, (at - 1) / (room - 2)));
-  }
 
   /**
    * Where the box is scrolled to, within the scrolls it can take. Bouncing
@@ -1312,7 +1336,7 @@ export class TileView {
         // Nothing on it yet to keep still.
         this.sheetWidth(wanted.width, false);
         style.height = `${wanted.height}px`;
-      } else if (this.target !== undefined && !this.aimedAhead(true) && wanted.width > width) {
+      } else if (this.target !== undefined && wanted.width > width) {
         /*
          * While the box is being sent to a stitch, a sheet too narrow for it
          * would leave the stitch out of reach until rest. So it grows,
@@ -1323,7 +1347,7 @@ export class TileView {
         this.sheetWidth(wanted.width, true);
         this.onTargetMoved?.(0);
       }
-      if (width > 0 && this.target !== undefined && !this.aimedAhead(false) && wanted.height > height) {
+      if (width > 0 && this.target !== undefined && wanted.height > height) {
         /*
          * And too short for it, the box would stop short of the stitch, held
          * at the sheet's foot, and be left there at rest with the stitch out
@@ -1929,20 +1953,6 @@ export class TileView {
     return to;
   }
 
-  /**
-   * Whether the box is going where the stitch it is going to will be, worked
-   * out ahead, and not held still: then the sheet keeps its size on the way,
-   * as for any scroll - where the scroll puts the layer reaches the chart's
-   * edges whatever its size (see along). Grown as for a stitch held still,
-   * the layer was moved back by as much, and carried the chart's edge, and
-   * the next round's first stitch by it, out of the box's reach.
-   */
-  private aimedAhead(across: boolean): boolean {
-    const aimed = this.aimed;
-    if (!aimed || this.target !== aimed.id) return false;
-    return across ? !this.showingAcross(aimed.id) : !this.showingDown(aimed.id);
-  }
-
   /** Which ways a stitch is in the box: across, down, both or neither. */
   private showingKey(id: number): string {
     return `${this.showingAcross(id) ? "x" : ""}${this.showingDown(id) ? "y" : ""}`;
@@ -1991,13 +2001,54 @@ export class TileView {
    * is put to match at once, rather than a frame later when the browser
    * tells of the scroll, and the box counts as moving.
    */
-  scrolled() {
+  scrolled(): { left: number; top: number } {
     this.movedAt = performance.now();
     if (this.frame) {
       cancelAnimationFrame(this.frame);
       this.frame = 0;
     }
     this.update();
+    return this.absorb();
+  }
+
+  /**
+   * What is held, each way, taken into the box's scroll, the page having set
+   * it this frame anyway (see scrolled): the box put along the sheet where,
+   * holding nothing, it shows just what it shows now (see absorb in
+   * scroll-model), so that nothing on screen moves for it. Then where the box
+   * shows the chart depends again on its scroll and the lines alone, whatever
+   * held a stitch still or grew the sheet on the way. Not while the lines are
+   * easing that way, which carry what is held with them. Says how far the
+   * scroll was moved, for whatever sets it to go on from there.
+   */
+  private absorb(): { left: number; top: number } {
+    const moved = { left: 0, top: 0 };
+    const ways = [
+      { axis: this.columns, course: () => this.courseAcross(this.columns.places), side: "left" as const, edge: () => this.sheet.offsetLeft, at: () => this.scrolledTo().left },
+      { axis: this.rows, course: () => this.courseDown(this.rows.places), side: "top" as const, edge: () => this.sheet.offsetTop, at: () => this.scrolledTo().top },
+    ];
+    for (const { axis, course: courseOf, side, edge, at } of ways) {
+      if (axis.moving || Math.abs(axis.held) < 0.5 || Math.abs(axis.targetHeld - axis.held) > 0.01) continue;
+      const course = courseOf();
+      if (!course) continue;
+      const box = Math.min(course.room - course.near, Math.max(-course.near, at() - edge()));
+      const shown = boxAt(course, box) - axis.held;
+      const to = absorb(course, box, axis.held);
+      if (Math.abs(to.box - box) < 0.5) continue;
+      if (side === "left") this.scroller.scrollLeft += to.box - box;
+      else this.scroller.scrollTop += to.box - box;
+      // Whole pixels, as the browser has the scroll: what is left over stays held.
+      const now = Math.min(course.room - course.near, Math.max(-course.near, at() - edge()));
+      axis.absorbed(boxAt(course, now) - shown);
+      moved[side] = now - box;
+    }
+    if (moved.left || moved.top) {
+      this.absorbedTotal = { x: this.absorbedTotal.x + moved.left, y: this.absorbedTotal.y + moved.top };
+      if (this.aimed) this.aimed = { ...this.aimed, left: this.aimed.left + moved.left, top: this.aimed.top + moved.top };
+      const [x, y] = this.onPixels(this.columns.shift, this.rows.shift);
+      this.shiftLayer(x, y);
+    }
+    return moved;
   }
 
   /** The stitch at a point on screen, if any. */

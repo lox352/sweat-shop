@@ -13,8 +13,8 @@ export interface TilesHandle {
   stitchAt(clientX: number, clientY: number): number | undefined;
   /** Hold a stitch still while the chart scrolls to it. */
   hold(id: number | undefined): void;
-  /** The box scrolled by the page this frame: see TileView.scrolled. */
-  scrolled(): void;
+  /** The box scrolled by the page this frame, and how far it was moved on for what was held: see TileView.scrolled. */
+  scrolled(): { left: number; top: number } | undefined;
   /** The box about to be sent straight to a stitch: see TileView.jumpTo. */
   jumpTo(id: number, inBox: { x: number; y: number }): { x: number; y: number } | undefined;
   /** Where to send the box for a stitch to come to rest in it: see TileView.aimTo. */
