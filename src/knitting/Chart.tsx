@@ -369,7 +369,7 @@ const Chart: React.FC<ChartProps> = ({
       // Or, to compare, sent where it will be once there, worked out ahead, with nothing held: see TileView.destination.
       const ahead = !afresh && glideMode() === "aim" ? tilesRef.current?.destination(nextId, inBox) : undefined;
       if (ahead) {
-        tilesRef.current?.hold(undefined);
+        tilesRef.current?.aimed();
         aimedAt.current = { left: ahead.left, top: Math.max(ahead.top, 0), behavior };
         send();
         return;

@@ -768,6 +768,8 @@ export class TileView {
   private target?: number;
   /** Or the stitch being worked as the knitting closed, held still until rest whatever the box is no longer sent to: see show. */
   private stillFor?: number;
+  /** The box sent where a stitch will be once there, worked out ahead, until rest: nothing is held still meanwhile (see destination). */
+  private aiming = false;
   /** A column and row to hold still while lines move: those a zoom was about. */
   private point?: { column: number; row: number };
   private touching = false;
@@ -1312,7 +1314,7 @@ export class TileView {
     const { scene, follow } = this.content!;
     if (this.point) return this.point.column;
     if (this.target !== undefined && scene.rowOf[this.target]) return scene.columnOf[this.target];
-    if (this.followShowing()) return scene.columnOf[follow!];
+    if (!this.aiming && this.followShowing()) return scene.columnOf[follow!];
     return undefined;
   }
 
@@ -1412,7 +1414,7 @@ export class TileView {
     const { scene, follow } = this.content!;
     if (this.point) return this.point.row;
     if (this.target !== undefined && scene.rowOf[this.target]) return scene.rowOf[this.target];
-    if (this.followShowing()) return scene.rowOf[follow!];
+    if (!this.aiming && this.followShowing()) return scene.rowOf[follow!];
     return undefined;
   }
 
@@ -1563,6 +1565,7 @@ export class TileView {
     }
     this.target = undefined;
     this.stillFor = undefined;
+    this.aiming = false;
     this.point = undefined;
     if (!shifted && width === wanted.width && height === wanted.height) return false;
     /*
@@ -2112,6 +2115,15 @@ export class TileView {
    * chart is about to scroll to it. Counted as moving from now, so the hold
    * lasts until the scroll has had time to begin.
    */
+  /** The box about to be sent where a stitch will be once there (see destination): nothing held still until rest. */
+  aimed() {
+    this.target = undefined;
+    this.stillFor = undefined;
+    this.aiming = true;
+    this.movedAt = performance.now();
+    this.schedule();
+  }
+
   hold(id: number | undefined) {
     // Let go of, the stitch being worked as the knitting closed stays held until rest: see show.
     if (id === undefined && this.stillFor !== undefined && this.target === this.stillFor) return;

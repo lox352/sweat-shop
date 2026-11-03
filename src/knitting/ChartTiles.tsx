@@ -17,6 +17,8 @@ export interface TilesHandle {
   scrolled(): void;
   /** The box about to be sent straight to a stitch: see TileView.jumpTo. */
   jumpTo(id: number, inBox: { x: number; y: number }): { x: number; y: number } | undefined;
+  /** The box about to be sent where a stitch will be: see TileView.aimed. */
+  aimed(): void;
   /** Where to send the box for a stitch to come to rest in it, worked out ahead: see TileView.destination. */
   destination(id: number, inBox: { x: number; y: number }): { left: number; top: number } | undefined;
   /** After a zoom, where the point zoomed about has got to on the sheet; see TileView.zoomedTo. */
@@ -79,6 +81,7 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetM
     scrolled: () => viewRef.current?.scrolled(),
     jumpTo: (id, inBox) => viewRef.current?.jumpTo(id, inBox),
     destination: (id, inBox) => viewRef.current?.destination(id, inBox),
+    aimed: () => viewRef.current?.aimed(),
     zoomedTo: (x, y, screenX, screenY) => viewRef.current?.zoomedTo(x, y, screenX, screenY),
   }), []);
 
