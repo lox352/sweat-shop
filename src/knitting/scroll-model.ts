@@ -210,6 +210,13 @@ export interface Course {
   room: number;
   home: number;
   cell: number;
+  /**
+   * To try: the chart opened out (see universalOf). Given, the scroll is a
+   * place on it - the part of the way along the room the scroll is, of the
+   * way along it - and the box shows the lines as they are about that
+   * point, standing as far across the box as the scroll is along: see boxAt.
+   */
+  open?: Places;
 }
 
 /**
@@ -219,8 +226,18 @@ export interface Course {
  * at it. Nothing held: what is held moves the chart on from here by as much.
  */
 export const boxAt = (course: Course, box: number): number => {
-  const { places, rest, ref, size, near, far, room, home, cell } = course;
+  const { places, rest, ref, size, near, far, room, home, cell, open } = course;
   const part = Math.min(1, Math.max(0, (box + near - 1) / (room - 2)));
+  if (open) {
+    /*
+     * The point that part of the way along the chart opened out, where it is
+     * along the lines as they are, less as far across the box as it stands:
+     * from the near edge of the box at one end to the far edge at the other,
+     * so that either end shows that edge, whatever is open or closed up.
+     */
+    const at = placeOf(places, open, part * open.start[0]);
+    return at - near + part * (near + far - size);
+  }
   return along(rest, places, part, size, near, far, home, cell, ref);
 };
 

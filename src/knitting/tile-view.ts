@@ -218,6 +218,9 @@ const keepMode = (): "off" | "always" | "moving" => {
   return (found as "off" | "always" | "moving" | undefined) ?? "moving";
 };
 
+/** To try, from `scroll=universal` in the address: the box's scroll a place on the chart opened out, for a scroll by hand too (see Course.open). */
+const universalScroll = () => typeof window !== "undefined" && /[?&]scroll=universal\b/.test(window.location.href);
+
 const reducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
@@ -918,7 +921,7 @@ export class TileView {
     const home = scrollsFromRight(this.scroller) ? 1 : 0;
     // The sheet is in whole pixels (see size): the part of one it is wider than the lines at rest is room past them.
     const over = roundedUp(this.columns.rest.start[0] + gutter(content.cell));
-    return { places, rest: this.columns.rest, ref: this.columns.ref, size, near, far: far + over, room, home, cell: content.cell };
+    return { places, rest: this.columns.rest, ref: this.columns.ref, size, near, far: far + over, room, home, cell: content.cell, open: universalScroll() ? this.openLines().columns : undefined };
   }
 
   /** And down, with rows laid out `places`, the box going past the chart by its padding. */
@@ -940,7 +943,7 @@ export class TileView {
     const room = height + near + far - size;
     if (room <= 2) return undefined;
     const over = roundedUp(this.rows.rest.start[0]);
-    return { places, rest: this.rows.rest, ref: this.rows.ref, size, near, far: far + over, room, home: 0, cell: content.cell };
+    return { places, rest: this.rows.rest, ref: this.rows.ref, size, near, far: far + over, room, home: 0, cell: content.cell, open: universalScroll() ? this.openLines().rows : undefined };
   }
 
   /**
