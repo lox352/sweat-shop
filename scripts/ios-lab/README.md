@@ -24,7 +24,9 @@ page, and shows only the layers it keeps pictures of. The video can. Each catche
    the Inspector window. Start it on the Simulator's socket:
    `ios_webkit_debug_proxy -s unix:$(ls /private/tmp/com.apple.launchd.*/com.apple.webinspectord_sim.socket | head -1)`.
 4. **Python 3** with `pip install -r scripts/ios-lab/requirements.txt`, and **ffmpeg**.
-5. **The app:** `npm run build`, then `npm run preview -- --port 4319 --host`. Open
+5. **The app:** `npm run build`, then `npm run preview -- --port 4319 --host`. For the chart's hud over the
+   page as well (`hud` in the address: frames, painting, how far ahead it paints), build with
+   `VITE_CHART_DEBUG=1 npx vite build` instead: the site's own build leaves the hud out. Open
    `http://localhost:4319/sweat-shop/` in the Simulator's Safari (`xcrun simctl openurl booted <url>`).
    Rebuilding is not enough to try a new build: the app's service worker keeps serving the last one. Clear it
    from the page, through the inspector, or from Safari's settings.
@@ -70,6 +72,10 @@ From the page (see `e2e/scroll/metrics.mjs`):
   and `follow`.
 - **`stale`** (`exposure.js`): how near the box the nearest stale picture on a placed canvas came, frame by
   frame. That is a tile not yet painted for the chart as it is, or the part of one painted only in part.
+
+Scroll by hand, `node scripts/ios-lab/feel.mjs <recordings>` says how it felt, frame by frame: how often what is on
+screen stood still while the scroll moved (a stall), went against it (back) or far ahead of it (a rush). The
+`long` scenario flings every way thirty times, and the report's memory samples say whether the layers grow.
 
 ## Known artefacts
 

@@ -77,6 +77,9 @@ SCENARIOS = {
     # A round yoke of make-ones, and a raglan with markers.
     "hamefarin-up": dict(choices=hamefarin, progress=0, prep=BOTTOM, at=(0.5, 0.3), gestures=[fling(0, 300)] * 6),
     "klee-up": dict(choices=klee, progress=0, prep=BOTTOM, at=(0.5, 0.3), gestures=[fling(0, 300)] * 6),
+    # A long session, every way in turn, to see whether memory grows: see the report's memory samples.
+    "long": dict(choices=eachYearOnceL, progress=6000, knitting=True, prep="box.scrollLeft = -2900; box.scrollTop = box.scrollHeight * 0.3", at=(0.5, 0.5),
+                 gestures=[fling(300, 0, 1.2), fling(0, 300, 1.2), fling(-300, 0, 1.2), fling(0, -300, 1.2), fling(250, 250, 1.2), fling(-250, -250, 1.2)] * 5),
     # Knitting: the chart following the stitch, a stitch at a time and a round at a time.
     "knit": dict(choices=eachYearOnce, progress=4000, knitting=True, prep="", at=(0.5, 0.5),
                  gestures=[tap("knit")] * 12 + [tap("round", 1.2)] * 3),
@@ -201,7 +204,7 @@ class Lab:
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(1.2)
         if probe:
-            self.js("window.__scrollProbe.start(); window.__exposure.start(); window.__lineLog = []; 1")
+            self.js("window.__scrollProbe.start(); window.__exposure.start(); 1")
         self.mem = [self.memory()]
         self.act(s, box)
         time.sleep(1.5)
@@ -215,7 +218,6 @@ class Lab:
             recording["audit"] = json.loads(recording["audit"]) if recording["audit"] else None
             self.js("delete window.__rec; 1")
             recording["exposure"] = json.loads(self.js("JSON.stringify(window.__exposure.stop())"))
-            recording["lineLog"] = json.loads(self.js("JSON.stringify(window.__lineLog || [])"))
         rec.send_signal(2)
         rec.wait()
         # The box exactly, and no lower than Safari's toolbar floating over the page's foot.
