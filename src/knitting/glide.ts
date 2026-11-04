@@ -121,6 +121,16 @@ export class Glide {
     this.onFrame?.();
   };
 
+  /**
+   * The whole way moved on by `by`: the box's scroll moved under it by as
+   * much with nothing on screen moving (see TileView.absorb), it goes on
+   * from there just as it was going.
+   */
+  shift(by: Point) {
+    this.from = { left: this.from.left + by.left, top: this.from.top + by.top };
+    this.goal = { left: this.goal.left + by.left, top: this.goal.top + by.top };
+  }
+
   /** Stop where it is. */
   readonly stop = () => {
     cancelAnimationFrame(this.frame);

@@ -19,6 +19,7 @@ import { useSettings } from "../helpers/settings";
 import type { SweaterPattern } from "../data/sweaters/types";
 import { usePinchZoom } from "./usePinchZoom";
 import { Glide } from "./glide";
+import { scrollModes } from "./scroll-modes";
 import { leastCell, minCell, stepCell } from "./zoom";
 import "./Chart.css";
 
@@ -332,7 +333,14 @@ const Chart: React.FC<ChartProps> = ({
   useEffect(() => {
     const scroller = scrollRef.current;
     if (!scroller) return;
-    const made = new Glide(scroller, () => tilesRef.current?.scrolled());
+    const made = new Glide(scroller, () => {
+      // What was held taken into the scroll as it glides (see TileView.absorb): the way there, and where it goes, moved on by as much.
+      const by = tilesRef.current?.scrolled();
+      if (!by || (!by.left && !by.top)) return;
+      made.shift(by);
+      const aimed = aimedAt.current;
+      if (aimed) aimedAt.current = { ...aimed, left: aimed.left + by.left, top: aimed.top + by.top };
+    });
     glide.current = made;
     return () => {
       made.destroy();
@@ -350,6 +358,19 @@ const Chart: React.FC<ChartProps> = ({
       scroller.scrollTo({ left: aimed.left, top: aimed.top, behavior: "instant" });
     }
   }, []);
+  /**
+   * Where the box can go of `to`: aimed past an end, a glide would go
+   * straight there across and up the chart together, and the box, held at
+   * the end, go on only up - turning a corner, a round's first stitch at the
+   * chart's edge a row further up.
+   */
+  const reachable = useCallback((to: { left: number; top: number }) => {
+    const scroller = scrollRef.current;
+    if (!scroller) return to;
+    const [lowest, highest] = scrollAcross(scroller);
+    const deepest = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+    return { left: Math.min(highest, Math.max(lowest, to.left)), top: Math.min(deepest, Math.max(0, to.top)) };
+  }, []);
   const aim = useCallback(
     (behavior: ScrollBehavior, afresh = false) => {
       const scroller = scrollRef.current;
@@ -359,17 +380,39 @@ const Chart: React.FC<ChartProps> = ({
       // Where in the box the stitch goes: the middle across, its round a little up from the foot.
       const inBox = { x: scroller.clientWidth / 2 - cell / 2, y: scroller.clientHeight - lift(scroller.clientHeight, cell, followAt) - cell };
       /*
-       * Held still on the tiles while the box goes to it, however the
-       * columns move on the way; or, sent straight to a chart laid out
+       * Sent where the stitch will come to rest: where it is drawn now if on
+       * screen, held still there as the lines move, and where it will be
+       * once there if out of sight, the lines then showing laid out as they
+       * will be (see TileView.aimTo); or, sent straight to a chart laid out
        * afresh, laid out first as the box needs it there (see
        * TileView.jumpTo).
        */
-      let placed: { x: number; y: number } | undefined;
-      if (afresh) placed = tilesRef.current?.jumpTo(nextId, inBox);
-      else {
-        tilesRef.current?.hold(nextId);
-        placed = tilesRef.current?.place(nextId);
+      // However it is set to follow the knitting, to compare (see scroll-modes).
+      const how = scrollModes.glide;
+      if (!afresh && how === "universal") {
+        glide.current?.stop();
+        aimedAt.current = undefined;
+        tilesRef.current?.glideTo(nextId, inBox, behavior === "smooth");
+        return;
       }
+      tilesRef.current?.stopGlide();
+      if (!afresh && how === "hold") {
+        // As before #80: the stitch held still however far out of sight, the box sent to where it is drawn now.
+        tilesRef.current?.hold(nextId);
+        const placed = tilesRef.current?.place(nextId);
+        if (!placed) return;
+        aimedAt.current = { left: sheet.offsetLeft + placed.x - inBox.x, top: Math.max(placed.y - inBox.y, 0), behavior };
+        send();
+        return;
+      }
+      if (!afresh) {
+        const to = tilesRef.current?.aimTo(nextId, inBox);
+        if (!to) return;
+        aimedAt.current = { ...reachable(to), behavior };
+        send();
+        return;
+      }
+      const placed = tilesRef.current?.jumpTo(nextId, inBox);
       if (!placed) return;
       aimedAt.current = {
         // From the same edge as the sheet's offset in the box, whichever it is scrolled from: see scroll-corner.
@@ -379,7 +422,7 @@ const Chart: React.FC<ChartProps> = ({
       };
       send();
     },
-    [at, followAt, nextId, send],
+    [at, followAt, nextId, reachable, send],
   );
   /*
    * Where the box was last sent, and sent on from there when the stitch it
@@ -389,6 +432,13 @@ const Chart: React.FC<ChartProps> = ({
    * the sheet having grown under a glide, there is nothing to do: the glide
    * writes the scroll afresh every frame.
    */
+  /** Sent instead where the stitch it is going to is now found to come to rest: see TileView.aimTo. */
+  const aimMoved = useCallback((to: { left: number; top: number }) => {
+    const aimed = aimedAt.current;
+    if (!aimed) return;
+    aimedAt.current = { ...aimed, ...reachable(to) };
+    send();
+  }, [reachable, send]);
   const targetMoved = useCallback((by: number) => {
     const aimed = aimedAt.current;
     if (!aimed || (by === 0 && glide.current?.going)) return;
@@ -420,7 +470,9 @@ const Chart: React.FC<ChartProps> = ({
    * opening as you scroll straight away can't send the box back to it.
    */
   useEffect(() => {
-    if (at || !aimedAt.current) return;
+    if (at) return;
+    tilesRef.current?.stopGlide();
+    if (!aimedAt.current) return;
     aimedAt.current = undefined;
     glide.current?.stop();
     tilesRef.current?.hold(undefined);
@@ -586,6 +638,7 @@ const Chart: React.FC<ChartProps> = ({
             // Placed again in the same frame as the tiles, or it would lag them a frame as lines open and close.
             onMove={picked !== undefined ? (now) => (now ? flushSync(moved) : moved()) : undefined}
             onTargetMoved={targetMoved}
+            onAim={aimMoved}
           >
             {picked !== undefined && (
               <StitchPicker
