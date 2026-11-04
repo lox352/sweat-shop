@@ -19,6 +19,10 @@ export interface TilesHandle {
   jumpTo(id: number, inBox: { x: number; y: number }): { x: number; y: number } | undefined;
   /** Where to send the box for a stitch to come to rest in it: see TileView.aimTo. */
   aimTo(id: number, inBox: { x: number; y: number }): { left: number; top: number } | undefined;
+  /** Glide a stitch into place about the chart opened out, or put it there at once: see TileView.glideTo. */
+  glideTo(id: number, inBox: { x: number; y: number }, smooth: boolean): void;
+  /** Stop such a glide where the box is. */
+  stopGlide(): void;
   /** After a zoom, where the point zoomed about has got to on the sheet; see TileView.zoomedTo. */
   zoomedTo(x: number, y: number, screenX: number, screenY: number): { x: number; y: number } | undefined;
 }
@@ -82,6 +86,8 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetM
     scrolled: () => viewRef.current?.scrolled(),
     jumpTo: (id, inBox) => viewRef.current?.jumpTo(id, inBox),
     aimTo: (id, inBox) => viewRef.current?.aimTo(id, inBox),
+    glideTo: (id, inBox, smooth) => viewRef.current?.glideTo(id, inBox, smooth),
+    stopGlide: () => viewRef.current?.stopGlide(),
     zoomedTo: (x, y, screenX, screenY) => viewRef.current?.zoomedTo(x, y, screenX, screenY),
   }), []);
 
