@@ -19,7 +19,6 @@ import { useSettings } from "../helpers/settings";
 import type { SweaterPattern } from "../data/sweaters/types";
 import { usePinchZoom } from "./usePinchZoom";
 import { Glide } from "./glide";
-import { scrollModes } from "./scroll-modes";
 import { leastCell, minCell, stepCell } from "./zoom";
 import "./Chart.css";
 
@@ -387,24 +386,6 @@ const Chart: React.FC<ChartProps> = ({
        * afresh, laid out first as the box needs it there (see
        * TileView.jumpTo).
        */
-      // However it is set to follow the knitting, to compare (see scroll-modes).
-      const how = scrollModes.glide;
-      if (!afresh && how === "universal") {
-        glide.current?.stop();
-        aimedAt.current = undefined;
-        tilesRef.current?.glideTo(nextId, inBox, behavior === "smooth");
-        return;
-      }
-      tilesRef.current?.stopGlide();
-      if (!afresh && how === "hold") {
-        // As before #80: the stitch held still however far out of sight, the box sent to where it is drawn now.
-        tilesRef.current?.hold(nextId);
-        const placed = tilesRef.current?.place(nextId);
-        if (!placed) return;
-        aimedAt.current = { left: sheet.offsetLeft + placed.x - inBox.x, top: Math.max(placed.y - inBox.y, 0), behavior };
-        send();
-        return;
-      }
       if (!afresh) {
         const to = tilesRef.current?.aimTo(nextId, inBox);
         if (!to) return;
@@ -470,9 +451,7 @@ const Chart: React.FC<ChartProps> = ({
    * opening as you scroll straight away can't send the box back to it.
    */
   useEffect(() => {
-    if (at) return;
-    tilesRef.current?.stopGlide();
-    if (!aimedAt.current) return;
+    if (at || !aimedAt.current) return;
     aimedAt.current = undefined;
     glide.current?.stop();
     tilesRef.current?.hold(undefined);
