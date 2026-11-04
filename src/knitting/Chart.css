@@ -306,16 +306,6 @@
   }
 }
 
-/*
- * To try on a phone, from `tiles=layered` in the address: each tile a layer
- * of its own for the browser to put together, painted or not as it comes
- * into view - should Safari leave a tile painted past the box blank until it
- * is in it.
- */
-.chart-tiles-layered canvas {
-  will-change: transform;
-}
-
 /* The stitch to be worked next, outlined over the tiles. */
 .chart-next {
   position: absolute;
