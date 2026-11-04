@@ -19,6 +19,7 @@ import { useSettings } from "../helpers/settings";
 import type { SweaterPattern } from "../data/sweaters/types";
 import { usePinchZoom } from "./usePinchZoom";
 import { Glide } from "./glide";
+import { scrollModes } from "./scroll-modes";
 import { leastCell, minCell, stepCell } from "./zoom";
 import "./Chart.css";
 
@@ -332,7 +333,14 @@ const Chart: React.FC<ChartProps> = ({
   useEffect(() => {
     const scroller = scrollRef.current;
     if (!scroller) return;
-    const made = new Glide(scroller, () => tilesRef.current?.scrolled());
+    const made = new Glide(scroller, () => {
+      // What was held taken into the scroll as it glides (see TileView.absorb): the way there, and where it goes, moved on by as much.
+      const by = tilesRef.current?.scrolled();
+      if (!by || (!by.left && !by.top)) return;
+      made.shift(by);
+      const aimed = aimedAt.current;
+      if (aimed) aimedAt.current = { ...aimed, left: aimed.left + by.left, top: aimed.top + by.top };
+    });
     glide.current = made;
     return () => {
       made.destroy();
@@ -379,6 +387,24 @@ const Chart: React.FC<ChartProps> = ({
        * afresh, laid out first as the box needs it there (see
        * TileView.jumpTo).
        */
+      // However it is set to follow the knitting, to compare (see scroll-modes).
+      const how = scrollModes.glide;
+      if (!afresh && how === "universal") {
+        glide.current?.stop();
+        aimedAt.current = undefined;
+        tilesRef.current?.glideTo(nextId, inBox, behavior === "smooth");
+        return;
+      }
+      tilesRef.current?.stopGlide();
+      if (!afresh && how === "hold") {
+        // As before #80: the stitch held still however far out of sight, the box sent to where it is drawn now.
+        tilesRef.current?.hold(nextId);
+        const placed = tilesRef.current?.place(nextId);
+        if (!placed) return;
+        aimedAt.current = { left: sheet.offsetLeft + placed.x - inBox.x, top: Math.max(placed.y - inBox.y, 0), behavior };
+        send();
+        return;
+      }
       if (!afresh) {
         const to = tilesRef.current?.aimTo(nextId, inBox);
         if (!to) return;
@@ -444,7 +470,9 @@ const Chart: React.FC<ChartProps> = ({
    * opening as you scroll straight away can't send the box back to it.
    */
   useEffect(() => {
-    if (at || !aimedAt.current) return;
+    if (at) return;
+    tilesRef.current?.stopGlide();
+    if (!aimedAt.current) return;
     aimedAt.current = undefined;
     glide.current?.stop();
     tilesRef.current?.hold(undefined);

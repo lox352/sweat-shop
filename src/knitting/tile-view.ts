@@ -16,6 +16,10 @@ import {
 } from "./column-window";
 import type { Palette } from "./palette";
 import { torn } from "./zoom";
+import { type Course, type Places, absorb, boxAt, placeOf, scrollFor, universalOf } from "./scroll-model";
+import { glideTime, hermite } from "./glide";
+import { onScrollModes, scrollModes, showScrollPanel } from "./scroll-modes";
+export { type Places, Reach, along, reach } from "./scroll-model";
 
 /**
  * The chart on canvases, a tile at a time, inside the box it scrolls in.
@@ -108,15 +112,6 @@ export interface TileContent {
   collapse?: boolean;
   /** The stitch to be worked next: outlined, and held still when lines move. */
   follow?: number;
-}
-
-/**
- * Each line's leading edge from the chart's own top left corner - a
- * column's left, a row's top - and its size: a cell, or none closed up.
- */
-export interface Places {
-  start: Float64Array;
-  size: Float64Array;
 }
 
 interface Tile {
@@ -214,167 +209,8 @@ const lineAt = (places: Places, lines: number, at: number, cell: number, ratio: 
   return { line: found, offset: (Math.min(at - start[found], size[found]) / size[found]) * cell };
 };
 
-/**
- * Keeping the tiles about to scroll into view ready for Safari (see
- * TileView.hot): `keep=always`, `keep=moving` - only while the box is
- * scrolling - or `keep=off`, from the address.
- */
-const keepMode = (): "off" | "always" | "moving" => {
-  const found = typeof window === "undefined" ? undefined : /[?&]keep=(off|always|moving)\b/.exec(window.location.href)?.[1];
-  return (found as "off" | "always" | "moving" | undefined) ?? "moving";
-};
-
 const reducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-
-/**
- * How far either side of the pivot, in pixels, a line opening or closing is
- * shared between the two sides, for a box `size` long at `cell` a stitch:
- * half the box, so that what opens or closes in view opens out from the
- * pivot or closes in on it on both sides, the more on the side it is
- * nearer, and the share changes as evenly as the box moves. Never less
- * than half a cell, so a line the pivot is in opens out both ways.
- */
-const spreadOver = (size: number, cell: number) => Math.max(cell / 2, size / 2);
-
-/**
- * How far lines laid out `places` reach before the pivot `at`, a place along
- * the lines as laid out `ref` - the lines the pivot is measured along, see
- * keepsRef - in pixels from the chart's near edge: all of those whose middle
- * was well before it there, none of those well after, and those within
- * `spread` of it in part, the nearer before it the more. Lines closed up
- * there stand at a point, and share alike as they open. A line closed up
- * counts as the merest sliver, so that every place reaches a little further
- * than the one before, and the pivot can always be found again from how far
- * the lines reach before it: see pivotAt.
- */
-export const reach = (ref: Places, places: Places, at: number, spread: number) => {
-  const lines = places.size.length - 2;
-  let total = 0;
-  for (let line = 1; line <= lines; line++) {
-    const middle = ref.start[line] + ref.size[line] / 2;
-    const part = Math.min(1, Math.max(0, 0.5 + (at - middle) / (2 * spread)));
-    if (part > 0) total += part * Math.max(places.size[line], sliver);
-  }
-  return total;
-};
-
-/** How wide a line closed up counts as, in pixels, to reach: far less than anything drawn. */
-const sliver = 1e-6;
-
-/** How far lines laid out `places` reach in all. */
-const reachAll = (places: Places) => {
-  let total = alls.get(places);
-  if (total === undefined) {
-    total = 0;
-    for (let line = 1; line < places.size.length - 1; line++) total += Math.max(places.size[line], sliver);
-    alls.set(places, total);
-  }
-  return total;
-};
-const alls = new WeakMap<Places, number>();
-
-/**
- * How far lines laid out `places` reach before every place along lines laid
- * out `ref`, at once: see reach, which this is, worked out ahead. Each line
- * counts in part over `spread` either side of its middle, the more the
- * further on, so how far they reach is a run of straight stretches, bending
- * where a line begins or ends counting in part. Found once for the lines,
- * how far they reach before a place is then a search among the bends, and
- * the place they reach a length before is the same search the other way:
- * the layer is put for many scrolls at once as the box scrolls (see
- * slideWithScroll), and each, worked out line by line, was most of a
- * frame's work.
- */
-export class Reach {
-  /** Where each bend is, how far the lines reach there, and how much further they reach a pixel on. */
-  private readonly at: Float64Array;
-  private readonly reaches: Float64Array;
-  private readonly slopes: Float64Array;
-
-  constructor(ref: Places, places: Places, spread: number) {
-    const lines = places.size.length - 2;
-    const bends: { at: number; by: number }[] = [];
-    for (let line = 1; line <= lines; line++) {
-      const middle = ref.start[line] + ref.size[line] / 2;
-      const by = Math.max(places.size[line], sliver) / (2 * spread);
-      bends.push({ at: middle - spread, by }, { at: middle + spread, by: -by });
-    }
-    bends.sort((a, b) => a.at - b.at);
-    this.at = new Float64Array(bends.length);
-    this.reaches = new Float64Array(bends.length);
-    this.slopes = new Float64Array(bends.length);
-    let [reached, slope] = [0, 0];
-    bends.forEach((bend, k) => {
-      if (k > 0) reached += slope * (bend.at - bends[k - 1].at);
-      slope += bend.by;
-      this.at[k] = bend.at;
-      this.reaches[k] = reached;
-      this.slopes[k] = Math.max(0, slope);
-    });
-  }
-
-  /** How far the lines reach before `at`. */
-  before(at: number) {
-    const k = this.last(this.at, at, (value, to) => value <= to);
-    return k < 0 ? 0 : this.reaches[k] + this.slopes[k] * (at - this.at[k]);
-  }
-
-  /** Where the lines have reached `length`. */
-  where(length: number) {
-    const k = this.last(this.reaches, length, (value, to) => value < to);
-    if (k < 0) return this.at[0] ?? 0;
-    return this.slopes[k] > 0 ? this.at[k] + (length - this.reaches[k]) / this.slopes[k] : this.at[k];
-  }
-
-  /** The last of `values`, which never fall, that is still short of `to`, or -1. */
-  private last(values: Float64Array, to: number, short: (value: number, to: number) => boolean) {
-    let [low, high] = [-1, values.length - 1];
-    while (low < high) {
-      const middle = Math.ceil((low + high) / 2);
-      if (short(values[middle], to)) low = middle;
-      else high = middle - 1;
-    }
-    return low;
-  }
-}
-
-/** The Reach of lines laid out `places` along those laid out `ref`, kept while they are asked of again. */
-const reaches = new WeakMap<Places, { ref: Places; spread: number; reach: Reach }>();
-const reachOf = (ref: Places, places: Places, spread: number) => {
-  let known = reaches.get(places);
-  if (!known || known.ref !== ref || known.spread !== spread) {
-    known = { ref, spread, reach: new Reach(ref, places, spread) };
-    reaches.set(places, known);
-  }
-  return known.reach;
-};
-
-/** The pivot: the place along lines laid out `ref` that lines laid out `rest` reach `length` before. */
-const pivotAt = (ref: Places, rest: Places, length: number, spread: number) => reachOf(ref, rest, spread).where(length);
-
-/**
- * The pivot for a scroll the part `part` of the way along lines laid out
- * `rest`, remembered for every part asked of each: the scroll puts the
- * layer anew every frame, and the lines the room was made for stay the same
- * from one rest to the next.
- */
-const pivots = new WeakMap<Places, { ref: Places; spread: number; pivots: Map<number, number>; all: number }>();
-const pivotFor = (ref: Places, rest: Places, part: number, spread: number) => {
-  let known = pivots.get(rest);
-  if (!known || known.spread !== spread || known.ref !== ref) {
-    known = { ref, spread, pivots: new Map(), all: reachAll(rest) };
-    pivots.set(rest, known);
-  }
-  let pivot = known.pivots.get(part);
-  if (pivot === undefined) {
-    // Asked of many parts at once to slide the layer with the scroll (see slideWithScroll), and kept for the next frame's.
-    if (known.pivots.size > 4096) known.pivots.clear();
-    pivot = pivotAt(ref, rest, part * known.all, spread);
-    known.pivots.set(part, pivot);
-  }
-  return pivot;
-};
 
 /**
  * Whether lines the pivot is measured along, laid out `ref`, can stay so
@@ -418,32 +254,6 @@ export const keepsRef = (ref: Places, rest: Places, size: number, cell: number) 
 
 /** More lines than this side by side, closed one way and open the other, are a block: see keepsRef. */
 const blockOf = 3;
-
-/**
- * How far along lines laid out `places` a box `size` long goes for a scroll
- * the part `part` of the way along the room it has, from `near` before the
- * chart's near edge to `far` past its far one: about the pivot that lines
- * laid out `rest` - those the scroll's room was made for - reach that part
- * of the way before, the same part of the way along these as they reach
- * before it. So a scroll at an end shows that edge, however the lines have
- * changed since the room was made; the lines either side of the pivot open
- * out from it and close in on it as they change, each shared between the
- * two sides the more evenly the nearer it is, over half the box either side
- * (see spreadOver), so that no line opens one way or the other for being a
- * pixel either side of the pivot; and where the box goes depends only on the scroll and the
- * lines showing, never on how they came to show. With lines just as they
- * were, it is just as far along as the scroll is. A scroll is whole pixels
- * where the chart need not be, so one within a pixel of an end counts as at it.
- * A chart the box can't be scrolled along keeps the edge the box is scrolled
- * from where it is, the far edge if `home` is 1.
- */
-export const along = (rest: Places, places: Places, part: number, size: number, near: number, far: number, home: number, cell: number, ref = rest) => {
-  const spread = spreadOver(size, cell);
-  const room = places.start[0] + near + far - size;
-  if (room <= 2) return home ? places.start[0] + far - size : -near;
-  const goes = part <= 0 || part >= 1 ? part : reachOf(ref, places, spread).before(pivotFor(ref, rest, part, spread)) / reachAll(places);
-  return (goes <= 0 ? 0 : goes >= 1 ? room : 1 + goes * (room - 2)) - near;
-};
 
 /** A scroll timeline, which the DOM's types here have yet to name. */
 type Timeline = AnimationTimeline;
@@ -602,6 +412,12 @@ class Axis {
     return this.ease !== undefined;
   }
 
+  /** What is held made `held`, now and once the lines arrive, the box's scroll having taken the rest of it (see TileView.absorb). */
+  absorbed(held: number) {
+    this.held = this.targetHeld = held;
+    this.follow();
+  }
+
   /**
    * A frame of the easing, or its end at once when `finish`: each line on a
    * cubic from where it was and how fast it was going when the easing began
@@ -716,6 +532,8 @@ export interface ViewProbe {
   /** How many tiles have been painted since the view was made, and how long that took in all, in milliseconds. */
   paints: number;
   paintTime: number;
+  /** How far the box's scroll has been moved in all to take in what was held, nothing on screen moving for it: see TileView.absorb. */
+  absorbed: { x: number; y: number };
 }
 
 type Registry = { __chartViews?: TileView[] };
@@ -739,7 +557,11 @@ export class TileView {
    * kept for scrolling back - are on the layer itself.
    */
   private readonly hot: HTMLDivElement;
-  private readonly keeping = keepMode();
+  /** Whether the tiles near the box are kept ready for Safari, as set now: see scroll-modes. */
+  private get keepingTiles() {
+    return scrollModes.keep;
+  }
+  private readonly offModes: () => void;
   private readonly next: HTMLDivElement;
   private columns = new Axis({ start: new Float64Array(0), size: new Float64Array(0) });
   private rows = new Axis({ start: new Float64Array(0), size: new Float64Array(0) });
@@ -769,6 +591,29 @@ export class TileView {
   /** How many tiles have been painted, and how long that took: for the scroll harness. */
   private paints = 0;
   private paintTime = 0;
+  /** How far the box's scroll has been moved in all to take in what was held: for the scroll harness. */
+  private absorbedTotal = { x: 0, y: 0 };
+  /**
+   * The box gliding a stitch into place (see glideTo): the stitch, where in
+   * the box it goes, and, each way, the point on the chart opened out that is
+   * there now and how fast it is going, in pixels of the screen a
+   * millisecond; when it set off, how long it takes, and its last frame.
+   */
+  private glide?: {
+    id: number;
+    inBox: { x: number; y: number };
+    at: { x: number; y: number };
+    speed: { x: number; y: number };
+    /** Each way, once the stitch is in the box that way: where in the box it is, gliding to its place (see glideFrame). */
+    anchor: { x?: number; y?: number };
+    start: number;
+    time: number;
+    last: number;
+    frame: number;
+  };
+  /** The chart opened out, each way, at the cell size it was made for: see glideTo. */
+  private opened?: { cell: number; scene: ChartScene; columns: Places; rows: Places };
+
   private hud?: Hud;
   /** How far past the box tiles were last painted, each side: see paintTiles. */
   private past = { x0: 0, x1: 0, y0: 0, y1: 0 };
@@ -813,9 +658,11 @@ export class TileView {
 
   private readonly onScroll = () => {
     this.movedAt = performance.now();
-    if (this.keeping === "moving") this.container.classList.add("chart-tiles-keep");
+    if (this.keepingTiles === "moving") this.container.classList.add("chart-tiles-keep");
     this.schedule();
   };
+  /** Any scroll of the knitter's own stops a glide where it is. */
+  private readonly onOwnInput = () => this.stopGlide();
   private readonly onTouch = (event: TouchEvent) => {
     this.touching = event.touches.length > 0;
     this.onScroll();
@@ -844,7 +691,15 @@ export class TileView {
     this.hot = document.createElement("div");
     this.hot.className = "chart-hot";
     this.layer.appendChild(this.hot);
-    if (this.keeping === "always") container.classList.add("chart-tiles-keep");
+    if (this.keepingTiles === "always") container.classList.add("chart-tiles-keep");
+    // Changed on the panel: kept ready always or never from now on, and whatever was gliding left to the way it was going.
+    this.offModes = onScrollModes(() => {
+      const keep = this.keepingTiles;
+      if (keep === "always") this.container.classList.add("chart-tiles-keep");
+      if (keep === "off") this.container.classList.remove("chart-tiles-keep");
+      this.schedule();
+    });
+    showScrollPanel();
     this.next = document.createElement("div");
     this.next.className = "chart-next";
     this.next.hidden = true;
@@ -852,6 +707,7 @@ export class TileView {
     scroller.addEventListener("scroll", this.onScroll, { passive: true });
     scroller.addEventListener("wheel", this.onScroll, { passive: true });
     scroller.addEventListener("touchstart", this.onTouch, { passive: true });
+    for (const event of ["touchstart", "wheel", "pointerdown", "keydown"]) scroller.addEventListener(event, this.onOwnInput, { passive: true });
     scroller.addEventListener("touchend", this.onTouch, { passive: true });
     scroller.addEventListener("touchcancel", this.onTouch, { passive: true });
     if (typeof ResizeObserver !== "undefined") {
@@ -919,6 +775,7 @@ export class TileView {
       cost: this.cost,
       paints: this.paints,
       paintTime: this.paintTime,
+      absorbed: { ...this.absorbedTotal },
     };
   }
 
@@ -1043,38 +900,55 @@ export class TileView {
    * and the round numbers.
    */
   private slideAcross(places: Places, left = this.scrolledTo().left): number {
+    const course = this.courseAcross(places);
+    if (!course) return 0;
+    const box = this.within(left - this.sheet.offsetLeft, course.near, course.room);
+    return box - boxAt(course, box);
+  }
+
+  /**
+   * The way across as the box's scroll sees it, with columns laid out
+   * `places` (see Course): nothing while the sheet has no size yet, or no
+   * room to scroll along, when the layer stays at its edge. The box goes
+   * past the chart by its own padding, the margin left for a join's arrow,
+   * and the round numbers.
+   */
+  private courseAcross(places: Places): Course | undefined {
     const content = this.content;
     const width = parseFloat(this.sheet.style.width) || 0;
-    // A sheet with no size yet has no room to scroll along: the layer stays at its edge.
-    if (!content?.collapse || width <= 0) return 0;
+    if (!content?.collapse || width <= 0) return undefined;
     const style = getComputedStyle(this.scroller);
     const near = (parseFloat(style.paddingLeft) || 0) + content.margin;
     const far = gutter(content.cell) + (parseFloat(style.paddingRight) || 0);
     const size = this.scroller.clientWidth;
     const room = width - gutter(content.cell) + near + far - size;
-    // A sheet the box can't be scrolled along leaves the layer at its edge.
-    if (room <= 2) return 0;
-    const box = this.within(left - this.sheet.offsetLeft, near, room);
+    if (room <= 2) return undefined;
     const home = scrollsFromRight(this.scroller) ? 1 : 0;
     // The sheet is in whole pixels (see size): the part of one it is wider than the lines at rest is room past them.
     const over = roundedUp(this.columns.rest.start[0] + gutter(content.cell));
-    return box - along(this.columns.rest, places, this.part(box + near, room), size, near, far + over, home, content.cell, this.columns.ref);
+    return { places, rest: this.columns.rest, ref: this.columns.ref, size, near, far: far + over, room, home, cell: content.cell, open: scrollModes.scroll === "universal" ? this.openLines().columns : undefined };
   }
 
   /** And down, with rows laid out `places`, the box going past the chart by its padding. */
   private slideDown(places: Places, top = this.scrolledTo().top): number {
+    const course = this.courseDown(places);
+    if (!course) return 0;
+    const box = this.within(top - this.sheet.offsetTop, course.near, course.room);
+    return box - boxAt(course, box);
+  }
+
+  private courseDown(places: Places): Course | undefined {
     const content = this.content;
     const height = parseFloat(this.sheet.style.height) || 0;
-    if (!content?.collapse || height <= 0) return 0;
+    if (!content?.collapse || height <= 0) return undefined;
     const style = getComputedStyle(this.scroller);
     const near = parseFloat(style.paddingTop) || 0;
     const far = parseFloat(style.paddingBottom) || 0;
     const size = this.scroller.clientHeight;
     const room = height + near + far - size;
-    if (room <= 2) return 0;
-    const box = this.within(top - this.sheet.offsetTop, near, room);
+    if (room <= 2) return undefined;
     const over = roundedUp(this.rows.rest.start[0]);
-    return box - along(this.rows.rest, places, this.part(box + near, room), size, near, far + over, 0, content.cell, this.rows.ref);
+    return { places, rest: this.rows.rest, ref: this.rows.ref, size, near, far: far + over, room, home: 0, cell: content.cell, open: scrollModes.scroll === "universal" ? this.openLines().rows : undefined };
   }
 
   /**
@@ -1086,10 +960,6 @@ export class TileView {
     return Math.min(room - near, Math.max(-near, at));
   }
 
-  /** How far along `room` a box `at` along it is: at an end within a pixel of one, a scroll being whole pixels. */
-  private part(at: number, room: number) {
-    return Math.min(1, Math.max(0, (at - 1) / (room - 2)));
-  }
 
   /**
    * Where the box is scrolled to, within the scrolls it can take. Bouncing
@@ -1303,8 +1173,12 @@ export class TileView {
    */
   private columnHeld(): number | undefined {
     const { scene, follow } = this.content!;
+    // Gliding about the chart opened out, the point the stitch goes to is the pivot, the box sent to keep it there each frame: see glideFrame.
+    if (this.glide) return undefined;
     if (this.point) return this.point.column;
-    if (this.target !== undefined && scene.rowOf[this.target] && this.showingAcross(this.target)) return scene.columnOf[this.target];
+    // As before #80, the stitch being gone to is held still however far out of sight (see scroll-modes).
+    const anywhere = scrollModes.glide === "hold";
+    if (this.target !== undefined && scene.rowOf[this.target] && (anywhere || this.showingAcross(this.target))) return scene.columnOf[this.target];
     if (this.followShowing()) return scene.columnOf[follow!];
     return undefined;
   }
@@ -1380,8 +1254,10 @@ export class TileView {
   /** And which row, likewise. */
   private rowHeld(): number | undefined {
     const { scene, follow } = this.content!;
+    if (this.glide) return undefined;
     if (this.point) return this.point.row;
-    if (this.target !== undefined && scene.rowOf[this.target] && this.showingDown(this.target)) return scene.rowOf[this.target];
+    const anywhere = scrollModes.glide === "hold";
+    if (this.target !== undefined && scene.rowOf[this.target] && (anywhere || this.showingDown(this.target))) return scene.rowOf[this.target];
     if (this.followShowing()) return scene.rowOf[follow!];
     return undefined;
   }
@@ -1544,6 +1420,10 @@ export class TileView {
      * moved beyond that - nothing, when the columns that closed were all to
      * the left of the line held, as they most often are. A scroll set here
      * can be lost on a phone scrolling the box itself; one not set cannot.
+     * It is what is held taken into the scroll, as a glide takes it each
+     * frame (see absorb), where the lines the scroll is measured along are
+     * made those showing: then the scroll puts the box just as far along as
+     * it is, and what was held, the layer's shift, is the scroll's to make.
      */
     const { left, top } = this.scrolledTo();
     // Whether the pivot is measured along the lines as they are now from here on: see keepsRef.
@@ -1621,7 +1501,7 @@ export class TileView {
     const [x, y] = this.onPixels(this.columns.shift, this.rows.shift);
     this.shiftLayer(x, y);
     this.paintTiles(content, time, moved);
-    if (this.keeping === "moving" && this.container.classList.contains("chart-tiles-keep")) {
+    if (this.keepingTiles === "moving" && this.container.classList.contains("chart-tiles-keep")) {
       const resting = !this.touching && !this.columns.moving && !this.rows.moving && time - this.movedAt >= settling;
       if (resting) this.container.classList.remove("chart-tiles-keep");
       else this.schedule();
@@ -1802,7 +1682,7 @@ export class TileView {
   /** Keep only as many canvases as a phone can spare, beyond those `wanted`: the longest unused go first. */
   private keep(wanted: Set<string>) {
     // The tiles wanted on the layer Safari keeps the pictures of, and the rest off it.
-    if (this.keeping !== "off") {
+    if (this.keepingTiles !== "off") {
       for (const tile of this.tiles.values()) {
         if (!tile.placed) continue;
         const parent = wanted.has(tile.key) ? this.hot : this.layer;
@@ -2112,16 +1992,16 @@ export class TileView {
   }
 
   /**
-   * Whether the box is going where the stitch it is going to will be, worked
-   * out ahead, and not held still: then the sheet keeps its size on the way,
-   * as for any scroll - where the scroll puts the layer reaches the chart's
-   * edges whatever its size (see along). Grown as for a stitch held still,
-   * the layer was moved back by as much, and carried the chart's edge, and
-   * the next round's first stitch by it, out of the box's reach.
+   * As for #80 (see scroll-modes): whether the box is going where the stitch
+   * will be, worked out ahead, and not holding it still that way - when the
+   * sheet keeps its size on the way, as for any scroll, for grown as for a
+   * stitch held still, the layer was moved back by as much and carried the
+   * chart's edge, and the stitch, out of the box's reach. Taking what is held
+   * into the scroll as the box glides (#81) does without it.
    */
   private aimedAhead(across: boolean): boolean {
     const aimed = this.aimed;
-    if (!aimed || this.target !== aimed.id) return false;
+    if (scrollModes.glide !== "ahead" || !aimed || this.target !== aimed.id) return false;
     return across ? !this.showingAcross(aimed.id) : !this.showingDown(aimed.id);
   }
 
@@ -2158,6 +2038,144 @@ export class TileView {
     if (Math.abs(to.left - aimed.left) >= 0.5 || Math.abs(to.top - aimed.top) >= 0.5) this.onAim(to);
   }
 
+  /** The chart opened out each way, every line showing: see glideTo. */
+  private openLines(): { columns: Places; rows: Places } {
+    const content = this.content!;
+    const known = this.opened;
+    if (known && known.cell === content.cell && known.scene === content.scene) return known;
+    const { layout, breaks } = content.scene;
+    const made = {
+      cell: content.cell,
+      scene: content.scene,
+      columns: columnPlaces(everyColumn(layout.columns), content.cell, breaks),
+      rows: rowPlaces(everyRow(layout.rows), content.cell),
+    };
+    this.opened = made;
+    return made;
+  }
+
+  /**
+   * Glide the stitch `id` to `inBox`, from the box's top left - or put it
+   * there at once, not `smooth`. Moved about the chart opened out, where
+   * every stitch has one place whatever is open or closed up on screen: the
+   * point of it in the box where the stitch goes is carried there, frame by
+   * frame, to the stitch's own place - as far each frame as the screen
+   * shows, so that what is closed up between is crossed at once rather than
+   * stood still over - and the box is scrolled, each frame, to put that point
+   * there with the lines as they are that frame. So it is the point the lines
+   * open and close about, nothing else is held, and the box comes to rest
+   * with the stitch where it goes, however the lines opened on the way.
+   */
+  glideTo(id: number, inBox: { x: number; y: number }, smooth = true) {
+    const content = this.content;
+    if (!content?.collapse || !content.scene.rowOf[id]) return;
+    this.stopGlide();
+    const open = this.openLines();
+    const view = this.showing();
+    const now = performance.now();
+    const at = {
+      x: universalOf(this.columns.places, open.columns, view.x + inBox.x),
+      y: universalOf(this.rows.places, open.rows, view.y + inBox.y),
+    };
+    const goal = this.goalOf(id);
+    const distance = Math.hypot(placeOf(this.columns.places, open.columns, goal.x) - (view.x + inBox.x), placeOf(this.rows.places, open.rows, goal.y) - (view.y + inBox.y));
+    this.target = undefined;
+    this.stillFor = undefined;
+    this.glide = { id, inBox, at: smooth ? at : goal, speed: { x: 0, y: 0 }, anchor: {}, start: now, time: smooth ? glideTime(distance) : 0, last: now, frame: 0 };
+    this.scroller.dataset.gliding = "";
+    this.glideFrame(now);
+  }
+
+  /** Where the stitch is on the chart opened out: its column's and its row's place there. */
+  private goalOf(id: number): { x: number; y: number } {
+    const { scene } = this.content!;
+    const open = this.openLines();
+    return { x: open.columns.start[scene.columnOf[id]], y: open.rows.start[scene.rowOf[id]] };
+  }
+
+  /** Stop gliding where the box is. */
+  stopGlide() {
+    const glide = this.glide;
+    if (!glide) return;
+    cancelAnimationFrame(glide.frame);
+    this.glide = undefined;
+    delete this.scroller.dataset.gliding;
+  }
+
+  /** A frame of a glide: see glideTo. */
+  private readonly glideFrame = (now: number) => {
+    const glide = this.glide;
+    if (!glide || !this.content) return;
+    // The lines brought up to date with where the box is first, and the box then put for them as they are.
+    if (this.frame) {
+      cancelAnimationFrame(this.frame);
+      this.frame = 0;
+    }
+    this.movedAt = performance.now();
+    this.update();
+    const open = this.openLines();
+    const dt = Math.max(0, now - glide.last);
+    glide.last = now;
+    const goal = this.goalOf(glide.id);
+    const left = Math.max(120, glide.time - (now - glide.start));
+    let done = true;
+    const view = this.showing();
+    const box = { x: view.width, y: view.height };
+    const from = { x: view.x, y: view.y };
+    const cell = this.content.cell;
+    for (const [axis, lines, opened] of [["x", this.columns.places, open.columns], ["y", this.rows.places, open.rows]] as const) {
+      const there = placeOf(lines, opened, goal[axis]);
+      /*
+       * Out of the box this way, the point that is where the stitch goes is
+       * carried to the stitch, and the lines open about it. In the box, the
+       * stitch is: it glides to where it goes, as fast as it was coming, and
+       * the lines open about it, so it goes straight there - opened about
+       * the point instead, columns opening between the two carried it off
+       * sideways on the way. Never back out: once in, it stays the pivot.
+       */
+      const onScreen = there - from[axis];
+      if (glide.anchor[axis] === undefined && onScreen > -cell && onScreen < box[axis]) {
+        glide.anchor[axis] = onScreen;
+        glide.speed[axis] = -glide.speed[axis];
+      }
+      const anchor = glide.anchor[axis];
+      if (anchor !== undefined) {
+        const [moved, speed] = hermite(0, glide.speed[axis], glide.inBox[axis] - anchor, left, dt);
+        glide.speed[axis] = speed;
+        glide.anchor[axis] = anchor + moved;
+        glide.at[axis] = goal[axis];
+        if (Math.abs(glide.inBox[axis] - anchor - moved) > 0.5 || Math.abs(speed) > 0.01) done = false;
+        continue;
+      }
+      const here = placeOf(lines, opened, glide.at[axis]);
+      const [moved, speed] = hermite(0, glide.speed[axis], there - here, left, dt);
+      glide.speed[axis] = speed;
+      glide.at[axis] = universalOf(lines, opened, here + moved);
+      if (Math.abs(there - here - moved) > 0.5 || Math.abs(speed) > 0.01) done = false;
+    }
+    // There, and the lines come to rest, which may yet carry the stitch on; or, whatever happens, a few seconds on.
+    done = (done && !this.columns.moving && !this.rows.moving) || now - glide.start >= glide.time + 3000;
+    // The box put where the point is where the stitch goes, with the lines as they are, as far as it can be.
+    const across = this.courseAcross(this.columns.places);
+    const down = this.courseDown(this.rows.places);
+    // Where the box shows the chart from: the point, or the stitch, where it is in the box.
+    const x = placeOf(this.columns.places, open.columns, glide.at.x) - (glide.anchor.x ?? glide.inBox.x);
+    const y = placeOf(this.rows.places, open.rows, glide.at.y) - (glide.anchor.y ?? glide.inBox.y);
+    if (across) this.scroller.scrollLeft = this.sheet.offsetLeft + scrollFor(across, x + this.columns.held);
+    else this.scroller.scrollLeft = this.sheet.offsetLeft + x;
+    if (down) this.scroller.scrollTop = this.sheet.offsetTop + scrollFor(down, y + this.rows.held);
+    else this.scroller.scrollTop = this.sheet.offsetTop + y;
+    this.columns.follow();
+    this.rows.follow();
+    const [px, py] = this.onPixels(this.columns.shift, this.rows.shift);
+    this.shiftLayer(px, py);
+    this.onMove?.(true);
+    if (done) {
+      this.stopGlide();
+      this.schedule();
+    } else glide.frame = requestAnimationFrame(this.glideFrame);
+  };
+
   hold(id: number | undefined) {
     // Let go of, the stitch being worked as the knitting closed stays held until rest: see show.
     if (id === undefined && this.stillFor !== undefined && this.target === this.stillFor) return;
@@ -2173,13 +2191,56 @@ export class TileView {
    * is put to match at once, rather than a frame later when the browser
    * tells of the scroll, and the box counts as moving.
    */
-  scrolled() {
+  scrolled(): { left: number; top: number } {
     this.movedAt = performance.now();
     if (this.frame) {
       cancelAnimationFrame(this.frame);
       this.frame = 0;
     }
     this.update();
+    return this.absorb();
+  }
+
+  /**
+   * What is held, each way, taken into the box's scroll, the page having set
+   * it this frame anyway (see scrolled): the box put along the sheet where,
+   * holding nothing, it shows just what it shows now (see absorb in
+   * scroll-model), so that nothing on screen moves for it. Then where the box
+   * shows the chart depends again on its scroll and the lines alone, whatever
+   * held a stitch still or grew the sheet on the way. Not while the lines are
+   * easing that way, which carry what is held with them. Says how far the
+   * scroll was moved, for whatever sets it to go on from there.
+   */
+  private absorb(): { left: number; top: number } {
+    const moved = { left: 0, top: 0 };
+    // Only so as for #81 (see scroll-modes).
+    if (scrollModes.glide !== "absorb") return moved;
+    const ways = [
+      { axis: this.columns, course: () => this.courseAcross(this.columns.places), side: "left" as const, edge: () => this.sheet.offsetLeft, at: () => this.scrolledTo().left },
+      { axis: this.rows, course: () => this.courseDown(this.rows.places), side: "top" as const, edge: () => this.sheet.offsetTop, at: () => this.scrolledTo().top },
+    ];
+    for (const { axis, course: courseOf, side, edge, at } of ways) {
+      if (axis.moving || Math.abs(axis.held) < 0.5 || Math.abs(axis.targetHeld - axis.held) > 0.01) continue;
+      const course = courseOf();
+      if (!course) continue;
+      const box = Math.min(course.room - course.near, Math.max(-course.near, at() - edge()));
+      const shown = boxAt(course, box) - axis.held;
+      const to = absorb(course, box, axis.held);
+      if (Math.abs(to.box - box) < 0.5) continue;
+      if (side === "left") this.scroller.scrollLeft += to.box - box;
+      else this.scroller.scrollTop += to.box - box;
+      // Whole pixels, as the browser has the scroll: what is left over stays held.
+      const now = Math.min(course.room - course.near, Math.max(-course.near, at() - edge()));
+      axis.absorbed(boxAt(course, now) - shown);
+      moved[side] = now - box;
+    }
+    if (moved.left || moved.top) {
+      this.absorbedTotal = { x: this.absorbedTotal.x + moved.left, y: this.absorbedTotal.y + moved.top };
+      if (this.aimed) this.aimed = { ...this.aimed, left: this.aimed.left + moved.left, top: this.aimed.top + moved.top };
+      const [x, y] = this.onPixels(this.columns.shift, this.rows.shift);
+      this.shiftLayer(x, y);
+    }
+    return moved;
   }
 
   /** The stitch at a point on screen, if any. */
@@ -2359,7 +2420,7 @@ export class TileView {
     if (!tile.placed) {
       tile.canvas.style.left = `${tile.tx * tileSize}px`;
       tile.canvas.style.top = `${tile.y}px`;
-      (this.keeping === "off" ? this.layer : this.hot).appendChild(tile.canvas);
+      (this.keepingTiles === "off" ? this.layer : this.hot).appendChild(tile.canvas);
       tile.placed = true;
     }
     this.paints++;
@@ -2413,6 +2474,9 @@ export class TileView {
     this.scroller.removeEventListener("touchstart", this.onTouch);
     this.scroller.removeEventListener("touchend", this.onTouch);
     this.scroller.removeEventListener("touchcancel", this.onTouch);
+    for (const event of ["touchstart", "wheel", "pointerdown", "keydown"]) this.scroller.removeEventListener(event, this.onOwnInput);
+    this.stopGlide();
+    this.offModes();
     this.watch?.disconnect();
     for (const canvas of [...this.spare, ...[...this.tiles.values()].map((tile) => tile.canvas)]) {
       canvas.width = 0;
@@ -2462,6 +2526,7 @@ class Hud {
       `paint ${paints - first.paints} tiles ${round(paintTime - first.paintTime)} ms /s`,
       `speed ${heading.speed.x.toFixed(1)},${heading.speed.y.toFixed(1)} px/ms  past ${round(past.x0)}|${round(past.x1)} ${round(past.y0)}|${round(past.y1)}`,
       `ahead painted ${ahead === undefined ? "-" : `${round(ahead * 100)}%`}`,
+      `glide ${scrollModes.glide}  scroll ${scrollModes.scroll}  keep ${scrollModes.keep}`,
     ].join("\n");
   }
 
