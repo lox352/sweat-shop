@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sweaters } from ".";
 import { buildSweater } from "../../knitting/engine";
 import { breaches } from "../../knitting/rules";
@@ -18,7 +18,14 @@ import { layOutSweater } from "../../knitting/layout";
  */
 describe.each(sweaters.map((sweater) => [sweater.id, sweater] as const))("%s", (_, sweater) => {
   describe.each(sweater.sizes.map((size) => [size.id, size] as const))("size %s", (__, size) => {
-    const built = buildSweater(sweater, size.id);
+    // Knitted as its tests begin, and let go when they end: every size of every design at once is more than a test runner's memory holds.
+    let built: ReturnType<typeof buildSweater>;
+    beforeAll(() => {
+      built = buildSweater(sweater, size.id);
+    });
+    afterAll(() => {
+      built = undefined as unknown as typeof built;
+    });
     const piece = (id: string) =>
       built.rounds.filter((_round, index) => built.roundPieces[index] === id);
 
@@ -27,10 +34,11 @@ describe.each(sweaters.map((sweater) => [sweater.id, sweater] as const))("%s", (
     });
 
     // Where the pattern places a new beginning of the round, if it does, and the round it knits on to it in.
-    const moved = beginningAt(built, built.stitches.length);
-    const walk = built.roundLabels.findIndex((label) => label.endsWith("to the new beginning of the round"));
+    const movedOf = () => beginningAt(built, built.stitches.length);
+    const walkOf = () => built.roundLabels.findIndex((label) => label.endsWith("to the new beginning of the round"));
 
     it("has the physics stand on the rounds as worked from each piece's seam: the pattern's own, until the beginning of the round moves", () => {
+      const [moved, walk] = [movedOf(), walkOf()];
       expect(built.knitting.stitches).toBe(built.stitches);
       const until = moved === undefined ? built.rounds.length : walk;
       expect(built.knitting.rounds.slice(0, until)).toEqual(built.rounds.slice(0, until));
@@ -42,6 +50,7 @@ describe.each(sweaters.map((sweater) => [sweater.id, sweater] as const))("%s", (
     });
 
     it("is counted in its own rounds wherever the knitting has got to: the pattern's own from the beginning of the round in force", () => {
+      const [moved, walk] = [movedOf(), walkOf()];
       if (moved === undefined) {
         const view = viewFor(built, () => { throw new Error("no chart is drawn here"); }, undefined);
         expect(view.rounds).toEqual(built.rounds);

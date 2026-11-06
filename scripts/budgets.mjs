@@ -29,9 +29,11 @@ const kb = 1024;
  * apart in the Body view, and each part of the samplers' trim in its own
  * darkest yarn, to 220KB. By 229KB, the chart gliding to the next stitch
  * where it will be, worked out ahead, brings it to 230KB, a hundred bytes
- * over: 240KB.
+ * over: 240KB. The two Nasca feline jumpers - their felines a vector model
+ * drawn as stitches at whatever size a jumper has room for, and the raglan
+ * and round-yoke knitting that lays them in - bring it to 242KB: 250KB.
  */
-const budgets = { page: 240 * kb, stage: 260 * kb, settled: 300 * kb };
+const budgets = { page: 250 * kb, stage: 260 * kb, settled: 300 * kb };
 
 const files = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>

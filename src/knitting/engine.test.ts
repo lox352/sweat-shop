@@ -101,6 +101,23 @@ describe("the test sweater, stitch by stitch", () => {
     expect(divide.slice(32).map(worked)).toEqual(yoke.slice(40));
   });
 
+  it("knits a stretch of the dividing round each stitch in its own yarn, where the pattern gives them: a picture running on through the divide", () => {
+    const pictured: SweaterPattern = structuredClone(testSweater);
+    const body = pictured.sizes[0].sections.find((section) => section.piece === "body")!;
+    const divide = body.rounds[0];
+    if (divide.type !== "divide") throw new Error("the test sweater's body begins with its divide");
+    const front = Array.from({ length: 16 }, (_, i) => (i % 3 === 0 ? "B" : "A"));
+    divide.segments = divide.segments.map((segment) => ("work" in segment && segment.work === 16 ? { work: 16, slots: front } : segment));
+    const again = buildSweater(pictured, "one");
+    const round = again.rounds[6];
+    expect(round.slice(12, 28).map((id) => again.stitches[id].slot)).toEqual(front);
+    // The rest of it, and the underarms, in the round's own yarn.
+    expect(new Set(round.slice(0, 12).map((id) => again.stitches[id].slot))).toEqual(new Set([divide.slot]));
+    // A stretch given the wrong number of yarns is a mistake in the pattern.
+    divide.segments = divide.segments.map((segment) => ("work" in segment && segment.work === 16 ? { work: 16, slots: front.slice(1) } : segment));
+    expect(() => buildSweater(pictured, "one")).toThrow(/given 15 yarns/);
+  });
+
   it("begins each sleeve with new yarn, picking up its underarm the other way round", () => {
     const yoke = rounds[5];
     const divide = rounds[6];

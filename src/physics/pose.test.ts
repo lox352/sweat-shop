@@ -8,9 +8,8 @@ import { ropesOf } from "./ropes";
 const hamefarin = sweaterById("hamefarin")!;
 const sizes = hamefarin.sizes.map((size) => [size.label, buildSweater(hamefarin, size.id)] as const);
 const sizeCalled = (label: string) => sizes.find(([candidate]) => candidate === label)![1];
-const everySize = sweaters.flatMap((sweater) =>
-  sweater.sizes.map((size) => [`${sweater.name} in size ${size.label}`, buildSweater(sweater, size.id)] as const),
-);
+// Each knitted as its test runs, and let go after: every size of every design at once is more than a test runner's memory holds.
+const everySize = sweaters.flatMap((sweater) => sweater.sizes.map((size) => [`${sweater.name} in size ${size.label}`, sweater, size.id] as const));
 const paulKlee = sweaterById("paul-klee")!;
 
 /*
@@ -19,8 +18,9 @@ const paulKlee = sweaterById("paul-klee")!;
  * and its yoke of three rounds below the rib is far too shallow to reach
  * from its neck to its body, which no real yoke is.
  */
-describe.each(everySize)("the pose of %s", (_, { knitting }) => {
+describe.each(everySize)("the pose of %s", (_, sweater, sizeId) => {
   it("starts with the ropes at or near their length, so the physics has nothing to tear", () => {
+    const { knitting } = buildSweater(sweater, sizeId);
     const { positions } = pose(knitting);
     const ropes = ropesOf(knitting.stitches, knitting.roundHeight);
     let over = 0;
