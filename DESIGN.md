@@ -509,14 +509,22 @@ they share is in `src/data/sweaters/felines/`.
   nearest the neck, then squared spirals in gold on red - the hem creature's
   tail, alone (`squareSpiral` draws one at any size) - three stitches apart,
   alternate ones mirrored, so that no increase ever comes in one.
-  - *On the raglan* the yoke from above is a square: four straight panels,
-    the lines its corners. So its band is one row of large spirals, 19
-    stitches by 21 rows - about square as knitted - laid along each side:
-    centred on the front, the back and each sleeve, as many as fit each
-    panel where the row of them begins (two on the front and back and one on
-    each sleeve in a medium). The lines' increases carry on all through the
-    band, the corners between the panels widening in red as they go down,
-    never into a spiral.
+  - *On the raglan*, seen from above, the band is a square frame round the
+    neck: its sides the four panels, its corners the lines. Through its row
+    of spirals - 21 stitches by 21 rows - the lines increase every round, so
+    each panel grows a stitch at each corner every round and each line runs
+    out at forty-five degrees in stitches and rows: each corner of the frame
+    is a square as deep as the spirals, the line its diagonal. The rounds
+    above the spirals grow each panel to whole spirals with three stitches
+    of red between them and at either end (two on the front and back and one
+    on each sleeve, in every size), and those are the frame's sides. Each
+    corner is one more spiral: the panel before the line knits the half of
+    it below the diagonal, row by row across to it, the panel after the line
+    the half above, turned, and the line stitch itself the diagonal - so that
+    seen from above the frame is spirals all the way round, corners and all,
+    and no increase ever comes in one except along a corner spiral's
+    diagonal, where the line is. Below the band the lines carry on, each
+    panel as often as it still needs.
   - *On the round yoke*, a circle that grows all the way round, it is three
     rows of the small spirals, 9 by 7. Each row goes round a whole number of
     pairs of them, at a count near what the yoke would have half way down

@@ -154,14 +154,15 @@ const stripes = [...ground(".", 3), ...ground("G", 4)];
 
 /**
  * The neck bands, each as deep as the hem's band, 35 rows. A raglan's yoke
- * from above is a square - four straight panels, the lines its corners - and
- * its band one row of large spirals, about square as knitted, along each
- * side. A round yoke is a circle, growing all the way round, and its band
- * three rows of the small spirals, the yoke's increases in the red between
- * them.
+ * seen from above is a square frame - four straight panels, the lines
+ * running out from its corners - and its band one row of large spirals, as
+ * many rows deep as stitches wide, all the way round it, its corners
+ * included: see knit.ts. A round yoke is a circle, growing all the way
+ * round, and its band three rows of the small spirals, the yoke's increases
+ * in the red between them.
  */
 export const neckBands: Record<"raglan" | "yoke", NeckBand> = {
-  raglan: { spiral: squareSpiral(19, 21), gap: 3, rows: [...stripes, ...ground(".", 3), ...tier(0, 21), ...ground(".", 4)] },
+  raglan: { spiral: squareSpiral(21, 21), gap: 3, rows: [...stripes, ...ground(".", 3), ...tier(0, 21), ...ground(".", 4)] },
   yoke: {
     spiral: squareSpiral(9, 7),
     gap: 3,
