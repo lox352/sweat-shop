@@ -201,8 +201,15 @@ const cornerPlan = (band: NeckBand, top: number, depth: number): number[] => {
   return out;
 };
 
+/** EXPERIMENT (HINGE=2|3): how many stitches the frame's diagonal takes at each line - the line, the KFB after it, and at 3 the make-one before it. */
+const HINGE = Number(process.env.HINGE ?? 1);
+const hingeExtra = HINGE === 3 ? 2 : 0;
+
 const raglanYoke = (c: Counts): Yoke => {
-  const { sleeve0, front0, neck } = raglanNeck(c);
+  const base = raglanNeck(c);
+  const sleeve0 = base.sleeve0;
+  const front0 = base.front0;
+  const neck = 2 * front0 + 2 * sleeve0 + 4;
   const n = c.yokeRounds;
   const band = neckBands.raglan;
   const top = band.rows.findIndex((row) => row.spirals);
@@ -214,7 +221,7 @@ const raglanYoke = (c: Counts): Yoke => {
   const fit = (w0: number, limit: number) => {
     let best: number | undefined;
     for (let k = 1; k * side + (k + 1) * gap <= w0 + 2 * top; k++) {
-      const width = k * side + (k + 1) * gap;
+      const width = k * side + (k + 1) * gap + hingeExtra;
       if (width >= w0 && (width - w0) % 2 === 0 && width + 2 * (depth - 1) <= limit) best = width;
     }
     if (best === undefined) throw new Error(`no whole spirals fit a raglan panel of ${w0}`);
@@ -461,12 +468,15 @@ const frameRound = (band: NeckBand, frame: NonNullable<Yoke["frame"]>, r: number
     return ring(y) >= ring(x) ? spiral[ay][ax] : spiral[ax][side - 1 - ay];
   };
   // A panel `middle` wide where the spirals began, `t` grown at either end.
-  const panel = (middle: number): string[] => {
+  const panel = (physical: number): string[] => {
+    // At 2 the KFB's diagonal takes a stitch of the gap after the line, which is one stitch there.
+    const middle = physical - hingeExtra - (HINGE === 2 ? 1 : 0);
     const out = Array<string>(middle).fill(".");
     const ay = within(t);
-    if (ay >= 0) for (let at = gap; at + side <= middle; at += side + gap) [...spiral[ay]].forEach((ch, x) => (out[at + x] = ch));
-    const after = Array.from({ length: t }, (_, j) => corner(t, t - 1 - j));
-    const before = Array.from({ length: t }, (_, e) => corner(e, t));
+    if (ay >= 0) for (let at = HINGE === 2 ? gap - 1 : gap; at + side <= middle; at += side + gap) [...spiral[ay]].forEach((ch, x) => (out[at + x] = ch));
+    // With a wider hinge the diagonal goes on the KFB after the line too (and the make-one before it): each side of the corner one stitch further out.
+    const after = HINGE >= 2 ? Array.from({ length: t + 1 }, (_, j) => corner(t, t - j)) : Array.from({ length: t }, (_, j) => corner(t, t - 1 - j));
+    const before = HINGE >= 3 ? Array.from({ length: t + 1 }, (_, e) => corner(e, t)) : Array.from({ length: t }, (_, e) => corner(e, t));
     return [...after, ...out, ...before];
   };
   const back = panel(frame.front);
@@ -542,10 +552,10 @@ const yokeRows = (yoke: Yoke, placed: Placed, construction: Construction): Row[]
       const [made, kbf]: boolean[][] = [[], []];
       for (const [w, first, last] of parts)
         for (let k = 0; k < w; k++) {
-          made.push((first && k === 1) || (last && k === w - 1));
+          made.push((first && k === (process.env.RINC === "bar" ? 0 : 1)) || (last && k === w - 1));
           kbf.push(last && k === w - 1);
         }
-      row = { slots: Array(to).fill(GROUND_SLOT), made, twice: { kbf } };
+      row = process.env.RINC === "bar" ? { slots: Array(to).fill(GROUND_SLOT), made } : { slots: Array(to).fill(GROUND_SLOT), made, twice: { kbf } };
       const { band, from } = yoke.trim;
       const r = i - from;
       if (r >= 0 && r < band.rows.length) row.slots = frameRound(band, yoke.frame!, r, p).map((ch) => MOTIF_SLOT[ch]);
