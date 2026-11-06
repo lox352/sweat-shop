@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "../../../knitting/engine";
+import { consumption } from "../../../types/StitchType";
 import raglan from "../feline-raglan";
 import yoke from "../feline-yoke";
 import { measured } from "../wool-week/strips/design";
 import { type Knitted, countsOf, cuffBandOf, felineOn, gauge, knit } from "./knit";
-import { cuffFeline, hemCreature, neckSpiral, neckTrim } from "./motifs";
+import { cuffFeline, hemCreature, neckBands } from "./motifs";
 import { CREAM, GROUND, RED, drawFeline } from "./raster";
 import model from "./model.json";
 
@@ -147,26 +148,49 @@ describe.each([raglan, yoke].map((design) => [design.id, design] as const))("%s"
       expect(placed.above).toBeGreaterThanOrEqual(2);
     });
 
-    it("runs the neck's trim round the yoke under the rib, its spirals in gold", () => {
+    it("runs a band of squared spirals round the neck as deep as the waist's, every spiral whole in every round of it", () => {
+      const band = knitted.trim.band;
+      expect(band).toBe(neckBands[design.id === yoke.id ? "yoke" : "raglan"]);
+      expect(band.rows.length).toBe(hemCreature.length);
       const built = buildSweater(design, size.id);
-      const yokeRounds = built.rounds.filter((_round, i) => built.roundPieces[i] === "yoke");
-      const gold = yokeRounds.filter((round) => round.some((id) => built.stitches[id].slot === "D"));
-      // Its two gold stripes and the spirals' rows.
-      const spiralRows = neckTrim.filter((_g, r) => neckSpiral(r)).length;
-      expect(gold.length).toBe(2 + spiralRows);
-      if (design.id === yoke.id) {
-        // A round yoke's trim goes round a count of whole repeats, with no increase in it.
-        const counts = new Set(gold.map((round) => round.length));
-        expect(counts.size).toBe(1);
-        expect(knitted.trim.count % 12).toBe(0);
-        expect([...counts][0]).toBe(knitted.trim.count);
+      const gold = built.rounds.filter((round, i) => built.roundPieces[i] === "yoke" && round.some((id) => built.stitches[id].slot === "D"));
+      const goldRows = band.rows.filter((row) => row.ground === "G" || row.spirals);
+      expect(gold.length).toBe(goldRows.length);
+      // Every spiral whole: found by its top row, and its stitches followed down the knitting - each to the stitch worked into it - reading the spiral's rows all the way to its foot, so no increase comes in it.
+      const slotOf: Record<string, string> = { ".": "B", G: "D" };
+      const below = new Map<number, number>();
+      for (const stitch of built.stitches) if (stitch.type !== "m1" && consumption[stitch.type] === 1 && stitch.links.length) below.set(stitch.links[0], stitch.id);
+      const w = band.spiral[0].length;
+      const tiers = new Map<number, number>();
+      goldRows.forEach((line, k) => {
+        if (!line.spirals || line.spirals.row > 0) return;
+        const round = gold[k];
+        const n = round.length;
+        let whole = 0;
+        for (let at = 0; at < n; at++) {
+          let ids = Array.from({ length: w }, (_, x) => round[(at + x) % n]);
+          const read = (ids: number[]) => ids.map((id) => built.stitches[id]?.slot ?? "").join("");
+          const drawn = (r: number) => [...band.spiral[r]].map((ch) => slotOf[ch]).join("");
+          const mirrored = read(ids) !== drawn(0);
+          const as = (r: number) => (mirrored ? [...drawn(r)].reverse().join("") : drawn(r));
+          if (read(ids) !== as(0)) continue;
+          let ok = true;
+          for (let r = 1; r < band.spiral.length && ok; r++) {
+            ids = ids.map((id) => below.get(id) ?? -1);
+            ok = read(ids) === as(r);
+          }
+          if (ok) whole++;
+        }
+        tiers.set(line.spirals.tier, whole);
+        // A round yoke's rows of spirals go round a whole number of pairs of them.
+        if (design.id === yoke.id) expect(n % (2 * (w + band.gap))).toBe(0);
+      });
+      for (const whole of tiers.values()) expect(whole).toBeGreaterThanOrEqual(4);
+      // A raglan's band is a square frame seen from above: through its spirals each line grows a stitch either side every round, at forty-five degrees.
+      if (design.id === raglan.id) {
+        const spiralRounds = gold.filter((_round, k) => goldRows[k].spirals);
+        spiralRounds.slice(1).forEach((round, k) => expect(round.length - spiralRounds[k].length).toBe(8));
       }
-    });
-
-    it("runs the hem band round the waist, where there is room for it", () => {
-      const built = buildSweater(design, size.id);
-      const gold = built.rounds.filter((round, i) => built.roundPieces[i] === "body" && round.some((id) => built.stitches[id].slot === "D"));
-      expect(gold.length).toBe(placed.band ? hemCreature.filter((row) => row.includes("G")).length : 0);
     });
 
     it("puts the tunic's left feline on the front and its right on the back, upright, centred", () => {

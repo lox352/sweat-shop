@@ -113,24 +113,62 @@ export const cuffFeline: string[] = [
 ];
 
 /**
- * The neck's trim, 11 rows: a gold stripe, a row of red, a row of squared
- * spirals - the hem creatures' tails, alone - in gold on red, alternate ones
- * mirrored, NECK_REPEAT stitches apart, then red and gold again. Each row's
- * ground is its own: "G" gold, "." red; the spirals' rows are red.
+ * A squared spiral `w` stitches by `h` rows, gold on red: the hem creature's
+ * tail, alone, at any size. Drawn from its stem, down the right-hand side,
+ * then round and in - along the foot, up the left, along the top - each
+ * stretch two shorter than the one before it, a row or a stitch of red
+ * between each turn and the next.
  */
-export const neckTrim = ["G", ".", ".", ".", ".", ".", ".", ".", ".", ".", "G"];
-const NECK_SPIRAL = [
-  "GGGGGGG.G",
-  "G.....G.G",
-  "G.GGG.G.G",
-  "G.G...G.G",
-  "G.GGGGG.G",
-  "G.......G",
-  "GGGGGGGGG",
-];
-export const NECK_REPEAT = 12;
-/** The spiral's row in the neck trim's row `r`, if that row has one. */
-export const neckSpiral = (r: number): string[] | undefined => (r >= 2 && r < 2 + NECK_SPIRAL.length ? NECK_SPIRAL[r - 2].split("") : undefined);
+export const squareSpiral = (w: number, h: number): string[] => {
+  const grid = Array.from({ length: h }, () => Array<string>(w).fill("."));
+  let [r, c] = [0, w - 1];
+  grid[r][c] = "G";
+  // Down the full height, along the full width, up the full height; then each stretch two shorter than the last one the same way, until none is left.
+  const lengths = [h - 1, w - 1, h - 1];
+  while (lengths[lengths.length - 2] - 2 > 0) lengths.push(lengths[lengths.length - 2] - 2);
+  const ways = [[1, 0], [0, -1], [-1, 0], [0, 1]];
+  lengths.forEach((length, k) => {
+    const [dr, dc] = ways[k % 4];
+    for (let i = 0; i < length; i++) grid[(r += dr)][(c += dc)] = "G";
+  });
+  return grid.map((row) => row.join(""));
+};
+
+/** One row of a neck band: its ground - "G" gold or "." red - and, if it is one, which row of spirals it is in and which of a spiral's rows. */
+export interface BandRow {
+  ground: string;
+  spirals?: { tier: number; row: number };
+}
+
+/** A neck band: its rows, top first, and its spiral, `gap` stitches of red between each and the next. */
+export interface NeckBand {
+  rows: BandRow[];
+  spiral: string[];
+  gap: number;
+}
+
+const ground = (g: string, k: number): BandRow[] => Array.from({ length: k }, () => ({ ground: g }));
+const tier = (tier: number, h: number): BandRow[] => Array.from({ length: h }, (_, row) => ({ ground: ".", spirals: { tier, row } }));
+// As the hem band's, turned over: three rounds of red and four of gold nearest the neck.
+const stripes = [...ground(".", 3), ...ground("G", 4)];
+
+/**
+ * The neck bands, each as deep as the hem's band, 35 rows. A raglan's yoke
+ * seen from above is a square frame - four straight panels, the lines
+ * running out from its corners - and its band one row of large spirals, as
+ * many rows deep as stitches wide, all the way round it, its corners
+ * included: see knit.ts. A round yoke is a circle, growing all the way
+ * round, and its band three rows of the small spirals, the yoke's increases
+ * in the red between them.
+ */
+export const neckBands: Record<"raglan" | "yoke", NeckBand> = {
+  raglan: { spiral: squareSpiral(21, 21), gap: 3, rows: [...stripes, ...ground(".", 3), ...tier(0, 21), ...ground(".", 4)] },
+  yoke: {
+    spiral: squareSpiral(9, 7),
+    gap: 3,
+    rows: [...stripes, ...ground(".", 2), ...tier(0, 7), ...ground(".", 2), ...tier(1, 7), ...ground(".", 2), ...tier(2, 7), ...ground(".", 1)],
+  },
+};
 
 /** The cuff band: two rounds of gold and two of red each side of the felines. */
 export const cuffEdges = { gold: 2, red: 2 };

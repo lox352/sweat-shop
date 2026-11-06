@@ -493,9 +493,9 @@ they share is in `src/data/sweaters/felines/`.
   samplers' measurements, which leave the felines room. The left-hand feline
   goes on the front and the right-hand one on the back, centred, each as wide
   as fits: within the front less two stitches each side, and midway between
-  the neck's trim and the waist's - as many plain rows above it as below, a
-  row either way - which takes it up into the yoke, as far as the yoke has
-  room for it there. The hem band goes round the waist where that still
+  the neck's band and the waist's - as many plain rows above it as below, a
+  row either way, and eight at least, to stand clear of them - which takes
+  it up into the yoke, as far as the yoke has room for it there. The hem band goes round the waist where that still
   leaves the felines at least 72% of the width they would have without it -
   in every size, as it turns out - its creatures 42 stitches or more apart,
   one under the middle of the front. A picture is knitted top first from the
@@ -504,17 +504,32 @@ they share is in `src/data/sweaters/felines/`.
   round and its right half begins it. The divide is a round of the picture
   too: the engine knits a stretch of a dividing round each stitch in its own
   yarn where the pattern gives them.
-- **The neck's trim**, under the neck's rib and short rows: a round of gold,
-  a round of red, a row of squared spirals - the hem creatures' tails, alone
-  - in gold on red, twelve stitches apart, alternate ones mirrored, then red
-  and gold again: eleven rounds. On the raglan it starts straight after the
-  short rows and is laid out panel by panel, its spirals centred on the
-  front, the back and each sleeve as many as fit each panel at its start, so
-  the raglan lines' increases come between them and never through one. On
-  the round yoke it goes round a whole number of its repeats with no
-  increase in it, the round before it increasing to about nine tenths of
-  what the yoke would have by its end if it grew evenly, so the trim neither
-  pulls in round the yoke nor flares out.
+- **The neck's band**, under the neck's rib and short rows, as deep as the
+  hem's band, 35 rounds: the hem band's three rounds of red and four of gold
+  nearest the neck, then squared spirals in gold on red - the hem creature's
+  tail, alone (`squareSpiral` draws one at any size) - three stitches apart,
+  alternate ones mirrored, so that no increase ever comes in one.
+  - *On the raglan*, seen from above, the band is a square frame round the
+    neck: its sides the four panels, its corners the lines. Through its row
+    of spirals - 21 stitches by 21 rows - the lines increase every round, so
+    each panel grows a stitch at each corner every round and each line runs
+    out at forty-five degrees in stitches and rows: each corner of the frame
+    is a square as deep as the spirals, the line its diagonal. The rounds
+    above the spirals grow each panel to whole spirals with three stitches
+    of red between them and at either end (two on the front and back and one
+    on each sleeve, in every size), and those are the frame's sides. Each
+    corner is one more spiral: the panel before the line knits the half of
+    it below the diagonal, row by row across to it, the panel after the line
+    the half above, turned, and the line stitch itself the diagonal - so that
+    seen from above the frame is spirals all the way round, corners and all,
+    and no increase ever comes in one except along a corner spiral's
+    diagonal, where the line is. Below the band the lines carry on, each
+    panel as often as it still needs.
+  - *On the round yoke*, a circle that grows all the way round, it is three
+    rows of the small spirals, 9 by 7. Each row goes round a whole number of
+    pairs of them, at a count near what the yoke would have half way down
+    it if it grew evenly, one centred on the front; the yoke's increases come
+    in the red rounds between them.
 - **Raglan.** The neck shared a third each to the front and back and a sixth
   to each sleeve, less four raglan line stitches; an increase either side of
   each line, the front and back as often as they need to reach the chest and
@@ -537,10 +552,11 @@ they share is in `src/data/sweaters/felines/`.
   into, as it does the first; the felines' raglan waist hangs level to a
   stitch or two, as the round yoke's does, and every design was settled
   again.
-- **Round yoke**, as the Wool Week samplers have: after the trim, an increase
-  round every few rounds, each growing the yoke by the same factor, at most
-  a tenth, its make-ones spread evenly all the way round, to its full count
-  half way down; then straight on to the divide, the felines rising into that
+- **Round yoke**, as the Wool Week samplers have: increase rounds in the red
+  between the neck band's rows of spirals, and below it every few rounds,
+  each growing the yoke by the same factor - at most a tenth where there are
+  rounds enough - its make-ones spread evenly all the way round, to its full
+  count half way down; then straight on to the divide, the felines rising into that
   straight half. A round yoke grows all the way round, so it can have no
   increase where a feline is: increases kept clear of the felines would keep
   the fabric over each at its width while the yoke grew round it, a cone

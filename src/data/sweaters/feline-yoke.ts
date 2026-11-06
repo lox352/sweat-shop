@@ -12,8 +12,9 @@ export default felineSweater({
     "of Art, arms raised and tails curled into hexagonal spirals - the left " +
     "one on the front, the right one on the back - traced vertex by vertex " +
     "from a photograph and drawn as large as each size has room for, midway " +
-    "between a trim of spirals round the neck - the hem creatures' tails, " +
-    "alone - and the tunic's hem band of small gold creatures round the " +
+    "between a deep band of squared spirals round the neck - the hem " +
+    "creatures' tails, alone - and the tunic's hem band of small gold " +
+    "creatures round the " +
     "waist; and the sleeves end in its band of small gold felines. Knitted " +
     "from the neck down with a round yoke, as the Wool Week samplers are: " +
     "the yoke grows in plain rounds to half way down and then goes straight, " +
