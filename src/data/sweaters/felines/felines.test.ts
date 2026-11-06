@@ -188,8 +188,10 @@ describe.each([raglan, yoke].map((design) => [design.id, design] as const))("%s"
       for (const whole of tiers.values()) expect(whole).toBeGreaterThanOrEqual(4);
       // A raglan's band is a square frame seen from above: through its spirals each line grows a stitch either side every round, at forty-five degrees.
       if (design.id === raglan.id) {
-        const spiralRounds = gold.filter((_round, k) => goldRows[k].spirals);
-        spiralRounds.slice(1).forEach((round, k) => expect(round.length - spiralRounds[k].length).toBe(8));
+        gold.forEach((round, k) => {
+          const [was, now] = [goldRows[k - 1]?.spirals, goldRows[k].spirals];
+          if (was && now && was.tier === now.tier) expect(round.length - gold[k - 1].length).toBe(8);
+        });
       }
     });
 

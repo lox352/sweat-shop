@@ -134,6 +134,9 @@ export const squareSpiral = (w: number, h: number): string[] => {
   return grid.map((row) => row.join(""));
 };
 
+/** A drawing turned a quarter clockwise: its left-hand column becomes its top row. */
+export const quarterTurned = (grid: string[]): string[] => grid[0].split("").map((_, x) => grid.map((row) => row[x]).reverse().join(""));
+
 /** One row of a neck band: its ground - "G" gold or "." red - and, if it is one, which row of spirals it is in and which of a spiral's rows. */
 export interface BandRow {
   ground: string;
@@ -155,14 +158,20 @@ const stripes = [...ground(".", 3), ...ground("G", 4)];
 /**
  * The neck bands, each as deep as the hem's band, 35 rows. A raglan's yoke
  * seen from above is a square frame - four straight panels, the lines
- * running out from its corners - and its band one row of large spirals, as
- * many rows deep as stitches wide, all the way round it, its corners
- * included: see knit.ts. A round yoke is a circle, growing all the way
- * round, and its band three rows of the small spirals, the yoke's increases
- * in the red between them.
+ * running out from its corners - and its band two rows of squared spirals,
+ * 11 stitches by 11 rows and turned a quarter clockwise, all the way round
+ * it, its corners included, two stitches of red between every spiral and the
+ * next, between the rows, and between the stripe and the spirals: see
+ * knit.ts. A round yoke is a circle, growing all the way round, and its band
+ * three rows of the small spirals, the yoke's increases in the red between
+ * them.
  */
 export const neckBands: Record<"raglan" | "yoke", NeckBand> = {
-  raglan: { spiral: squareSpiral(21, 21), gap: 3, rows: [...stripes, ...ground(".", 3), ...tier(0, 21), ...ground(".", 4)] },
+  raglan: {
+    spiral: quarterTurned(squareSpiral(11, 11)),
+    gap: 2,
+    rows: [...stripes, ...ground(".", 2), ...tier(0, 11), ...ground(".", 2), ...tier(1, 11), ...ground(".", 2)],
+  },
   yoke: {
     spiral: squareSpiral(9, 7),
     gap: 3,
