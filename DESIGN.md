@@ -492,29 +492,59 @@ they share is in `src/data/sweaters/felines/`.
 - **Laid out** (`knit.ts`), at 32 stitches and 38 rounds to 10cm on the strip
   samplers' measurements, which leave the felines room. The left-hand feline
   goes on the front and the right-hand one on the back, centred, each as wide
-  as fits: within the front less two stitches each side, as tall as the body
-  from the divide down to the hem band, and up into the yoke as far as the
-  front is wide enough there, row by row. The hem band goes round the waist
-  where that still leaves the felines at least 72% of the width they would
-  have without it - in every size, as it turns out - its creatures 42
-  stitches or more apart, one under the middle of the front, and the felines
-  stand on it as they do on the tunic. A picture is knitted top first from the
+  as fits: within the front less two stitches each side, and midway between
+  the neck's trim and the waist's - as many plain rows above it as below, a
+  row either way - which takes it up into the yoke, as far as the yoke has
+  room for it there. The hem band goes round the waist where that still
+  leaves the felines at least 72% of the width they would have without it -
+  in every size, as it turns out - its creatures 42 stitches or more apart,
+  one under the middle of the front. A picture is knitted top first from the
   neck down, and each round runs left to right as the jumper is seen from the
   outside, from the middle of the back: so the back's left half ends each
   round and its right half begins it. The divide is a round of the picture
   too: the engine knits a stretch of a dividing round each stitch in its own
   yarn where the pattern gives them.
+- **The neck's trim**, under the neck's rib and short rows: a round of gold,
+  a round of red, a row of squared spirals - the hem creatures' tails, alone
+  - in gold on red, twelve stitches apart, alternate ones mirrored, then red
+  and gold again: eleven rounds. On the raglan it starts straight after the
+  short rows and is laid out panel by panel, its spirals centred on the
+  front, the back and each sleeve as many as fit each panel at its start, so
+  the raglan lines' increases come between them and never through one. On
+  the round yoke it goes round a whole number of its repeats with no
+  increase in it, the round before it increasing to about nine tenths of
+  what the yoke would have by its end if it grew evenly, so the trim neither
+  pulls in round the yoke nor flares out.
 - **Raglan.** The neck shared a third each to the front and back and a sixth
-  to each sleeve, less four raglan line stitches; a make-one either side of
+  to each sleeve, less four raglan line stitches; an increase either side of
   each line, the front and back as often as they need to reach the chest and
   the sleeves the upper arm, each spread evenly down the yoke. The front
   reaches its width only at the divide, so a feline rises into the yoke only
-  as far as each of its rows fits the front there - in a medium, 32 rows,
-  its arms and ears.
-- **Round yoke**, as the Wool Week samplers have: the yoke grows in five or
-  six plain increase rounds, by the same factor each time, to its full count
-  two thirds of the way down, and goes straight on to the divide; the felines'
-  ears and raised arms rise into that straight part.
+  as far as each of its rows fits the front there. Each panel grows out of
+  its own stitches either side of a line, as Paul Klee's does: a KBF in its
+  last stitch before the line and a KFB in its first after it, each new
+  stitch beside the line and leaning away from it.
+- **A level waist.** The raglans settled with the waist dipping under each
+  arm - on one side of the arm, the back before the right sleeve and the
+  front before the left. The settle holds every stitch within the length of
+  yarn up its column from the neck, and it took a KFB's or KBF's second loop
+  up through the stitch before it, a stitch's width aside, rather than the
+  stitch it was worked into. At the near side of a raglan line each increase
+  is worked into the last one's second loop, so that yarn turned aside at
+  every increase all the way down the line - fifty-odd stitches' widths
+  longer than any column - and the waist below it was free to hang lower.
+  The settle now takes a second loop up through the stitch it was worked
+  into, as it does the first; the felines' raglan waist hangs level to a
+  stitch or two, as the round yoke's does, and every design was settled
+  again.
+- **Round yoke**, as the Wool Week samplers have: after the trim, an increase
+  round every few rounds, each growing the yoke by the same factor, at most
+  a tenth, its make-ones spread evenly all the way round, to its full count
+  half way down; then straight on to the divide, the felines rising into that
+  straight half. A round yoke grows all the way round, so it can have no
+  increase where a feline is: increases kept clear of the felines would keep
+  the fabric over each at its width while the yoke grew round it, a cone
+  with two flat panels in it.
 - **Sleeves.** Plain, decreasing at the underarm to the cuff band: whole
   repeats of the small feline with a few stitches of red between, at about a
   quarter more than the cuff, between two rounds of gold and two of red each

@@ -74,6 +74,8 @@ const stitchFor = (cell: ChartCell): StitchType => {
       return "m1";
     case "kfb":
       return "kfb";
+    case "kbf":
+      return "kbf";
     default:
       return "k1";
   }

@@ -10,6 +10,8 @@ import { loadSettled } from "./index";
 import { SettledFile, allPositions, decodeSettled, encodeSettled, fabricPositions, settledLength } from "./format";
 
 const here = dirname(fileURLToPath(import.meta.url));
+/** How many rounds' height a settled waist may rise and fall by on its way round. */
+const LEVEL_ROUNDS = 8;
 const files = readdirSync(here).filter((name) => name.endsWith(".json"));
 
 describe("the settled file format", () => {
@@ -69,6 +71,10 @@ describe("the settled sweaters", () => {
       expect(mean("body", 1)).toBeLessThan(mean("yoke", 1));
       expect(mean("sleeve-left", 0)).toBeGreaterThan(0);
       expect(mean("sleeve-right", 0)).toBeLessThan(0);
+      // The waist goes round level, an oval on one plane: nowhere, under the arms or anywhere else, more than a few rounds lower than elsewhere.
+      const body = built.rounds.filter((_, index) => built.roundPieces[index] === "body");
+      const heights = body[body.length - 1].map((id) => positions[id * 3 + 1]);
+      expect((Math.max(...heights) - Math.min(...heights)) / built.knitting.roundHeight).toBeLessThan(LEVEL_ROUNDS);
     });
   }
 });

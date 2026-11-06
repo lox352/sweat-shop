@@ -1,5 +1,5 @@
 import { Stitch, isFabric, isStep } from "../types/Stitch";
-import { consumption } from "../types/StitchType";
+import { consumption, makesTwo } from "../types/StitchType";
 import { adjacentStitchDistance } from "../constants";
 import type { Knitting } from "./knitting";
 import type { Pose } from "./pose";
@@ -55,11 +55,23 @@ export interface Settled {
   rested: boolean;
 }
 
-/** What the next stitch up a column is: what it was worked into, or failing that what it came out of. */
-const upFrom = (stitch: Stitch): { id: number; across: boolean } | undefined => {
+/**
+ * What the next stitch up a column is: what it was worked into, or failing
+ * that what it came out of - a KFB's or KBF's second loop, the stitch both
+ * its loops were worked into, as a picked-up stitch its edge stitch.
+ *
+ * Only then the stitch beside it: the one before it, as the yarn runs. A
+ * second loop sent there instead put a stitch's width more on the way up from
+ * every increase at the near side of a raglan line, where the next increase
+ * is worked into the last one's second loop: a staircase as long as the line,
+ * the yarn up from the waist below it far longer than any column, and the
+ * waist sagging under each arm, on one side of it and not the other.
+ */
+const upFrom = (stitch: Stitch, byId: Stitch[]): { id: number; across: boolean } | undefined => {
   const worked = stitch.links.slice(0, consumption[stitch.type]);
   if (worked.length > 0) return { id: worked[Math.floor(worked.length / 2)], across: false };
   if (stitch.from !== undefined) return { id: stitch.from, across: false };
+  if (stitch.type === "m1" && stitch.links.length > 1 && makesTwo(byId[stitch.id - 1]?.type)) return { id: stitch.links[0], across: false };
   // A make-one, or a cast-on part way round: the stitch beside it.
   const last = stitch.links[stitch.links.length - 1];
   return last === undefined ? undefined : { id: last, across: true };
@@ -145,7 +157,7 @@ export const settle = (
       continue;
     }
     if (!isFabric(stitch)) continue;
-    const up = upFrom(stitch);
+    const up = upFrom(stitch, stitches);
     if (!up || anchor[up.id] < 0) continue;
     anchor[stitch.id] = anchor[up.id];
     reach[stitch.id] =
