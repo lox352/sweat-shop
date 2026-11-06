@@ -31,7 +31,7 @@ export type SlotId = string;
  * A mark printed in a cell, on top of its colour. A "kfb" is the first of the
  * two loops a KFB makes, and the cell after it is always the second: an "m1".
  */
-export type ChartSymbol = "purl" | "k1tbl" | "k2tog" | "ssk" | "s2kp" | "sk2p" | "m1" | "kfb";
+export type ChartSymbol = "purl" | "k1tbl" | "k2tog" | "ssk" | "s2kp" | "sk2p" | "m1" | "kfb" | "kbf";
 
 export interface ChartCell {
   slot: SlotId;

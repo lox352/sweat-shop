@@ -11,11 +11,12 @@ export default felineSweater({
     "The two great red felines of a Nasca tunic at the Metropolitan Museum " +
     "of Art, arms raised and tails curled into hexagonal spirals - the left " +
     "one on the front, the right one on the back - traced vertex by vertex " +
-    "from a photograph and drawn as large as each size has room for. Below " +
-    "them, where there is room, the tunic's hem band of small gold creatures " +
-    "runs round the waist, and the sleeves end in its band of small gold " +
-    "felines. Knitted from the neck down with a round yoke, as the Wool Week " +
-    "samplers are: the yoke grows in plain rounds and then goes straight, " +
-    "and each feline's ears and raised arms rise into that straight part.",
+    "from a photograph and drawn as large as each size has room for, midway " +
+    "between a trim of spirals round the neck - the hem creatures' tails, " +
+    "alone - and the tunic's hem band of small gold creatures round the " +
+    "waist; and the sleeves end in its band of small gold felines. Knitted " +
+    "from the neck down with a round yoke, as the Wool Week samplers are: " +
+    "the yoke grows in plain rounds to half way down and then goes straight, " +
+    "and each feline rises into that straight half.",
   construction: "yoke",
 });

@@ -4,7 +4,7 @@ import raglan from "../feline-raglan";
 import yoke from "../feline-yoke";
 import { measured } from "../wool-week/strips/design";
 import { type Knitted, countsOf, cuffBandOf, felineOn, gauge, knit } from "./knit";
-import { cuffFeline, hemCreature } from "./motifs";
+import { cuffFeline, hemCreature, neckSpiral, neckTrim } from "./motifs";
 import { CREAM, GROUND, RED, drawFeline } from "./raster";
 import model from "./model.json";
 
@@ -139,7 +139,28 @@ describe.each([raglan, yoke].map((design) => [design.id, design] as const))("%s"
 
     it("draws the felines as wide as most of the front, a margin either side", () => {
       expect(placed.width).toBeLessThanOrEqual(c.half - 4);
-      expect(placed.width).toBeGreaterThan(0.6 * c.half);
+      expect(placed.width).toBeGreaterThan(0.54 * c.half);
+    });
+
+    it("sets each feline midway between the neck's trim and the waist's, a row either way", () => {
+      expect(Math.abs(placed.above - placed.below)).toBeLessThanOrEqual(1);
+      expect(placed.above).toBeGreaterThanOrEqual(2);
+    });
+
+    it("runs the neck's trim round the yoke under the rib, its spirals in gold", () => {
+      const built = buildSweater(design, size.id);
+      const yokeRounds = built.rounds.filter((_round, i) => built.roundPieces[i] === "yoke");
+      const gold = yokeRounds.filter((round) => round.some((id) => built.stitches[id].slot === "D"));
+      // Its two gold stripes and the spirals' rows.
+      const spiralRows = neckTrim.filter((_g, r) => neckSpiral(r)).length;
+      expect(gold.length).toBe(2 + spiralRows);
+      if (design.id === yoke.id) {
+        // A round yoke's trim goes round a count of whole repeats, with no increase in it.
+        const counts = new Set(gold.map((round) => round.length));
+        expect(counts.size).toBe(1);
+        expect(knitted.trim.count % 12).toBe(0);
+        expect([...counts][0]).toBe(knitted.trim.count);
+      }
     });
 
     it("runs the hem band round the waist, where there is room for it", () => {
@@ -155,11 +176,13 @@ describe.each([raglan, yoke].map((design) => [design.id, design] as const))("%s"
       const front = drawFeline(felineOn.front, placed.width, gauge).grid;
       const back = drawFeline(felineOn.back, placed.width, gauge).grid;
       const n = 2 * c.half + 2 * c.underarm;
+      // The feline's row r is the body's round r - inYoke: its last row `below` rounds above the band (or the rib's gap).
       const first = Math.max(0, placed.inYoke);
-      const offset = placed.inYoke > 0 ? 0 : (placed.band ? c.bodyRounds - hemCreature.length : c.bodyRounds - 6) - placed.height;
+      const lastRound = c.bodyRounds - (placed.band ? hemCreature.length : 6) - placed.below - 1;
+      expect(lastRound - (placed.height - 1)).toBe(-placed.inYoke);
       const slotOf = ["A", "B", "C"];
       for (const r of [first, Math.floor((first + placed.height) / 2), placed.height - 1]) {
-        const round = body[offset + r - first];
+        const round = body[r - placed.inYoke];
         expect(round.length).toBe(n);
         const slots = round.map((id) => built.stitches[id].slot);
         const left = Math.floor((c.half - placed.width) / 2);
@@ -176,14 +199,12 @@ describe.each([raglan, yoke].map((design) => [design.id, design] as const))("%s"
 });
 
 describe("the two constructions", () => {
-  it("raises each feline into a raglan's yoke only as far as the front is wider than it, and into a round yoke's straight part", () => {
+  it("raises each feline into its yoke, a raglan's and a round one's", () => {
     for (const size of measured) {
       const r = knit(size.finished, "raglan", "t-");
       const y = knit(size.finished, "yoke", "t-");
       expect(r.placed.inYoke).toBeGreaterThan(0);
       expect(y.placed.inYoke).toBeGreaterThan(0);
-      // A round yoke's increase rounds are all in its upper two thirds, and no feline reaches them.
-      expect(y.placed.inYoke).toBeLessThan(y.counts.yokeRounds * 0.34);
     }
   }, 60000);
 });

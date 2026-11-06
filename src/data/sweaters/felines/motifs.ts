@@ -112,5 +112,25 @@ export const cuffFeline: string[] = [
   "GGGGGGG....GGGGGGGGG..........", // tail and body meet at the foot
 ];
 
+/**
+ * The neck's trim, 11 rows: a gold stripe, a row of red, a row of squared
+ * spirals - the hem creatures' tails, alone - in gold on red, alternate ones
+ * mirrored, NECK_REPEAT stitches apart, then red and gold again. Each row's
+ * ground is its own: "G" gold, "." red; the spirals' rows are red.
+ */
+export const neckTrim = ["G", ".", ".", ".", ".", ".", ".", ".", ".", ".", "G"];
+const NECK_SPIRAL = [
+  "GGGGGGG.G",
+  "G.....G.G",
+  "G.GGG.G.G",
+  "G.G...G.G",
+  "G.GGGGG.G",
+  "G.......G",
+  "GGGGGGGGG",
+];
+export const NECK_REPEAT = 12;
+/** The spiral's row in the neck trim's row `r`, if that row has one. */
+export const neckSpiral = (r: number): string[] | undefined => (r >= 2 && r < 2 + NECK_SPIRAL.length ? NECK_SPIRAL[r - 2].split("") : undefined);
+
 /** The cuff band: two rounds of gold and two of red each side of the felines. */
 export const cuffEdges = { gold: 2, red: 2 };
