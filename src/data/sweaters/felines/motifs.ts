@@ -143,10 +143,10 @@ export interface BandRow {
   spirals?: { tier: number; row: number };
 }
 
-/** A neck band: its rows, top first, and its spiral, `gap` stitches of red between each and the next. */
+/** A neck band: its rows, top first, and the spiral of each of its rows of them, `gap` stitches of red between each and the next. */
 export interface NeckBand {
   rows: BandRow[];
-  spiral: string[];
+  spirals: string[][];
   gap: number;
 }
 
@@ -156,27 +156,21 @@ const tier = (tier: number, h: number): BandRow[] => Array.from({ length: h }, (
 const stripes = [...ground(".", 3), ...ground("G", 4)];
 
 /**
- * The neck bands, each as deep as the hem's band, 35 rows. A raglan's yoke
- * seen from above is a square frame - four straight panels, the lines
- * running out from its corners - and its band two rows of squared spirals,
- * 11 stitches by 11 rows and turned a quarter clockwise, all the way round
- * it, its corners included, two stitches of red between every spiral and the
- * next, between the rows, and between the stripe and the spirals: see
- * knit.ts. A round yoke is a circle, growing all the way round, and its band
- * three rows of the small spirals, the yoke's increases in the red between
- * them.
+ * The neck bands, each as deep as the hem's band, 35 rows: the hem band's
+ * three rounds of red and four of gold nearest the neck, then two rows of
+ * squared spirals turned a quarter clockwise, the same 2-stitch gap
+ * everywhere - under the stripe, between spirals, between the rows and
+ * after them. A raglan's yoke seen from above is a square frame - four
+ * straight panels, the lines running out from its corners - and its spirals
+ * are 11 by 11 in both rows, all the way round it, its corners included:
+ * see knit.ts. A round yoke is a circle, growing all the way round, and its
+ * spirals go round in rays: as many in each row, 9 by 9 near the neck and
+ * 13 by 13 below, so that they line up out from it.
  */
+const spiral = (w: number) => quarterTurned(squareSpiral(w, w));
 export const neckBands: Record<"raglan" | "yoke", NeckBand> = {
-  raglan: {
-    spiral: quarterTurned(squareSpiral(11, 11)),
-    gap: 2,
-    rows: [...stripes, ...ground(".", 2), ...tier(0, 11), ...ground(".", 2), ...tier(1, 11), ...ground(".", 2)],
-  },
-  yoke: {
-    spiral: squareSpiral(9, 7),
-    gap: 3,
-    rows: [...stripes, ...ground(".", 2), ...tier(0, 7), ...ground(".", 2), ...tier(1, 7), ...ground(".", 2), ...tier(2, 7), ...ground(".", 1)],
-  },
+  raglan: { spirals: [spiral(11), spiral(11)], gap: 2, rows: [...stripes, ...ground(".", 2), ...tier(0, 11), ...ground(".", 2), ...tier(1, 11), ...ground(".", 2)] },
+  yoke: { spirals: [spiral(9), spiral(13)], gap: 2, rows: [...stripes, ...ground(".", 2), ...tier(0, 9), ...ground(".", 2), ...tier(1, 13), ...ground(".", 2)] },
 };
 
 /** The cuff band: two rounds of gold and two of red each side of the felines. */

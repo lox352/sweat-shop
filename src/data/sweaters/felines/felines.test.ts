@@ -160,32 +160,39 @@ describe.each([raglan, yoke].map((design) => [design.id, design] as const))("%s"
       const slotOf: Record<string, string> = { ".": "B", G: "D" };
       const below = new Map<number, number>();
       for (const stitch of built.stitches) if (stitch.type !== "m1" && consumption[stitch.type] === 1 && stitch.links.length) below.set(stitch.links[0], stitch.id);
-      const w = band.spiral[0].length;
       const tiers = new Map<number, number>();
       goldRows.forEach((line, k) => {
         if (!line.spirals || line.spirals.row > 0) return;
+        const spiral = band.spirals[line.spirals.tier];
+        const w = spiral[0].length;
         const round = gold[k];
         const n = round.length;
         let whole = 0;
         for (let at = 0; at < n; at++) {
           let ids = Array.from({ length: w }, (_, x) => round[(at + x) % n]);
           const read = (ids: number[]) => ids.map((id) => built.stitches[id]?.slot ?? "").join("");
-          const drawn = (r: number) => [...band.spiral[r]].map((ch) => slotOf[ch]).join("");
+          const drawn = (r: number) => [...spiral[r]].map((ch) => slotOf[ch]).join("");
           const mirrored = read(ids) !== drawn(0);
           const as = (r: number) => (mirrored ? [...drawn(r)].reverse().join("") : drawn(r));
           if (read(ids) !== as(0)) continue;
           let ok = true;
-          for (let r = 1; r < band.spiral.length && ok; r++) {
+          for (let r = 1; r < spiral.length && ok; r++) {
             ids = ids.map((id) => below.get(id) ?? -1);
             ok = read(ids) === as(r);
           }
           if (ok) whole++;
         }
         tiers.set(line.spirals.tier, whole);
-        // A round yoke's rows of spirals go round a whole number of pairs of them.
-        if (design.id === yoke.id) expect(n % (2 * (w + band.gap))).toBe(0);
+        // A round yoke's rows of spirals each go round a whole, even number of them and their gaps, every one whole.
+        if (design.id === yoke.id) {
+          expect(n % (w + band.gap)).toBe(0);
+          expect((n / (w + band.gap)) % 2).toBe(0);
+          expect(whole).toBe(n / (w + band.gap));
+        }
       });
       for (const whole of tiers.values()) expect(whole).toBeGreaterThanOrEqual(4);
+      // A round yoke's spirals go round in rays: as many in every row.
+      if (design.id === yoke.id) expect(new Set(tiers.values()).size).toBe(1);
       // A raglan's band is a square frame seen from above: through its spirals each line grows a stitch either side every round, at forty-five degrees.
       if (design.id === raglan.id) {
         gold.forEach((round, k) => {

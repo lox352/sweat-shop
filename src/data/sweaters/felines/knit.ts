@@ -192,8 +192,8 @@ const raglanYoke = (c: Counts): Yoke => {
   const top = band.rows.findIndex((row) => row.spirals);
   // The frame's corners are as deep as its rows of spirals and the red between them.
   const depth = band.rows.length - [...band.rows].reverse().findIndex((row) => row.spirals) - top;
-  const [side, gap] = [band.spiral[0].length, band.gap];
-  if (band.spiral.length !== side) throw new Error("a raglan's spirals must be as many rows deep as stitches wide");
+  const [side, gap] = [band.spirals[0][0].length, band.gap];
+  if (band.spirals.some((spiral) => spiral.length !== side || spiral[0].length !== side)) throw new Error("a raglan's spirals must all be as many rows deep as stitches wide");
   // A panel's width where the spirals begin: exactly whole spirals with `gap` between them and at either end, so that every gap round the frame is alike - as many as the rounds above can grow it to and as leave the panel within `limit` at the band's foot.
   const fit = (w0: number, limit: number) => {
     let best: number | undefined;
@@ -228,11 +228,13 @@ const raglanYoke = (c: Counts): Yoke => {
 };
 
 /**
- * A round yoke: its neck band's rows of spirals each at a count that goes
- * round a whole number of pairs of them - alternate ones mirrored - near what
- * the yoke would have half way down it if it grew evenly; increase rounds in
- * the red between them, and below the band to the full count FULL_AT of the
- * way down, each growing the yoke by the same factor, at most STEP where
+ * A round yoke: its neck band's rows of spirals in rays - as many spirals in
+ * every row, each row's larger, so that they line up out from the neck -
+ * each row at the count that goes round exactly that many spirals and their
+ * gaps; that many, an even number, as keeps every row nearest what the yoke
+ * would have half way down it if it grew evenly. Increase rounds in the red
+ * above and between them, and below the band to the full count FULL_AT of
+ * the way down, each growing the yoke by the same factor, at most STEP where
  * there are rounds enough.
  */
 const circularYoke = (c: Counts): Yoke => {
@@ -240,20 +242,23 @@ const circularYoke = (c: Counts): Yoke => {
   const n = c.yokeRounds;
   const band = neckBands.yoke;
   const T = band.rows.length;
-  const pair = 2 * (band.spiral[0].length + band.gap);
   const last = Math.max(T + 2, Math.round(n * FULL_AT));
   // What the yoke would have by row i, growing by the same factor each round to the full count by `last`.
   const evenly = (i: number) => c.neck * (total / c.neck) ** (Math.min(i + 1, last) / last);
   // Where the count is fixed: through each row of spirals, from its first round to its last; and from `last` on.
-  const fixed: { from: number; to: number; count: number }[] = [];
+  const fixed: { from: number; to: number; count: number; repeat: number }[] = [];
   band.rows.forEach((row, i) => {
     if (!row.spirals) return;
     const run = fixed[fixed.length - 1];
     if (run && run.to === i && row.spirals.row > 0) run.to = i + 1;
-    else fixed.push({ from: i, to: i + 1, count: 0 });
+    else fixed.push({ from: i, to: i + 1, count: 0, repeat: band.spirals[row.spirals.tier][0].length + band.gap });
   });
-  for (const run of fixed) run.count = Math.max(pair, pair * Math.round(evenly((run.from + run.to - 1) / 2) / pair));
-  fixed.push({ from: last, to: n, count: total });
+  // As many spirals in every row: the even number that keeps each row nearest an evenly grown yoke, and no row narrower than the neck.
+  const misfit = (many: number) => Math.max(...fixed.map((run) => Math.abs(Math.log((many * run.repeat) / evenly((run.from + run.to - 1) / 2)))));
+  let many = 2;
+  for (let k = 2; k * fixed[fixed.length - 1].repeat <= total; k += 2) if (k * fixed[0].repeat >= c.neck && (many * fixed[0].repeat < c.neck || misfit(k) < misfit(many))) many = k;
+  for (const run of fixed) run.count = many * run.repeat;
+  fixed.push({ from: last, to: n, count: total, repeat: 0 });
   const counts: number[] = [];
   let [count, free] = [c.neck, 0];
   for (const run of fixed) {
@@ -384,18 +389,18 @@ const madeAround = (from: number, to: number): boolean[] => {
 };
 
 
-/** Row `r` of a neck band all the way round `n` stitches, a whole number of pairs of its spirals: one centred on the front, alternate ones mirrored. */
+/** Row `r` of a neck band all the way round `n` stitches, a whole number of its spirals and their gaps, one centred on the front. */
 const bandRound = (band: NeckBand, r: number, n: number): string[] => {
   const line = band.rows[r];
   const out: string[] = Array(n).fill(MOTIF_SLOT[line.ground]);
   if (!line.spirals) return out;
-  const w = band.spiral[0].length;
+  const spiral = band.spirals[line.spirals.tier];
+  const w = spiral[0].length;
   const repeat = w + band.gap;
-  if (n % (2 * repeat)) throw new Error(`${n} stitches are not a whole number of pairs of spirals`);
-  const spiral = band.spiral[line.spirals.row].split("");
+  if (n % repeat) throw new Error(`${n} stitches are not a whole number of spirals`);
   for (let t = 0; t < n / repeat; t++) {
     const left = n / 2 - Math.floor(w / 2) + t * repeat;
-    (t % 2 ? [...spiral].reverse() : spiral).forEach((ch, x) => (out[(left + x) % n] = MOTIF_SLOT[ch]));
+    [...spiral[line.spirals.row]].forEach((ch, x) => (out[(left + x) % n] = MOTIF_SLOT[ch]));
   }
   return out;
 };
@@ -421,7 +426,7 @@ const frameRound = (band: NeckBand, frame: NonNullable<Yoke["frame"]>, r: number
   const n = 2 * p.back + 2 * p.sleeve + 4;
   const t = r - frame.top;
   if (t < 0 || t >= frame.depth) return Array<string>(n).fill(band.rows[r].ground);
-  const spiral = band.spiral;
+  const spiral = band.spirals[0];
   const [side, gap] = [spiral[0].length, band.gap];
   const rows = band.rows.filter((row) => row.spirals?.row === 0).length;
   // Where `d` rounds into the rows of spirals falls in a spiral's rows, or -1 in the red between them; and which row of spirals that is.

@@ -526,11 +526,15 @@ they share is in `src/data/sweaters/felines/`.
     turned. The other two each sit wholly on one side of the line and face
     as that side's own spirals do. Below the band the lines carry on, each
     panel as often as it still needs.
-  - *On the round yoke*, a circle that grows all the way round, it is three
-    rows of the small spirals, 9 by 7. Each row goes round a whole number of
-    pairs of them, at a count near what the yoke would have half way down
-    it if it grew evenly, one centred on the front; the yoke's increases come
-    in the red rounds between them.
+  - *On the round yoke*, a circle that grows all the way round, its two rows
+    of spirals go round in rays: 9 by 9 near the neck and 13 by 13 below,
+    turned a quarter clockwise, as many in each row, so that they line up
+    out from the neck as a round yoke's stitches fan out. Each row goes
+    round exactly that many spirals and their 2-stitch gaps, one centred on
+    the front - an even number, the one that keeps each row nearest what the
+    yoke would have half way down it if it grew evenly (22 in a medium, at
+    242 and 330 stitches). The yoke's increases come in the red rounds above
+    and between the rows, never in one.
 - **Raglan.** The neck shared a third each to the front and back and a sixth
   to each sleeve, less four raglan line stitches; an increase either side of
   each line, the front and back as often as they need to reach the chest and
@@ -554,7 +558,7 @@ they share is in `src/data/sweaters/felines/`.
   stitch or two, as the round yoke's does, and every design was settled
   again.
 - **Round yoke**, as the Wool Week samplers have: increase rounds in the red
-  between the neck band's rows of spirals, and below it every few rounds,
+  above and between the neck band's rows of spirals, and below it every few rounds,
   each growing the yoke by the same factor - at most a tenth where there are
   rounds enough - its make-ones spread evenly all the way round, to its full
   count half way down; then straight on to the divide, the felines rising into that
