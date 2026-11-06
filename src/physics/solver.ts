@@ -123,6 +123,17 @@ export const settle = (
   });
   // The pieces that hang straight down are pushed out level; the rest, a sleeve held out, along themselves.
   const level = fall.map(([fx, , fz]) => Math.hypot(fx, fz) < 1e-6);
+  // EXPERIMENT: each stitch's neighbours along its round, for the way square out from the round there.
+  const prevOf = new Int32Array(count).fill(-1);
+  const nextOf = new Int32Array(count).fill(-1);
+  rounds.forEach((round, index) => {
+    const closed = (knitting.roundKinds[index] ?? "round") === "round";
+    round.forEach((id, j) => {
+      prevOf[id] = j > 0 ? round[j - 1] : closed ? round[round.length - 1] : id;
+      nextOf[id] = j < round.length - 1 ? round[j + 1] : closed ? round[0] : id;
+    });
+  });
+  const normalPush = process.env.NORMAL ? (process.env.NORMAL === "yoke" ? pieces.map((piece) => piece === yoke) : pieces.map(() => true)) : pieces.map(() => false);
   const middles = new Float64Array(rounds.length * 3);
   const along = new Float64Array(rounds.length * 3);
   const neighbourRound = (index: number, way: number) =>
@@ -145,6 +156,7 @@ export const settle = (
   const ropeA = Int32Array.from(ropes.map((rope) => rope.a * 3));
   const ropeB = Int32Array.from(ropes.map((rope) => rope.b * 3));
   const ropeLength = Float64Array.from(ropes.map((rope) => rope.length));
+  const ropeLeast = Float64Array.from(ropes.map((rope) => (process.env.SQALL || rope.kind === "before" ? rope.length * tuning.squeeze : 0)));
   const ropeShareA = Float64Array.from(ropes.map((rope) => weight[rope.a] / (weight[rope.a] + weight[rope.b])));
   const ropeShareB = Float64Array.from(ropes.map((rope) => weight[rope.b] / (weight[rope.a] + weight[rope.b])));
 
@@ -222,6 +234,33 @@ export const settle = (
         ox -= lengthwise * ax;
         oy -= lengthwise * ay;
         oz -= lengthwise * az;
+        if (normalPush[piece] && prevOf[id] >= 0) {
+          // Square out from the round where the stitch is: across the line from the stitch before it to the one after.
+          const p = prevOf[id] * 3;
+          const q = nextOf[id] * 3;
+          let tx = x[q] - x[p];
+          let ty = x[q + 1] - x[p + 1];
+          let tz = x[q + 2] - x[p + 2];
+          const tl = tx * ax + ty * ay + tz * az;
+          tx -= tl * ax;
+          ty -= tl * ay;
+          tz -= tl * az;
+          // along x t, outward.
+          let nx = ay * tz - az * ty;
+          let ny = az * tx - ax * tz;
+          let nz = ax * ty - ay * tx;
+          const nl = Math.sqrt(nx * nx + ny * ny + nz * nz);
+          if (nl > 1e-9) {
+            const sign = nx * ox + ny * oy + nz * oz < 0 ? -1 : 1;
+            const o = Math.sqrt(ox * ox + oy * oy + oz * oz);
+            nx *= (sign * o) / nl;
+            ny *= (sign * o) / nl;
+            nz *= (sign * o) / nl;
+            ox = nx;
+            oy = ny;
+            oz = nz;
+          }
+        }
         const out = Math.sqrt(ox * ox + oy * oy + oz * oz);
         const pushing = out > 1e-9 ? push[piece] / out : 0;
         velocity[at] = (velocity[at] + h * (gravityX[piece] + pushing * ox)) * damp;
@@ -242,8 +281,9 @@ export const settle = (
           const dz = next[b + 2] - next[a + 2];
           const length = Math.sqrt(dx * dx + dy * dy + dz * dz);
           const limit = ropeLength[r];
-          if (length <= limit) continue;
-          const over = (length - limit) / length;
+          const least = ropeLeast[r];
+          if (length <= limit && length >= least) continue;
+          const over = (length - (length > limit ? limit : least)) / (length || 1);
           const sa = ropeShareA[r] * over;
           const sb = ropeShareB[r] * over;
           next[a] += sa * dx;

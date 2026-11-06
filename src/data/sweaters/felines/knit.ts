@@ -1,6 +1,6 @@
 import type { Chart, ChartCell, DivideSegment, RoundSpec, Section, ShapingOp } from "../types";
 import { decreaseEvenly, increaseEvenly, underarmDecrease } from "../writing";
-import { type NeckBand, cuffEdges, cuffFeline, hemCreature, neckBands } from "./motifs";
+import { type NeckBand, cuffEdges, cuffFeline, hemCreature, neckBands, quarterTurned, squareSpiral } from "./motifs";
 import { type FelineId, GROUND, drawFeline } from "./raster";
 
 /**
@@ -146,7 +146,7 @@ interface Yoke {
   /** The neck's band, and the row it begins in. */
   trim: { from: number; band: NeckBand };
   /** For a raglan, where its band's spirals begin, and each panel's width there: the frame's straight sides. */
-  frame?: { top: number; depth: number; front: number; sleeve: number };
+  frame?: { top: number; depth: number; front: number; sleeve: number; plan: number[] };
 }
 
 /** Rounds `from` to `to` (of `n`), the `k` of them with an increase spread as evenly as whole rounds allow. */
@@ -185,6 +185,22 @@ export const raglanDepth = (c: Counts): number => Math.max(c.yokeRounds, Math.ce
  * below the band the lines carry on, the front and back as often as they
  * still need to reach the chest and the sleeves the upper arm.
  */
+/** EXPERIMENT (CORNER=plan): where each row of the frame's corners is, seen from above - the lines' increases so far. */
+const PLAN_ROWS = [0, 0, 1, 1, 2, 3, 3, 4, 5, 5, 6];
+const cornerPlan = (band: NeckBand, top: number, depth: number): number[] => {
+  const out: number[] = [];
+  let base = 0;
+  for (let t = 0; t < depth; t++) {
+    const row = band.rows[top + t].spirals;
+    if (process.env.CORNER !== "plan") out.push(t);
+    else if (row) {
+      if (row.row === 0) base = t === 0 ? 0 : out[t - 1] + 1;
+      out.push(base + PLAN_ROWS[row.row]);
+    } else out.push(out[t - 1] + 1);
+  }
+  return out;
+};
+
 const raglanYoke = (c: Counts): Yoke => {
   const { sleeve0, front0, neck } = raglanNeck(c);
   const n = c.yokeRounds;
@@ -204,13 +220,15 @@ const raglanYoke = (c: Counts): Yoke => {
     if (best === undefined) throw new Error(`no whole spirals fit a raglan panel of ${w0}`);
     return best;
   };
+  const plan = cornerPlan(band, top, depth);
+  const grows = plan[depth - 1];
   const [frontTop, sleeveTop] = [fit(front0, c.half), fit(sleeve0, c.held - 2)];
   const below = top + depth;
-  const [frontBelow, sleeveBelow] = [frontTop + 2 * (depth - 1), sleeveTop + 2 * (depth - 1)];
+  const [frontBelow, sleeveBelow] = [frontTop + 2 * grows, sleeveTop + 2 * grows];
   // The last round before the divide has none, so the divide knits straight on from it.
   const [bodyLeft, sleevesLeft] = [(c.half - frontBelow) / 2, (c.held - 2 - sleeveBelow) / 2];
   if (bodyLeft < 0 || sleevesLeft < 0 || Math.max(bodyLeft, sleevesLeft) > n - 1 - below) throw new Error(`a raglan whose neck band leaves ${bodyLeft} and ${sleevesLeft} increases`);
-  const every = Array.from({ length: depth - 1 }, (_, t) => top + 1 + t);
+  const every = plan.flatMap((p, t) => (t > 0 && p > plan[t - 1] ? [top + t] : []));
   const bodyAt = new Set([...spread((frontTop - front0) / 2, top), ...every, ...spread(bodyLeft, n - 1, below)]);
   const sleeveAt = new Set([...spread((sleeveTop - sleeve0) / 2, top), ...every, ...spread(sleevesLeft, n - 1, below)]);
   const counts: number[] = [];
@@ -224,7 +242,7 @@ const raglanYoke = (c: Counts): Yoke => {
     counts.push(2 * fr + 2 * sl + 4);
   }
   if (fr !== c.half || sl + 2 !== c.held) throw new Error("a raglan that does not reach its divide");
-  return { neck, counts, panels, trim: { from: 0, band }, frame: { top, depth, front: frontTop, sleeve: sleeveTop } };
+  return { neck, counts, panels, trim: { from: 0, band }, frame: { top, depth, front: frontTop, sleeve: sleeveTop, plan } };
 };
 
 /**
@@ -426,6 +444,7 @@ const frameRound = (band: NeckBand, frame: NonNullable<Yoke["frame"]>, r: number
   const n = 2 * p.back + 2 * p.sleeve + 4;
   const t = r - frame.top;
   if (t < 0 || t >= frame.depth) return Array<string>(n).fill(band.rows[r].ground);
+  if (process.env.CORNER === "plan") return planRound(band, frame, r, p);
   const spiral = band.spirals[0];
   const [side, gap] = [spiral[0].length, band.gap];
   const rows = band.rows.filter((row) => row.spirals?.row === 0).length;
@@ -456,6 +475,46 @@ const frameRound = (band: NeckBand, frame: NonNullable<Yoke["frame"]>, r: number
   const diagonal = corner(t, t);
   if (back.length !== p.back || sleeve.length !== p.sleeve) throw new Error(`a raglan's frame of ${back.length} and ${sleeve.length}, its panels ${p.back} and ${p.sleeve}`);
   // From the middle of the back: its right half, a line, a sleeve, a line, the front, a line, a sleeve, a line, the back's left half.
+  return [...back.slice(p.back / 2), diagonal, ...sleeve, diagonal, ...front, diagonal, ...sleeve, diagonal, ...back.slice(0, p.back / 2)];
+};
+
+/** EXPERIMENT: a frame round whose corners are drawn from above on the plan's rows. */
+const planRound = (band: NeckBand, frame: NonNullable<Yoke["frame"]>, r: number, p: NonNullable<Yoke["panels"]>[number]): string[] => {
+  const t = r - frame.top;
+  const spiral = band.spirals[0];
+  const [side, gap] = [spiral[0].length, band.gap];
+  const small = quarterTurned(squareSpiral(7, 7));
+  const tall = quarterTurned(squareSpiral(side, 7));
+  // Each tier's span on the plan.
+  const tiers: [number, number][] = [];
+  frame.plan.forEach((v, i) => {
+    const row = band.rows[frame.top + i].spirals;
+    if (!row) return;
+    if (row.row === 0) tiers.push([v, v]);
+    else tiers[tiers.length - 1][1] = v;
+  });
+  const tierOf = (v: number) => tiers.findIndex(([a, b]) => v >= a && v <= b);
+  const here = band.rows[r].spirals;
+  const cell = (X: number, Y: number, half: "before" | "after" | "line") => {
+    const [tx, ty] = [tierOf(X), tierOf(Y)];
+    if (tx < 0 || ty < 0) return ".";
+    if (tx === ty) return small[Y - tiers[ty][0]][X - tiers[tx][0]];
+    if (!here) return ".";
+    return half === "before" ? tall[here.row][X - tiers[tx][0]] : tall[here.row][6 - (Y - tiers[ty][0])];
+  };
+  const P = frame.plan[t];
+  const panel = (middle: number): string[] => {
+    const out = Array<string>(middle).fill(".");
+    if (here) for (let at = gap; at + side <= middle; at += side + gap) [...spiral[here.row]].forEach((ch, x) => (out[at + x] = ch));
+    const after = Array.from({ length: P }, (_, j) => cell(P, P - 1 - j, "after"));
+    const before = Array.from({ length: P }, (_, e) => cell(e, P, "before"));
+    return [...after, ...out, ...before];
+  };
+  const back = panel(frame.front);
+  const front = panel(frame.front);
+  const sleeve = panel(frame.sleeve);
+  const diagonal = cell(P, P, "line");
+  if (back.length !== p.back || sleeve.length !== p.sleeve) throw new Error(`a raglan's frame of ${back.length} and ${sleeve.length}, its panels ${p.back} and ${p.sleeve}`);
   return [...back.slice(p.back / 2), diagonal, ...sleeve, diagonal, ...front, diagonal, ...sleeve, diagonal, ...back.slice(0, p.back / 2)];
 };
 

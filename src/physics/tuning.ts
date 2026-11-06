@@ -58,6 +58,8 @@ export interface Tuning {
   minimumSteps: number;
   /** Steps after which it gives up and says so. */
   maximumSteps: number;
+  /** EXPERIMENT: how close two stitches side by side may come, as a share of the yarn between them. */
+  squeeze: number;
 }
 
 export const defaultTuning: Tuning = {
@@ -67,10 +69,11 @@ export const defaultTuning: Tuning = {
   damping: 3,
   gravity: 9.81,
   pressure: 5,
-  yokePressure: 5,
-  yokeGravity: 0,
+  yokePressure: Number(process.env.YP ?? 5),
+  yokeGravity: Number(process.env.YG ?? 0),
   restMovement: 0.003,
   restSeconds: 2,
   minimumSteps: 10,
   maximumSteps: 4000,
+  squeeze: Number(process.env.SQUEEZE ?? 0),
 };
