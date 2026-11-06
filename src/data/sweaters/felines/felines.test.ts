@@ -198,6 +198,12 @@ describe.each([raglan, yoke].map((design) => [design.id, design] as const))("%s"
         gold.forEach((round, k) => {
           const [was, now] = [goldRows[k - 1]?.spirals, goldRows[k].spirals];
           if (was && now && was.tier === now.tier) expect(round.length - gold[k - 1].length).toBe(8);
+          // Each line is two stitches climbing its marker, the KBF's new stitch before it and the KFB after, with nothing between: both the corner's diagonal, alike.
+          if (!now || !was) return;
+          const types = round.map((id) => built.stitches[id].type);
+          const lines = types.flatMap((type, j) => (type === "m1" && types[j - 1] === "kbf" && types[j + 1] === "kfb" ? [j] : []));
+          expect(lines.length, `row ${k}`).toBe(4);
+          for (const j of lines) expect(built.stitches[round[j]].slot, `row ${k}`).toBe(built.stitches[round[j + 1]].slot);
         });
       }
     });
