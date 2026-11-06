@@ -510,26 +510,31 @@ they share is in `src/data/sweaters/felines/`.
   tail, alone (`squareSpiral` draws one at any size) - three stitches apart,
   alternate ones mirrored, so that no increase ever comes in one.
   - *On the raglan*, seen from above, the band is a square frame round the
-    neck: its sides the four panels, its corners the lines. Through its row
-    of spirals - 21 stitches by 21 rows - the lines increase every round, so
-    each panel grows a stitch at each corner every round and each line runs
-    out at forty-five degrees in stitches and rows: each corner of the frame
-    is a square as deep as the spirals, the line its diagonal. The rounds
-    above the spirals grow each panel to whole spirals with three stitches
-    of red between them and at either end (two on the front and back and one
-    on each sleeve, in every size), and those are the frame's sides. Each
-    corner is one more spiral: the panel before the line knits the half of
-    it below the diagonal, row by row across to it, the panel after the line
-    the half above, turned, and the line stitch itself the diagonal - so that
-    seen from above the frame is spirals all the way round, corners and all,
-    and no increase ever comes in one except along a corner spiral's
-    diagonal, where the line is. Below the band the lines carry on, each
+    neck: its sides the four panels, its corners the lines. It holds two rows
+    of spirals, each 11 stitches by 11 rows and turned a quarter clockwise,
+    with the same 2-stitch gap everywhere: under the gold stripe, between
+    spirals, between the rows, and after them. Through the spirals the
+    lines increase every round, so each line runs out at forty-five degrees
+    in stitches and rows, and each corner of the frame is a square as deep
+    as both rows and the red between, the line its diagonal. The rounds
+    above the spirals grow each panel to exactly whole spirals with 2
+    stitches of red between them and at either end: four on the front and
+    back and two on each sleeve, in every size. Those are the frame's
+    sides. Each corner holds a spiral wherever a row of them meets a row:
+    three in all. The line cuts the one on its diagonal, the panel before
+    the line knitting the half below and the panel after it the half above,
+    turned. The other two each sit wholly on one side of the line and face
+    as that side's own spirals do. Below the band the lines carry on, each
     panel as often as it still needs.
-  - *On the round yoke*, a circle that grows all the way round, it is three
-    rows of the small spirals, 9 by 7. Each row goes round a whole number of
-    pairs of them, at a count near what the yoke would have half way down
-    it if it grew evenly, one centred on the front; the yoke's increases come
-    in the red rounds between them.
+  - *On the round yoke*, a circle that grows all the way round, its two rows
+    of spirals go round in rays: 9 by 9 near the neck and 13 by 13 below,
+    turned a quarter clockwise, as many in each row, so that they line up
+    out from the neck as a round yoke's stitches fan out. Each row goes
+    round exactly that many spirals and their 2-stitch gaps, one centred on
+    the front - an even number, the one that keeps each row nearest what the
+    yoke would have half way down it if it grew evenly (22 in a medium, at
+    242 and 330 stitches). The yoke's increases come in the red rounds above
+    and between the rows, never in one.
 - **Raglan.** The neck shared a third each to the front and back and a sixth
   to each sleeve, less four raglan line stitches; an increase either side of
   each line, the front and back as often as they need to reach the chest and
@@ -553,7 +558,7 @@ they share is in `src/data/sweaters/felines/`.
   stitch or two, as the round yoke's does, and every design was settled
   again.
 - **Round yoke**, as the Wool Week samplers have: increase rounds in the red
-  between the neck band's rows of spirals, and below it every few rounds,
+  above and between the neck band's rows of spirals, and below it every few rounds,
   each growing the yoke by the same factor - at most a tenth where there are
   rounds enough - its make-ones spread evenly all the way round, to its full
   count half way down; then straight on to the divide, the felines rising into that

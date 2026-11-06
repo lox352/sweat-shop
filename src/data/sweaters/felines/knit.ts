@@ -146,7 +146,7 @@ interface Yoke {
   /** The neck's band, and the row it begins in. */
   trim: { from: number; band: NeckBand };
   /** For a raglan, where its band's spirals begin, and each panel's width there: the frame's straight sides. */
-  frame?: { top: number; front: number; sleeve: number };
+  frame?: { top: number; depth: number; front: number; sleeve: number };
 }
 
 /** Rounds `from` to `to` (of `n`), the `k` of them with an increase spread as evenly as whole rounds allow. */
@@ -190,21 +190,21 @@ const raglanYoke = (c: Counts): Yoke => {
   const n = c.yokeRounds;
   const band = neckBands.raglan;
   const top = band.rows.findIndex((row) => row.spirals);
-  const depth = band.rows.filter((row) => row.spirals).length;
-  const [side, gap] = [band.spiral[0].length, band.gap];
-  if (band.spiral.length !== depth || side !== depth) throw new Error("a raglan's spiral must be as many rows deep as its row of them, and as wide");
-  // A panel's width where the spirals begin: whole spirals with the red between them and at either end, as many as the rounds above can grow it to.
-  const fit = (w0: number) => {
-    let best = w0;
-    for (let k = 1; ; k++) {
-      const need = Math.max(w0, k * side + (k + 1) * gap);
-      const width = need + ((need - w0) % 2);
-      if (width > w0 + 2 * top) break;
-      best = width;
+  // The frame's corners are as deep as its rows of spirals and the red between them.
+  const depth = band.rows.length - [...band.rows].reverse().findIndex((row) => row.spirals) - top;
+  const [side, gap] = [band.spirals[0][0].length, band.gap];
+  if (band.spirals.some((spiral) => spiral.length !== side || spiral[0].length !== side)) throw new Error("a raglan's spirals must all be as many rows deep as stitches wide");
+  // A panel's width where the spirals begin: exactly whole spirals with `gap` between them and at either end, so that every gap round the frame is alike - as many as the rounds above can grow it to and as leave the panel within `limit` at the band's foot.
+  const fit = (w0: number, limit: number) => {
+    let best: number | undefined;
+    for (let k = 1; k * side + (k + 1) * gap <= w0 + 2 * top; k++) {
+      const width = k * side + (k + 1) * gap;
+      if (width >= w0 && (width - w0) % 2 === 0 && width + 2 * (depth - 1) <= limit) best = width;
     }
+    if (best === undefined) throw new Error(`no whole spirals fit a raglan panel of ${w0}`);
     return best;
   };
-  const [frontTop, sleeveTop] = [fit(front0), fit(sleeve0)];
+  const [frontTop, sleeveTop] = [fit(front0, c.half), fit(sleeve0, c.held - 2)];
   const below = top + depth;
   const [frontBelow, sleeveBelow] = [frontTop + 2 * (depth - 1), sleeveTop + 2 * (depth - 1)];
   // The last round before the divide has none, so the divide knits straight on from it.
@@ -224,15 +224,17 @@ const raglanYoke = (c: Counts): Yoke => {
     counts.push(2 * fr + 2 * sl + 4);
   }
   if (fr !== c.half || sl + 2 !== c.held) throw new Error("a raglan that does not reach its divide");
-  return { neck, counts, panels, trim: { from: 0, band }, frame: { top, front: frontTop, sleeve: sleeveTop } };
+  return { neck, counts, panels, trim: { from: 0, band }, frame: { top, depth, front: frontTop, sleeve: sleeveTop } };
 };
 
 /**
- * A round yoke: its neck band's rows of spirals each at a count that goes
- * round a whole number of pairs of them - alternate ones mirrored - near what
- * the yoke would have half way down it if it grew evenly; increase rounds in
- * the red between them, and below the band to the full count FULL_AT of the
- * way down, each growing the yoke by the same factor, at most STEP where
+ * A round yoke: its neck band's rows of spirals in rays - as many spirals in
+ * every row, each row's larger, so that they line up out from the neck -
+ * each row at the count that goes round exactly that many spirals and their
+ * gaps; that many, an even number, as keeps every row nearest what the yoke
+ * would have half way down it if it grew evenly. Increase rounds in the red
+ * above and between them, and below the band to the full count FULL_AT of
+ * the way down, each growing the yoke by the same factor, at most STEP where
  * there are rounds enough.
  */
 const circularYoke = (c: Counts): Yoke => {
@@ -240,20 +242,23 @@ const circularYoke = (c: Counts): Yoke => {
   const n = c.yokeRounds;
   const band = neckBands.yoke;
   const T = band.rows.length;
-  const pair = 2 * (band.spiral[0].length + band.gap);
   const last = Math.max(T + 2, Math.round(n * FULL_AT));
   // What the yoke would have by row i, growing by the same factor each round to the full count by `last`.
   const evenly = (i: number) => c.neck * (total / c.neck) ** (Math.min(i + 1, last) / last);
   // Where the count is fixed: through each row of spirals, from its first round to its last; and from `last` on.
-  const fixed: { from: number; to: number; count: number }[] = [];
+  const fixed: { from: number; to: number; count: number; repeat: number }[] = [];
   band.rows.forEach((row, i) => {
     if (!row.spirals) return;
     const run = fixed[fixed.length - 1];
     if (run && run.to === i && row.spirals.row > 0) run.to = i + 1;
-    else fixed.push({ from: i, to: i + 1, count: 0 });
+    else fixed.push({ from: i, to: i + 1, count: 0, repeat: band.spirals[row.spirals.tier][0].length + band.gap });
   });
-  for (const run of fixed) run.count = Math.max(pair, pair * Math.round(evenly((run.from + run.to - 1) / 2) / pair));
-  fixed.push({ from: last, to: n, count: total });
+  // As many spirals in every row: the even number that keeps each row nearest an evenly grown yoke, and no row narrower than the neck.
+  const misfit = (many: number) => Math.max(...fixed.map((run) => Math.abs(Math.log((many * run.repeat) / evenly((run.from + run.to - 1) / 2)))));
+  let many = 2;
+  for (let k = 2; k * fixed[fixed.length - 1].repeat <= total; k += 2) if (k * fixed[0].repeat >= c.neck && (many * fixed[0].repeat < c.neck || misfit(k) < misfit(many))) many = k;
+  for (const run of fixed) run.count = many * run.repeat;
+  fixed.push({ from: last, to: n, count: total, repeat: 0 });
   const counts: number[] = [];
   let [count, free] = [c.neck, 0];
   for (const run of fixed) {
@@ -384,18 +389,18 @@ const madeAround = (from: number, to: number): boolean[] => {
 };
 
 
-/** Row `r` of a neck band all the way round `n` stitches, a whole number of pairs of its spirals: one centred on the front, alternate ones mirrored. */
+/** Row `r` of a neck band all the way round `n` stitches, a whole number of its spirals and their gaps, one centred on the front. */
 const bandRound = (band: NeckBand, r: number, n: number): string[] => {
   const line = band.rows[r];
   const out: string[] = Array(n).fill(MOTIF_SLOT[line.ground]);
   if (!line.spirals) return out;
-  const w = band.spiral[0].length;
+  const spiral = band.spirals[line.spirals.tier];
+  const w = spiral[0].length;
   const repeat = w + band.gap;
-  if (n % (2 * repeat)) throw new Error(`${n} stitches are not a whole number of pairs of spirals`);
-  const spiral = band.spiral[line.spirals.row].split("");
+  if (n % repeat) throw new Error(`${n} stitches are not a whole number of spirals`);
   for (let t = 0; t < n / repeat; t++) {
     const left = n / 2 - Math.floor(w / 2) + t * repeat;
-    (t % 2 ? [...spiral].reverse() : spiral).forEach((ch, x) => (out[(left + x) % n] = MOTIF_SLOT[ch]));
+    [...spiral[line.spirals.row]].forEach((ch, x) => (out[(left + x) % n] = MOTIF_SLOT[ch]));
   }
   return out;
 };
@@ -403,41 +408,55 @@ const bandRound = (band: NeckBand, r: number, n: number): string[] => {
 
 /**
  * Row `r` of a raglan's neck band, seen from above as a square frame: its
- * ground, or in its row of spirals, `t` rounds into it, the frame's four
- * sides and four corners. Each panel's middle - its width where the spirals
- * began - is a side, whole spirals along it with red between and at either
+ * ground, or, `t` rounds into its rows of spirals, the frame's four sides
+ * and four corners. Each panel's middle - its width where the spirals began -
+ * is a side, whole spirals along it with `gap` between them and at either
  * end; the `t` stitches it has grown by at each end since are its halves of
- * the corners. Each corner is one spiral seen from above, as many rows deep
- * as stitches wide, the line its diagonal: the panel before the line knits
- * the stitches below the diagonal, row `t` across to it, and the panel after
- * the line those above it, turned, the spiral's column `t` down to it; the
- * line stitch itself is the diagonal. A codes string for each stitch of the
- * round, from the middle of the back.
+ * the corners. Each corner is a square as deep as the rows of spirals and
+ * the red between them, the line its diagonal, holding a spiral wherever a
+ * row of them meets a row: the panel before the line knits the corner below
+ * the diagonal, row `t` across to it, and the panel after the line the
+ * corner above it, turned, column `t` down to it; the line stitch itself is
+ * the diagonal. A spiral on the panel before the line's side of it faces as
+ * that panel's own do, and one on the panel after the line's side as that
+ * panel's do. A code for each stitch of the round, from the middle of the
+ * back.
  */
 const frameRound = (band: NeckBand, frame: NonNullable<Yoke["frame"]>, r: number, p: NonNullable<Yoke["panels"]>[number]): string[] => {
-  const line = band.rows[r];
   const n = 2 * p.back + 2 * p.sleeve + 4;
-  if (!line.spirals) return Array<string>(n).fill(line.ground);
   const t = r - frame.top;
-  const spiral = band.spiral;
+  if (t < 0 || t >= frame.depth) return Array<string>(n).fill(band.rows[r].ground);
+  const spiral = band.spirals[0];
   const [side, gap] = [spiral[0].length, band.gap];
+  const rows = band.rows.filter((row) => row.spirals?.row === 0).length;
+  // Where `d` rounds into the rows of spirals falls in a spiral's rows, or -1 in the red between them; and which row of spirals that is.
+  const within = (d: number) => {
+    const k = Math.floor(d / (side + gap));
+    return k < rows && d - k * (side + gap) < side ? d - k * (side + gap) : -1;
+  };
+  const ring = (d: number) => Math.floor(d / (side + gap));
+  // A corner, `x` across towards the line on the panel before it and `y` rounds down.
+  const corner = (x: number, y: number) => {
+    const [ax, ay] = [within(x), within(y)];
+    if (ax < 0 || ay < 0) return ".";
+    return ring(y) >= ring(x) ? spiral[ay][ax] : spiral[ax][side - 1 - ay];
+  };
   // A panel `middle` wide where the spirals began, `t` grown at either end.
   const panel = (middle: number): string[] => {
-    const many = Math.floor((middle - gap) / (side + gap));
-    const left = Math.floor((middle - many * side - (many - 1) * gap) / 2);
     const out = Array<string>(middle).fill(".");
-    for (let k = 0; k < many; k++) [...spiral[t]].forEach((ch, x) => (out[left + k * (side + gap) + x] = ch));
-    const after = Array.from({ length: t }, (_, j) => spiral[t - 1 - j][t]);
-    const before = Array.from({ length: t }, (_, e) => spiral[t][e]);
+    const ay = within(t);
+    if (ay >= 0) for (let at = gap; at + side <= middle; at += side + gap) [...spiral[ay]].forEach((ch, x) => (out[at + x] = ch));
+    const after = Array.from({ length: t }, (_, j) => corner(t, t - 1 - j));
+    const before = Array.from({ length: t }, (_, e) => corner(e, t));
     return [...after, ...out, ...before];
   };
   const back = panel(frame.front);
   const front = panel(frame.front);
   const sleeve = panel(frame.sleeve);
-  const corner = spiral[t][t];
+  const diagonal = corner(t, t);
   if (back.length !== p.back || sleeve.length !== p.sleeve) throw new Error(`a raglan's frame of ${back.length} and ${sleeve.length}, its panels ${p.back} and ${p.sleeve}`);
   // From the middle of the back: its right half, a line, a sleeve, a line, the front, a line, a sleeve, a line, the back's left half.
-  return [...back.slice(p.back / 2), corner, ...sleeve, corner, ...front, corner, ...sleeve, corner, ...back.slice(0, p.back / 2)];
+  return [...back.slice(p.back / 2), diagonal, ...sleeve, diagonal, ...front, diagonal, ...sleeve, diagonal, ...back.slice(0, p.back / 2)];
 };
 
 /** The yoke's rows, each its yarns and its increases, the neck's band and the felines laid in. */
