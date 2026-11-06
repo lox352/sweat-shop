@@ -414,7 +414,7 @@ const bandRound = (band: NeckBand, r: number, n: number): string[] => {
  * line stitch itself is the diagonal. A codes string for each stitch of the
  * round, from the middle of the back.
  */
-const frameRound = (band: NeckBand, frame: NonNullable<Yoke["frame"]>, r: number, p: Panels): string[] => {
+const frameRound = (band: NeckBand, frame: NonNullable<Yoke["frame"]>, r: number, p: NonNullable<Yoke["panels"]>[number]): string[] => {
   const line = band.rows[r];
   const n = 2 * p.back + 2 * p.sleeve + 4;
   if (!line.spirals) return Array<string>(n).fill(line.ground);
