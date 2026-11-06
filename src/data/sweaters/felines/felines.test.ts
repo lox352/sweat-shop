@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "../../../knitting/engine";
+import { consumption } from "../../../types/StitchType";
 import raglan from "../feline-raglan";
 import yoke from "../feline-yoke";
 import { measured } from "../wool-week/strips/design";
 import { type Knitted, countsOf, cuffBandOf, felineOn, gauge, knit } from "./knit";
-import { cuffFeline, hemCreature, neckBand } from "./motifs";
+import { cuffFeline, hemCreature, neckBands } from "./motifs";
 import { CREAM, GROUND, RED, drawFeline } from "./raster";
 import model from "./model.json";
 
@@ -139,7 +140,7 @@ describe.each([raglan, yoke].map((design) => [design.id, design] as const))("%s"
 
     it("draws the felines as wide as most of the front, a margin either side", () => {
       expect(placed.width).toBeLessThanOrEqual(c.half - 4);
-      expect(placed.width).toBeGreaterThan(0.45 * c.half);
+      expect(placed.width).toBeGreaterThan(0.54 * c.half);
     });
 
     it("sets each feline midway between the neck's trim and the waist's, a row either way", () => {
@@ -147,26 +148,44 @@ describe.each([raglan, yoke].map((design) => [design.id, design] as const))("%s"
       expect(placed.above).toBeGreaterThanOrEqual(2);
     });
 
-    it("runs the hem's band round the neck too, as deep, every creature whole in every round however the yoke grows under it", () => {
-      expect(neckBand.length).toBe(hemCreature.length);
+    it("runs a band of squared spirals round the neck as deep as the waist's, every spiral whole in every round of it", () => {
+      const band = knitted.trim.band;
+      expect(band).toBe(neckBands[design.id === yoke.id ? "yoke" : "raglan"]);
+      expect(band.rows.length).toBe(hemCreature.length);
       const built = buildSweater(design, size.id);
       const gold = built.rounds.filter((round, i) => built.roundPieces[i] === "yoke" && round.some((id) => built.stitches[id].slot === "D"));
-      const goldRows = neckBand.filter((row) => row.includes("G"));
+      const goldRows = band.rows.filter((row) => row.ground === "G" || row.spirals);
       expect(gold.length).toBe(goldRows.length);
-      const { creatures } = knitted.neckBand;
-      expect(creatures).toBeGreaterThanOrEqual(4);
-      const slotOf: Record<string, string> = { ".": "B", G: "D", c: "C" };
-      gold.forEach((round, k) => {
-        const line = goldRows[k];
-        if (new Set(line).size === 1) return;
-        // The creature's row, round and round: as many times as there are creatures, each where it was the row before.
-        const slots = round.map((id) => built.stitches[id].slot).join("");
-        const twice = slots + slots;
-        const drawn = [...line].map((ch) => slotOf[ch]).join("");
-        let found = 0;
-        for (let at = 0; at < slots.length; at++) if (twice.startsWith(drawn, at)) found++;
-        expect(found, `round ${k} of the neck band's gold`).toBe(creatures);
+      // Every spiral whole: found by its top row, and its stitches followed down the knitting - each to the stitch worked into it - reading the spiral's rows all the way to its foot, so no increase comes in it.
+      const slotOf: Record<string, string> = { ".": "B", G: "D" };
+      const below = new Map<number, number>();
+      for (const stitch of built.stitches) if (stitch.type !== "m1" && consumption[stitch.type] === 1 && stitch.links.length) below.set(stitch.links[0], stitch.id);
+      const w = band.spiral[0].length;
+      const tiers = new Map<number, number>();
+      goldRows.forEach((line, k) => {
+        if (!line.spirals || line.spirals.row > 0) return;
+        const round = gold[k];
+        const n = round.length;
+        let whole = 0;
+        for (let at = 0; at < n; at++) {
+          let ids = Array.from({ length: w }, (_, x) => round[(at + x) % n]);
+          const read = (ids: number[]) => ids.map((id) => built.stitches[id]?.slot ?? "").join("");
+          const drawn = (r: number) => [...band.spiral[r]].map((ch) => slotOf[ch]).join("");
+          const mirrored = read(ids) !== drawn(0);
+          const as = (r: number) => (mirrored ? [...drawn(r)].reverse().join("") : drawn(r));
+          if (read(ids) !== as(0)) continue;
+          let ok = true;
+          for (let r = 1; r < band.spiral.length && ok; r++) {
+            ids = ids.map((id) => below.get(id) ?? -1);
+            ok = read(ids) === as(r);
+          }
+          if (ok) whole++;
+        }
+        tiers.set(line.spirals.tier, whole);
+        // A round yoke's rows of spirals go round a whole number of pairs of them.
+        if (design.id === yoke.id) expect(n % (2 * (w + band.gap))).toBe(0);
       });
+      for (const whole of tiers.values()) expect(whole).toBeGreaterThanOrEqual(4);
     });
 
     it("puts the tunic's left feline on the front and its right on the back, upright, centred", () => {
