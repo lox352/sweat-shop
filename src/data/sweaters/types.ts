@@ -242,7 +242,11 @@ export interface MarkerAt {
  * new stitches in their place, or place or take off a marker.
  */
 export type DivideSegment =
-  | { work: number }
+  /**
+   * Knit some: in the round's yarn, or, where the round is part of a picture
+   * that runs on through the divide, each stitch in its own.
+   */
+  | { work: number; slots?: SlotId[] }
   | { place: string; begins?: boolean }
   | { remove: string }
   | {

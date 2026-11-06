@@ -3,6 +3,8 @@ import hamefarin from "./hamefarin";
 import paulKlee from "./paul-klee";
 import stripsLinedOldest from "./wool-week-strips-lined-oldest";
 import stripsOnceOldest from "./wool-week-strips-once-oldest";
+import felineRaglan from "./feline-raglan";
+import felineYoke from "./feline-yoke";
 
 /**
  * Every design the site knows about.
@@ -16,6 +18,9 @@ export const sweaters: SweaterPattern[] = [
   // The Wool Week samplers, one file each: see wool-week/strips.
   stripsOnceOldest,
   stripsLinedOldest,
+  // The Nasca felines, one file each: see felines.
+  felineRaglan,
+  felineYoke,
 ];
 
 export const sweaterById = (id: string): SweaterPattern | undefined =>

@@ -453,6 +453,82 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
   drew them, so some floats are long, and are caught behind the work; one
   round of the Shwook Hat is in three colours.
 
+## The Nasca Felines
+
+Two jumpers after a tunic with felines, Nasca, 1st to 3rd century, in the
+Metropolitan Museum of Art: `src/data/sweaters/feline-raglan.ts` and
+`feline-yoke.ts`, each a call to `felineSweater` with a construction; all
+they share is in `src/data/sweaters/felines/`.
+
+- **The felines are a vector model** (`model.json`), traced from a photograph
+  of the tunic, in its pixels. Each corner was placed by eye on the photograph
+  enlarged five to twelve times with a pixel grid, then moved onto the edge
+  between red and ochre the photograph shows: each edge read across every
+  three quarters of a pixel, a straight line fitted through where the colour
+  changes, each corner where its two edges' lines meet. Each feline's body is
+  one polygon, its face a hole and its tail's spiral part of the same
+  outline; its ears' whites triangles, its eyes hexagon rings, its mouth and
+  nose hexagons, its teeth a zigzag; its whiskers straight lines run on into
+  the head, and its claws lines down the middle of each stripe. The right-hand
+  feline's right hand and whiskers are lost under glare in the photograph, and
+  are its left ones mirrored; its right foot is placed by eye.
+- **Drawn as stitches at any size** (`raster.ts`). A feline drawn `w`
+  stitches wide is as many rows tall as its picture is at the gauge - a
+  stitch is wider than a row is tall. Each stitch takes the colour covering
+  most of it, and the cream where it covers a third, so a thin eye ring stays
+  whole. The lines are drawn on the stitch grid itself, a stitch wide: the
+  whiskers; the teeth, a zigzag a row deep; a hand's claws, its outermost
+  chevron as placed and the rest the same shape, at least three stitches
+  apart, as many of its four as the hand has room for; a foot's five, each the
+  outermost moved in, its steep arms two stitches and its level run two rows a
+  claw, so they nest a stitch of cream and one of red. Every claw stitch has
+  red round it, as on the cloth.
+- **The small motifs** (`motifs.ts`), drawn stitch by stitch. The hem band's
+  creature, 40 stitches by 35 rows, from the band's seven clear repeats in the
+  photograph lined up and averaged; it repeats every 111.6 of the
+  photograph's pixels, which is what sets the felines' scale on the tunic.
+  The sleeve ends' feline, 30 by 32: the big one in miniature, gold on red,
+  each part placed where the model puts it at that size.
+- **Laid out** (`knit.ts`), at 32 stitches and 38 rounds to 10cm on the strip
+  samplers' measurements, which leave the felines room. The left-hand feline
+  goes on the front and the right-hand one on the back, centred, each as wide
+  as fits: within the front less two stitches each side, as tall as the body
+  from the divide down to the hem band, and up into the yoke as far as the
+  front is wide enough there, row by row. The hem band goes round the waist
+  where that still leaves the felines at least 72% of the width they would
+  have without it - in every size, as it turns out - its creatures 42
+  stitches or more apart, one under the middle of the front, and the felines
+  stand on it as they do on the tunic. A picture is knitted top first from the
+  neck down, and each round runs left to right as the jumper is seen from the
+  outside, from the middle of the back: so the back's left half ends each
+  round and its right half begins it. The divide is a round of the picture
+  too: the engine knits a stretch of a dividing round each stitch in its own
+  yarn where the pattern gives them.
+- **Raglan.** The neck shared a third each to the front and back and a sixth
+  to each sleeve, less four raglan line stitches; a make-one either side of
+  each line, the front and back as often as they need to reach the chest and
+  the sleeves the upper arm, each spread evenly down the yoke. The front
+  reaches its width only at the divide, so a feline rises into the yoke only
+  as far as each of its rows fits the front there - in a medium, 32 rows,
+  its arms and ears.
+- **Round yoke**, as the Wool Week samplers have: the yoke grows in five or
+  six plain increase rounds, by the same factor each time, to its full count
+  two thirds of the way down, and goes straight on to the divide; the felines'
+  ears and raised arms rise into that straight part.
+- **Sleeves.** Plain, decreasing at the underarm to the cuff band: whole
+  repeats of the small feline with a few stitches of red between, at about a
+  quarter more than the cuff, between two rounds of gold and two of red each
+  side; then a round of red gathers it in to the cuff's rib.
+- **Ribs** in the red, k1 p1: nine rounds at the neck, fourteen at the hem and
+  cuffs.
+- **Colours.** A the ground, B red, C cream, D gold, in three colourways of
+  Spindrift: the tunic's own, each the nearest shade to the photograph's
+  (Yellow Ochre, Poppy, Natural White, Scotch Broom); an undyed ground; and
+  night, on Prussian blue.
+- **What it asks of a knitter.** A picture, not a band: the felines' reds run
+  across the front a hundred stitches and more, and a claw or an eye puts a
+  third colour in a round. The long floats are caught behind the work.
+
 ## The chart's views
 
 Every stitch on a chart stands over the stitches it was worked into, so a

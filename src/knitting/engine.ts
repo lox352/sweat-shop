@@ -387,7 +387,10 @@ export const buildSweater = (
         let closing = false;
         for (const segment of spec.segments) {
           if ("work" in segment) {
-            for (let i = 0; i < segment.work; i++) needles.knit(closing && i === 0 ? "sl1po" : "k1", spec.slot);
+            if (segment.slots && segment.slots.length !== segment.work) {
+              throw new Error(`${section}: a stretch of ${segment.work} stitches is given ${segment.slots.length} yarns`);
+            }
+            for (let i = 0; i < segment.work; i++) needles.knit(closing && i === 0 ? "sl1po" : "k1", segment.slots?.[i] ?? spec.slot);
             closing = false;
           } else if ("place" in segment || "remove" in segment) {
             marker(segment);

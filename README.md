@@ -117,6 +117,13 @@ without them.
   colours, turning into a raglan below them, in sixteen sizes from a child's
   of two to a 6XL, every count the pattern states checked against the
   knitting.
+- **The Nasca Felines**, two jumpers after a Nasca tunic in the Metropolitan
+  Museum of Art: its two great red felines, one on the front and one on the
+  back, traced vertex by vertex from a photograph and drawn as stitches as
+  large as each size has room for, with the tunic's hem band of small gold
+  creatures at the waist and its sleeve ends' small gold felines at the cuffs.
+  One is a raglan, the other a round yoke; both in eight sizes from 86 to
+  156cm finished chest.
 
 See [DESIGN.md](DESIGN.md) for how each was made, and how Hamefarin's sizes
 were graded.
