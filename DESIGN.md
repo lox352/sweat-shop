@@ -508,8 +508,8 @@ they share is in `src/data/sweaters/felines/`.
   turned over, as deep as it, 35 rounds - its gold stripe nearest the neck,
   then the creatures, tails up. The yoke grows all through it, and its
   increases go into the band's red between the creatures, spread evenly
-  round in pairs either side of the middle of the back, never into a
-  creature: so every creature goes round whole, its columns standing over
+  round in pairs either side of the middle of the back, each a KFB in the
+  red (a KBF in the round's other half, mirrored), never into a creature: so every creature goes round whole, its columns standing over
   each other from its first round to its last, the red between them
   widening down the band like the gaps in a round yoke's pattern. As many
   go round as fit 42 stitches apart where they begin - four, in every size -
@@ -521,7 +521,12 @@ they share is in `src/data/sweaters/felines/`.
   would have grown them by then, so below the band the raglan is just as it
   would have been - and through the band its increases go round the
   creatures as a round yoke's do. A knitter places the raglan's markers at
-  the foot of the band.
+  the foot of the band. They are KFBs rather than make-ones from the bar
+  because a make-one hangs from nothing below it: the settle takes the yarn
+  up from one through the stitch beside it, and with the band's increases
+  gathered at the yoke's sides the raglan's waist hung lower under each
+  arm, by eight or nine rounds in the larger sizes; with KFBs it is level
+  to two or three, as before.
 - **Raglan.** The neck shared a third each to the front and back and a sixth
   to each sleeve, less four raglan line stitches; an increase either side of
   each line, the front and back as often as they need to reach the chest and

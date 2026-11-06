@@ -178,12 +178,16 @@ const CREATURE_WIDTH = hemCreature[0].length;
  * counts `counts`, a round for each of its rows.
  *
  * The band carries the yoke's increases, spread evenly round in pairs either
- * side of the middle of the back - between its creatures, never in one: so
+ * side of the middle of the back, each a KFB (or, mirrored, a KBF) in the
+ * band's ground - between its creatures, never in one: so
  * its creatures go round it unbroken however the yoke grows under them, on
  * a raglan as on a round yoke. The creatures are laid in at the band's first
  * row of them, as many as fit at least CREATURE_SPACING apart, an even
  * number, one centred on the front and one on the back; the gaps between
- * them widen down the band.
+ * them widen down the band. Not make-ones from the bar: one hangs from
+ * nothing below it, and the settle takes the yarn up from it through the
+ * stitch beside it instead, so that the yoke's sides, where the band's
+ * increases gather, hung lower than its front and back.
  */
 const knitBand = (neck: number, counts: number[]): { rows: Row[]; creatures: number } => {
   /** Each stitch's creature, and where across it, or -1. */
@@ -195,25 +199,28 @@ const knitBand = (neck: number, counts: number[]): { rows: Row[]; creatures: num
     const [n, to] = [columns.length, counts[r]];
     const k = to - n;
     if (k < 0 || k % 2) throw new Error(`a neck band round from ${n} to ${to}`);
-    // The places a new stitch can go in the round's first half, before its j-th stitch: anywhere but inside a creature.
+    // The places a new stitch can go in the round's first half, before its j-th stitch: between two of the band's ground, worked out of the one before it - or, in the other half, mirrored, the one after.
     const places: number[] = [];
-    for (let j = 1; j < n / 2; j++) if (columns[j - 1].creature < 0 || columns[j - 1].creature !== columns[j].creature) places.push(j);
+    for (let j = 1; j < n / 2; j++) if (columns[j - 1].creature < 0 && columns[j].creature < 0) places.push(j);
     if (k / 2 > places.length) throw new Error(`${k / 2} increases in ${places.length} places in the neck band`);
-    const before = new Set<number>();
+    // Each a KFB in the stitch before it, mirrored in the round's other half as a KBF.
+    const before = new Map<number, boolean>();
     for (let t = 0; t < k / 2; t++) {
       const j = places[Math.floor(((t + 0.5) * places.length) / (k / 2))];
-      before.add(j);
-      before.add(n - j);
+      before.set(j, false);
+      before.set(n - j, true);
     }
     const next: typeof columns = [];
-    const made: boolean[] = [];
+    const [made, kbf]: boolean[][] = [[], []];
     columns.forEach((column, j) => {
       if (before.has(j)) {
         next.push({ creature: -1, at: -1 });
         made.push(true);
+        kbf.push(before.get(j)!);
       }
       next.push(column);
       made.push(false);
+      kbf.push(false);
     });
     columns = next;
     if (r === first) {
@@ -235,7 +242,7 @@ const knitBand = (neck: number, counts: number[]): { rows: Row[]; creatures: num
       });
     }
     const ground = MOTIF_SLOT[line[0]];
-    rows.push({ slots: columns.map((column) => (column.creature >= 0 ? MOTIF_SLOT[line[column.at]] : ground)), made });
+    rows.push({ slots: columns.map((column) => (column.creature >= 0 ? MOTIF_SLOT[line[column.at]] : ground)), made, twice: { kbf } });
   });
   return { rows, creatures };
 };
