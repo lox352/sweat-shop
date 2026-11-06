@@ -493,9 +493,9 @@ they share is in `src/data/sweaters/felines/`.
   samplers' measurements, which leave the felines room. The left-hand feline
   goes on the front and the right-hand one on the back, centred, each as wide
   as fits: within the front less two stitches each side, and midway between
-  the neck's trim and the waist's - as many plain rows above it as below, a
-  row either way - which takes it up into the yoke, as far as the yoke has
-  room for it there. The hem band goes round the waist where that still
+  the neck's band and the waist's - as many plain rows above it as below, a
+  row either way, and eight at least, to stand clear of them - which takes it
+  up into the yoke, as far as the yoke has room for it there. The hem band goes round the waist where that still
   leaves the felines at least 72% of the width they would have without it -
   in every size, as it turns out - its creatures 42 stitches or more apart,
   one under the middle of the front. A picture is knitted top first from the
@@ -504,17 +504,24 @@ they share is in `src/data/sweaters/felines/`.
   round and its right half begins it. The divide is a round of the picture
   too: the engine knits a stretch of a dividing round each stitch in its own
   yarn where the pattern gives them.
-- **The neck's trim**, under the neck's rib and short rows: a round of gold,
-  a round of red, a row of squared spirals - the hem creatures' tails, alone
-  - in gold on red, twelve stitches apart, alternate ones mirrored, then red
-  and gold again: eleven rounds. On the raglan it starts straight after the
-  short rows and is laid out panel by panel, its spirals centred on the
-  front, the back and each sleeve as many as fit each panel at its start, so
-  the raglan lines' increases come between them and never through one. On
-  the round yoke it goes round a whole number of its repeats with no
-  increase in it, the round before it increasing to about nine tenths of
-  what the yoke would have by its end if it grew evenly, so the trim neither
-  pulls in round the yoke nor flares out.
+- **The neck's band**, under the neck's rib and short rows: the hem band
+  turned over, as deep as it, 35 rounds - its gold stripe nearest the neck,
+  then the creatures, tails up. The yoke grows all through it, and its
+  increases go into the band's red between the creatures, spread evenly
+  round in pairs either side of the middle of the back, never into a
+  creature: so every creature goes round whole, its columns standing over
+  each other from its first round to its last, the red between them
+  widening down the band like the gaps in a round yoke's pattern. As many
+  go round as fit 42 stitches apart where they begin - four, in every size -
+  one centred on the front and one on the back. On the raglan this is how
+  the band crosses the lines: at the top of the band a sleeve is narrower
+  than a creature, so a creature would have to sit across a line, and the
+  line's increases would cut through it. The raglan's lines begin instead at
+  the band's foot - the round there is shared out to the panels as the lines
+  would have grown them by then, so below the band the raglan is just as it
+  would have been - and through the band its increases go round the
+  creatures as a round yoke's do. A knitter places the raglan's markers at
+  the foot of the band.
 - **Raglan.** The neck shared a third each to the front and back and a sixth
   to each sleeve, less four raglan line stitches; an increase either side of
   each line, the front and back as often as they need to reach the chest and
@@ -537,8 +544,8 @@ they share is in `src/data/sweaters/felines/`.
   into, as it does the first; the felines' raglan waist hangs level to a
   stitch or two, as the round yoke's does, and every design was settled
   again.
-- **Round yoke**, as the Wool Week samplers have: after the trim, an increase
-  round every few rounds, each growing the yoke by the same factor, at most
+- **Round yoke**, as the Wool Week samplers have: from the neck, an increase
+  round every few rounds - the band's between its creatures - each growing the yoke by the same factor, at most
   a tenth, its make-ones spread evenly all the way round, to its full count
   half way down; then straight on to the divide, the felines rising into that
   straight half. A round yoke grows all the way round, so it can have no

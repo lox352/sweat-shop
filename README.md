@@ -120,10 +120,9 @@ without them.
 - **The Nasca Felines**, two jumpers after a Nasca tunic in the Metropolitan
   Museum of Art: its two great red felines, one on the front and one on the
   back, traced vertex by vertex from a photograph and drawn as stitches as
-  large as each size has room for, midway between a neck trim of the hem
-  creatures' spiralling tails and the tunic's hem band of small gold
-  creatures at the waist, with its sleeve ends' small gold felines at the
-  cuffs.
+  large as each size has room for, midway between the tunic's hem band of
+  small gold creatures at the waist and the same band again round the neck,
+  with its sleeve ends' small gold felines at the cuffs.
   One is a raglan, the other a round yoke; both in eight sizes from 86 to
   156cm finished chest.
 
