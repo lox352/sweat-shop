@@ -1,3 +1,4 @@
+import traced from "./traced.json";
 import model from "./model.json";
 
 /**
@@ -134,6 +135,69 @@ const snapped = (claws: Point[][], axis: 0 | 1, key: number, pitch?: number): Po
   return claws.map((c) => c.map((pt) => (axis === 0 ? [a * pt[0] + b, pt[1]] : [pt[0], a * pt[1] + b]) as Point));
 };
 
+/**
+ * A feline's claws drawn into its grid, in stitch coordinates. Hands: the
+ * outermost chevron as placed, the rest the same, each a whole number of
+ * stitches further in - at least three, so that they never run together -
+ * and as many of the four as the hand has room for at that. Feet: each claw
+ * the outermost as placed, moved in so they nest a stitch of cream and one of
+ * red. Red round every claw stitch, then the claws in cream.
+ */
+const clawsInto = (grid: number[][], hands: Point[][][], feet: Point[][][]) => {
+  const [height, width] = [grid.length, grid[0].length];
+  const inside = (c: number, r: number) => c >= 0 && r >= 0 && c < width && r < height;
+  const claw: boolean[][] = grid.map((row) => row.map(() => false));
+  const mark = (cells: Point[]) => cells.forEach(([c, r]) => inside(c, r) && (claw[r][c] = true));
+
+  // Hands: the outermost chevron as placed, the rest the same, each a whole number of stitches further in - at least
+  // three, so that they never run together - and as many of the four as the hand has room for at that.
+  hands.forEach((hand, h) => {
+    const inward = h === 0 ? 1 : -1;
+    const claws = snapped(hand, 0, 1).sort((a, b) => (a[1][0] - b[1][0]) * inward);
+    const first = rowwise(claws[0]);
+    const tips = claws.map((c) => c[1][0]);
+    const pitch = Math.max(3, Math.round(Math.abs((tips[tips.length - 1] - tips[0]) / (tips.length - 1))));
+    const across = (cells: Point[]) => Math.max(...cells.map(([c]) => c * inward)) - Math.min(...cells.map(([c]) => c * inward));
+    const room = across(claws.flatMap(rowwise));
+    let n = claws.length;
+    while (n > 1 && (n - 1) * pitch + across(first) > room + 1) n--;
+    for (let i = 0; i < n; i++) mark(first.map(([c, r]) => [c + inward * pitch * i, r]));
+  });
+
+  // Feet: each claw the outermost as placed, moved in - its steep arms two stitches a claw towards the back of the
+  // foot, its level run two rows a claw up - so they nest a stitch of cream and one of red, as many as the foot has.
+  feet.forEach((foot) => {
+    const claws = snapped(foot, 1, 2, 2);
+    const [top, tip, corner, back] = claws[0];
+    const inward = Math.sign(back[0] - tip[0]) || 1;
+    const steep = rowwise([top, tip, corner]);
+    const cornerRow = Math.floor(corner[1]);
+    const topRow = Math.floor(top[1]);
+    const backCol = Math.floor(back[0]);
+    for (let i = 0; i < claws.length; i++) {
+      const level = cornerRow - 2 * i;
+      if (level <= topRow) break;
+      // Its steep arms, above its level run.
+      const arms = steep.filter(([, r]) => r < level).map(([c, r]): Point => [c + inward * 2 * i, r]);
+      mark(arms);
+      // Its level run, from where its arms come down to the back of the foot.
+      const lowest = arms.filter(([, r]) => r === level - 1).map(([c]) => c);
+      const from = lowest.length ? (inward > 0 ? Math.max(...lowest) : Math.min(...lowest)) : Math.floor(corner[0]) + inward * 2 * i;
+      for (let c = from; inward > 0 ? c <= backCol : c >= backCol; c += inward) mark([[c, level]]);
+    }
+  });
+
+  // Red round every claw stitch, then the claws in cream.
+  for (let r = 0; r < height; r++)
+    for (let c = 0; c < width; c++) {
+      if (!claw[r][c]) continue;
+      for (let dr = -1; dr <= 1; dr++)
+        for (let dc = -1; dc <= 1; dc++) if (inside(c + dc, r + dr) && grid[r + dr][c + dc] === GROUND) grid[r + dr][c + dc] = RED;
+    }
+  for (let r = 0; r < height; r++) for (let c = 0; c < width; c++) if (claw[r][c]) grid[r][c] = CREAM;
+
+};
+
 /** A feline `width` stitches wide, as stitches; or, `sizeOnly`, only how tall it is. */
 export const drawFeline = (id: FelineId, width: number, gauge: { stitches: number; rounds: number }, sizeOnly = false): Drawn => {
   const f = model[id];
@@ -181,55 +245,7 @@ export const drawFeline = (id: FelineId, width: number, gauge: { stitches: numbe
   // The lines, in stitch coordinates: x across in stitches, y down in rows.
   const st = (p: number[]): Point => [(p[0] - x0) * sx, (p[1] - y0) * sy];
   const inside = (c: number, r: number) => c >= 0 && r >= 0 && c < width && r < height;
-  const claw: boolean[][] = grid.map((row) => row.map(() => false));
-  const mark = (cells: Point[]) => cells.forEach(([c, r]) => inside(c, r) && (claw[r][c] = true));
-
-  // Hands: the outermost chevron as placed, the rest the same, each a whole number of stitches further in - at least
-  // three, so that they never run together - and as many of the four as the hand has room for at that.
-  f.hands.forEach((hand, h) => {
-    const inward = h === 0 ? 1 : -1;
-    const claws = snapped(hand.map((c) => c.map(st)), 0, 1).sort((a, b) => (a[1][0] - b[1][0]) * inward);
-    const first = rowwise(claws[0]);
-    const tips = claws.map((c) => c[1][0]);
-    const pitch = Math.max(3, Math.round(Math.abs((tips[tips.length - 1] - tips[0]) / (tips.length - 1))));
-    const across = (cells: Point[]) => Math.max(...cells.map(([c]) => c * inward)) - Math.min(...cells.map(([c]) => c * inward));
-    const room = across(claws.flatMap(rowwise));
-    let n = claws.length;
-    while (n > 1 && (n - 1) * pitch + across(first) > room + 1) n--;
-    for (let i = 0; i < n; i++) mark(first.map(([c, r]) => [c + inward * pitch * i, r]));
-  });
-
-  // Feet: each claw the outermost as placed, moved in - its steep arms two stitches a claw towards the back of the
-  // foot, its level run two rows a claw up - so they nest a stitch of cream and one of red, as many as the foot has.
-  f.feet.forEach((foot) => {
-    const claws = snapped(foot.map((c) => c.map(st)), 1, 2, 2);
-    const [top, tip, corner, back] = claws[0];
-    const inward = Math.sign(back[0] - tip[0]) || 1;
-    const steep = rowwise([top, tip, corner]);
-    const cornerRow = Math.floor(corner[1]);
-    const topRow = Math.floor(top[1]);
-    const backCol = Math.floor(back[0]);
-    for (let i = 0; i < claws.length; i++) {
-      const level = cornerRow - 2 * i;
-      if (level <= topRow) break;
-      // Its steep arms, above its level run.
-      const arms = steep.filter(([, r]) => r < level).map(([c, r]): Point => [c + inward * 2 * i, r]);
-      mark(arms);
-      // Its level run, from where its arms come down to the back of the foot.
-      const lowest = arms.filter(([, r]) => r === level - 1).map(([c]) => c);
-      const from = lowest.length ? (inward > 0 ? Math.max(...lowest) : Math.min(...lowest)) : Math.floor(corner[0]) + inward * 2 * i;
-      for (let c = from; inward > 0 ? c <= backCol : c >= backCol; c += inward) mark([[c, level]]);
-    }
-  });
-
-  // Red round every claw stitch, then the claws in cream.
-  for (let r = 0; r < height; r++)
-    for (let c = 0; c < width; c++) {
-      if (!claw[r][c]) continue;
-      for (let dr = -1; dr <= 1; dr++)
-        for (let dc = -1; dc <= 1; dc++) if (inside(c + dc, r + dr) && grid[r + dr][c + dc] === GROUND) grid[r + dr][c + dc] = RED;
-    }
-  for (let r = 0; r < height; r++) for (let c = 0; c < width; c++) if (claw[r][c]) grid[r][c] = CREAM;
+  clawsInto(grid, f.hands.map((hand) => hand.map((c) => c.map(st))), f.feet.map((foot) => foot.map((c) => c.map(st))));
 
   // Whiskers, one stitch wide, in red.
   const draw = (line: Point[], colour: number) => {
@@ -241,5 +257,84 @@ export const drawFeline = (id: FelineId, width: number, gauge: { stitches: numbe
   const cy = teeth.reduce((s, p) => s + p[1], 0) / teeth.length;
   draw(teeth.map(([x], i) => [x, cy + (i % 2 ? 0.5 : -0.5)] as Point), f.teeth.yarn === "red" ? RED : GROUND);
 
+  return { grid, width, height };
+};
+
+
+
+type Traced = typeof traced;
+
+/** How much of each stitch these polygons cover, by the even-odd rule: a share for every stitch, rows top first. */
+const coverage = (polys: Point[][], box: number[], sx: number, sy: number, width: number, height: number): number[][] => {
+  const out = Array.from({ length: height }, () => Array<number>(width).fill(0));
+  for (let j = 0; j < height * K; j++) {
+    const xs = crossings(polys, box[1] + (j + 0.5) / (K * sy));
+    for (let k = 0; k + 1 < xs.length; k += 2) {
+      const from = Math.max(0, Math.ceil((xs[k] - box[0]) * sx * K - 0.5));
+      const to = Math.min(width * K - 1, Math.floor((xs[k + 1] - box[0]) * sx * K - 0.5));
+      for (let i = from; i <= to; i++) out[Math.floor(j / K)][Math.floor(i / K)] += 1 / (K * K);
+    }
+  }
+  return out;
+};
+
+/**
+ * EXPERIMENT: a feline from the tracings (traced.json), `width` stitches
+ * wide. Its shapes are sampled as the model's are - each stitch the colour
+ * covering most of it, cream where it covers a third - the face's darker tan
+ * knitted in the ground. Its whiskers and teeth are thinner than a stitch,
+ * so a stitch takes them where they cover a quarter of it. Its claws are
+ * drawn as the model's are, along the middle of each traced claw.
+ */
+export const drawTraced = (id: keyof Traced, width: number, gauge: { stitches: number; rounds: number }, sizeOnly = false): Drawn => {
+  const f = traced[id];
+  const box = f.box;
+  const sx = width / (box[2] - box[0]);
+  const sy = (sx * gauge.rounds) / gauge.stitches;
+  const height = Math.round((box[3] - box[1]) * sy);
+  if (sizeOnly) return { grid: [], width, height };
+  const pts = (poly: number[][]) => poly as Point[];
+  const layers: [Point[][], number][] = [
+    [[pts(f.body), pts(f.face)], RED],
+    [f.ears.map(pts), CREAM],
+    ...f.eyes.flatMap((e): [Point[][], number][] => [
+      [[pts(e.outer)], CREAM],
+      [[pts(e.inner)], e.pupil === "red" ? RED : GROUND],
+    ]),
+    [[pts(f.nose)], RED],
+    [[pts(f.mouth)], CREAM],
+  ];
+  const W = width * K;
+  const samples = new Uint8Array(W * height * K);
+  for (let j = 0; j < height * K; j++) {
+    const y = box[1] + (j + 0.5) / (K * sy);
+    for (const [polys, colour] of layers) {
+      const xs = crossings(polys, y);
+      for (let k = 0; k + 1 < xs.length; k += 2) {
+        const from = Math.max(0, Math.ceil((xs[k] - box[0]) * sx * K - 0.5));
+        const to = Math.min(W - 1, Math.floor((xs[k + 1] - box[0]) * sx * K - 0.5));
+        for (let i = from; i <= to; i++) samples[j * W + i] = colour;
+      }
+    }
+  }
+  const grid: number[][] = [];
+  for (let r = 0; r < height; r++) {
+    const row: number[] = [];
+    for (let c = 0; c < width; c++) {
+      const n = [0, 0, 0];
+      for (let j = 0; j < K; j++) for (let i = 0; i < K; i++) n[samples[(r * K + j) * W + c * K + i]]++;
+      const most = n.indexOf(Math.max(...n));
+      row.push(n[CREAM] >= 0.34 * K * K ? CREAM : most);
+    }
+    grid.push(row);
+  }
+  // The whiskers and the teeth, thinner than a stitch.
+  const thin = (polys: number[][][], colour: number, share: number) =>
+    coverage(polys.map(pts), box, sx, sy, width, height).forEach((row, r) => row.forEach((v, c) => v >= share && (grid[r][c] = colour)));
+  f.whiskers.forEach((w) => thin([w], RED, 0.25));
+  thin([f.teeth.polygon], f.teeth.yarn === "red" ? RED : GROUND, 0.25);
+  // The claws, along the middle of each.
+  const st = (p: number[]): Point => [(p[0] - box[0]) * sx, (p[1] - box[1]) * sy];
+  clawsInto(grid, f.hands.map((hand) => hand.map((c) => c.map(st))), f.feet.map((foot) => foot.map((c) => c.map(st))));
   return { grid, width, height };
 };
