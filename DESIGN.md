@@ -526,6 +526,19 @@ they share is in `src/data/sweaters/felines/`.
     turned. The other two each sit wholly on one side of the line and face
     as that side's own spirals do. Below the band the lines carry on, each
     panel as often as it still needs.
+  - *The line is two stitches.* Knitted, each round runs straight through a
+    line where, from above, it turns its corner: the square folds shut along
+    its diagonal, and each ring of the corner's spiral becomes a chevron
+    meeting itself at the line. That only reads if the diagonal is the
+    stitches that climb the line. Each round two do, side by side: the KBF's
+    new stitch before the marker and the KFB after it, each worked into the
+    one a round up. So both carry the diagonal - one stitch of the picture
+    knitted as two - and each panel gives one at either end: it is two
+    stitches wider than its spirals and gaps, an even number as a raglan
+    panel always is. The raglan first had a plain line stitch between its
+    increases; that and the KFB climbed together, the chart gave the
+    diagonal to the line stitch alone, and every ring met the line a stitch
+    out of step on its far side.
   - *On the round yoke*, a circle that grows all the way round, its two rows
     of spirals go round in rays: 9 by 9 near the neck and 13 by 13 below,
     turned a quarter clockwise, as many in each row, so that they line up
@@ -536,14 +549,15 @@ they share is in `src/data/sweaters/felines/`.
     242 and 330 stitches). The yoke's increases come in the red rounds above
     and between the rows, never in one.
 - **Raglan.** The neck shared a third each to the front and back and a sixth
-  to each sleeve, less four raglan line stitches; an increase either side of
-  each line, the front and back as often as they need to reach the chest and
+  to each sleeve, a marker between each two - placed in the neck's first
+  round and taken off at the divide, as Paul Klee's are; an increase either
+  side of each marker, the front and back as often as they need to reach the chest and
   the sleeves the upper arm, each spread evenly down the yoke. The front
   reaches its width only at the divide, so a feline rises into the yoke only
   as far as each of its rows fits the front there. Each panel grows out of
-  its own stitches either side of a line, as Paul Klee's does: a KBF in its
-  last stitch before the line and a KFB in its first after it, each new
-  stitch beside the line and leaning away from it.
+  its own stitches either side of a marker, as Paul Klee's does: a KBF in its
+  last stitch before the marker and a KFB in its first after it, the new
+  stitches leaning away from it.
 - **A level waist.** The raglans settled with the waist dipping under each
   arm - on one side of the arm, the back before the right sleeve and the
   front before the left. The settle holds every stitch within the length of
