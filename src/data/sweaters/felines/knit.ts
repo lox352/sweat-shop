@@ -8,7 +8,8 @@ import { type FelineId, GROUND, drawFeline } from "./raster";
  * the front, the other on the back, each as large as its piece has room for
  * and midway between a band of squared spirals round the neck and the
  * tunic's hem band round the waist, where there is room for the band too;
- * and the sleeve ends' felines round each cuff. See motifs.ts for the neck's
+ * the sleeve ends' felines round each cuff; and above each cuff's band two of
+ * the hem band's creatures, red on the ground. See motifs.ts for the neck's
  * band on each construction.
  *
  * Two constructions:
@@ -58,6 +59,14 @@ const MOTIF_SLOT: Record<string, string> = { o: "A", ".": "B", c: "C", G: "D" };
 
 /** The hem band at the waist, and the gap between a feline and the rib where there is none. */
 const HEM_ROWS = hemCreature.length;
+/** The hem's creature alone, for the sleeves - without the band's red, its gold stripe or its blank margins: its rows 5 to 26, stitches 2 to 37. */
+export const SLEEVE_CREATURE = hemCreature.slice(4, 26).map((row) => row.slice(2, 38));
+/** How far apart the sleeve's two creatures may come at least, and how many plain rounds go between them and the cuff band, and above them. */
+const SLEEVE_CREATURE_GAP = 4;
+const ROUNDS_TO_CUFF_BAND = 6;
+const ROUNDS_ABOVE_CREATURES = 3;
+/** Where the sleeve has to taper below its creatures - a narrow size's cuff band is less than they need - a decrease every this many rounds. */
+const TAPER_BELOW_EVERY = 4;
 const GAP_ABOVE_RIB = 6;
 /** Stitches left plain either side of a feline, at the narrowest its piece is beside it. */
 const MARGIN = 2;
@@ -615,6 +624,8 @@ export interface Knitted {
   placed: Omit<Placed, "front" | "back">;
   counts: Counts;
   cuffBand: { count: number; repeats: number };
+  /** The sleeve's creatures: the taper's round their first row is knitted in, and the sleeve's count there. */
+  sleeveCreatures: { from: number; count: number };
   /** The neck's band, and the yoke row after the short rows it begins in. */
   trim: Yoke["trim"];
 }
@@ -709,15 +720,35 @@ export const knit = (size: Measured, construction: Construction, prefix: string)
   const taper = c.sleeveRounds - 1 - bandRows - 1;
   const decreases = (c.upperArm - band.count) / 2;
   if (!Number.isInteger(decreases) || decreases < 0) throw new Error(`a sleeve of ${c.upperArm} cannot taper to a band of ${band.count}`);
-  const decreaseAt = spread(decreases, taper - 4, Math.min(6, Math.floor(taper / 6)), taper - 4);
+  /*
+   * Two of the hem's creatures round the sleeve, half a round apart on the
+   * front and the back of the arm, as low as they go: ROUNDS_TO_CUFF_BAND
+   * above the cuff band where the sleeve is wide enough there for both and
+   * their gaps, and otherwise as much higher as its last few decreases need,
+   * one every TAPER_BELOW_EVERY rounds below them. A decrease round can't carry
+   * a picture, so the taper pauses through their rows and goes on either side.
+   */
+  const creatureRows = SLEEVE_CREATURE.length;
+  const creaturesCount = Math.max(band.count, 2 * (SLEEVE_CREATURE[0].length + SLEEVE_CREATURE_GAP));
+  const below = (creaturesCount - band.count) / 2;
+  const creaturesFrom = taper - ROUNDS_TO_CUFF_BAND - creatureRows - TAPER_BELOW_EVERY * below;
+  const taperFrom = Math.min(6, Math.floor(taper / 6));
+  const belowFrom = creaturesFrom + creatureRows + 2;
+  const decreaseAt = new Set([
+    ...spread(decreases - below, creaturesFrom - ROUNDS_ABOVE_CREATURES, taperFrom),
+    ...(below ? spread(below, belowFrom + TAPER_BELOW_EVERY * below, belowFrom) : []),
+  ]);
   const sw = new Writer(`${prefix}sleeve`, "Sleeve");
   let n = c.upperArm;
   for (let i = 0; i < taper; i++) {
+    const r = i - creaturesFrom;
     if (decreaseAt.has(i)) {
       n -= 2;
       sw.push({ type: "shaping", slot: GROUND_SLOT, ops: underarmDecrease, to: n });
-    } else sw.row(plainRow(n), n);
+    } else if (r >= 0 && r < creatureRows) sw.row({ slots: sleeveCreaturesRound(r, n) }, n);
+    else sw.row(plainRow(n), n);
   }
+  if (n !== band.count) throw new Error(`a sleeve that tapers to ${n}, not its band's ${band.count}`);
   const cuffChart: Chart = { id: `${prefix}cuff`, name: "Cuff band", rows: cuffRows(band.gap) };
   sw.push({ type: "chart", chart: cuffChart.id, rows: [1, cuffChart.rows.length] });
   if (band.count > c.cuff) sw.push({ type: "shaping", slot: RED_SLOT, ops: decreaseEvenly(band.count, c.cuff), to: c.cuff });
@@ -765,6 +796,7 @@ export const knit = (size: Measured, construction: Construction, prefix: string)
     placed: summary,
     counts: c,
     cuffBand: { count: band.count, repeats: band.repeats },
+    sleeveCreatures: { from: creaturesFrom, count: creaturesCount },
     trim: yoke.trim,
   };
 };
@@ -782,6 +814,24 @@ const hemRow = (r: number, n: number, frontMiddle: number): string[] => {
   for (let k = 0; k < creatures; k++) {
     const start = Math.round(frontMiddle - w / 2 + (k * n) / creatures);
     for (let x = 0; x < w; x++) out[(((start + x) % n) + n) % n] = MOTIF_SLOT[row[x]];
+  }
+  return out;
+};
+
+/**
+ * A round of the sleeve's creatures, `n` stitches from the underarm: one on
+ * the front of the arm and one on the back, a quarter of the way round from
+ * the underarm each way, in red with their eyes and toes in cream as on the
+ * hem, on the ground.
+ */
+const sleeveCreaturesRound = (r: number, n: number): string[] => {
+  const row = SLEEVE_CREATURE[r];
+  const out: string[] = Array(n).fill(GROUND_SLOT);
+  for (const centre of [n / 4, (3 * n) / 4]) {
+    const start = Math.round(centre - row.length / 2);
+    [...row].forEach((ch, x) => {
+      if (ch !== ".") out[start + x] = ch === "c" ? "C" : RED_SLOT;
+    });
   }
   return out;
 };
