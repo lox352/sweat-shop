@@ -58,6 +58,8 @@ const MOTIF_SLOT: Record<string, string> = { o: "A", ".": "B", c: "C", G: "D" };
 
 /** The hem band at the waist, and the gap between a feline and the rib where there is none. */
 const HEM_ROWS = hemCreature.length;
+/** The hem's creature alone, without the band's red, its gold stripe or its blank margins: rows 5 to 26, stitches 2 to 37. */
+const SLEEVE_CREATURE = hemCreature.slice(4, 26).map((row) => row.slice(2, 38));
 const GAP_ABOVE_RIB = 6;
 /** Stitches left plain either side of a feline, at the narrowest its piece is beside it. */
 const MARGIN = 2;
@@ -709,13 +711,40 @@ export const knit = (size: Measured, construction: Construction, prefix: string)
   const taper = c.sleeveRounds - 1 - bandRows - 1;
   const decreases = (c.upperArm - band.count) / 2;
   if (!Number.isInteger(decreases) || decreases < 0) throw new Error(`a sleeve of ${c.upperArm} cannot taper to a band of ${band.count}`);
-  const decreaseAt = spread(decreases, taper - 4, Math.min(6, Math.floor(taper / 6)), taper - 4);
+  const taperFrom = Math.min(6, Math.floor(taper / 6));
+  let decreaseAt = spread(decreases, taper - 4, taperFrom, taper - 4);
+  // EXPERIMENT (SLEEVE_CREATURES=top|sides): two of the hem's creatures round each sleeve, red on the ground, above the cuff band, the taper paused through their rows.
+  const placing = process.env.SLEEVE_CREATURES;
+  let window: { from: number; n: number } | undefined;
+  if (placing) {
+    const H = SLEEVE_CREATURE.length;
+    const [above, below, every] = [3, 6, 4];
+    // At least 80 stitches round: two creatures 36 wide, 4 apart at the narrowest.
+    const at = Math.max(band.count, 2 * (SLEEVE_CREATURE[0].length + 4));
+    const after = (at - band.count) / 2;
+    const from = taper - below - H - every * after;
+    const before = [...spread((c.upperArm - at) / 2, from - above, taperFrom)];
+    const later = after ? [...spread(after, from + H + 2 + every * after, from + H + 2)] : [];
+    decreaseAt = new Set([...before, ...later]);
+    window = { from, n: at };
+  }
   const sw = new Writer(`${prefix}sleeve`, "Sleeve");
   let n = c.upperArm;
   for (let i = 0; i < taper; i++) {
     if (decreaseAt.has(i)) {
       n -= 2;
       sw.push({ type: "shaping", slot: GROUND_SLOT, ops: underarmDecrease, to: n });
+    } else if (window && i >= window.from && i < window.from + SLEEVE_CREATURE.length) {
+      const row = SLEEVE_CREATURE[i - window.from];
+      const slots: string[] = Array(n).fill(GROUND_SLOT);
+      const centres = placing === "sides" ? [n / 4, (3 * n) / 4] : [n / 2, 0];
+      for (const centre of centres) {
+        const start = Math.round(centre - row.length / 2);
+        [...row].forEach((ch, x) => {
+          if (ch !== ".") slots[(((start + x) % n) + n) % n] = ch === "c" ? (process.env.CREAM === "none" ? GROUND_SLOT : "C") : RED_SLOT;
+        });
+      }
+      sw.row({ slots }, n);
     } else sw.row(plainRow(n), n);
   }
   const cuffChart: Chart = { id: `${prefix}cuff`, name: "Cuff band", rows: cuffRows(band.gap) };
