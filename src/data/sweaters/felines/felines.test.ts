@@ -4,7 +4,7 @@ import { consumption } from "../../../types/StitchType";
 import raglan from "../feline-raglan";
 import yoke from "../feline-yoke";
 import { measured } from "../wool-week/strips/design";
-import { type Knitted, countsOf, cuffBandOf, felineOn, gauge, knit } from "./knit";
+import { type Knitted, SLEEVE_CREATURE, countsOf, cuffBandOf, felineOn, gauge, knit } from "./knit";
 import { cuffFeline, hemCreature, neckBands } from "./motifs";
 import { CREAM, GROUND, RED, drawFeline } from "./raster";
 import model from "./model.json";
@@ -205,6 +205,32 @@ describe.each([raglan, yoke].map((design) => [design.id, design] as const))("%s"
           expect(lines.length, `row ${k}`).toBe(4);
           for (const j of lines) expect(built.stitches[round[j]].slot, `row ${k}`).toBe(built.stitches[round[j + 1]].slot);
         });
+      }
+    });
+
+    it("puts two of the hem's creatures round each sleeve, red on the ground, front and back, just above the cuff band", () => {
+      const built = buildSweater(design, size.id);
+      const { from, count } = knitted.sleeveCreatures;
+      expect(count).toBeGreaterThanOrEqual(2 * (SLEEVE_CREATURE[0].length + 4));
+      const slotOf: Record<string, string> = { ".": "A", G: "B", c: "C" };
+      for (const piece of ["sleeve-left", "sleeve-right"]) {
+        const rounds = built.rounds.filter((_, i) => built.roundPieces[i] === piece);
+        // The pick-up round, then the taper's rounds.
+        const at = (r: number) => rounds[1 + from + r].map((id) => built.stitches[id].slot);
+        SLEEVE_CREATURE.forEach((line, r) => {
+          const round = at(r);
+          expect(round.length, `${piece} row ${r}`).toBe(count);
+          // A quarter of the way round from the underarm either way: the front of the arm and the back.
+          for (const centre of [count / 4, (3 * count) / 4]) {
+            const start = Math.round(centre - line.length / 2);
+            expect(round.slice(start, start + line.length).join(""), `${piece} row ${r}`).toBe([...line].map((ch) => slotOf[ch]).join(""));
+          }
+        });
+        // Plain ground either side of them, and the cuff band a few rounds below: six in all but the narrowest sizes.
+        const band = rounds.findIndex((round) => round.some((id) => built.stitches[id].slot === "D"));
+        const gap = band - (1 + from + SLEEVE_CREATURE.length);
+        expect(gap).toBeGreaterThanOrEqual(6);
+        if (knitted.cuffBand.count >= count) expect(gap).toBe(6);
       }
     });
 

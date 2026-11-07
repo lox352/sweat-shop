@@ -584,6 +584,16 @@ they share is in `src/data/sweaters/felines/`.
   repeats of the small feline with a few stitches of red between, at about a
   quarter more than the cuff, between two rounds of gold and two of red each
   side; then a round of red gathers it in to the cuff's rib.
+- **The sleeves' creatures.** Above each cuff band two of the hem band's
+  creatures, on their own - no band behind them - in red straight on the
+  ground, their eyes and toes cream as on the hem: 36 stitches by 22 rounds,
+  half a round apart on the front and the back of the arm, so with the arms
+  down each sleeve shows one from the front and one from behind. They need 80
+  stitches at least, 4 between them at their nearest. A decrease round can't
+  carry a picture, so the taper pauses through their rounds: they sit six
+  rounds above the band where the sleeve is wide enough there (M and up), and
+  in XS, whose band is 74, as much higher as its last three decreases need,
+  one every fourth round below them.
 - **Ribs** in the red, k1 p1: nine rounds at the neck, fourteen at the hem and
   cuffs.
 - **Colours.** A the ground, B red, C cream, D gold, in three colourways of
