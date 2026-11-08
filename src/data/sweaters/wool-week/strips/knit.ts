@@ -398,7 +398,14 @@ const tiled = (w: Writer, rows: Row[], start: number, want: (i: number) => numbe
  */
 const grown = (w: Writer, rows: Row[], from: number, to: number, want: (i: number) => number): number => {
   const steps = growing(rows, { from, to, want });
-  const places = increasesOf(steps, from);
+  // Each round's yarns, stitch by stitch, as it is knitted (see Writer): for its make-ones to be put between two of one yarn where they can.
+  const yarnsOf = (i: number): string[] => {
+    const [r, s] = [rows[i], steps[i]];
+    if (!s.map) return Array<string>(s.count).fill(slotOfRound(r));
+    const tile = s.map.map((x) => tileOf(r as ChartRow)[x]);
+    return Array.from({ length: s.count }, (_, j) => tile[j % tile.length]);
+  };
+  const places = increasesOf(steps, from, (i) => (i > 0 ? yarnsOf(i - 1) : undefined));
   let count = from;
   let map: number[] | undefined;
   steps.forEach((s, i) => {

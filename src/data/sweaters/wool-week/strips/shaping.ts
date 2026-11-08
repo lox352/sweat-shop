@@ -500,41 +500,106 @@ export const added = (before: number[], after: number[]): Set<number> => {
 };
 
 /**
+ * How many of make-ones at `places` in a round - in order - pick up the bar
+ * between two stitches of unlike yarns in `below`, the round they are worked
+ * on: harder to find and to pick up than a bar between two of one yarn. The
+ * one at place p has p less those before it of the round below's stitches
+ * before it, and picks up the bar after the last of them.
+ */
+export const unlikeUnder = (places: number[], below: string[] | undefined): number => {
+  if (!below || below.length === 0) return 0;
+  const n = below.length;
+  let unlike = 0;
+  places.forEach((p, c) => {
+    const after = (((p - c) % n) + n) % n;
+    if (below[(after - 1 + n) % n] !== below[after]) unlike++;
+  });
+  return unlike;
+};
+
+/**
+ * Make-ones at `places` in a round of `m`, each of those still between two
+ * unlike yarns in `below` moved a stitch either way onto a bar between two of
+ * one yarn, where there is one: never onto or beside another make-one, so the
+ * stretches between them change by a stitch at most.
+ */
+const nudged = (places: number[], m: number, below: string[] | undefined): number[] => {
+  if (!below || below.length === 0) return places;
+  const n = below.length;
+  // The c-th make-one at p: between two unlike yarns? Moved without passing another, it still has c before it.
+  const unlike = (p: number, c: number) => {
+    const after = (((p - c) % n) + n) % n;
+    return below[(after - 1 + n) % n] !== below[after];
+  };
+  // No gap more than a stitch shorter or longer than even spacing allows, and none under two.
+  const even = m / places.length;
+  const [least, most] = [Math.max(2, Math.floor(even) - 1), Math.ceil(even) + 1];
+  const at = [...places];
+  for (let c = 0; c < at.length; c++) {
+    if (!unlike(at[c], c)) continue;
+    for (const by of [-1, 1]) {
+      const p = at[c] + by;
+      const was = c > 0 ? at[c - 1] : at[at.length - 1] - m;
+      const next = c + 1 < at.length ? at[c + 1] : at[0] + m;
+      if (p < 0 || p >= m || p - was < least || next - p < least || p - was > most || next - p > most || unlike(p, c)) continue;
+      at[c] = p;
+      break;
+    }
+  }
+  return at;
+};
+
+/**
  * Where each round of a growing piece makes its new stitches, as places in
  * the round it leaves. A doubled column's are its new copies, in every
- * repeat; a change of count's are spread evenly - in a round of one yarn,
- * turned to fall as far as they can from the increases of the few rounds
+ * repeat; a change of count's are spread evenly. In a round of one yarn they
+ * are turned to fall as far as they can from the increases of the few rounds
  * above, the round just above counting most, so they never line up into a
- * seam.
+ * seam - but of the turns that keep at least half as far from them as the
+ * farthest, the one with the fewest make-ones between two unlike yarns of the
+ * round below, `below(i)` the yarns of round i's (see unlikeUnder); and then
+ * any still between two unlike yarns moved a stitch onto a bar between two of
+ * one yarn, where there is one beside it. Through a unit's first round, the
+ * turn with the fewest so, and so moved.
  */
-export const increasesOf = (steps: Step[], from: number): number[][] => {
+export const increasesOf = (steps: Step[], from: number, below?: (i: number) => string[] | undefined): number[][] => {
   const LOOK = 4;
   const history: number[][] = [];
   let prev = from;
   let before: number[] | undefined;
-  return steps.map((s) => {
+  return steps.map((s, i) => {
     const m = s.count;
     const k = m - prev;
+    const under = below?.(i);
     let at: number[] = [];
     if (s.kind === "double" && before && s.map && s.reps) {
       const fresh = [...added(before, s.map)];
       at = Array.from({ length: s.reps }, (_, r) => fresh.map((q) => r * s.map!.length + q)).flat();
-    } else if (k > 0 && !s.map) {
+    } else if (k > 0) {
       const g = m / k;
-      let bestScore = -Infinity;
+      const turns: { pos: number[]; apart: number; unlike: number; turned: number }[] = [];
       for (let o = 0; o < Math.max(1, Math.ceil(g)); o++) {
-        const pos = [...new Set(Array.from({ length: k }, (_, j) => Math.floor(o + j * g) % m))].sort((a, b) => a - b);
+        // Through a unit's first round, from its middle as ever: (j + 1/2) of the way along each stretch.
+        const start = s.map ? o + g / 2 - Math.floor(g / 2) : o;
+        const pos = [...new Set(Array.from({ length: k }, (_, j) => Math.floor(start + j * g) % m))].sort((a, b) => a - b);
         if (pos.length !== k) continue;
-        let score = Infinity;
-        history.slice(-LOOK).reverse().forEach((h, t) => {
-          for (const a of h) for (const p of pos) {
-            const d = Math.abs(p / m - a) % 1;
-            score = Math.min(score, Math.min(d, 1 - d) * m * (1 + 0.6 * t));
-          }
-        });
-        if (score > bestScore) [bestScore, at] = [score, pos];
+        let apart = Infinity;
+        if (!s.map) {
+          history.slice(-LOOK).reverse().forEach((h, t) => {
+            for (const a of h) for (const p of pos) {
+              const d = Math.abs(p / m - a) % 1;
+              apart = Math.min(apart, Math.min(d, 1 - d) * m * (1 + 0.6 * t));
+            }
+          });
+        }
+        // Through a unit's first round, how far from its stretches' middles: none as ever.
+        turns.push({ pos, apart, unlike: unlikeUnder(pos, under), turned: s.map ? Math.abs(o - Math.floor(g / 2)) : 0 });
       }
-    } else if (k > 0) at = [...new Set(Array.from({ length: k }, (_, j) => Math.floor(((j + 0.5) * m) / k)))];
+      const farthest = Math.max(...turns.map((t) => t.apart));
+      const fit = turns.filter((t) => t.apart >= farthest / 2);
+      fit.sort((a, b) => a.unlike - b.unlike || b.apart - a.apart || a.turned - b.turned);
+      at = fit.length ? nudged(fit[0].pos, m, under) : [];
+    }
     history.push(at.map((p) => p / m));
     prev = m;
     before = s.map;
