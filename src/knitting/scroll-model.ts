@@ -210,13 +210,6 @@ export interface Course {
   room: number;
   home: number;
   cell: number;
-  /**
-   * To try: the chart opened out (see universalOf). Given, the scroll is a
-   * place on it - the part of the way along the room the scroll is, of the
-   * way along it - and the box shows the lines as they are about that
-   * point, standing as far across the box as the scroll is along: see boxAt.
-   */
-  open?: Places;
 }
 
 /**
@@ -226,18 +219,8 @@ export interface Course {
  * at it. Nothing held: what is held moves the chart on from here by as much.
  */
 export const boxAt = (course: Course, box: number): number => {
-  const { places, rest, ref, size, near, far, room, home, cell, open } = course;
+  const { places, rest, ref, size, near, far, room, home, cell } = course;
   const part = Math.min(1, Math.max(0, (box + near - 1) / (room - 2)));
-  if (open) {
-    /*
-     * The point that part of the way along the chart opened out, where it is
-     * along the lines as they are, less as far across the box as it stands:
-     * from the near edge of the box at one end to the far edge at the other,
-     * so that either end shows that edge, whatever is open or closed up.
-     */
-    const at = placeOf(places, open, part * open.start[0]);
-    return at - near + part * (near + far - size);
-  }
   return along(rest, places, part, size, near, far, home, cell, ref);
 };
 
@@ -276,57 +259,4 @@ export const absorb = (course: Course, box: number, held: number): { box: number
   const x = boxAt(course, box) - held;
   const to = scrollFor(course, x);
   return { box: to, held: boxAt(course, to) - x };
-};
-
-/**
- * The chart opened out: every line showing, a cell each, so that every
- * point of it has a place there whatever is open or closed up on screen - a
- * place along the chart that is the same however the box came to be where
- * it is (see universalOf, placeOf). A line closed up is a point on screen
- * and a cell here.
- */
-
-/**
- * The line a point `x` along lines laid out `places` is in, and how far in:
- * lines run from the far edge, line 0, to the near edge past the last, each
- * standing as far in as the lines showing beyond it reach, so a line's start
- * only falls as the lines go on. Of those starting at or before the point,
- * the first: a line showing, or the edge. Past either edge, that edge.
- */
-const lineFor = (places: Places, x: number): { line: number; into: number } => {
-  const { start } = places;
-  const lines = start.length - 2;
-  if (x >= start[0]) return { line: 0, into: x - start[0] };
-  if (x < start[lines + 1]) return { line: lines + 1, into: x - start[lines + 1] };
-  let [low, high] = [1, lines + 1];
-  while (low < high) {
-    const mid = (low + high) >> 1;
-    if (start[mid] <= x) high = mid;
-    else low = mid + 1;
-  }
-  return { line: low, into: x - start[low] };
-};
-
-/**
- * Where on the chart opened out (`open`) the point `x` along lines laid out
- * `places` is. In a line showing, as far into it; in a gap the chart is
- * torn at, or beyond a line's end, at that line's end.
- */
-export const universalOf = (places: Places, open: Places, x: number): number => {
-  const { line, into } = lineFor(places, x);
-  const lines = places.start.length - 2;
-  if (line === 0 || line === lines + 1) return open.start[line] + into;
-  return open.start[line] + Math.min(Math.max(into, 0), places.size[line]);
-};
-
-/**
- * And back: where along lines laid out `places` the point `u` on the chart
- * opened out is. In a line showing, as far into it; in one closed up, at its
- * place, a point.
- */
-export const placeOf = (places: Places, open: Places, u: number): number => {
-  const { line, into } = lineFor(open, u);
-  const lines = places.start.length - 2;
-  if (line === 0 || line === lines + 1) return places.start[line] + into;
-  return places.start[line] + Math.min(Math.max(into, 0), places.size[line]);
 };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type Course, type Places, absorb, boxAt, placeOf, scrollFor, universalOf } from "./scroll-model";
+import { type Course, type Places, absorb, boxAt, scrollFor } from "./scroll-model";
 
 const cell = 16;
 
@@ -74,32 +74,5 @@ describe("the box's scroll, as one way across the chart", () => {
     expect(to.box).toBeCloseTo(end, 6);
     expect(boxAt(course, to.box) - to.held).toBeCloseTo(boxAt(course, end - 10) + 500, 1);
     expect(to.held).toBeLessThan(0);
-  });
-});
-
-describe("the chart opened out", () => {
-  it("is where the lines are, every line showing", () => {
-    for (const x of [0, 17, 800, 4790]) {
-      expect(universalOf(open, open, x)).toBeCloseTo(x, 9);
-      expect(placeOf(open, open, x)).toBeCloseTo(x, 9);
-    }
-  });
-
-  it("finds a point on screen there and back again, in the lines showing", () => {
-    for (let x = 0; x < closed.start[0]; x += 37) {
-      expect(placeOf(closed, open, universalOf(closed, open, x))).toBeCloseTo(x, 6);
-    }
-  });
-
-  it("gives a block closed up on screen its full length there, and a point back on screen", () => {
-    // Columns 131 to 170 closed: on screen they stand where column 130 does, beyond the block.
-    const [first, last] = [131, 170];
-    const onScreen = closed.start[first];
-    expect(closed.start[last]).toBeCloseTo(onScreen, 9);
-    const spanned = open.start[first] + cell - open.start[last];
-    expect(spanned).toBeCloseTo((last - first + 1) * cell, 9);
-    for (const u of [open.start[last], (open.start[first] + open.start[last]) / 2, open.start[first] + cell / 2]) {
-      expect(placeOf(closed, open, u)).toBeCloseTo(onScreen, 6);
-    }
   });
 });
