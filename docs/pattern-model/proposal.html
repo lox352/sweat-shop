@@ -1,0 +1,311 @@
+<title>Patterns as Instructions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: a design document in one reading column; wide tables and the pipeline diagram scroll in their own boxes. */
+:root {
+  --bg: #f1f3f5; --paper: #fbfcfd; --fg: #1c222c; --muted: #576173; --grid: #ccd3dc; --faint: #e4e8ee;
+  --accent: #2f6db3; --accent-soft: rgba(47,109,179,.10); --warm: #b5532f; --warm-soft: rgba(181,83,47,.10);
+  --ok: #3c7d4f; --code: #eef1f5;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  --body: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #12161d; --paper: #1a1f28; --fg: #e5e8ee; --muted: #9ca5b4; --grid: #343c4a; --faint: #232a35;
+    --accent: #6aa4e8; --accent-soft: rgba(106,164,232,.13); --warm: #e8875f; --warm-soft: rgba(232,135,95,.13); --ok: #74c08a; --code: #20262f; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #12161d; --paper: #1a1f28; --fg: #e5e8ee; --muted: #9ca5b4; --grid: #343c4a; --faint: #232a35;
+  --accent: #6aa4e8; --accent-soft: rgba(106,164,232,.13); --warm: #e8875f; --warm-soft: rgba(232,135,95,.13); --ok: #74c08a; --code: #20262f; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 400 16px/1.65 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 80px; }
+main { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font: 600 clamp(32px, 6vw, 46px)/1.05 var(--display); margin: 0; text-wrap: balance; }
+h2 { font: 600 26px/1.15 var(--display); margin: 0; text-wrap: balance; }
+h3 { font: 600 19px/1.2 var(--display); margin: 6px 0 0; }
+p { margin: 0; max-width: 70ch; }
+.lede { font-size: 18px; }
+ul, ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; max-width: 70ch; }
+code { font: 400 .88em var(--mono); background: var(--code); padding: 1px 4px; border-radius: 3px; }
+pre { margin: 0; font: 400 13px/1.55 var(--mono); background: var(--code); border: 1px solid var(--faint); border-radius: 6px; padding: 14px 16px; overflow-x: auto; }
+.box { background: var(--paper); border: 1px solid var(--grid); border-radius: 6px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.rec { border-left: 4px solid var(--accent); }
+.rec ol li::marker { font-weight: 600; color: var(--accent); }
+.note { border-left: 3px solid var(--warm); padding: 2px 0 2px 14px; font-size: 15px; color: var(--muted); max-width: 72ch; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--grid); border-radius: 6px; background: var(--paper); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 760px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--faint); vertical-align: top; }
+thead th { font: 500 12px/1.3 var(--mono); color: var(--muted); border-bottom: 1px solid var(--grid); }
+td code { white-space: nowrap; }
+.tag { font: 500 11px/1 var(--mono); padding: 3px 6px; border-radius: 3px; white-space: nowrap; }
+.tag.now { background: var(--accent-soft); color: var(--accent); }
+.tag.later { background: var(--faint); color: var(--muted); }
+.fam { font: 600 13px var(--display); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--faint); }
+.pipe { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
+.stage { flex: 1 1 150px; min-width: 0; background: var(--paper); border: 1px solid var(--grid); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+.stage.ci { border-top: 3px solid var(--warm); }
+.stage.client { border-top: 3px solid var(--accent); }
+.stage b { font: 600 15px var(--display); }
+.stage span { font-size: 13px; color: var(--muted); }
+.arrow { align-self: center; color: var(--muted); font: 500 18px var(--mono); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 6px; }
+.atoms { display: flex; flex-wrap: wrap; gap: 3px; font: 500 12px var(--mono); }
+.atom { padding: 4px 6px; border-radius: 3px; background: var(--faint); border: 1px solid var(--grid); }
+.atom.step { background: var(--warm-soft); border-color: var(--warm); color: var(--warm); }
+.atom.fab { background: var(--accent-soft); border-color: var(--accent); }
+.span { display: flex; flex-direction: column; gap: 4px; border: 1px dashed var(--muted); border-radius: 6px; padding: 8px; }
+.span > .lbl { font: 500 12px var(--mono); color: var(--muted); }
+.example { display: flex; flex-direction: column; gap: 10px; }
+.decide { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.decide .box { gap: 6px; }
+.decide .q { font: 600 16px/1.3 var(--display); }
+.decide .a { font-size: 14px; color: var(--muted); }
+.decide .a b { color: var(--fg); font-weight: 600; }
+</style>
+
+<main>
+  <header style="display:flex;flex-direction:column;gap:12px">
+    <div class="eyebrow">sweat-shop · domain model proposal</div>
+    <h1>Patterns as instructions</h1>
+    <p class="lede">A design is compiled once, in CI, into an immutable sequence of instructions. The site only interprets it. Progress is a place in that sequence, and a project always points at the exact version it started on. Below is how the sequence should be modelled so it stays extensible: kinds of operation with many variants each, and composite instructions built from atomic ones.</p>
+  </header>
+
+  <section>
+    <div class="box rec">
+      <h3 style="margin:0">The recommendation in short</h3>
+      <ol>
+        <li><b>Three layers, with the boundary in CI.</b> Design source, which can be slow and clever, compiles to a <i>written pattern</i>: what a printed pattern says, round by round. That expands to an <i>instruction stream</i>: one entry per atomic action. Both are made in CI. The browser only reads the stream.</li>
+        <li><b>An atom is today's stitch record, renamed and made honest.</b> One entry per loop made, or per step that makes none. That keeps chart cells, physics nodes and your saved progress where they are today.</li>
+        <li><b>Every atom has a kind, written <code>family.variant</code></b>: <code>castOn.longTail</code>, <code>increase.m1l</code>, <code>decrease.ssk</code>, <code>marker.place</code>. Each kind is defined once in a registry: what it takes from the needle, what it leaves, how it leans, how it reads from the other side, its chart symbol, its abbreviation and its how-to.</li>
+        <li><b>Instructions are spans over atoms.</b> What the knitter reads ("join in the round", "turn and make a double stitch", "divide for the sleeves") is a named span covering one or more atoms. Spans nest: rounds hold instructions, which hold atoms. A span can be marked <i>indivisible</i>, so progress never lands half way through a KFB or a join.</li>
+        <li><b>Versions are immutable and named by their content.</b> A project stores a design, a size, a version and an atom index. A new version never moves anyone's knitting. Moving to it is an explicit swap, with "knit up to here" to put progress right. That replaces the current revisions mechanism and needs no migration logic.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <h2>What's there today</h2>
+    <p>The code already follows most of this, which is why it's a refactor rather than a rewrite.</p>
+    <ul>
+      <li><b>Written pattern.</b> Each size has <code>sections</code> of <code>RoundSpec</code>: <code>castOn</code>, <code>join</code>, <code>needles</code>, <code>rounds</code>, <code>shaping</code> (with <code>[m1, k8] × 29</code>-style ops), <code>chart</code>, <code>divide</code>, <code>walk</code>, <code>piece</code>, <code>shortRows</code> and <code>bindOff</code>. The samplers generate theirs with the shaping solver. The feline and Paul Klee designs write theirs from tables.</li>
+      <li><b>Expansion.</b> <code>buildSweater</code> drives the needle machine (<code>knitting/needles.ts</code>), which emits a flat <code>Stitch[]</code>. Each record is a loop of fabric or a step (<code>join</code>, <code>needles</code>, <code>hold</code>, <code>resume</code>, <code>turn</code>, <code>marker</code>), with its yarn slot, piece, wrong-side flag and links to the loops it works. This runs in the browser, which is why the solver's speed reached your phone.</li>
+      <li><b>Progress</b> is the id of the last record worked: an index into that array. Rounds, labels, charts, the knitting panel's runs and the time log are all derived from it.</li>
+      <li><b>Revisions</b> can only describe steps <i>added</i>, such as markers, and move progress past them. They can't describe a change to the knitting itself, which is the problem PR #90 ran into.</li>
+    </ul>
+    <p>Three places show where the current record type is strained:</p>
+    <ul>
+      <li><b>Join</b> is a step that quietly rewires the first cast-on's links. The knitter's method (cast on one more, lift the first over it) isn't in the stream at all.</li>
+      <li><b>KFB</b> is two records, a <code>kfb</code> and an <code>m1</code> held by the same stitch, which code has to recognise as a pair (<code>makesTwo</code>). That's a composite instruction in disguise.</li>
+      <li><b>Turn</b> implies the German double stitch ("turn and make a double stitch") without the double stitch being anything you could point at.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>The layers</h2>
+    <div class="pipe" role="img" aria-label="Design source, written pattern, instruction stream and checks in CI; published version; interpretation in the browser">
+      <div class="stage ci"><b>Design source</b><span>Charts, grading tables, the shaping solver, colourways. Slow and clever is fine.</span></div>
+      <div class="arrow">→</div>
+      <div class="stage ci"><b>Written pattern</b><span>Sections and round specs: what a printed pattern says. Compact and readable.</span></div>
+      <div class="arrow">→</div>
+      <div class="stage ci"><b>Instruction stream</b><span>Atoms plus spans. Checked, settled and given a content hash.</span></div>
+      <div class="arrow">→</div>
+      <div class="stage client"><b>Interpretation</b><span>Replay on the needles for links, then chart, panel, 3D, yardage and time.</span></div>
+    </div>
+    <div class="legend"><span><i style="background:var(--warm)"></i>runs in CI</span><span><i style="background:var(--accent)"></i>runs in the browser</span></div>
+    <p>The written pattern is worth keeping as a published artifact even though the stream is derived from it. It's the natural source for a "printed pattern" view, and it diffs readably in a pull request: <code>shaping 344 → 360</code> says more than ten thousand changed atoms. The stream is what's binding: progress, charts and physics all key on it.</p>
+    <p>Links, meaning which loops each atom works, don't need to be shipped. They follow mechanically from replaying the atoms on a model of the needles, the same machine CI uses. That keeps the file small, but it makes the replay part of the contract, so a test pins it. Each published version records a hash of its replayed links, and the browser checks that hash.</p>
+  </section>
+
+  <section>
+    <h2>The atom</h2>
+    <p><b>Definition:</b> an atom is the smallest action on the needles that the rest of the system needs to tell apart. It either makes one loop of fabric, or changes the state of the work without making any.</p>
+    <p>That's today's granularity, kept deliberately:</p>
+    <ul>
+      <li><b>One chart cell, one fabric atom.</b> A KFB still fills two cells, because it makes two loops.</li>
+      <li><b>One physics node, one fabric atom</b>, so the settled 3D positions stay keyed exactly as now.</li>
+      <li><b>Every saved project's progress keeps its meaning</b>, including yours, and so do the time logs.</li>
+    </ul>
+    <p>Each atom kind has a <b>signature</b>, which is all the needle machine needs:</p>
+    <pre>interface Signature {
+  /** Live loops it takes, and from where. */
+  takes: { from: "needle" | "edge" | "holder" | "otherNeedle"; count: number };
+  /** Loops of fabric it makes: 0 for a step, 1 for almost everything else. */
+  makes: 0 | 1;
+  /** Whether what it makes stays on the needle (a knit) or is finished (a bound-off loop). */
+  live: boolean;
+  /** For a step: what it does to the needles. */
+  effect?: "join" | "turn" | "hold" | "resume" | "changeNeedles" | "placeMarker" | "removeMarker"
+         | "newBeginning" | "startPiece" | "makeDouble" | "wrap" | "joinYarn" | "breakYarn";
+}</pre>
+    <p>A k2tog takes 2 and makes 1. A make-one takes 0 and makes 1. A bind-off takes 1 and makes 1 that isn't live. A turn takes 0, makes 0 and has the effect "turn". In each case the atom's id is its index in the stream, and the loop it makes, if any, shares that id.</p>
+  </section>
+
+  <section>
+    <h2>Kinds: families and variants</h2>
+    <p>A kind is <code>family.variant</code>. The family fixes the signature and the role: the needle machine and most code only ever look at the family. The variant carries everything a knitter cares about: how it's worked, how it looks, which way it leans and what it's called. Adding a variant, such as a new cast-on, is a registry entry and nothing else.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Family</th><th>Signature</th><th>Variants</th><th>Today</th></tr></thead>
+      <tbody>
+        <tr><td colspan="4" class="fam">Making fabric</td></tr>
+        <tr><td><code>castOn</code></td><td>takes 0 · makes 1 live</td><td><code>longTail</code>, <code>knitted</code>, <code>cable</code>, <code>backwardLoop</code>, <code>germanTwisted</code>, <code>tubular</code>, <code>provisional</code></td><td><span class="tag now">castOn</span> The neck's is long-tail and the underarm's knitted, today told apart by where they fall.</td></tr>
+        <tr><td><code>work</code></td><td>takes 1 · makes 1</td><td><code>knit</code>, <code>purl</code>, <code>knitTbl</code>, <code>purlTbl</code>, <code>slipKnitwise</code>, <code>slipPurlwise</code> (with the yarn in front or behind)</td><td><span class="tag now">k1 p1 k1tbl</span></td></tr>
+        <tr><td><code>increase</code></td><td>takes 0 · makes 1</td><td><code>m1</code>, <code>m1l</code>, <code>m1r</code>, <code>m1p</code>, <code>yarnOver</code>, <code>lifted</code> (left or right)</td><td><span class="tag now">m1</span></td></tr>
+        <tr><td><code>split</code></td><td>takes 1 · makes 1, and the next atom takes 0 from the same loop</td><td><code>kfb</code>, <code>kbf</code>, <code>pfb</code>, <code>k1yok1</code> (three from one)</td><td><span class="tag now">kfb kbf</span> Today a <code>kfb</code> plus an <code>m1</code>. It becomes one indivisible two-atom instruction: <code>split.kfbFront</code>, then <code>split.kfbBack</code>.</td></tr>
+        <tr><td><code>decrease</code></td><td>takes 2 or 3 · makes 1</td><td><code>k2tog</code>, <code>ssk</code>, <code>p2tog</code>, <code>ssp</code>, <code>k3tog</code>, <code>sssk</code>, <code>s2kp</code> (centred), <code>sk2p</code></td><td><span class="tag now">k2tog ssk s2kp sk2p</span></td></tr>
+        <tr><td><code>bindOff</code></td><td>takes 1 · makes 1 not live</td><td><code>knitwise</code>, <code>purlwise</code>, <code>stretchy</code>, <code>sewn</code>, <code>tubular</code>, <code>threeNeedle</code> (takes from both needles)</td><td><span class="tag now">bindOff bindOffPurl</span></td></tr>
+        <tr><td><code>pickUp</code></td><td>takes 0 from an edge · makes 1</td><td><code>pickUpAndKnit</code>, <code>pickUpPurlwise</code></td><td><span class="tag now">pickUp</span></td></tr>
+        <tr><td><code>passOver</code></td><td>takes 1 · makes 0, and fastens the loop it takes</td><td><code>liftOver</code>, <code>slipPassOver</code></td><td><span class="tag now">sl1po</span> Also the hidden half of today's join.</td></tr>
+        <tr><td colspan="4" class="fam">Changing the work without making fabric</td></tr>
+        <tr><td><code>structure</code></td><td>takes 0 · makes 0</td><td><code>joinInTheRound</code>, <code>turn</code>, <code>startPiece</code></td><td><span class="tag now">join turn</span></td></tr>
+        <tr><td><code>loop</code></td><td>takes 1 · makes 1, with the same loop changed</td><td><code>makeDouble</code> (German short rows), <code>wrap</code> (wrap and turn), <code>twist</code></td><td><span class="tag later">implicit</span> Today hidden inside <code>turn</code>.</td></tr>
+        <tr><td><code>holder</code></td><td>moves live loops · makes 0</td><td><code>hold</code>, <code>resume</code>, <code>graft</code> (grafting, later)</td><td><span class="tag now">hold resume</span></td></tr>
+        <tr><td><code>needles</code></td><td>makes 0</td><td><code>changeSize</code></td><td><span class="tag now">needles</span></td></tr>
+        <tr><td><code>marker</code></td><td>makes 0</td><td><code>place</code>, <code>remove</code>, <code>newBeginning</code></td><td><span class="tag now">marker</span> One kind with flags today.</td></tr>
+        <tr><td><code>yarn</code></td><td>makes 0</td><td><code>join</code>, <code>break</code>, <code>catchFloat</code></td><td><span class="tag later">derived</span> Today implied by changes of slot.</td></tr>
+      </tbody>
+    </table></div>
+    <p>Each kind's registry entry:</p>
+    <pre>interface KindDefinition {
+  id: string;                     // "decrease.ssk"
+  family: Family;                 // fixes the signature and role
+  signature: Signature;
+  lean?: "left" | "right" | "centre";
+  /** The same action from the other side of the work: knit ↔ purl, kfb ↔ pfb, ssk ↔ ssp. */
+  fromOtherSide?: string;
+  chartSymbol?: ChartSymbol;
+  abbreviation: string;           // "ssk", "M1L", "CO"
+  label: string;                  // "slip, slip, knit"
+  how: string;                    // the sentence the key and the panel show
+  steps?: string[];
+  /** Hints for things derived from the stream. */
+  physics?: { width?: number; rise?: number };
+  seconds?: number;               // relative time to work, for estimates
+}</pre>
+    <p>A design can still reword any kind for itself, as <code>stitchNotes</code> does today, and can choose variants per context: long-tail at the neck, knitted at the underarm. The variant then lives in the stream, rather than being inferred from where the stitch falls.</p>
+  </section>
+
+  <section>
+    <h2>Instructions are spans</h2>
+    <p>The stream is flat. Everything a knitter reads is a <b>span</b>: a named range over it, with parameters. Spans nest, and each layer of the screen reads the layer it needs.</p>
+    <pre>interface Span {
+  kind: SpanKind;                // "piece" | "section" | "round" | "row" | "instruction" | "repeat" | "chartRow" | "check"
+  type?: string;                 // for an instruction: "joinInTheRound", "germanTurn", "divide", "kfb"…
+  start: number;                 // first atom
+  end: number;                   // one past the last
+  params?: Record<string, unknown>;   // { holder: "sleeve-right", count: 100 }, { chart: "2015A", row: 19 }
+  /** Progress may not stop inside it: a KFB, a join, a turn with its double stitch. */
+  indivisible?: boolean;
+}</pre>
+    <p>Here are the four places in your sweater where today's records are already composite:</p>
+    <div class="example box">
+      <h3 style="margin:0">Joining the neck into a round</h3>
+      <div class="span"><span class="lbl">instruction · joinInTheRound · indivisible</span>
+        <div class="atoms"><span class="atom fab">castOn.longTail</span><span class="atom fab">passOver.liftOver</span></div></div>
+      <p>Cast on one more and lift the first cast-on stitch over it. That's one extra loop made and one fastened, so the round closes with the count it had. This is your "a knit and a join which subtracts a knit". The links the step rewires today become an ordinary consequence of two atoms.</p>
+    </div>
+    <div class="example box">
+      <h3 style="margin:0">A German short-row turn at the back of the neck</h3>
+      <div class="span"><span class="lbl">instruction · germanTurn · indivisible</span>
+        <div class="atoms"><span class="atom step">structure.turn</span><span class="atom">loop.makeDouble</span></div></div>
+      <p>The double stitch becomes an atom that changes a loop, and that loop remembers it's double. A later row knits it as one stitch, and the knitting panel can say exactly that. A wrap and turn would be <code>loop.wrap</code> then <code>structure.turn</code>, and Japanese short rows would be another variant. Short-row methods are variants of a composite instruction, not new families.</p>
+    </div>
+    <div class="example box">
+      <h3 style="margin:0">Dividing for a sleeve</h3>
+      <div class="span"><span class="lbl">instruction · divide · { holder: "sleeve-right", hold: 100, castOn: 14 }</span>
+        <div class="atoms"><span class="atom step">holder.hold ×100</span><span class="atom fab">castOn.knitted</span><span class="atom fab">castOn.knitted</span><span class="atom">… ×14</span></div></div>
+      <p>Today one <code>hold</code> step carries a count of 100. As atoms, holding is one step per loop moved, or a single step with a count. Either works. I'd keep a single step with a count, because a knitter doesn't put stitches on hold one at a time. The divide span groups it with the 14 underarm cast-ons, which is the instruction the pattern prints.</p>
+    </div>
+    <div class="example box">
+      <h3 style="margin:0">Starting a sleeve</h3>
+      <div class="span"><span class="lbl">instruction · startPiece · { holder: "sleeve-right", pickUpBefore: 7, pickUpAfter: 7 }</span>
+        <div class="atoms"><span class="atom step">holder.resume</span><span class="atom fab">pickUp ×7</span><span class="atom fab">work.knit ×100</span><span class="atom fab">pickUp ×7</span><span class="atom step">marker.newBeginning</span></div></div>
+    </div>
+    <p>Repeats are spans too: <code>[m1, k8] × 29</code> is a repeat span whose children are its 29 passes. The panel can say it as the pattern prints it while progress still moves stitch by stitch. Chart rows are spans that carry the chart id and row, so the chart view never has to rediscover which chart a round came from.</p>
+  </section>
+
+  <section>
+    <h2>Which side, and what's stored</h2>
+    <p>Store each atom <b>as worked</b>, with the side it's worked from: a purl on a wrong-side row is <code>work.purl</code> on <code>side: "wrong"</code>. The stream is a list of things to do, so it should say what to do. How it looks from the right side is a pure function of kind and side, through each kind's <code>fromOtherSide</code>. That's what <code>sides.ts</code> works out today, the other way round.</p>
+    <p>Per atom, the stream stores the kind, the yarn slot, the side, and the step's parameters where there are any. Pieces, needles, fabric and labels are per span. Colours stay out entirely: a colourway is still a costume.</p>
+  </section>
+
+  <section>
+    <h2>The compiled file, and its size</h2>
+    <pre>interface CompiledPattern {
+  schema: 1;
+  design: string; size: string;
+  version: string;               // hash of the content below
+  provenance: { commit: string; generator: string };
+  kinds: string[];               // dictionary: index → "work.knit"
+  slots: string[];               // dictionary: index → "14C/g0"
+  /** Run-length coded columns: [kind, slot, side, count] … */
+  atoms: number[];
+  params: Record&lt;number, StepParams&gt;;  // by atom index, for the few steps that carry any
+  spans: Span[];
+  checks: Record&lt;string, number&gt;;    // named stitch counts, as today
+  linksHash: string;             // the replay's links, hashed, so the browser can check its replay
+}</pre>
+    <p>Measured on your sweater: 121,928 atoms collapse to about 51,000 runs of identical kind and yarn. That's roughly 1 MB of JSON before compression and 10–15 KB gzipped, against the 100–250 KB a size's settled 3D positions already take. Versions are immutable, so old ones stay published for as long as any project might need them, and cost almost nothing to keep.</p>
+  </section>
+
+  <section>
+    <h2>Versions and progress</h2>
+    <ul>
+      <li><b>A project stores</b> <code>{ design, size, version, progress }</code>, where progress is an atom index. It always loads the version it was started on, so no later change can move anyone's knitting.</li>
+      <li><b>Moving to a new version</b> is something the knitter chooses: "this pattern has been updated, switch?" Progress carries across as the same index, and "knit up to here" puts it right where the versions differ. That's exactly your plan for round 55, offered in the app instead of done by hand. The site can show where the versions first differ, from the spans, so the knitter can see whether it's behind or ahead of them.</li>
+      <li><b>The revisions mechanism goes.</b> Projects saved today all point at "version 1", which is today's build. Its stream is identical to what the browser builds now, so their progress means the same thing.</li>
+      <li><b>Settled 3D positions are keyed by version</b>, as they're keyed by topology today.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>The pipeline in CI</h2>
+    <ol>
+      <li><b>Compile</b> every design and size: source to written pattern to stream, with the stitch-count checks and the knitting rules (floats, colours per round) as today's tests run them.</li>
+      <li><b>Freshness check</b> in the pull request's validation: compiled files must match their source, just as <code>settlement-plan --check</code> does for settles. A change to anyone's pattern therefore arrives as a reviewable data diff, summarised by round.</li>
+      <li><b>Settle</b> new versions, as the settle workflow already does on main.</li>
+      <li><b>Publish:</b> files named by version, plus a manifest of the latest version for each design and size. The deploy picks them up like any other data chunk, under the existing budgets.</li>
+    </ol>
+    <p>The solver's speed then stops mattering to knitters. Solving all 37 pieces with symmetric spacing takes a few minutes, well inside the settle workflow's 90.</p>
+  </section>
+
+  <section>
+    <h2>Getting there without touching your knit</h2>
+    <ol>
+      <li><b>Compile what exists.</b> Run today's <code>buildSweater</code> in CI, write its <code>Stitch[]</code> as the compiled stream with today's types as kinds, and have the site load it instead of building. A test checks that it's identical to the live build. That makes every existing project, yours included, "version 1" with nothing to migrate.</li>
+      <li><b>Spans.</b> Emit rounds, sections, chart rows, repeats and the composite instructions as spans, and move the knitting panel and progress over to them.</li>
+      <li><b>Registry.</b> Introduce <code>family.variant</code> kinds and the definitions, at first as a mapping from today's types. Move the key, the panel's words and <code>sides.ts</code> onto it.</li>
+      <li><b>Honest atoms.</b> Make join, the double stitch and the KFB pair explicit. This changes the stream, so it's version 2, and existing projects stay on version 1 unless they switch.</li>
+      <li><b>Then the shaping change</b> (PR #90's snowflakes and your doubling rule) ships as a new version. You'd swap after round 55 in the app rather than by hand.</li>
+    </ol>
+    <p class="note">PR #90 doesn't have to wait for all of this. Step 1 alone is enough to merge it safely: compile today's patterns as version 1 first, so your project stays on it, then merge #90 as version 2.</p>
+  </section>
+
+  <section>
+    <h2>Prior art</h2>
+    <p class="note">This environment's network blocks these sites, so this section comes from memory rather than freshly read sources. Treat the details as something to check.</p>
+    <ul>
+      <li><b>Knitout</b> (Carnegie Mellon's Textiles Lab) is a low-level text format for knitting machines. Each line is one operation: <code>knit</code>, <code>tuck</code>, <code>xfer</code>, <code>split</code>, <code>drop</code>, <code>miss</code>, plus yarn-carrier operations like <code>in</code> and <code>out</code>. A versioned header comes first, and higher-level tools compile into it. That's the same split as here between a clever source and a dumb, exact stream, and the same separation of fabric-making operations from operations on the yarn and needles.</li>
+      <li><b>KnitML</b> was an XML language for hand-knitting patterns. It had elements for knitting and purling, typed increases and decreases, cast-ons with a style attribute, markers and repeats. As I recall, it also kept an authored pattern separate from an expanded, rendered one. That's precedent for families with variants as attributes, and for the written-pattern layer.</li>
+      <li><b>KnitSpeak</b>, from Stitch Maps, is a parser for written stitch-pattern instructions that produces a drawing of the stitches. That's precedent for treating the written pattern as data rather than prose.</li>
+      <li><b>The Craft Yarn Council's standard abbreviations</b> are where the families above get their names. M1L and M1R, KFB, K2tog and SSK, SK2P and S2KP, PM, SM and RM, W&T, YO and PU are all there, and they give the registry's <code>abbreviation</code> field a standard to follow.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Decisions for you</h2>
+    <div class="decide">
+      <div class="box"><span class="q">How fine an atom?</span><span class="a"><b>Recommended: today's</b>, one per loop or step, so chart, physics and saved progress line up 1:1. The alternative, one atom per knitter action, makes a KFB one atom with two loops but breaks every index.</span></div>
+      <div class="box"><span class="q">Store as worked, or as seen?</span><span class="a"><b>Recommended: as worked, with a side.</b> The stream is instructions. Appearance is derived.</span></div>
+      <div class="box"><span class="q">Ship links, or replay them?</span><span class="a"><b>Recommended: replay</b>, with a hash to check against. The file stays small, and the replay is the needle machine CI already runs.</span></div>
+      <div class="box"><span class="q">Yarn joins and float catches</span><span class="a"><b>Recommended: derived for now</b>, as spans the compiler adds where the yarn changes or a float runs long. They become atoms only if the panel needs to stop on them.</span></div>
+      <div class="box"><span class="q">Keep the written pattern?</span><span class="a"><b>Recommended: yes</b>, published beside the stream. It's the readable diff and the source for a printed-pattern view.</span></div>
+      <div class="box"><span class="q">Where to start?</span><span class="a"><b>Recommended: step 1 of the plan</b> (compile today's patterns as version 1), then merge PR #90 as version 2.</span></div>
+    </div>
+  </section>
+</main>
