@@ -211,6 +211,16 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
     // Experimental: several of the chart's whole repeats as one, a column doubled in only one of them.
     const SUPER = Number(process.env.SUPER ?? 0);
     for (let j = 2; j <= SUPER; j++) out.push(laidOut(rs, W * j));
+    // Experimental (ANYGROUPS=1): the round in any number of equal groups, each a whole number of the smallest repeat, a column doubled
+    // once in each group: groups of k smallest repeats, for every k the counts reach. Its doubled columns are the smallest repeat's.
+    if (process.env.ANYGROUPS === "1") {
+      const cap = Math.max(...rows.map((_, i) => t.want(i))) * 1.13;
+      for (let k = 2; u.w * k <= cap; k++) {
+        if (out.some((v) => v.w === u.w * k)) continue;
+        const w = u.w * k;
+        out.push({ w, tiles: u.tiles.map((tile) => Array.from({ length: w }, (_, q) => tile[q % u.w])), bg: u.bg.map((b) => Array.from({ length: w }, (_, q) => b[q % u.w])), slots: u.slots });
+      }
+    }
     return out;
   });
   const unitAt: number[] = [];
