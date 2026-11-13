@@ -81,6 +81,28 @@ const axesOf = (tiles: string[][], p: number): number[] => {
   return out;
 };
 
+/** A unit's rounds laid out on a repeat of `w` stitches: a whole number of its smallest repeat, dividing its chart's. */
+const laidOut = (rs: ChartRow[], w: number): Pick<Unit, "w" | "tiles" | "bg" | "slots"> => {
+  const tiles = rs.map((r) => {
+    const full = tileOf(r);
+    return Array.from({ length: w }, (_, q) => full[q % full.length]);
+  });
+  let axes = axesOf(tiles, w);
+  // 2014's 28-stitch stars are a mirror image but for a pair of dots in their middle row: mirrored as the rest are.
+  if (!axes.length && rs[0].year === 2014) axes = axesOf(tiles.filter((_, k) => rs[k].row !== 7), w);
+  const mirror = (x: number) => (axes.length ? (((axes[0] - x) % w) + w) % w : x);
+  const bg = rs.map((r) => Array.from({ length: w }, (_, q) => background(r.year, r.chart, r.row, r.w - 1 - (q % r.w))));
+  const slots = [...new Map(Array.from({ length: w }, (_, x) => [Math.min(x, mirror(x)), [...new Set([x, mirror(x)])].sort((a, b) => a - b)])).values()];
+  return { w, tiles, bg, slots };
+};
+
+/**
+ * Experimental: lay a unit out not only on its smallest repeat but on any
+ * whole number of it that divides its chart's repeat, so that a doubled
+ * column can come once in two, three or more of the smallest repeats.
+ */
+export const shapingOptions: { widerRepeats: boolean; record?: (kind: "growing" | "narrowing", rows: Row[], t: Target, steps: Step[], ms: number) => void } = { widerRepeats: false };
+
 /** The piece's rounds as units. */
 export const unitsOf = (rows: Row[]): Unit[] => {
   const keyOf = (r: Row, i: number): string => {
@@ -107,16 +129,7 @@ export const unitsOf = (rows: Row[]): Unit[] => {
     if (key.startsWith("solid")) units.push({ rows: idx, solid: true, w: 1, tiles: [], bg: [], slots: [], pass });
     else {
       const rs = idx.map((k) => rows[k] as ChartRow);
-      const full = rs.map(tileOf);
-      const w = periodOf(full);
-      const tiles = full.map((t) => t.slice(0, w));
-      let axes = axesOf(tiles, w);
-      // 2014's 28-stitch stars are a mirror image but for a pair of dots in their middle row: mirrored as the rest are.
-      if (!axes.length && rs[0].year === 2014) axes = axesOf(tiles.filter((_, k) => rs[k].row !== 7), w);
-      const mirror = (x: number) => (axes.length ? (((axes[0] - x) % w) + w) % w : x);
-      const bg = rs.map((r) => Array.from({ length: w }, (_, q) => background(r.year, r.chart, r.row, r.w - 1 - q)));
-      const slots = [...new Map(Array.from({ length: w }, (_, x) => [Math.min(x, mirror(x)), [...new Set([x, mirror(x)])].sort((a, b) => a - b)])).values()];
-      units.push({ rows: idx, solid: false, w, tiles, bg, slots, pass });
+      units.push({ rows: idx, solid: false, ...laidOut(rs, periodOf(rs.map(tileOf))), pass });
     }
     i = j;
   }
@@ -167,6 +180,8 @@ const KEEP = 8;
 /** A layout of doubled columns, kept once and named by a number, so the search can tell layouts apart cheaply. */
 interface Layout {
   id: number;
+  /** Which of its unit's repeats it is laid out on: 0 its smallest, others wider (see shapingOptions). */
+  v: number;
   dup: Dup;
   /** Extra stitches it adds to a repeat. */
   extra: number;
@@ -184,6 +199,20 @@ interface Layout {
 const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
   const n = rows.length;
   const units = unitsOf(rows);
+  /** Each unit's repeats to lay it out on: its smallest, and with widerRepeats each whole number of it that divides its chart's repeat. */
+  const variants = units.map((u): Pick<Unit, "w" | "tiles" | "bg" | "slots">[] => {
+    if (u.solid) return [];
+    const base = { w: u.w, tiles: u.tiles, bg: u.bg, slots: u.slots };
+    const rs = u.rows.map((i) => rows[i] as ChartRow);
+    const W = rs[0].w;
+    if (!shapingOptions.widerRepeats || rs.some((r) => r.w !== W)) return [base];
+    const out = [base];
+    for (let k = 2; u.w * k <= W; k++) if (process.env.ANYK === "1" || (W / u.w) % k === 0) out.push(laidOut(rs, u.w * k));
+    // Experimental: several of the chart's whole repeats as one, a column doubled in only one of them.
+    const SUPER = Number(process.env.SUPER ?? 0);
+    for (let j = 2; j <= SUPER; j++) out.push(laidOut(rs, W * j));
+    return out;
+  });
   const unitAt: number[] = [];
   const posAt: number[] = [];
   units.forEach((u, k) => u.rows.forEach((i, p) => ((unitAt[i] = k), (posAt[i] = p))));
@@ -193,9 +222,9 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
     return at >= 0 && at < n && !units[unitAt[at]].solid;
   };
   /** The first round of its unit from which a slot is background to the unit's end, or past the end if none. */
-  const clearFrom = (u: Unit, slot: number[]) => {
-    let p = u.rows.length;
-    while (p > 0 && slot.every((x) => u.bg[p - 1][x])) p--;
+  const clearFrom = (V: { bg: boolean[][] }, slot: number[]) => {
+    let p = V.bg.length;
+    while (p > 0 && slot.every((x) => V.bg[p - 1][x])) p--;
     return p;
   };
   /** How much a doubled stitch shows: a lone stitch made two shows a lot, one in a long run little. */
@@ -210,18 +239,18 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
 
   const layouts: Layout[] = [];
   const layoutIds = new Map<string, number>();
-  const layoutOf = (dup: Dup): Layout => {
-    const key = keyOfDup(dup);
+  const layoutOf = (dup: Dup, v = 0): Layout => {
+    const key = `${v}|${keyOfDup(dup)}`;
     let id = layoutIds.get(key);
     if (id === undefined) {
       id = layouts.length;
       layoutIds.set(key, id);
-      layouts.push({ id, dup, extra: dup.reduce((s, [, e]) => s + e, 0) });
+      layouts.push({ id, v, dup, extra: dup.reduce((s, [, e]) => s + e, 0) });
     }
     return layouts[id];
   };
   const none = layoutOf([]);
-  const seamed: Layout = { id: layouts.length, dup: [], extra: 0, seam: true };
+  const seamed: Layout = { id: layouts.length, v: 0, dup: [], extra: 0, seam: true };
   layouts.push(seamed);
   layoutIds.set("seam", seamed.id);
   /** What a seamed round costs: more than any round within the tolerance, so a band is seamed only where it must be. */
@@ -240,7 +269,7 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
   });
   const resizedLayouts = resizings.map((ns, k) =>
     ns.map((v, j) => {
-      const L: Layout = { id: layouts.length, dup: [], extra: v.w - units[k].w, resized: j };
+      const L: Layout = { id: layouts.length, v: 0, dup: [], extra: v.w - units[k].w, resized: j };
       layouts.push(L);
       return L;
     }),
@@ -287,33 +316,34 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
     const key = (L.id * 512 + k) * 256 + p;
     let c = lookMemo.get(key);
     if (c !== undefined) return c;
-    const u = units[k];
-    const m = mapOf(u.w, L.dup);
+    const V = variants[k][L.v];
+    const m = mapOf(V.w, L.dup);
     c = 0;
-    for (let r = p; r < u.rows.length; r++) {
-      const tile = m.map((x) => u.tiles[r][x]);
-      for (let q = 1; q < m.length; q++) if (m[q - 1] === m[q]) c += shows(tile, u.bg[r], m, q);
+    for (let r = p; r < V.tiles.length; r++) {
+      const tile = m.map((x) => V.tiles[r][x]);
+      for (let q = 1; q < m.length; q++) if (m[q - 1] === m[q]) c += shows(tile, V.bg[r], m, q);
     }
     lookMemo.set(key, c);
     return c;
   };
   // Each unit's best slots to double: clear for the most rounds, then least seen.
-  const best = units.map((u, k) => {
-    if (u.solid) return [];
-    const scored = u.slots
-      .map((slot) => ({ slot, from: clearFrom(u, slot) }))
-      .filter((s) => s.from < u.rows.length)
-      .map((s) => ({ ...s, cost: look(k, 0, layoutOf(s.slot.map((x) => [x, 1]))) / s.slot.length }));
-    scored.sort((a, b) => a.from - b.from || a.cost - b.cost);
-    return scored.slice(0, KEEP);
-  });
+  const best = units.map((u, k) =>
+    variants[k].map((V, v) => {
+      const scored = V.slots
+        .map((slot) => ({ slot, from: clearFrom(V, slot) }))
+        .filter((s) => s.from < u.rows.length)
+        .map((s) => ({ ...s, cost: look(k, 0, layoutOf(s.slot.map((x) => [x, 1]), v)) / s.slot.length }));
+      scored.sort((a, b) => a.from - b.from || a.cost - b.cost);
+      return scored.slice(0, KEEP);
+    }),
+  );
   const addMemo = new Map<number, Layout | null>();
   const add = (L: Layout, k: number, j: number): Layout | null => {
     const key = (L.id * 512 + k) * 16 + j;
     let r = addMemo.get(key);
     if (r !== undefined) return r;
-    const { slot } = best[k][j];
-    const w = units[k].w;
+    const { slot } = best[k][L.v][j];
+    const w = variants[k][L.v].w;
     const d = new Map(L.dup);
     r = null;
     // Never within two columns of a column already doubled.
@@ -321,7 +351,7 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
     if (!near) {
       for (const x of slot) d.set(x, (d.get(x) ?? 0) + 1);
       const vals = [...d.values()];
-      if (vals.every((v) => v <= 2) && vals.reduce((a, b) => a + b, 0) <= CAP * slot.length) r = layoutOf([...d].sort((a, b) => a[0] - b[0]));
+      if (vals.every((v) => v <= 2) && vals.reduce((a, b) => a + b, 0) <= CAP * slot.length) r = layoutOf([...d].sort((a, b) => a[0] - b[0]), L.v);
     }
     addMemo.set(key, r);
     return r;
@@ -361,7 +391,10 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
 
   const memo = new Map<number, Best>();
   // One number for a state: its round, count, layout, repeats and rounds since an increase, in 47 bits.
-  const keyOf = (i: number, c: number, L: Layout, reps: number, since: number) => (((i * 4096 + c) * 65536 + L.id) * 512 + reps) * 4 + since;
+  const keyOf = (i: number, c: number, L: Layout, reps: number, since: number) => {
+    if (L.id >= 65536 || reps >= 512) throw new Error(`state key overflow: layout ${L.id}, reps ${reps}`);
+    return (((i * 4096 + c) * 65536 + L.id) * 512 + reps) * 4 + since;
+  };
 
   const rec = (i: number, c: number, L: Layout, reps: number, since: number): Best => {
     const key = keyOf(i, c, L, reps, since);
@@ -389,17 +422,21 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
           // Only counts the next unit can be knitted on unchanged are worth stopping at.
           const next = i + 1 < n ? units[unitAt[i + 1]] : undefined;
           if (next && !next.solid) {
-            const widths = [next.w, ...best[unitAt[i + 1]].map((s) => next.w + s.slot.length), ...resizings[unitAt[i + 1]].map((v) => v.w)];
+            const kn = unitAt[i + 1];
+            const widths = [next.w, ...variants[kn].flatMap((V, v) => best[kn][v].map((s) => V.w + s.slot.length)), ...resizings[kn].map((v) => v.w)];
             cands = new Set([...cands].filter((m) => m === c || widths.some((w) => m % w === 0)));
-            if (lo <= hi && cands.size === 1) cands.add(Math.ceil(lo / widths[0]) * widths[0]);
+            if (lo <= hi && (cands.size === 1 || process.env.FIXC === "1")) cands.add(Math.ceil(lo / widths[0]) * widths[0]);
           }
           for (const m of cands) if (m >= c) moves.push({ m, L: none, reps: 0, kind: m > c ? "change" : "same" });
         }
       } else if (p === 0) {
         // A unit starts afresh: on a whole number of its repeat, perhaps with a slot doubled from its first round.
-        const starts = [none, ...best[k].filter((s) => s.from === 0).map((s) => layoutOf(s.slot.map((x) => [x, 1])))];
+        const starts = variants[k].flatMap((_, v) => [
+          layoutOf([], v),
+          ...best[k][v].filter((s) => s.from === 0).map((s) => layoutOf(s.slot.map((x) => [x, 1]), v)),
+        ]);
         for (const L0 of starts) {
-          const ww = u.w + L0.extra;
+          const ww = variants[k][L0.v].w + L0.extra;
           const reps = new Set<number>();
           const lo = Math.max(c, 0.9 * want);
           const hi = Math.min(1.5 * c, 1.12 * want);
@@ -431,10 +468,10 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
         moves.push({ m: c, L, reps, kind: "same" });
         if (L === none) stepping(k, p, L, reps, since, moves);
         if (since >= 2 && firstPass(u, p)) {
-          best[k].forEach((s, j) => {
+          best[k][L.v].forEach((s, j) => {
             if (p < s.from) return;
             const L1 = add(L, k, j);
-            if (L1) moves.push({ m: reps * (u.w + L1.extra), L: L1, reps, kind: "double" });
+            if (L1) moves.push({ m: reps * (variants[k][L.v].w + L1.extra), L: L1, reps, kind: "double" });
           });
         }
       }
@@ -485,7 +522,7 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
           ? { count: m, kind, seam: true }
           : v
             ? { count: m, kind, map: v.maps[posAt[steps.length]], reps, resized: v.w - u.w }
-            : { count: m, kind, map: mapOf(u.w, L.dup), reps },
+            : { count: m, kind, map: mapOf(L.seam || u.solid ? u.w : variants[k][L.v].w, L.dup).map((x) => x % (rows[steps.length] as ChartRow).w), reps },
     );
   }
   return steps;
@@ -543,7 +580,12 @@ export const increasesOf = (steps: Step[], from: number): number[][] => {
 };
 
 /** A piece that grows from the top down, the yoke: each round's count and layout. */
-export const growing = (rows: Row[], t: Target): Step[] => search(rows, t, false);
+export const growing = (rows: Row[], t: Target): Step[] => {
+  const t0 = performance.now();
+  const steps = search(rows, t, false);
+  shapingOptions.record?.("growing", rows, t, steps, performance.now() - t0);
+  return steps;
+};
 
 /**
  * A piece that narrows from the top down, a sleeve: each round's count and
@@ -554,7 +596,10 @@ export const growing = (rows: Row[], t: Target): Step[] => search(rows, t, false
  */
 export const narrowing = (rows: Row[], t: Target): Step[] => {
   const n = rows.length;
+  const t0 = performance.now();
   const steps = search([...rows].reverse(), { from: t.to, to: t.from, want: (i) => t.want(n - 1 - i), tolerance: t.tolerance }, true).reverse();
   // Reversed, a change was the round above's: it's worked in the round below, from the count above to its own.
-  return steps.map((s, i) => ({ ...s, kind: i === 0 ? (s.count !== t.from ? "change" : "same") : steps[i - 1].kind }));
+  const out = steps.map((s, i) => ({ ...s, kind: i === 0 ? (s.count !== t.from ? "change" : "same") : steps[i - 1].kind }));
+  shapingOptions.record?.("narrowing", rows, t, out, performance.now() - t0);
+  return out;
 };
