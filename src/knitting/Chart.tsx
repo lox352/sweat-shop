@@ -340,6 +340,7 @@ const Chart: React.FC<ChartProps> = ({
       made.shift(by);
       const aimed = aimedAt.current;
       if (aimed) aimedAt.current = { ...aimed, left: aimed.left + by.left, top: aimed.top + by.top };
+      tilesRef.current?.aimAgain();
     });
     glide.current = made;
     return () => {
