@@ -205,6 +205,11 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
   const LAZY = ANYGROUPS && process.env.NOLAZY !== "1";
   // Experimental: the fewest groups a round on wider repeats may have, so its odd repeats are spread round it.
   const MINGROUPS = Number(process.env.MINGROUPS ?? 1);
+  // Experimental (SPREAD=1): any number of doubled columns round a round, spaced evenly and mirrored about the line through its start
+  // and the point half way round. NOGROUPS=1 leaves out ANYGROUPS' equal groups, so SPREAD can be tried on its own.
+  const SPREAD = process.env.SPREAD === "1";
+  const NOGROUPS = process.env.NOGROUPS === "1";
+  const SPREADMAX = Number(process.env.SPREADMAX ?? 40);
   const n = rows.length;
   const units = unitsOf(rows);
   /** Each unit's repeats to lay it out on: its smallest, and with widerRepeats each whole number of it that divides its chart's repeat. */
@@ -413,7 +418,7 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
     let out = startsMemo.get(k);
     if (!out) {
       // Lazily, a unit starts plain on its smallest repeat only, choosing its groups when it first doubles a column (see below).
-      out = variants[k].flatMap((_, v) => [...(v === 0 || !LAZY ? [layoutOf([], v)] : []), ...best[k][v].filter((s) => s.from === 0).map((s) => layoutOf(s.slot.map((x) => [x, 1]), v))]);
+      out = variants[k].flatMap((_, v) => (NOGROUPS && v > 0 ? [] : [...(v === 0 || !LAZY ? [layoutOf([], v)] : []), ...best[k][v].filter((s) => s.from === 0).map((s) => layoutOf(s.slot.map((x) => [x, 1]), v))]));
       startsMemo.set(k, out);
     }
     return out;
@@ -429,6 +434,57 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
     return out;
   };
   const startMemo = new Map<number, Move[]>();
+  /**
+   * SPREAD: a unit's round of `R` repeats with `e` columns doubled, the round's own layout (one group, the whole round): each at the
+   * column of slot j nearest its place, the places spaced evenly and mirrored about the round's start - an odd one on the start itself.
+   */
+  const spreadIds = new Set<number>();
+  const spreadMemo = new Map<string, Layout | null>();
+  const spreadOf = (k: number, R: number, e: number, j: number): Layout | null => {
+    const key = `${k}|${R}|${e}|${j}`;
+    if (spreadMemo.has(key)) return spreadMemo.get(key)!;
+    const u = units[k];
+    const N = R * u.w;
+    const v = variants[k].findIndex((V) => V.w === N);
+    let out: Layout | null = null;
+    if (v >= 0 && e <= R) {
+      // Any column clear as soon as slot j is, so a place can take whichever ground column is nearest it.
+      const from = best[k][0][j].from;
+      const cols = new Set(best[k][0].filter((s) => s.from <= from).flatMap((s) => s.slot));
+      const ok = (q: number) => cols.has(((q % u.w) + u.w) % u.w);
+      const nearest = (t: number, taken: Set<number>) => {
+        let bestQ = -1, bestD = Infinity;
+        for (let q = 0; q < N; q++) {
+          if (!ok(q) || taken.has(q)) continue;
+          const d = Math.min(Math.abs(q + 0.5 - t), N - Math.abs(q + 0.5 - t));
+          if (d < bestD) [bestQ, bestD] = [q, d];
+        }
+        return bestQ;
+      };
+      const taken = new Set<number>();
+      // Places in mirrored pairs, t and N - t, an odd one on the start: each pair's second the first's mirror image where it can be.
+      const odd = e % 2 === 1;
+      if (odd) { const q = nearest(0, taken); if (q >= 0) taken.add(q); }
+      for (let i = 0; i < Math.floor(e / 2); i++) {
+        const t = odd ? (N * (i + 1)) / e : (N * (i + 0.5)) / e;
+        const q = nearest(t, taken);
+        if (q < 0) break;
+        taken.add(q);
+        const mirror = N - 1 - q;
+        const q2 = ok(mirror) && !taken.has(mirror) ? mirror : nearest(N - t, taken);
+        if (q2 < 0) break;
+        taken.add(q2);
+      }
+      const sorted = [...taken].sort((a, b) => a - b);
+      const near = sorted.some((q, i) => i > 0 && q - sorted[i - 1] <= 2) || (sorted.length > 1 && sorted[0] + N - sorted[sorted.length - 1] <= 2);
+      if (sorted.length === e && !near) {
+        out = layoutOf(sorted.map((q) => [q, 1]), v);
+        spreadIds.add(out.id);
+      }
+    }
+    spreadMemo.set(key, out);
+    return out;
+  };
   const fitsMemo = new Map<number, boolean>();
   const fits = (k: number, m: number): boolean => {
     const key = k * 65536 + m;
@@ -507,6 +563,22 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
         startMemo.set(startKey, started);
         }
         moves.push(...started);
+        if (SPREAD) {
+          const lo = Math.max(c, 0.9 * want);
+          const hi = Math.min(1.5 * c, 1.12 * want);
+          const floor = Math.max(c, lo);
+          for (let R = Math.max(1, Math.floor((floor - SPREADMAX) / u.w)); R * u.w <= hi; R++) {
+            best[k][0].forEach((s, j) => {
+              if (s.from !== 0) return;
+              for (let e = 1; e <= SPREADMAX; e++) {
+                const m = R * u.w + e;
+                if (m < floor || m > hi) continue;
+                const L1 = spreadOf(k, R, e, j);
+                if (L1) moves.push({ m, L: L1, reps: 1, kind: m > c ? "change" : "same" });
+              }
+            });
+          }
+        }
         // Or, narrowing, on a narrowed or padded repeat, all the way down.
         for (const L0 of resizedLayouts[k]) {
           const ww = u.w + L0.extra;
@@ -529,13 +601,22 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
         moves.push({ m: c, L, reps, kind: "same" });
         if (L === none) stepping(k, p, L, reps, since, moves);
         if (since >= 2 && firstPass(u, p)) {
-          best[k][L.v].forEach((s, j) => {
+          if (!spreadIds.has(L.id)) best[k][L.v].forEach((s, j) => {
             if (p < s.from) return;
             const L1 = add(L, k, j);
             if (L1) moves.push({ m: reps * (variants[k][L.v].w + L1.extra), L: L1, reps, kind: "double" });
           });
           // A unit still plain on its smallest repeat may first double a column in groups of any size its repeats divide into.
-          if (LAZY && L === none) {
+          if (SPREAD && L === none) {
+            best[k][0].forEach((s, j) => {
+              if (p < s.from) return;
+              for (let e = 1; e <= SPREADMAX; e++) {
+                const L1 = spreadOf(k, reps, e, j);
+                if (L1) moves.push({ m: reps * u.w + e, L: L1, reps: 1, kind: "double" });
+              }
+            });
+          }
+          if (LAZY && !NOGROUPS && L === none) {
             variants[k].forEach((V, v) => {
               const g = V.w / u.w;
               if (v === 0 || reps % g !== 0 || reps / g < MINGROUPS) return;
