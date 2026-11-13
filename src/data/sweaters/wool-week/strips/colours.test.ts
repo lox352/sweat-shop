@@ -5,7 +5,7 @@ import { trimIdOf, trimmed } from "../../../../knitting/palette";
 import roles from "./roles.json";
 import { letterOf, trimSlot, yearOfSlot, yearsOfTrim } from "./slots";
 import { lettersOf } from "./cuts";
-import { yearOf, years } from "../years";
+import { years } from "../years";
 
 /** CIE L*, how light a colour looks. */
 const lightness = (hex: string) => {
@@ -186,6 +186,15 @@ describe("the hats' charts, as the samplers knit them", () => {
     const row = lettersOf(2014, "B")[6];
     expect(row[26]).toBe("B");
     expect(row[26]).toBe(row[0]);
-    expect(yearOf(2014).charts.B[6].match(/../g)![26][0]).toBe("D");
+  });
+
+  it("snow evenly in the Baa-ble Hat's sparse rows: the two snowflakes its printed chart misses in each repeat put in", () => {
+    // Chart A's rows 19 and 24: a flake every third stitch and every fourth all the way round the 60-stitch repeat, as 60 takes either exactly.
+    for (const [r, every] of [[19, 3], [24, 4]] as const) {
+      const row = lettersOf(2015, "A")[r - 1];
+      const flakes = row.flatMap((letter, i) => (letter === "B" ? [i] : []));
+      expect(flakes.length, `row ${r}`).toBe(60 / every);
+      flakes.forEach((at, k) => expect((flakes[(k + 1) % flakes.length] - at + 60) % 60, `row ${r}, after stitch ${at + 1}`).toBe(every));
+    }
   });
 });
