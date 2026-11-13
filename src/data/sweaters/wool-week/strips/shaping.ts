@@ -203,6 +203,8 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
   const ANYGROUPS = process.env.ANYGROUPS === "1";
   const NODEDUPE = !ANYGROUPS || process.env.DEDUPE !== "1";
   const LAZY = ANYGROUPS && process.env.NOLAZY !== "1";
+  // Experimental: the fewest groups a round on wider repeats may have, so its odd repeats are spread round it.
+  const MINGROUPS = Number(process.env.MINGROUPS ?? 1);
   const n = rows.length;
   const units = unitsOf(rows);
   /** Each unit's repeats to lay it out on: its smallest, and with widerRepeats each whole number of it that divides its chart's repeat. */
@@ -494,7 +496,7 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
           if (!reps.size || reversed) reps.add(Math.ceil(c / ww));
           if (c % ww === 0) reps.add(c / ww);
           for (const r of reps) {
-            if (r * ww < c) continue;
+            if (r * ww < c || (L0.v > 0 && r < MINGROUPS)) continue;
             const seen = byCount.get(r * ww);
             const cost = L0.extra > 0 ? look(k, 0, L0) : 0;
             if (NODEDUPE) started.push({ m: r * ww, L: L0, reps: r, kind: r * ww > c ? "change" : "same" });
@@ -536,7 +538,7 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
           if (LAZY && L === none) {
             variants[k].forEach((V, v) => {
               const g = V.w / u.w;
-              if (v === 0 || reps % g !== 0) return;
+              if (v === 0 || reps % g !== 0 || reps / g < MINGROUPS) return;
               const plain = layoutOf([], v);
               best[k][v].forEach((s, j) => {
                 if (p < s.from) return;
