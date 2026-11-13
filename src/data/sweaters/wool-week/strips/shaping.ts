@@ -201,7 +201,8 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
   const FIXC = process.env.FIXC === "1";
   // Shortcuts for the many layouts of ANYGROUPS: off, today's answers stand exactly.
   const ANYGROUPS = process.env.ANYGROUPS === "1";
-  const NODEDUPE = !ANYGROUPS || process.env.NODEDUPE === "1";
+  const NODEDUPE = !ANYGROUPS || process.env.DEDUPE !== "1";
+  const LAZY = ANYGROUPS && process.env.NOLAZY !== "1";
   const n = rows.length;
   const units = unitsOf(rows);
   /** Each unit's repeats to lay it out on: its smallest, and with widerRepeats each whole number of it that divides its chart's repeat. */
@@ -409,7 +410,8 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
   const startsOf = (k: number): Layout[] => {
     let out = startsMemo.get(k);
     if (!out) {
-      out = variants[k].flatMap((_, v) => [layoutOf([], v), ...best[k][v].filter((s) => s.from === 0).map((s) => layoutOf(s.slot.map((x) => [x, 1]), v))]);
+      // Lazily, a unit starts plain on its smallest repeat only, choosing its groups when it first doubles a column (see below).
+      out = variants[k].flatMap((_, v) => [...(v === 0 || !LAZY ? [layoutOf([], v)] : []), ...best[k][v].filter((s) => s.from === 0).map((s) => layoutOf(s.slot.map((x) => [x, 1]), v))]);
       startsMemo.set(k, out);
     }
     return out;
@@ -530,6 +532,19 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
             const L1 = add(L, k, j);
             if (L1) moves.push({ m: reps * (variants[k][L.v].w + L1.extra), L: L1, reps, kind: "double" });
           });
+          // A unit still plain on its smallest repeat may first double a column in groups of any size its repeats divide into.
+          if (LAZY && L === none) {
+            variants[k].forEach((V, v) => {
+              const g = V.w / u.w;
+              if (v === 0 || reps % g !== 0) return;
+              const plain = layoutOf([], v);
+              best[k][v].forEach((s, j) => {
+                if (p < s.from) return;
+                const L1 = add(plain, k, j);
+                if (L1) moves.push({ m: (reps / g) * (V.w + L1.extra), L: L1, reps: reps / g, kind: "double" });
+              });
+            });
+          }
         }
       }
       res = { cost: Infinity };
@@ -583,6 +598,14 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
             ? { count: m, kind, map: v.maps[posAt[steps.length]], reps, resized: v.w - u.w }
             : { count: m, kind, map: mapOf(L.seam || u.solid ? u.w : variants[k][L.v].w, L.dup), reps },
     );
+    // A unit that chose its groups at its first doubling (see LAZY) was plain on its smallest repeat until then: the same stitches,
+    // written on its groups from its first round, so the doubling round reads as adding only its own new stitches.
+    if (LAZY && !u.solid && L.v > 0 && L.resized === undefined && !L.seam) {
+      const g = variants[k][L.v].w / u.w;
+      for (let j = steps.length - 2; j >= 0 && unitAt[j] === k && steps[j].map?.length === u.w && !steps[j].resized; j--) {
+        steps[j] = { ...steps[j], map: mapOf(variants[k][L.v].w, []), reps: steps[j].reps! / g };
+      }
+    }
   }
   return steps;
 };
