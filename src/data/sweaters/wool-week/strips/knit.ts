@@ -236,14 +236,30 @@ class Writer {
 
   /**
    * A band's row that doubles columns of its repeat, the same in every repeat:
-   * each new stitch a make-one beside its twin, knitted in the twin's yarn.
+   * each new stitch a make-one beside its twin, knitted in the twin's yarn:
+   * after it, or before it where only that bar lies between two of one yarn
+   * of the round below, `below` its yarns through one repeat.
    */
-  double(r: ChartRow, before: number[], after: number[]) {
+  double(r: ChartRow, before: number[], after: number[], below?: string[]) {
     this.flush();
     const tile = tileOf(r);
     const fresh = added(before, after);
+    if (below) {
+      const w = below.length;
+      const unlike = (j: number) => below[(((j - 1) % w) + w) % w] !== below[((j % w) + w) % w];
+      let c = 0;
+      for (const q of [...fresh].sort((a, b) => a - b)) {
+        // The bar a make-one at q picks up is between the round below's stitches q - c - 1 and q - c.
+        if (unlike(q - c) && !fresh.has(q - 1) && !unlike(q - 1 - c)) {
+          fresh.delete(q);
+          fresh.add(q - 1);
+        }
+        c++;
+      }
+    }
+    // The make-one is the copy that only spaces the pattern out, whichever side of its twin.
     const cells: ChartCell[] = after.map((x, q) =>
-      fresh.has(q) ? { ...cellOf(tile[x], after, q), symbol: "m1" } : cellOf(tile[x], after, q),
+      fresh.has(q) ? { slot: tile[x], spacer: true, symbol: "m1" } : fresh.has(q - 1) && after[q - 1] === x ? { slot: tile[x] } : cellOf(tile[x], after, q),
     );
     const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}w${before.length}d${doubling(before) || "0"}-${doubling(after)}${bandsOf([r])}`;
     this.charts.set(id, { id, name: this.nameOf(r.year), rows: [cells] });
@@ -398,7 +414,14 @@ const tiled = (w: Writer, rows: Row[], start: number, want: (i: number) => numbe
  */
 const grown = (w: Writer, rows: Row[], from: number, to: number, want: (i: number) => number): number => {
   const steps = growing(rows, { from, to, want });
-  const places = increasesOf(steps, from);
+  // Each round's yarns, stitch by stitch, as it is knitted (see Writer): for its make-ones to be put between two of one yarn where they can.
+  const yarnsOf = (i: number): string[] => {
+    const [r, s] = [rows[i], steps[i]];
+    if (!s.map) return Array<string>(s.count).fill(slotOfRound(r));
+    const tile = s.map.map((x) => tileOf(r as ChartRow)[x]);
+    return Array.from({ length: s.count }, (_, j) => tile[j % tile.length]);
+  };
+  const places = increasesOf(steps, from, (i) => (i > 0 ? yarnsOf(i - 1) : undefined));
   let count = from;
   let map: number[] | undefined;
   steps.forEach((s, i) => {
@@ -407,7 +430,7 @@ const grown = (w: Writer, rows: Row[], from: number, to: number, want: (i: numbe
       // A round of one yarn: plain, or taking its make-ones.
       if (s.count !== count) w.shape(slotOfRound(r), count, s.count, places[i]);
       else w.plain(slotOfRound(r));
-    } else if (s.kind === "double") w.double(r as ChartRow, map!, s.map);
+    } else if (s.kind === "double") w.double(r as ChartRow, map!, s.map, i > 0 ? yarnsOf(i - 1).slice(0, map!.length) : undefined);
     else if (s.count !== count) w.transition(r as ChartRow, count, s.count, s.map, places[i]);
     else w.chart(r as ChartRow, s.map);
     count = s.count;
