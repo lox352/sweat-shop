@@ -24,4 +24,5 @@ it.skipIf(!process.env.OUT)("solves the recorded problems", () => {
     };
   });
   writeFileSync(process.env.OUT!, JSON.stringify(out));
+  if (process.env.PROF) writeFileSync(process.env.OUT! + ".prof", JSON.stringify((globalThis as any).__prof));
 }, 1200000);

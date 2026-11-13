@@ -197,6 +197,11 @@ interface Layout {
  * narrowing).
  */
 const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
+  // Experimental switches, read once: process.env is slow to read.
+  const FIXC = process.env.FIXC === "1";
+  // Shortcuts for the many layouts of ANYGROUPS: off, today's answers stand exactly.
+  const ANYGROUPS = process.env.ANYGROUPS === "1";
+  const NODEDUPE = !ANYGROUPS || process.env.NODEDUPE === "1";
   const n = rows.length;
   const units = unitsOf(rows);
   /** Each unit's repeats to lay it out on: its smallest, and with widerRepeats each whole number of it that divides its chart's repeat. */
@@ -213,7 +218,7 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
     for (let j = 2; j <= SUPER; j++) out.push(laidOut(rs, W * j));
     // Experimental (ANYGROUPS=1): the round in any number of equal groups, each a whole number of the smallest repeat, a column doubled
     // once in each group: groups of k smallest repeats, for every k the counts reach. Its doubled columns are the smallest repeat's.
-    if (process.env.ANYGROUPS === "1") {
+    if (ANYGROUPS) {
       const cap = Math.max(...rows.map((_, i) => t.want(i))) * 1.13;
       for (let k = 2; u.w * k <= cap; k++) {
         if (out.some((v) => v.w === u.w * k)) continue;
@@ -399,6 +404,34 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
     }
   };
 
+  /** Each unit's layouts to start on, on each of its repeats: as it stands, or a slot doubled from its first round. Kept once a unit. */
+  const startsMemo = new Map<number, Layout[]>();
+  const startsOf = (k: number): Layout[] => {
+    let out = startsMemo.get(k);
+    if (!out) {
+      out = variants[k].flatMap((_, v) => [layoutOf([], v), ...best[k][v].filter((s) => s.from === 0).map((s) => layoutOf(s.slot.map((x) => [x, 1]), v))]);
+      startsMemo.set(k, out);
+    }
+    return out;
+  };
+  /** The repeats a unit can start on unchanged, its own first: kept once a unit. And whether a count is a whole number of one, kept once a count. */
+  const widthsMemo = new Map<number, number[]>();
+  const widthsOf = (k: number): number[] => {
+    let out = widthsMemo.get(k);
+    if (!out) {
+      out = [...new Set([units[k].w, ...variants[k].flatMap((V, v) => best[k][v].map((s) => V.w + s.slot.length)), ...resizings[k].map((v) => v.w)])];
+      widthsMemo.set(k, out);
+    }
+    return out;
+  };
+  const startMemo = new Map<number, Move[]>();
+  const fitsMemo = new Map<number, boolean>();
+  const fits = (k: number, m: number): boolean => {
+    const key = k * 65536 + m;
+    let r = fitsMemo.get(key);
+    if (r === undefined) fitsMemo.set(key, (r = widthsOf(k).some((w) => m % w === 0)));
+    return r;
+  };
   const memo = new Map<number, Best>();
   // One number for a state: its round, count, layout, repeats and rounds since an increase, in 47 bits.
   const keyOf = (i: number, c: number, L: Layout, reps: number, since: number) => {
@@ -433,18 +466,22 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
           const next = i + 1 < n ? units[unitAt[i + 1]] : undefined;
           if (next && !next.solid) {
             const kn = unitAt[i + 1];
-            const widths = [next.w, ...variants[kn].flatMap((V, v) => best[kn][v].map((s) => V.w + s.slot.length)), ...resizings[kn].map((v) => v.w)];
-            cands = new Set([...cands].filter((m) => m === c || widths.some((w) => m % w === 0)));
-            if (lo <= hi && (cands.size === 1 || process.env.FIXC === "1")) cands.add(Math.ceil(lo / widths[0]) * widths[0]);
+            const widths = widthsOf(kn);
+            cands = new Set([...cands].filter((m) => m === c || fits(kn, m)));
+            if (lo <= hi && (cands.size === 1 || FIXC)) cands.add(Math.ceil(lo / widths[0]) * widths[0]);
           }
           for (const m of cands) if (m >= c) moves.push({ m, L: none, reps: 0, kind: m > c ? "change" : "same" });
         }
       } else if (p === 0) {
-        // A unit starts afresh: on a whole number of its repeat, perhaps with a slot doubled from its first round.
-        const starts = variants[k].flatMap((_, v) => [
-          layoutOf([], v),
-          ...best[k][v].filter((s) => s.from === 0).map((s) => layoutOf(s.slot.map((x) => [x, 1]), v)),
-        ]);
+        // A unit starts afresh: on a whole number of its repeat, perhaps with a slot doubled from its first round. The same for every
+        // way of arriving at its first round on the same count: kept once a unit and count.
+        const startKey = k * 65536 + c;
+        let started = startMemo.get(startKey);
+        if (!started) {
+        started = [];
+        const starts = startsOf(k);
+        // Many layouts reach the same count: of those, only the one that shows least is worth following.
+        const byCount = new Map<number, { L0: Layout; reps: number; look: number }>();
         for (const L0 of starts) {
           const ww = variants[k][L0.v].w + L0.extra;
           const reps = new Set<number>();
@@ -454,8 +491,18 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
           // Narrowing, a wide repeat may have to go on as few as it can.
           if (!reps.size || reversed) reps.add(Math.ceil(c / ww));
           if (c % ww === 0) reps.add(c / ww);
-          for (const r of reps) if (r * ww >= c) moves.push({ m: r * ww, L: L0, reps: r, kind: r * ww > c ? "change" : "same" });
+          for (const r of reps) {
+            if (r * ww < c) continue;
+            const seen = byCount.get(r * ww);
+            const cost = L0.extra > 0 ? look(k, 0, L0) : 0;
+            if (NODEDUPE) started.push({ m: r * ww, L: L0, reps: r, kind: r * ww > c ? "change" : "same" });
+            else if (!seen || cost < seen.look || (cost === seen.look && r > seen.reps)) byCount.set(r * ww, { L0, reps: r, look: cost });
+          }
         }
+        for (const [m, { L0, reps: r }] of byCount) started.push({ m, L: L0, reps: r, kind: m > c ? "change" : "same" });
+        startMemo.set(startKey, started);
+        }
+        moves.push(...started);
         // Or, narrowing, on a narrowed or padded repeat, all the way down.
         for (const L0 of resizedLayouts[k]) {
           const ww = u.w + L0.extra;
@@ -486,6 +533,8 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
         }
       }
       res = { cost: Infinity };
+      // Nearest the target first, so the best found so far rules out the rest early.
+      if (ANYGROUPS && moves.length > 8) moves.sort((a, b) => dev(a.m, i) - dev(b.m, i));
       for (const mv of moves) {
         if (mv.m > 1.5 * c || (mv.m > c && mv.m > 1.125 * want && !last)) continue;
         // Narrowing, every round within the tolerance of its target; the round above the cuff may differ from it, worked in a round before the rib.
@@ -532,7 +581,7 @@ const search = (rows: Row[], t: Target, reversed: boolean): Step[] => {
           ? { count: m, kind, seam: true }
           : v
             ? { count: m, kind, map: v.maps[posAt[steps.length]], reps, resized: v.w - u.w }
-            : { count: m, kind, map: mapOf(L.seam || u.solid ? u.w : variants[k][L.v].w, L.dup).map((x) => x % (rows[steps.length] as ChartRow).w), reps },
+            : { count: m, kind, map: mapOf(L.seam || u.solid ? u.w : variants[k][L.v].w, L.dup), reps },
     );
   }
   return steps;
