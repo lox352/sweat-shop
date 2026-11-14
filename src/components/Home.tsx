@@ -1,6 +1,6 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { sweaters, sweaterById } from "../data/sweaters";
+import { sweaters, sweaterById } from "../data/sweaters/catalogue";
 import {
   Project,
   bareIdFor,
@@ -12,8 +12,9 @@ import {
   renameProject,
 } from "../helpers/projects";
 import { countedAt, useKnitting, yokeRounds } from "../knitting/useSweater";
+import KnittingBoundary from "./KnittingBoundary";
 import type { SweaterStitches } from "../knitting/knitted";
-import type { SweaterPattern } from "../data/sweaters/types";
+import type { Design } from "../data/sweaters/types";
 import { editionOf } from "../data/sweaters/editions";
 import { positionOf, totals } from "../knitting/progress";
 import { colourwayLabel, paletteOf, trimmed } from "../knitting/palette";
@@ -34,7 +35,7 @@ const formatDate = (iso: string) =>
   });
 
 /** How far through a project is, and what it is called. */
-const describe = (project: Project, sweater: SweaterPattern, built: SweaterStitches) => {
+const describe = (project: Project, sweater: Design, built: SweaterStitches) => {
   const size = sweater.sizes.find((s) => s.id === project.sizeId) ?? sweater.sizes[0];
   const { stitches } = built;
   // Counted as the project's own pages count it, from the beginning of the round in force.
@@ -51,13 +52,15 @@ type CardProps = { project: Project; onRename: () => void; onDelete: () => void 
 const ProjectCard: React.FC<CardProps> = (props) => {
   const sweater = sweaterById(props.project.sweaterId);
   return sweater ? (
-    <Suspense fallback={<li className="project-card" aria-busy="true" />}>
-      <KnownProjectCard {...props} sweater={sweater} />
-    </Suspense>
+    <KnittingBoundary compact>
+      <Suspense fallback={<li className="project-card" aria-busy="true" />}>
+        <KnownProjectCard {...props} sweater={sweater} />
+      </Suspense>
+    </KnittingBoundary>
   ) : null;
 };
 
-const KnownProjectCard: React.FC<CardProps & { sweater: SweaterPattern }> = ({ project, onRename, onDelete, sweater: design }) => {
+const KnownProjectCard: React.FC<CardProps & { sweater: Design }> = ({ project, onRename, onDelete, sweater: design }) => {
   const navigate = useNavigate();
   const sizeId = (design.sizes.find((s) => s.id === project.sizeId) ?? design.sizes[0]).id;
   // The edition the project knits: see data/sweaters/editions.
@@ -138,7 +141,7 @@ const KnownProjectCard: React.FC<CardProps & { sweater: SweaterPattern }> = ({ p
 };
 
 /** A design's yoke, in its first colourway, across its card. */
-const DesignStrip: React.FC<{ sweater: SweaterPattern }> = ({ sweater }) => {
+const DesignStrip: React.FC<{ sweater: Design }> = ({ sweater }) => {
   const built = useKnitting(sweater, sweater.sizes[0].id);
   const palette = useMemo(() => paletteOf(sweater.colourways[0]), [sweater]);
   return <BodyStrip stitches={built.stitches} rounds={yokeRounds(built)} palette={palette} className="design-card-body" />;
@@ -197,9 +200,11 @@ const Home: React.FC = () => {
             return (
               <li key={sweater.id}>
                 <Link to={`/sweater/${sweater.id}`} className="design-card">
-                  <Suspense fallback={<div className="design-card-body" aria-busy="true" />}>
-                    <DesignStrip sweater={sweater} />
-                  </Suspense>
+                  <KnittingBoundary compact>
+                    <Suspense fallback={<div className="design-card-body" aria-busy="true" />}>
+                      <DesignStrip sweater={sweater} />
+                    </Suspense>
+                  </KnittingBoundary>
                   <span className="design-card-text">
                     <span className="eyebrow">
                       {sweater.sizes.length} sizes · {sweater.colourways.length} colourways

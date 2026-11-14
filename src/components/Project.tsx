@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
-import { sweaterById } from "../data/sweaters";
+import { sweaterById } from "../data/sweaters/catalogue";
 import { SlotId } from "../data/sweaters/types";
-import { useEditionReady, useSweater, viewChart } from "../knitting/useSweater";
+import { NoKnitting, knittable, useEditionReady, useSweater, viewChart, whenKnittable } from "../knitting/useSweater";
+import { behind } from "../helpers/revisions";
 import { currentEdition, editionOf, frozenEdition, isSuperseded } from "../data/sweaters/editions";
 import PatternUpdated from "./PatternUpdated";
 import { makeOnesAtMarkers } from "../knitting/marker-routes";
@@ -161,6 +162,15 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
   const sweater = project ? sweaterById(project.sweaterId) : undefined;
   // A project knits the edition it was started on, fetched first if the design's knitting has moved on since: see data/sweaters/editions.
   const editionReady = useEditionReady(project?.sweaterId, project?.sizeId, project ? editionOf(project) : undefined);
+  const stillBehind = !!project && !!sweater && behind(project);
+  useEffect(() => {
+    if (!stillBehind || !project || !sweater) return;
+    let open = true;
+    void (whenKnittable(sweater, project.sizeId) ?? Promise.resolve()).then(() => open && adopt(readProject(project.id)));
+    return () => {
+      open = false;
+    };
+  }, [stillBehind, project, sweater, adopt]);
   const takeUpdate = useCallback(() => {
     change((current) => {
       const edition = currentEdition(current.sweaterId, current.sizeId);
@@ -269,6 +279,17 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
           It may have been deleted, or saved in another browser.{" "}
           <Link to="/">Back to the designs</Link>.
         </p>
+      </PageLayout>
+    );
+  }
+
+  // Saved against an older revision of its design, its progress is moved on before anything counts in it: see helpers/revisions.
+  if (stillBehind) {
+    // Its knitting could be had no way: said by the boundary above, which offers to try again.
+    if (!whenKnittable(sweater, project.sizeId) && !knittable(sweater, project.sizeId)) throw new NoKnitting(project.sweaterId);
+    return (
+      <PageLayout title={project.name ?? sweater.name}>
+        <p className="quiet" role="status">Opening the pattern…</p>
       </PageLayout>
     );
   }

@@ -1,7 +1,7 @@
 import React, { startTransition, useCallback, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { sweaterById } from "../data/sweaters";
-import { SlotId, Size } from "../data/sweaters/types";
+import { sweaterById } from "../data/sweaters/catalogue";
+import type { SlotId, SizeAbout } from "../data/sweaters/types";
 import { defaultSize, useSweater } from "../knitting/useSweater";
 import { ballsOf, paletteOf, trimmed, type Overrides } from "../knitting/palette";
 import { totals } from "../knitting/progress";
@@ -18,7 +18,7 @@ import { Schematic } from "./Schematic";
 import "./Sweater.css";
 
 /** A size's finished measurements, as a pattern's schematic gives them. */
-export const Measurements: React.FC<{ size: Size }> = ({ size }) => (
+export const Measurements: React.FC<{ size: SizeAbout }> = ({ size }) => (
   <dl className="measurements">
     <div>
       <dt>Chest</dt>

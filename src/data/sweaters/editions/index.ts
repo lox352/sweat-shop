@@ -141,6 +141,9 @@ export const prepareKnitting = (design: string, size: string, edition?: string):
   );
 };
 
+/** Ask again for the copies asked for and not had: see useSweater's retryKnitting. */
+export const askAgain = () => gaveUp.clear();
+
 /** For tests: forget what has been fetched. */
 export const forgetEditions = () => {
   fetched.clear();

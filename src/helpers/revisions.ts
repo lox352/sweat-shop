@@ -1,5 +1,5 @@
-import { sweaterById } from "../data/sweaters";
-import { sweaterStitches } from "../knitting/useSweater";
+import { sweaterById } from "../data/sweaters/catalogue";
+import { knittable, sweaterStitches } from "../knitting/useSweater";
 import type { Row } from "../knitting/timing/log";
 import type { Stitch } from "../types/Stitch";
 
@@ -47,12 +47,24 @@ export const movedLog = (rows: Row[], moved: (id: number) => number): Row[] => {
  * progress moved on, and a way to move its knitting-time log on with it. None
  * for a project already up to date, or of a design or size no longer known.
  */
+/** Whether a project was saved against an older revision of its design than the latest, and so is still to be moved on. */
+export const behind = (project: { sweaterId: string; sizeId: string; revision?: number }): boolean => {
+  const sweater = sweaterById(project.sweaterId);
+  return !!sweater?.sizes.some((one) => one.id === project.sizeId) && (project.revision ?? 0) < (sweater.revisions?.length ?? 0);
+};
+
+/**
+ * Where a project saved against an older revision of its design is now...
+ * None, too, until its size's knitting is to hand to count in (see
+ * useSweater's whenKnittable): it is moved on when next read after that, and
+ * its own page waits for it.
+ */
 export const migration = (project: { sweaterId: string; sizeId: string; progress: number; revision?: number }) => {
   const sweater = sweaterById(project.sweaterId);
   const revisions = sweater?.revisions ?? [];
   const from = project.revision ?? 0;
   const size = sweater?.sizes.find((one) => one.id === project.sizeId);
-  if (!sweater || !size || from >= revisions.length) return undefined;
+  if (!sweater || !size || from >= revisions.length || !knittable(sweater, size.id)) return undefined;
   const added = new Set<string>(revisions.slice(from).flatMap((revision) => revision.added));
   const moved = movedOn(sweaterStitches(sweater, size.id).stitches, added);
   return {

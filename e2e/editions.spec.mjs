@@ -121,3 +121,17 @@ test("where a size's frozen copy cannot be had, its pattern is worked out here a
   await expect(page.getByRole("button", { name: "End of round", exact: true })).toBeVisible();
   await expect(page.locator(".knitting-panel [role=status]")).toBeAttached();
 });
+
+test("where neither a size's frozen copy nor what works a pattern out can be had, the page says so, and tries again when asked", async ({ page }) => {
+  let reachable = false;
+  const unless = (route) => (reachable ? route.continue() : route.abort());
+  await page.route("**/editions/**", unless);
+  await page.route("**/assets/builder-*.js", unless);
+  await page.goto("#/sweater/hamefarin");
+  await expect(page.getByRole("alert").filter({ hasText: "The pattern could not be fetched" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start knitting this", exact: true })).toHaveCount(0);
+  reachable = true;
+  await page.getByRole("button", { name: "Try again", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Start knitting this", exact: true })).toBeVisible();
+});
+
