@@ -1,8 +1,10 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react-swc";
+import { livePatterns } from "./scripts/live-patterns.mjs";
 
 export default defineConfig({
-  plugins: [react()],
+  // Developing, patterns come from the designs as they are in hand: see scripts/live-patterns.mjs.
+  plugins: [react(), livePatterns()],
   // Served from a project page, so assets resolve under the repository name.
   base: "/sweat-shop/",
   build: {

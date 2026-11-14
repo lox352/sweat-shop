@@ -2,9 +2,8 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { sweaterById } from "../data/sweaters/catalogue";
 import { SlotId } from "../data/sweaters/types";
-import { NoKnitting, knittable, useEditionReady, useSweater, viewChart, whenKnittable } from "../knitting/useSweater";
-import { behind } from "../helpers/revisions";
-import { currentEdition, editionOf, frozenEdition, isSuperseded } from "../data/sweaters/editions";
+import { useSweater, viewChart } from "../knitting/useSweater";
+import { currentEdition, editionOf, isSuperseded } from "../data/sweaters/editions";
 import PatternUpdated from "./PatternUpdated";
 import { makeOnesAtMarkers } from "../knitting/marker-routes";
 import type { ChartView } from "../knitting/views";
@@ -160,17 +159,6 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
 
   const knitting = params.get(knittingParam) === "1";
   const sweater = project ? sweaterById(project.sweaterId) : undefined;
-  // A project knits the edition it was started on, fetched first if the design's knitting has moved on since: see data/sweaters/editions.
-  const editionReady = useEditionReady(project?.sweaterId, project?.sizeId, project ? editionOf(project) : undefined);
-  const stillBehind = !!project && !!sweater && behind(project);
-  useEffect(() => {
-    if (!stillBehind || !project || !sweater) return;
-    let open = true;
-    void (whenKnittable(sweater, project.sizeId) ?? Promise.resolve()).then(() => open && adopt(readProject(project.id)));
-    return () => {
-      open = false;
-    };
-  }, [stillBehind, project, sweater, adopt]);
   const takeUpdate = useCallback(() => {
     change((current) => {
       const edition = currentEdition(current.sweaterId, current.sizeId);
@@ -283,40 +271,6 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
     );
   }
 
-  // Saved against an older revision of its design, its progress is moved on before anything counts in it: see helpers/revisions.
-  if (stillBehind) {
-    // Its knitting could be had no way: said by the boundary above, which offers to try again.
-    if (!whenKnittable(sweater, project.sizeId) && !knittable(sweater, project.sizeId)) throw new NoKnitting(project.sweaterId);
-    return (
-      <PageLayout title={project.name ?? sweater.name}>
-        <p className="quiet" role="status">Opening the pattern…</p>
-      </PageLayout>
-    );
-  }
-
-  // Never some other knitting for want of the project's own: its progress only means anything in its own edition.
-  if (editionReady.state !== "ready") {
-    return (
-      <PageLayout title={project.name ?? sweater.name}>
-        {editionReady.state === "loading" ? (
-          <p className="quiet">Opening the pattern as you started it…</p>
-        ) : (
-          <>
-            <p>
-              This pattern has been updated since you started it, and the version you are knitting could not be
-              fetched. Your progress is safe. Check your connection and try again.
-            </p>
-            <p>
-              <Button variant="primary" onClick={editionReady.retry}>
-                Try again
-              </Button>
-            </p>
-          </>
-        )}
-      </PageLayout>
-    );
-  }
-
   // Knitting happens on the chart page; an old link that asked for it on the
   // overview is sent there.
   if (view === "overview" && knitting) {
@@ -403,7 +357,7 @@ const ProjectView: React.FC<{
   const chart = shownView ? viewChart(built, counted, shownView) : { layout: counted.layout, markers: counted.markers };
   const makeOnes = useMemo(() => makeOnesAtMarkers({ stitches, knitting: built.knitting }), [stitches, built.knitting]);
   // The design's knitting has moved on since this project began: it says so, and offers the update.
-  const updated = isSuperseded(sweater.id, size.id, edition) && frozenEdition(sweater.id, size.id, edition) ? (
+  const updated = isSuperseded(sweater.id, size.id, edition) ? (
     <PatternUpdated sweater={sweater} sizeId={size.id} stitches={stitches} index={index} progress={project.progress} onSwitch={takeUpdate} />
   ) : null;
   const tabs = finished.length > 1 && shownView && (

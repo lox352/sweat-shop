@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { Design } from "../data/sweaters/types";
 import type { Stitch } from "../types/Stitch";
 import { type RoundIndex, roundNames } from "../knitting/progress";
-import { sweaterStitches, whenKnittable } from "../knitting/useSweater";
+import { whenKnitting } from "../knitting/useSweater";
 import { firstDifference } from "../data/sweaters/editions/difference";
 
 /**
@@ -22,19 +22,18 @@ const PatternUpdated: React.FC<{
   const [differs, setDiffers] = useState<{ id: number; round: string } | "same" | undefined>();
   const [asking, setAsking] = useState(false);
 
-  // Building the knitting as it is now takes a moment: done once the page is up, not before it.
   useEffect(() => {
     let open = true;
-    // The size's knitting now: its frozen copy where that can be had, or else worked out here, once the page is up.
-    void (whenKnittable(sweater, sizeId) ?? Promise.resolve()).then(() => {
+    // The size's knitting now; where it cannot be fetched, the note does without where the two differ.
+    void whenKnitting(sweater, sizeId).then((now) => {
       if (!open) return;
-      const id = firstDifference(stitches, sweaterStitches(sweater, sizeId).stitches);
+      const id = firstDifference(stitches, now.stitches);
       if (id === undefined) return setDiffers("same");
       let at = id;
       while (at > 0 && !index.roundOf.has(at)) at--;
       const round = index.roundOf.get(at);
       setDiffers({ id, round: round ? roundNames(index)[round - 1] : `stitch ${id}` });
-    });
+    }, () => undefined);
     return () => {
       open = false;
     };

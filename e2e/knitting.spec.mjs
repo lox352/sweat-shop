@@ -30,8 +30,8 @@ async function start(page) {
 }
 /** Hamefarin in a medium, as a project's choices. */
 const medium = { sweaterId: "hamefarin", sizeId: "m", colourwayId: "simmer-dim" };
-/** The Paul Klee Sweater in its M1, in the colours the pattern gives it, counted with its markers: see helpers/revisions. */
-const klee = { sweaterId: "paul-klee", sizeId: "m1", colourwayId: "klee", revision: 1 };
+/** The Paul Klee Sweater in its M1, in the colours the pattern gives it. */
+const klee = { sweaterId: "paul-klee", sizeId: "m1", colourwayId: "klee" };
 /**
  * A sweater already knitted as far as `progress` - the id of the last stitch
  * worked - opened at its chart with the knitting showing. Knitting a yoke's

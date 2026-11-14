@@ -82,7 +82,7 @@ test("a project whose edition cannot be fetched is not shown some other knitting
     reachable ? route.fulfill({ contentType: "application/json", body: await olderFile() }) : route.abort());
   await projectOn(page, older, 400);
   await page.goto("#/project/1760000000000/chart?knitting=1");
-  await expect(page.getByText("the version you are knitting could not be fetched")).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: "The pattern could not be fetched" })).toBeVisible();
   await expect(page.locator(".chart-page")).toHaveCount(0);
   expect(await saved(page)).toMatchObject({ progress: 400, edition: older });
   reachable = true;
@@ -114,19 +114,9 @@ test("a project on its size's knitting as it is now knits that from its frozen c
   expect(started.edition).toBe(manifest.hamefarin[started.sizeId].current);
 });
 
-test("where a size's frozen copy cannot be had, its pattern is worked out here as it always was", async ({ page }) => {
-  await page.route("**/editions/**", (route) => route.abort());
-  await page.goto("#/sweater/hamefarin");
-  await page.getByRole("button", { name: "Start knitting this", exact: true }).click();
-  await expect(page.getByRole("button", { name: "End of round", exact: true })).toBeVisible();
-  await expect(page.locator(".knitting-panel [role=status]")).toBeAttached();
-});
-
-test("where neither a size's frozen copy nor what works a pattern out can be had, the page says so, and tries again when asked", async ({ page }) => {
+test("where a size's frozen copy cannot be fetched, the page says so, and tries again when asked", async ({ page }) => {
   let reachable = false;
-  const unless = (route) => (reachable ? route.continue() : route.abort());
-  await page.route("**/editions/**", unless);
-  await page.route("**/assets/builder-*.js", unless);
+  await page.route("**/editions/**", (route) => (reachable ? route.continue() : route.abort()));
   await page.goto("#/sweater/hamefarin");
   await expect(page.getByRole("alert").filter({ hasText: "The pattern could not be fetched" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Start knitting this", exact: true })).toHaveCount(0);
@@ -135,3 +125,15 @@ test("where neither a size's frozen copy nor what works a pattern out can be had
   await expect(page.getByRole("button", { name: "Start knitting this", exact: true })).toBeVisible();
 });
 
+test("nothing the site loads can work a pattern out: no script of it holds a chart or the engine", async ({ page }) => {
+  const scripts = [];
+  page.on("response", (response) => {
+    if (response.url().endsWith(".js")) scripts.push(response);
+  });
+  await page.goto("#/sweater/hamefarin");
+  await page.getByRole("button", { name: "Start knitting this", exact: true }).click();
+  await expect(page.locator(".knitting-panel [role=status]")).toBeAttached();
+  expect(scripts.length).toBeGreaterThan(0);
+  // What the engine says of a design with no tension for a fabric: in no script the page fetched.
+  for (const script of scripts) expect(await script.text()).not.toContain("no tension for the fabric");
+});

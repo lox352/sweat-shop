@@ -15,10 +15,10 @@ export const eachYearOnce = { sweaterId: "wool-week-strips-once-oldest", sizeId:
 /** Hamefarin in a medium, a round yoke of many make-ones. */
 export const hamefarin = { sweaterId: "hamefarin", sizeId: "m", colourwayId: "simmer-dim" };
 /** The Paul Klee Sweater's M1, a raglan with markers. */
-export const klee = { sweaterId: "paul-klee", sizeId: "m1", colourwayId: "klee", revision: 1 };
+export const klee = { sweaterId: "paul-klee", sizeId: "m1", colourwayId: "klee" };
 
 /** The Paul Klee Sweater's L, whose yoke grows from 240 stitches to 360 as you knit up it. */
-export const kleeLarge = { sweaterId: "paul-klee", sizeId: "l", colourwayId: "klee", revision: 1 };
+export const kleeLarge = { sweaterId: "paul-klee", sizeId: "l", colourwayId: "klee" };
 
 /**
  * Where a stitch's cell is on screen, as the chart draws it now: its middle,

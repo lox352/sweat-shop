@@ -18,7 +18,6 @@
  */
 
 import type { WoolId } from "../yarns";
-import type { StitchType } from "../../types/StitchType";
 
 /**
  * A yarn slot, as the design names it: "A", "B", "C"... for a design drawn
@@ -442,14 +441,6 @@ export interface SweaterPattern {
    * of the design's yarns out: a small one has room for less of each.
    */
   slotsVaryBySize?: boolean;
-  /**
-   * Each time the design's knitting has changed under projects already
-   * saved against it, oldest first. A project's progress is the id of the
-   * last stitch it worked, so steps added before that stitch move it on: a
-   * project records how many of these its progress counts, and is moved on
-   * past the rest when it is read. See helpers/revisions.
-   */
-  revisions?: Revision[];
 }
 
 /** A size without its knitting: what it measures and is knitted on. */
@@ -466,14 +457,6 @@ export type SizeAbout = Omit<Size, "sections" | "checks">;
  * slot is for, the design's fabrics, and the rules it keeps.
  */
 export type Design = Omit<SweaterPattern, "charts" | "sizes" | "slotRoles" | "tensions" | "rules" | "slotsVaryBySize"> & { sizes: SizeAbout[] };
-
-/** A change to a design's knitting after projects were saved against it: see SweaterPattern.revisions. */
-export interface Revision {
-  /** What changed, in a few words. */
-  what: string;
-  /** The kinds of step it added, wherever they fall. */
-  added: StitchType[];
-}
 
 /** Stitches a cell works on the needle. */
 export const consumes = (cell: ChartCell): number =>
