@@ -12,11 +12,11 @@ import { type EditionFile, decodeEdition } from "./format";
  * its knitter chooses to move on: nothing published later moves a stitch of
  * anyone's knitting.
  *
- * The published site knits every size from its frozen copy, the current
- * edition's too, so that no phone works a pattern out for itself: working one
- * out is the slowest thing the site does, and the answer is the same for
- * everyone. See prepareKnitting. Where a current edition's copy cannot be
- * had - offline, on a size never opened - the size is built as it always was.
+ * The site knits every size from its frozen copy, the current edition's too,
+ * and has no other way to a pattern: nothing a browser loads can work one
+ * out. Working one out is the slowest thing there is to do, the answer is
+ * the same for everyone, and it is done once, by `npm run editions`. A size
+ * whose copy cannot be fetched - offline, and never opened - says so.
  *
  * A frozen copy is a file served as it is, at an address its name gives, so
  * the page carries no list of them however many a design comes to have, and
@@ -49,47 +49,54 @@ export const isSuperseded = (design: string, size: string, edition: string | und
   return edition !== undefined && current !== undefined && edition !== current && /^[0-9a-f]+$/.test(edition);
 };
 
-/**
- * What is known of a frozen copy: its knitting, once fetched; "missing" where
- * the site has no such edition - a project saved by some other build - which
- * is then knitted as the size is now, as every project was before editions;
- * or nothing yet.
- */
-const fetched = new Map<string, SweaterStitches | "missing">();
-const loading = new Map<string, Promise<SweaterStitches | "missing">>();
+/** The frozen copies fetched, and those that could not be: see loadEdition. */
+const fetched = new Map<string, SweaterStitches>();
+const loading = new Map<string, Promise<SweaterStitches>>();
+const failed = new Set<string>();
 
-/** A superseded edition's knitting, if it has been fetched: see loadEdition. */
-export const frozenEdition = (design: string, size: string, edition: string): SweaterStitches | undefined => {
-  const known = fetched.get(keyOf(design, size, edition));
-  return known === "missing" ? undefined : known;
+/** The edition a size is knitted from, for a project on `edition` or for none: its own, else the size's now. */
+export const knittedEdition = (design: string, size: string, edition?: string): string | undefined =>
+  edition ?? currentEdition(design, size);
+
+/** A size's knitting, if its frozen copy has been fetched: see loadEdition. */
+export const editionKnitting = (design: string, size: string, edition?: string): SweaterStitches | undefined => {
+  const from = knittedEdition(design, size, edition);
+  return from ? fetched.get(keyOf(design, size, from)) : undefined;
 };
 
-/** Whether an edition has been asked for and the site has none of that name. */
-export const editionMissing = (design: string, size: string, edition: string): boolean =>
-  fetched.get(keyOf(design, size, edition)) === "missing";
+/** Whether a size's frozen copy was asked for and could not be had: until askAgain. */
+export const editionFailed = (design: string, size: string, edition?: string): boolean => {
+  const from = knittedEdition(design, size, edition);
+  return !from || !/^[0-9a-f]+$/.test(from) || failed.has(keyOf(design, size, from));
+};
 
 /**
- * Fetch and decode a superseded edition, once. Rejects where it could not be
- * reached or read - offline, say - which is not the same as there being none:
- * a project must not be shown some other knitting for want of a connection.
+ * Fetch and decode a size's frozen copy, once. Rejects where it could not be
+ * reached or read, or the site has none of that name: a project is never
+ * shown some other knitting for want of its own.
  */
-export const loadEdition = (design: string, size: string, edition: string): Promise<SweaterStitches | "missing"> => {
-  const key = keyOf(design, size, edition);
+export const loadEdition = (design: string, size: string, edition?: string): Promise<SweaterStitches> => {
+  const from = knittedEdition(design, size, edition);
+  // Only ever a name an edition could have, and so an address under editions/.
+  if (!from || !/^[0-9a-f]+$/.test(from)) return Promise.reject(new Error(`${design} ${size}: no edition`));
+  const key = keyOf(design, size, from);
   const known = fetched.get(key);
   if (known) return Promise.resolve(known);
   let pending = loading.get(key);
   if (!pending) {
-    pending = fetch(editionUrl(design, size, edition))
-      .then(async (response): Promise<SweaterStitches | "missing"> => {
-        if (response.status === 404) return "missing";
+    pending = fetch(editionUrl(design, size, from))
+      .then(async (response) => {
         if (!response.ok) throw new Error(`edition ${key}: ${response.status}`);
         const file = (await response.json()) as EditionFile;
-        if (file.design !== design || file.size !== size || file.edition !== edition) throw new Error(`edition ${key}: not what was fetched`);
-        return decodeEdition(file);
-      })
-      .then((known) => {
+        if (file.design !== design || file.size !== size || file.edition !== from) throw new Error(`edition ${key}: not what was fetched`);
+        const known = decodeEdition(file);
         fetched.set(key, known);
+        failed.delete(key);
         return known;
+      })
+      .catch((error: unknown) => {
+        failed.add(key);
+        throw error;
       })
       .finally(() => loading.delete(key));
     loading.set(key, pending);
@@ -97,56 +104,12 @@ export const loadEdition = (design: string, size: string, edition: string): Prom
   return pending;
 };
 
-/**
- * Whether sizes are knitted from their frozen copies. In the published site;
- * not while developing, where the copies are those of the last `npm run
- * editions` and the knitting is whatever is being worked on, nor in the unit
- * tests, which knit what the code builds.
- */
-export const compiled = { on: import.meta.env.PROD };
-
-/** Copies asked for and not had, this visit: not asked for again by a page that can do without. */
-const gaveUp = new Set<string>();
-
-/** The edition a size is knitted from, for a project on `edition` or for none: its own if superseded, else the size's now. */
-export const knittedEdition = (design: string, size: string, edition?: string): string | undefined =>
-  isSuperseded(design, size, edition) && !editionMissing(design, size, edition) ? edition : currentEdition(design, size);
-
-/** A size's knitting from its frozen copy, if that has been fetched: see prepareKnitting. */
-export const compiledKnitting = (design: string, size: string, edition?: string): SweaterStitches | undefined => {
-  const from = knittedEdition(design, size, edition);
-  return from ? frozenEdition(design, size, from) : undefined;
-};
-
-/**
- * The fetching of a size's frozen copy, where there is one to wait for:
- * undefined once it is had, or was asked for and could not be. It never
- * rejects - a page that waits on it then knits what it can - so a project
- * on a superseded edition, which must have its own knitting or none, asks
- * with loadEdition first: see useEditionReady.
- */
-export const prepareKnitting = (design: string, size: string, edition?: string): Promise<void> | undefined => {
-  if (!compiled.on) return undefined;
-  const from = knittedEdition(design, size, edition);
-  if (!from) return undefined;
-  const key = keyOf(design, size, from);
-  if (fetched.has(key) || gaveUp.has(key)) return undefined;
-  return loadEdition(design, size, from).then(
-    (known) => {
-      if (known === "missing") gaveUp.add(key);
-    },
-    () => {
-      gaveUp.add(key);
-    },
-  );
-};
-
-/** Ask again for the copies asked for and not had: see useSweater's retryKnitting. */
-export const askAgain = () => gaveUp.clear();
+/** Ask again for the copies asked for and not had. */
+export const askAgain = () => failed.clear();
 
 /** For tests: forget what has been fetched. */
 export const forgetEditions = () => {
   fetched.clear();
   loading.clear();
-  gaveUp.clear();
+  failed.clear();
 };

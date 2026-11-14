@@ -167,3 +167,21 @@ it("keeps a frozen edition once it is fetched, and brings it along through every
   w.handlers.fetch({ request: { method: "GET", mode: "cors", url: edition }, respondWith });
   expect(await (await response).text()).toBe("the knitting as it was");
 });
+
+it("keeps the editions a page names for it, once, and nothing else it is asked to", async () => {
+  const w = worker();
+  await w.run("install");
+  const edition = "/sweat-shop/editions/hamefarin--m--0123456789ab.json";
+  let task: Promise<unknown> = Promise.resolve();
+  const answered = vi.fn();
+  const ask = async () => {
+    w.handlers.message({ data: { keep: [edition, "/sweat-shop/assets/other.js", "https://elsewhere.example/editions/x.json"] },
+      ports: [{ postMessage: answered }], waitUntil: (promise: Promise<unknown>) => { task = promise; } });
+    await task;
+  };
+  await ask();
+  await ask();
+  expect(w.fetch).toHaveBeenCalledTimes(1);
+  expect([...w.caches.stores.get("sweat-shop-static-new")!.keys()]).toContain(`https://example.org${edition}`);
+  expect(answered).toHaveBeenCalledTimes(2);
+});

@@ -1,7 +1,7 @@
 import { sweaterById } from "../data/sweaters/catalogue";
 import type { Design } from "../data/sweaters/types";
-import { editionOf, frozenEdition, isSuperseded } from "../data/sweaters/editions";
-import { knittable, sweaterStitches } from "../knitting/useSweater";
+import { editionOf } from "../data/sweaters/editions";
+import { knittingToHand } from "../knitting/useSweater";
 import { currentVersion, listProjects, type Project, writeProject } from "./projects";
 import { isLog, readLog, writeLog, type Row } from "../knitting/timing/log";
 
@@ -20,16 +20,13 @@ export const backupText = () => JSON.stringify({ format: "sweat-shop-projects", 
 /**
  * Whether a project's progress is past the end of its knitting - where that
  * can be told. A project knits its own edition (see data/sweaters/editions),
- * and one its size has moved on from may be longer or shorter than the size
- * is now: until its frozen copy has been fetched there is nothing to hold its
- * progress against, and a finished sweater must not be refused for it.
+ * and a pattern is not fetched to find its end: until its knitting is to hand
+ * there is nothing to hold its progress against, and a finished sweater must
+ * not be refused for it.
  */
 const pastTheEnd = (sweater: Design, p: BackupProject): boolean => {
-  const edition = editionOf(p);
-  if (isSuperseded(sweater.id, p.sizeId, edition) && !frozenEdition(sweater.id, p.sizeId, edition)) return false;
-  // Nor is a pattern fetched or worked out to find its end: only where its knitting is already to hand.
-  if (!knittable(sweater, p.sizeId, edition)) return false;
-  return p.progress >= sweaterStitches(sweater, p.sizeId, edition).stitches.length;
+  const knitting = knittingToHand(sweater, p.sizeId, editionOf(p));
+  return !!knitting && p.progress >= knitting.stitches.length;
 };
 
 export function parseBackup(text: string): BackupProject[] {
@@ -42,7 +39,6 @@ export function parseBackup(text: string): BackupProject[] {
     if (!sweater || !sweater.sizes.some(s => s.id === p.sizeId) ||
       !sweater.colourways.some(c => c.id === p.colourwayId) ||
       p.version !== currentVersion || !Number.isSafeInteger(p.progress) || p.progress < 0 ||
-      (p.revision !== undefined && !(Number.isSafeInteger(p.revision) && p.revision >= 0)) ||
       (p.edition !== undefined && (typeof p.edition !== "string" || !/^[0-9a-f]{1,64}$/.test(p.edition))) ||
       pastTheEnd(sweater, p) ||
       (p.name !== undefined && (typeof p.name !== "string" || p.name.length > 200)) ||
@@ -63,8 +59,6 @@ export function parseBackup(text: string): BackupProject[] {
     return { version: currentVersion, id: `project-${crypto.randomUUID()}`, name: p.name,
       sweaterId: p.sweaterId, sizeId: p.sizeId, colourwayId: p.colourwayId, progress: p.progress,
       ...(p.trim ? { trim: p.trim } : {}),
-      // The revision of its design the progress counts in, which reading it brings up to date: see revisions.
-      ...(p.revision ? { revision: p.revision } : {}),
       // The edition of the knitting it knits, kept so a restored project knits what it did: see data/sweaters/editions.
       ...(p.edition ? { edition: p.edition } : {}),
       shades: p.shades, startedAt: p.startedAt, updatedAt: new Date().toISOString(),

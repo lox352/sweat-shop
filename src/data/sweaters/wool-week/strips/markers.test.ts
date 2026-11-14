@@ -3,7 +3,6 @@ import { sweaters } from "../..";
 import { sweaterStitches, seamLayout, viewChart } from "../../../../knitting/useSweater";
 import { viewFor } from "../../../../knitting/view";
 import { chartViews } from "../../../../knitting/views";
-import { movedOn } from "../../../../helpers/revisions";
 import { sleeveStart, startOfRound } from "./knit";
 
 const samplers = sweaters.filter((one) => one.id.startsWith("wool-week-strips-"));
@@ -46,12 +45,4 @@ describe("the strip samplers' stitch markers", () => {
     }
   }, 120_000);
 
-  it("move a project saved before them on past each one before its stitch", () => {
-    const { stitches } = sweaterStitches(samplers[0], "m");
-    const markers = stitches.filter((one) => one.type === "marker");
-    const moved = movedOn(stitches, new Set(["marker"]));
-    // Saved in the neck's rib, after the first marker: one on. In the left sleeve's second round, after two: two on.
-    expect(moved(markers[0].id + 5 - 1)).toBe(markers[0].id + 5);
-    expect(moved(markers[1].id + 5 - 2)).toBe(markers[1].id + 5);
-  }, 120_000);
 });

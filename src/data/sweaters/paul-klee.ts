@@ -680,7 +680,6 @@ const paulKlee: SweaterPattern = {
     sections: sectionsFor(grades[size.id], at, size.colours),
     checks: checksFor(size, at),
   })),
-  revisions: [{ what: "The pattern's stitch markers, placed and taken off where it says", added: ["marker"] }],
 };
 
 export default paulKlee;

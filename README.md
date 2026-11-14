@@ -157,17 +157,15 @@ stitches whatever the code that built it has since become.
 
 - A project records the edition it was started on. One saved before editions
   knits the first.
-- The published site knits every size from its frozen copy - a file of some
-  15KB over the wire, kept by the service worker from then on - so no phone
-  works a pattern out for itself: that is the slowest thing the site does,
-  and the answer is the same for everyone. Where the copy of a size's
-  knitting as it is now cannot be had, offline on a size never opened, the
-  pattern is worked out in the browser as it always was. Developing, and in
-  the unit tests, it always is: the copies are those of the last `npm run
-  editions`.
+- The site knits every size from its frozen copy - a file of some 15KB over
+  the wire, kept by the service worker from then on - and has no other way
+  to a pattern: nothing a browser loads can work one out. That is the
+  slowest thing there is to do, the answer is the same for everyone, and it
+  is done once, by `npm run editions`. So a size already opened is there
+  offline, and one never opened needs a connection.
 - A project on an edition its size has moved on from knits that edition's
-  copy. If it cannot be fetched, the project says so and shows nothing, never
-  some other knitting.
+  copy. Where a copy cannot be fetched, the page says so and offers to try
+  again; it never shows some other knitting.
 - The project's pages then say the pattern has been updated, where the update
   first differs, and whether that is before or after where the knitting has
   got to. Moving on is the knitter's choice; their place may need putting
@@ -183,10 +181,13 @@ A page reads no design's own file. What it shows of a design - its name, its
 sizes and their measurements, its colourways - it reads from the
 **catalogue** (`src/data/sweaters/catalogue/`): every design without its
 knitting, written from the designs' files. The designs' files and the engine
-that knits them are the **builder** (`src/knitting/builder.ts`), a part of
-the site fetched only where a pattern has to be worked out in the browser
-after all. Developing, and in the tests, it is loaded first, and the designs
-shown are the designs as they are in hand.
+that knits them are no part of the site.
+
+Developing, the server writes the catalogue and each size's edition afresh
+from the designs as they are in hand, and loads the page again when a design
+or the engine changes (`scripts/live-patterns.mjs`), so `npm run dev` shows
+work in progress with nothing run first. The unit tests knit the designs
+directly (`src/test-setup.ts`).
 
 **When a change alters any size's knitting, or anything a design says of
 itself**, the tests fail until its editions are named and frozen and the

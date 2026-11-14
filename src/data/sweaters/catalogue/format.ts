@@ -40,7 +40,7 @@ export interface CatalogueFile {
 }
 
 const sizeKeys = ["id", "label", "toFitChestCm", "fits", "finished", "stitchesPer10cm", "roundsPer10cm", "needlesMm", "ribNeedlesMm", "colourNeedlesMm", "yardage"] as const;
-const designKeys = ["id", "name", "designer", "story", "credit", "pieces", "slots", "trim", "stitchNotes", "revisions"] as const;
+const designKeys = ["id", "name", "designer", "story", "credit", "pieces", "slots", "trim", "stitchNotes"] as const;
 
 /** A copy of an object's named fields, those it has, in that order. */
 const pick = <T extends object, K extends keyof T>(from: T, keys: readonly K[]): Pick<T, K> =>

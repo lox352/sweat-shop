@@ -1,6 +1,5 @@
 import { Overrides } from "../knitting/palette";
-import { deleteLog, readLog, writeLog } from "../knitting/timing/log";
-import { currentRevision, migration } from "./revisions";
+import { deleteLog } from "../knitting/timing/log";
 import { currentEdition } from "../data/sweaters/editions";
 
 /**
@@ -30,11 +29,6 @@ export interface Project {
   shades?: Overrides;
   /** Id of the last stitch worked. 0 means nothing knitted yet. */
   progress: number;
-  /**
-   * How many revisions of its design that progress counts stitches in: see
-   * SweaterPattern.revisions. Left out by a project saved before any.
-   */
-  revision?: number;
   /**
    * The edition of its size's knitting it knits: see data/sweaters/editions.
    * Left out by a project saved before editions, which knits the first.
@@ -104,8 +98,7 @@ const isProject = (value: unknown): value is Project => {
     (candidate.name !== undefined && typeof candidate.name !== "string") ||
     (candidate.trim !== undefined && typeof candidate.trim !== "string") ||
     (candidate.edition !== undefined && typeof candidate.edition !== "string") ||
-    (candidate.version !== undefined && candidate.version !== currentVersion) ||
-    (candidate.revision !== undefined && !(Number.isSafeInteger(candidate.revision) && candidate.revision >= 0))) return false;
+    (candidate.version !== undefined && candidate.version !== currentVersion)) return false;
   if (candidate.shades !== undefined) {
     if (!candidate.shades || typeof candidate.shades !== "object" || Array.isArray(candidate.shades)) return false;
     if (Object.values(candidate.shades).some(shade => !shade || typeof shade !== "object" ||
@@ -120,7 +113,7 @@ const isProject = (value: unknown): value is Project => {
 };
 
 /**
- * Read one project, migrating it forward if it was written by an older build.
+ * Read one project.
  *
  * A single unreadable entry must never take down the page that lists them, so
  * anything that cannot be understood is reported as missing rather than thrown.
@@ -136,37 +129,16 @@ export const readProject = (id: string): Project | undefined => {
     const stamp = Number.isFinite(savedAt.getTime())
       ? savedAt.toISOString()
       : new Date(0).toISOString();
-    return upToDate({
+    return {
       ...parsed,
       version: currentVersion,
       id: storageKeyFor(id),
       startedAt: parsed.startedAt ?? stamp,
       updatedAt: parsed.updatedAt ?? parsed.startedAt ?? stamp,
-    });
+    };
   } catch {
     return undefined;
   }
-};
-
-/**
- * A project saved against an older revision of its design, moved on to the
- * latest - its progress, and its knitting-time log with it - and saved so,
- * once: see helpers/revisions. When it last changed stays as it was, as
- * nothing of the knitter's has.
- */
-const upToDate = (project: Project): Project => {
-  const moving = migration(project);
-  if (!moving) return project;
-  const moved = { ...project, progress: moving.progress, revision: moving.revision };
-  try {
-    localStorage.setItem(project.id, JSON.stringify(moved));
-  } catch {
-    // Not saved, and so moved on again, from where it was saved, when next read.
-    return moved;
-  }
-  const rows = readLog(project.id);
-  if (rows.length > 0) writeLog(project.id, moving.log(rows));
-  return moved;
 };
 
 export const listProjects = (): Project[] => {
@@ -218,7 +190,6 @@ export const startProject = (
   /** And any trim. */
   trim?: string,
 ): Project => {
-  const revision = currentRevision(sweaterId);
   const edition = currentEdition(sweaterId, sizeId);
   return writeProject({
     version: currentVersion,
@@ -229,7 +200,6 @@ export const startProject = (
     ...(trim ? { trim } : {}),
     shades: Object.keys(shades).length > 0 ? shades : undefined,
     progress: 0,
-    ...(revision > 0 ? { revision } : {}),
     ...(edition ? { edition } : {}),
     startedAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),

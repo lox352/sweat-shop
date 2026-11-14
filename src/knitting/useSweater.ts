@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { Design } from "../data/sweaters/types";
-import { askAgain, compiledKnitting, editionMissing, frozenEdition, isSuperseded, loadEdition, prepareKnitting } from "../data/sweaters/editions";
+import { askAgain, editionFailed, editionKnitting, isSuperseded, loadEdition } from "../data/sweaters/editions";
 import { type SweaterStitches } from "./knitted";
 import { type ChartLayout, layOutSweater } from "./layout";
 import { type RoundIndex, indexRounds } from "./progress";
@@ -10,76 +10,37 @@ import { markersPassed } from "./marker-routes";
 import { type ChartView, chartViews, layOutView, markersInView, viewFollowedAt } from "./views";
 
 /**
- * What works a pattern out, where it is loaded: see builder.ts, which is most
- * of the weight a page would otherwise carry, and is fetched only when a
- * pattern has to be worked out here.
+ * For the tests alone, which knit the designs as they are in hand: see
+ * test-setup. Nothing a browser loads can work a pattern out.
  */
-type Builder = (design: Design, sizeId?: string) => SweaterStitches;
-let builder: Builder | undefined;
-export const setBuilder = (build: Builder) => {
-  builder = build;
+type InHand = (design: Design, sizeId?: string) => SweaterStitches;
+let inHand: InHand | undefined;
+export const knitInHand = (knit: InHand) => {
+  inHand = knit;
 };
-let loadingBuilder: Promise<void> | undefined;
-/** Whether it was asked for and could not be had. */
-let noBuilder = false;
-/** Never rejects: a page that waits on it then finds whether its knitting can be had. */
-const loadBuilder = () =>
-  (loadingBuilder ??= import("./builder").then(
-    () => undefined,
-    () => {
-      noBuilder = true;
-      loadingBuilder = undefined;
-    },
-  ));
 
-/**
- * A size's knitting can be had no way: its frozen copy could not be fetched,
- * and nor could what works a pattern out. Offline, in a browser that keeps
- * nothing of the site. Thrown by useKnitting, for KnittingBoundary to say so.
- */
+/** A size's knitting could not be fetched. Thrown by useKnitting, for KnittingBoundary to say so. */
 export class NoKnitting extends Error {}
 
 /** Forget what could not be had, so that it is asked for again. */
-export const retryKnitting = () => {
-  noBuilder = false;
-  askAgain();
-};
+export const retryKnitting = askAgain;
 
-/** Patterns worked out here, kept: the same answer every time for a design and size. */
-const cache = new Map<string, SweaterStitches>();
+/** A size's knitting, if it is to hand: its frozen copy, fetched - the size's edition now, or the one a project is on. */
+export const knittingToHand = (pattern: Design, sizeId?: string, edition?: string): SweaterStitches | undefined =>
+  (sizeId ? editionKnitting(pattern.id, sizeId, edition) : undefined) ??
+  // In hand is the size as it is now, never an edition it has moved on from.
+  (inHand && !(sizeId && isSuperseded(pattern.id, sizeId, edition)) ? inHand(pattern, sizeId) : undefined);
 
-/**
- * A size's knitting: from its frozen copy where that has been fetched - the
- * size's edition now, or the one a project is on that the size has moved on
- * from - and otherwise worked out here, as the size is now. See
- * whenKnittable, which a caller waits on first, and data/sweaters/editions.
- */
+/** A size's knitting, which a caller has waited for: see whenKnitting and useKnitting. */
 export const sweaterStitches = (pattern: Design, sizeId?: string, edition?: string): SweaterStitches => {
-  const frozen = sizeId && compiledKnitting(pattern.id, sizeId, edition);
-  if (frozen) return frozen;
-  const key = `${pattern.id}::${sizeId ?? ""}`;
-  const cached = cache.get(key);
-  if (cached) return cached;
-  if (!builder) throw new Error(`${pattern.id} ${sizeId ?? ""}: its knitting has not been fetched, nor what works it out`);
-  const built = builder(pattern, sizeId);
-  cache.set(key, built);
-  return built;
+  const knitting = knittingToHand(pattern, sizeId, edition);
+  if (!knitting) throw new Error(`${pattern.id} ${sizeId ?? ""}: its knitting has not been fetched`);
+  return knitting;
 };
 
-/** Whether a size's knitting can be had at once: see whenKnittable. */
-export const knittable = (pattern: Design, sizeId?: string, edition?: string): boolean =>
-  !!builder || !!(sizeId && compiledKnitting(pattern.id, sizeId, edition)) || cache.has(`${pattern.id}::${sizeId ?? ""}`);
-
-/**
- * What to wait for before a size's knitting can be had, or undefined once it
- * can: its frozen copy, or, where that cannot be fetched, what works a
- * pattern out here.
- */
-export const whenKnittable = (pattern: Design, sizeId?: string, edition?: string): Promise<void> | undefined => {
-  const copy = sizeId && prepareKnitting(pattern.id, sizeId, edition);
-  if (copy) return copy;
-  return knittable(pattern, sizeId, edition) || noBuilder ? undefined : loadBuilder();
-};
+/** The fetching of a size's knitting: rejects where it cannot be had. */
+export const whenKnitting = async (pattern: Design, sizeId: string, edition?: string): Promise<SweaterStitches> =>
+  knittingToHand(pattern, sizeId, edition) ?? loadEdition(pattern.id, sizeId, edition);
 
 /**
  * The rounds of the first piece knitted - for a top-down sweater, the yoke,
@@ -148,51 +109,22 @@ export const viewChart = (built: SweaterStitches, counted: View, view: ChartView
 };
 
 /**
- * Whether an edition's knitting is ready to build from. At once, unless it is
- * one a size has moved on from and its frozen copy has still to be fetched,
- * which this starts: "loading" until it comes, and "failed" if it cannot be
- * reached, with `retry` to try again. An edition the site has no copy of is
- * ready too, and knitted as the size is now.
- */
-export const useEditionReady = (
-  design: string | undefined,
-  size: string | undefined,
-  edition: string | undefined,
-): { state: "ready" | "loading" | "failed"; retry: () => void } => {
-  const needed = !!design && !!size && isSuperseded(design, size, edition);
-  const ready = !needed || !!frozenEdition(design!, size!, edition!) || editionMissing(design!, size!, edition!);
-  const [failed, setFailed] = useState(false);
-  const [attempt, setAttempt] = useState(0);
-  const [, fetched] = useState(0);
-  useEffect(() => {
-    if (!needed || ready) return;
-    let open = true;
-    setFailed(false);
-    loadEdition(design!, size!, edition!).then(
-      () => open && fetched((n) => n + 1),
-      () => open && setFailed(true),
-    );
-    return () => {
-      open = false;
-    };
-  }, [design, size, edition, needed, ready, attempt]);
-  return { state: ready ? "ready" : failed ? "failed" : "loading", retry: () => setAttempt((n) => n + 1) };
-};
-
-/**
  * A size's knitting, for a component: suspended, under the nearest Suspense,
- * while its frozen copy is fetched, so that the published site never works a
- * pattern out where it can fetch the answer. See editions' prepareKnitting.
+ * while its frozen copy is fetched, and NoKnitting, for the nearest
+ * KnittingBoundary, where it cannot be.
  */
-export const useKnitting = (pattern: Design, sizeId?: string, edition?: string) => {
-  const waiting = whenKnittable(pattern, sizeId, edition);
-  if (waiting) throw waiting;
-  if (!knittable(pattern, sizeId, edition)) throw new NoKnitting(`${pattern.id} ${sizeId ?? ""}`);
-  return useMemo(() => sweaterStitches(pattern, sizeId, edition), [pattern, sizeId, edition]);
+export const useKnitting = (pattern: Design, sizeId: string, edition?: string) => {
+  const knitting = knittingToHand(pattern, sizeId, edition);
+  if (!knitting) {
+    if (editionFailed(pattern.id, sizeId, edition)) throw new NoKnitting(`${pattern.id} ${sizeId}`);
+    // Either way it settles, and the page is drawn again to find which.
+    throw loadEdition(pattern.id, sizeId, edition).then(() => undefined, () => undefined);
+  }
+  return knitting;
 };
 
 /** A sweater, and its rounds as the knitter counts them once `progress` stitches are worked: see countedAt. */
-export const useSweater = (pattern: Design, sizeId?: string, progress = 0, edition?: string) => {
+export const useSweater = (pattern: Design, sizeId: string, progress = 0, edition?: string) => {
   const built = useKnitting(pattern, sizeId, edition);
   const { view, index } = countedAt(pattern, built, progress);
   const yoke = useMemo(() => yokeRounds(built), [built]);

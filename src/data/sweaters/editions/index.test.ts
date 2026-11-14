@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sweaterById } from "../index";
 import { sweaterStitches } from "../../../knitting/useSweater";
-import { currentEdition, editionMissing, editionOf, editionUrl, forgetEditions, frozenEdition, isSuperseded, loadEdition } from "./index";
+import { currentEdition, editionFailed, editionKnitting, editionOf, editionUrl, forgetEditions, isSuperseded, loadEdition } from "./index";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const design = "hamefarin";
@@ -49,16 +49,16 @@ describe("which edition a project knits", () => {
   });
 });
 
-describe("a superseded edition", () => {
+describe("an edition", () => {
   it("is fetched once from the address its name gives, and is then the project's knitting", async () => {
     const fetching = answering(() => new Response(JSON.stringify(olderFile())));
-    expect(frozenEdition(design, size, older)).toBeUndefined();
+    expect(editionKnitting(design, size, older)).toBeUndefined();
     const [first, again] = await Promise.all([loadEdition(design, size, older), loadEdition(design, size, older)]);
     expect(fetching).toHaveBeenCalledTimes(1);
     expect(fetching.mock.calls[0][0]).toBe(editionUrl(design, size, older));
     expect(editionUrl(design, size, older)).toMatch(/editions\/hamefarin--m--0123456789ab\.json$/);
     expect(again).toBe(first);
-    expect(frozenEdition(design, size, older)).toBe(first);
+    expect(editionKnitting(design, size, older)).toBe(first);
     await loadEdition(design, size, older);
     expect(fetching).toHaveBeenCalledTimes(1);
 
@@ -72,26 +72,21 @@ describe("a superseded edition", () => {
     expect(sweaterStitches(pattern, size, current)).toBe(now);
   });
 
-  it("the site has no copy of is knitted as the size is now", async () => {
-    answering(() => new Response("Not found", { status: 404 }));
-    expect(await loadEdition(design, size, older)).toBe("missing");
-    expect(editionMissing(design, size, older)).toBe(true);
-    expect(frozenEdition(design, size, older)).toBeUndefined();
-    const pattern = sweaterById(design)!;
-    expect(sweaterStitches(pattern, size, older)).toBe(sweaterStitches(pattern, size));
-  });
-
-  it("that cannot be reached is not taken for missing, and is asked for again", async () => {
+  it("that cannot be had - unreachable, or none of that name - is no other knitting, and is asked for again", async () => {
     const fetching = vi.fn(async (...args: unknown[]): Promise<Response> => {
       void args;
       throw new TypeError("Failed to fetch");
     });
     vi.stubGlobal("fetch", fetching);
     await expect(loadEdition(design, size, older)).rejects.toThrow();
-    expect(editionMissing(design, size, older)).toBe(false);
+    expect(editionFailed(design, size, older)).toBe(true);
+    fetching.mockImplementation(async () => new Response("Not found", { status: 404 }));
+    await expect(loadEdition(design, size, older)).rejects.toThrow();
+    expect(editionKnitting(design, size, older)).toBeUndefined();
     fetching.mockImplementation(async () => new Response(JSON.stringify(olderFile())));
-    expect(await loadEdition(design, size, older)).not.toBe("missing");
-    expect(fetching).toHaveBeenCalledTimes(2);
+    expect((await loadEdition(design, size, older)).stitches.length).toBeGreaterThan(0);
+    expect(editionFailed(design, size, older)).toBe(false);
+    expect(fetching).toHaveBeenCalledTimes(3);
   });
 
   it("is refused if the file is some other edition's, or cannot be read", async () => {
@@ -101,6 +96,6 @@ describe("a superseded edition", () => {
     await expect(loadEdition(design, size, older)).rejects.toThrow();
     answering(() => new Response("Server error", { status: 500 }));
     await expect(loadEdition(design, size, older)).rejects.toThrow();
-    expect(frozenEdition(design, size, older)).toBeUndefined();
+    expect(editionKnitting(design, size, older)).toBeUndefined();
   });
 });
