@@ -12,6 +12,7 @@ import {
   renameProject,
 } from "../helpers/projects";
 import { countedAt, useKnitting, yokeRounds } from "../knitting/useSweater";
+import KnittingBoundary from "./KnittingBoundary";
 import type { SweaterStitches } from "../knitting/knitted";
 import type { Design } from "../data/sweaters/types";
 import { editionOf } from "../data/sweaters/editions";
@@ -51,9 +52,11 @@ type CardProps = { project: Project; onRename: () => void; onDelete: () => void 
 const ProjectCard: React.FC<CardProps> = (props) => {
   const sweater = sweaterById(props.project.sweaterId);
   return sweater ? (
-    <Suspense fallback={<li className="project-card" aria-busy="true" />}>
-      <KnownProjectCard {...props} sweater={sweater} />
-    </Suspense>
+    <KnittingBoundary compact>
+      <Suspense fallback={<li className="project-card" aria-busy="true" />}>
+        <KnownProjectCard {...props} sweater={sweater} />
+      </Suspense>
+    </KnittingBoundary>
   ) : null;
 };
 
@@ -197,9 +200,11 @@ const Home: React.FC = () => {
             return (
               <li key={sweater.id}>
                 <Link to={`/sweater/${sweater.id}`} className="design-card">
-                  <Suspense fallback={<div className="design-card-body" aria-busy="true" />}>
-                    <DesignStrip sweater={sweater} />
-                  </Suspense>
+                  <KnittingBoundary compact>
+                    <Suspense fallback={<div className="design-card-body" aria-busy="true" />}>
+                      <DesignStrip sweater={sweater} />
+                    </Suspense>
+                  </KnittingBoundary>
                   <span className="design-card-text">
                     <span className="eyebrow">
                       {sweater.sizes.length} sizes · {sweater.colourways.length} colourways

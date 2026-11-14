@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { sweaterById } from "../data/sweaters/catalogue";
 import { SlotId } from "../data/sweaters/types";
-import { useEditionReady, useSweater, viewChart, whenKnittable } from "../knitting/useSweater";
+import { NoKnitting, knittable, useEditionReady, useSweater, viewChart, whenKnittable } from "../knitting/useSweater";
 import { behind } from "../helpers/revisions";
 import { currentEdition, editionOf, frozenEdition, isSuperseded } from "../data/sweaters/editions";
 import PatternUpdated from "./PatternUpdated";
@@ -285,6 +285,8 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
 
   // Saved against an older revision of its design, its progress is moved on before anything counts in it: see helpers/revisions.
   if (stillBehind) {
+    // Its knitting could be had no way: said by the boundary above, which offers to try again.
+    if (!whenKnittable(sweater, project.sizeId) && !knittable(sweater, project.sizeId)) throw new NoKnitting(project.sweaterId);
     return (
       <PageLayout title={project.name ?? sweater.name}>
         <p className="quiet" role="status">Opening the pattern…</p>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Design } from "../data/sweaters/types";
-import { compiledKnitting, editionMissing, frozenEdition, isSuperseded, loadEdition, prepareKnitting } from "../data/sweaters/editions";
+import { askAgain, compiledKnitting, editionMissing, frozenEdition, isSuperseded, loadEdition, prepareKnitting } from "../data/sweaters/editions";
 import { type SweaterStitches } from "./knitted";
 import { type ChartLayout, layOutSweater } from "./layout";
 import { type RoundIndex, indexRounds } from "./progress";
@@ -20,7 +20,30 @@ export const setBuilder = (build: Builder) => {
   builder = build;
 };
 let loadingBuilder: Promise<void> | undefined;
-const loadBuilder = () => (loadingBuilder ??= import("./builder").then(() => undefined));
+/** Whether it was asked for and could not be had. */
+let noBuilder = false;
+/** Never rejects: a page that waits on it then finds whether its knitting can be had. */
+const loadBuilder = () =>
+  (loadingBuilder ??= import("./builder").then(
+    () => undefined,
+    () => {
+      noBuilder = true;
+      loadingBuilder = undefined;
+    },
+  ));
+
+/**
+ * A size's knitting can be had no way: its frozen copy could not be fetched,
+ * and nor could what works a pattern out. Offline, in a browser that keeps
+ * nothing of the site. Thrown by useKnitting, for KnittingBoundary to say so.
+ */
+export class NoKnitting extends Error {}
+
+/** Forget what could not be had, so that it is asked for again. */
+export const retryKnitting = () => {
+  noBuilder = false;
+  askAgain();
+};
 
 /** Patterns worked out here, kept: the same answer every time for a design and size. */
 const cache = new Map<string, SweaterStitches>();
@@ -55,7 +78,7 @@ export const knittable = (pattern: Design, sizeId?: string, edition?: string): b
 export const whenKnittable = (pattern: Design, sizeId?: string, edition?: string): Promise<void> | undefined => {
   const copy = sizeId && prepareKnitting(pattern.id, sizeId, edition);
   if (copy) return copy;
-  return knittable(pattern, sizeId, edition) ? undefined : loadBuilder();
+  return knittable(pattern, sizeId, edition) || noBuilder ? undefined : loadBuilder();
 };
 
 /**
@@ -164,6 +187,7 @@ export const useEditionReady = (
 export const useKnitting = (pattern: Design, sizeId?: string, edition?: string) => {
   const waiting = whenKnittable(pattern, sizeId, edition);
   if (waiting) throw waiting;
+  if (!knittable(pattern, sizeId, edition)) throw new NoKnitting(`${pattern.id} ${sizeId ?? ""}`);
   return useMemo(() => sweaterStitches(pattern, sizeId, edition), [pattern, sizeId, edition]);
 };
 

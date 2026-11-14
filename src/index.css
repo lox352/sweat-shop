@@ -167,3 +167,7 @@ select {
     scroll-behavior: auto !important;
   }
 }
+
+/* A pattern that could be had no way: see KnittingBoundary. */
+.no-knitting { padding: 1rem; display: grid; gap: 0.5rem; justify-items: start; }
+.no-knitting p { margin: 0; }
