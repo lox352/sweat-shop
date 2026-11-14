@@ -1,5 +1,5 @@
-const version = "600b0062107b1a2f";
-const assets = ["404.html","assets/SweaterStage-CXPbBFkZ.js","assets/builder-B7n8-Z1a.js","assets/constants-BHLL5FZS.js","assets/index-DwpVgOI0.css","assets/index-DxVVyilS.js","assets/index-LO_V58n3.js","favicon.svg","fonts/README.md","fonts/fonts.css","fonts/oswald-variable.woff2","fonts/source-sans-3-italic.woff2","fonts/source-sans-3-variable.woff2","index.html","robots.txt"];
+const version = "2653760e62dfe205";
+const assets = ["404.html","assets/SweaterStage-Bxmqwg0E.js","assets/index-CuD1TOCi.js","assets/index-DwpVgOI0.css","assets/index-DxVVyilS.js","favicon.svg","fonts/README.md","fonts/fonts.css","fonts/oswald-variable.woff2","fonts/source-sans-3-italic.woff2","fonts/source-sans-3-variable.woff2","index.html","robots.txt"];
 const prefix = "sweat-shop-static-";
 const cacheName = prefix + version;
 const urlFor = path => new URL(path, self.registration.scope).href;
@@ -70,6 +70,31 @@ self.addEventListener("activate", event => {
     }
     for (const { key } of installed.slice(1)) await caches.delete(key);
     await self.clients.claim();
+  })());
+});
+
+/*
+ * The editions the knitter's own projects knit, named by the page once this
+ * worker is up: one fetched before it was - on a first visit - was never
+ * kept, and a pattern can be had no other way offline. The page is answered
+ * when they are kept, or could not be.
+ */
+self.addEventListener("message", event => {
+  const keep = event.data?.keep;
+  if (!Array.isArray(keep)) return;
+  event.waitUntil((async () => {
+    const cache = await caches.open(cacheName);
+    for (const path of keep) {
+      const url = urlFor(path);
+      if (!url.startsWith(urlFor("editions/")) || (await caches.match(url))) continue;
+      try {
+        const response = await fetch(url);
+        if (response.ok) await cache.put(url, response);
+      } catch {
+        // Kept when it is next fetched.
+      }
+    }
+    event.ports[0]?.postMessage("kept");
   })());
 });
 
