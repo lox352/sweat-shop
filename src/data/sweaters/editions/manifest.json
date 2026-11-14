@@ -170,69 +170,69 @@
  "wool-week-strips-lined-oldest": {
   "2xl": {
    "first": "2e50ba9526ad",
-   "current": "2e50ba9526ad"
+   "current": "5cd9ba9e3165"
   },
   "3xl": {
    "first": "0d860572ccfd",
-   "current": "0d860572ccfd"
+   "current": "6a4df3f4cf83"
   },
   "4xl": {
    "first": "944014296283",
-   "current": "944014296283"
+   "current": "043b75d6f9ff"
   },
   "l": {
    "first": "81b706dc8176",
-   "current": "81b706dc8176"
+   "current": "a5d01898bdc7"
   },
   "m": {
    "first": "626f64968eb6",
-   "current": "626f64968eb6"
+   "current": "ee887fc5c4bd"
   },
   "s": {
    "first": "646c8cfb1885",
-   "current": "646c8cfb1885"
+   "current": "23a87a2032b2"
   },
   "xl": {
    "first": "5002eb32b5e1",
-   "current": "5002eb32b5e1"
+   "current": "5560b3565b4f"
   },
   "xs": {
    "first": "0770802c2345",
-   "current": "0770802c2345"
+   "current": "00fb14a5af29"
   }
  },
  "wool-week-strips-once-oldest": {
   "2xl": {
    "first": "1d14504a8c0e",
-   "current": "1d14504a8c0e"
+   "current": "8381727d19e2"
   },
   "3xl": {
    "first": "930614781ea3",
-   "current": "930614781ea3"
+   "current": "e65fe68b96b6"
   },
   "4xl": {
    "first": "5581b14c0e03",
-   "current": "5581b14c0e03"
+   "current": "fa855ff8f22a"
   },
   "l": {
    "first": "96c7e2900293",
-   "current": "96c7e2900293"
+   "current": "df0a4da94bdb"
   },
   "m": {
    "first": "9d1bb6aa8bd6",
-   "current": "9d1bb6aa8bd6"
+   "current": "26e56d0c92fa"
   },
   "s": {
    "first": "f8c7d02ab594",
-   "current": "f8c7d02ab594"
+   "current": "99f9eca01ead"
   },
   "xl": {
    "first": "bc8dac9f83a1",
-   "current": "bc8dac9f83a1"
+   "current": "27515e86e5c9"
   },
   "xs": {
    "first": "8e5235f84622",
-   "current": "8e5235f84622"
+   "current": "be10b3055210"
   }
  }
 }
