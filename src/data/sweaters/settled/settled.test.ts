@@ -1,18 +1,20 @@
-import { readFileSync, readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "../../../knitting/engine";
 import { testSweater } from "../../../knitting/test-sweater";
 import { pose } from "../../../physics/pose";
 import { sweaterById, sweaters } from "../index";
-import { loadSettled } from "./index";
+import { currentEdition } from "../editions";
+import { decodeEdition, type EditionFile } from "../editions/format";
+import shapes from "./shapes.json";
+// @ts-expect-error a script, with no types of its own
+import { physicsFiles } from "../../../../scripts/shapes.mjs";
 import { SettledFile, allPositions, decodeSettled, encodeSettled, fabricPositions, settledLength } from "./format";
 
-const here = dirname(fileURLToPath(import.meta.url));
 /** How many rounds' height a settled waist may rise and fall by on its way round. */
 const LEVEL_ROUNDS = 8;
-const files = readdirSync(here).filter((name) => name.endsWith(".json"));
+const recorded = Object.entries(shapes as Record<string, string>);
+const shapeFile = (shape: string) => `public/shapes/${shape}.json`;
 
 describe("the settled file format", () => {
   it("gives back every position to the nearest tenth", () => {
@@ -36,30 +38,32 @@ describe("the settled file format", () => {
 });
 
 describe("the settled sweaters", () => {
-  for (const sweater of sweaters) {
-    for (const size of sweater.sizes) {
-      it(`has ${sweater.id} in size ${size.label}, with a position for every stitch of its fabric`, async () => {
-        const positions = await loadSettled(sweater.id, size.id);
-        expect(positions, "Run npm run settle for the missing size").toBeDefined();
-        expect(positions!.length).toBe(settledLength(buildSweater(sweater, size.id).stitches));
-      });
-    }
-  }
+  it("are each the shape of an edition, and every edition's shape is there", () => {
+    const files = readdirSync("public/shapes").map((name) => name.replace(/\.json$/, "")).sort();
+    expect(files).toEqual([...new Set(recorded.map(([, shape]) => shape))].sort());
+  });
 
-  for (const file of files) {
-    const [sweaterId, sizeId] = file.replace(/\.json$/, "").split("--");
+  it("are named by everything the settling runs on", () => {
+    const physics = readdirSync("src/physics").filter((name) => name.endsWith(".ts") && !name.includes(".test.") && name !== "gauge.ts");
+    for (const name of physics) expect(physicsFiles, `scripts/shapes.mjs does not name ${name}`).toContain(`src/physics/${name}`);
+    for (const path of physicsFiles as string[]) expect(existsSync(path), path).toBe(true);
+  });
 
-    it(`${file} is a sweater and size the site knows`, () => {
-      const sweater = sweaterById(sweaterId);
-      expect(sweater, `no sweater is called ${sweaterId}`).toBeDefined();
-      expect(sweater!.sizes.some((size) => size.id === sizeId), `no size ${sizeId}`).toBe(true);
+  for (const [key, shape] of recorded) {
+    const [sweaterId, sizeId, edition] = key.split("--");
+
+    it(`${key} has a position for every stitch of its fabric`, () => {
+      const frozen = JSON.parse(readFileSync(`public/editions/${key}.json`, "utf8")) as EditionFile;
+      const settled = JSON.parse(readFileSync(shapeFile(shape), "utf8")) as SettledFile;
+      expect(decodeSettled(settled).length).toBe(settledLength(decodeEdition(frozen).stitches));
     });
 
-    it(`${file} is sweater-shaped: the neck at the top, the body under it, a sleeve to each side`, () => {
+    if (currentEdition(sweaterId, sizeId) !== edition) continue;
+    it(`${key} is sweater-shaped: the neck at the top, the body under it, a sleeve to each side`, () => {
       const sweater = sweaterById(sweaterId);
-      if (!sweater) return;
-      const built = buildSweater(sweater, sizeId);
-      const settled = JSON.parse(readFileSync(join(here, file), "utf8")) as SettledFile;
+      expect(sweater, `no sweater is called ${sweaterId}`).toBeDefined();
+      const built = buildSweater(sweater!, sizeId);
+      const settled = JSON.parse(readFileSync(shapeFile(shape), "utf8")) as SettledFile;
       const positions = allPositions(built.stitches, decodeSettled(settled));
       expect(positions.every(Number.isFinite)).toBe(true);
       const mean = (piece: string, axis: number) => {

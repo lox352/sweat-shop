@@ -33,8 +33,7 @@ describe("every size's edition", () => {
 });
 
 describe("the frozen editions", () => {
-  // Beside them, the settled sweaters of editions since superseded: see settled/keep.
-  const files = readdirSync(frozen).filter((name) => name.endsWith(".json") && !name.endsWith(".settled.json"));
+  const files = readdirSync(frozen).filter((name) => name.endsWith(".json"));
 
   it("each knit what their name says, and never change", () => {
     for (const name of files) {

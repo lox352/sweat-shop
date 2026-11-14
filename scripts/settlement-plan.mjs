@@ -1,32 +1,17 @@
-import { createHash } from "node:crypto";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 import { createServer } from "vite";
+import { editionKey, readShapes, shapeNamer, shapePath } from "./shapes.mjs";
 
 /**
- * Which sweaters need settling again.
+ * Which sizes need settling.
  *
- * A settle is worth redoing when, and only when, what it settles has changed:
- * the knitting's shape, or the physics. So each sweater's fingerprint hashes
- * the physics' own source and, size by size, the fabric's topology - each
- * stitch's kind, what it is linked to and how wide and tall it is, and the
- * rounds from each piece's seam: see settled/topology. Nothing else. Not the
- * colours: the hat site hashed every yarn slot too, so recolouring a band
- * re-settled the hat, and here a design is recoloured far more often than it
- * is reshaped. Nor the steps, which are no part of the fabric.
- *
- * A sweater is needed when its fingerprint is not the one the manifest says
- * it was last settled at, or when any size's file is missing, of an older
- * version, or has the wrong number of positions.
+ * A size's knitting has a shape (see shapes.mjs), named by its fabric and the
+ * physics: a size is needed when its edition now is not recorded as having
+ * that shape, or the shape's file is missing or of an older version. So a
+ * settle is redone when, and only when, what it settles has changed - not
+ * for a recolouring, nor a step added - and an interrupted run is picked up
+ * where it stopped.
  */
-export const manifestPath = "scripts/settlement-manifest.json";
-export const settledDir = "src/data/sweaters/settled";
-
-const sources = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-  const path = join(dir, entry.name);
-  if (entry.isDirectory()) return sources(path);
-  return /\.ts$/.test(path) && !path.includes(".test.") ? [path] : [];
-});
 
 /** A Vite server to load the site's TypeScript with, and close afterwards. */
 export const withSite = async (work) => {
@@ -43,41 +28,31 @@ export const withSite = async (work) => {
   }
 };
 
+/** Every size, with its edition and shape now, and whether that has still to be settled. */
 export const settlementPlan = async (load) => {
   const { sweaters } = await load("/src/data/sweaters/index.ts");
   const { buildSweater } = await load("/src/knitting/engine.ts");
-  const { topologyOf } = await load("/src/data/sweaters/settled/topology.ts");
   const { settledLength, settledVersion } = await load("/src/data/sweaters/settled/format.ts");
-  // Everything the settling runs on; the bench's measuring tape changes nothing it does.
-  const physics = ["src/constants.ts", ...sources("src/physics"), ...sources("src/types")]
-    .filter((path) => !path.endsWith("gauge.ts"))
-    .sort()
-    .map((path) => `${path}\n${readFileSync(path, "utf8")}`)
-    .join("\n");
-  const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : {};
-  return sweaters.map((sweater) => {
-    const hash = createHash("sha256").update(physics);
-    let covered = true;
-    for (const size of sweater.sizes) {
+  const { encodeEdition, hashable } = await load("/src/data/sweaters/editions/format.ts");
+  const { nameOf } = await import("./editions.mjs");
+  const shapeOf = await shapeNamer(load);
+  const shapes = readShapes();
+  return sweaters.flatMap((sweater) =>
+    sweater.sizes.map((size) => {
       const built = buildSweater(sweater, size.id);
-      hash.update(JSON.stringify({ size: size.id, ...topologyOf(built.knitting) }));
-      const path = `${settledDir}/${sweater.id}--${size.id}.json`;
+      const edition = nameOf(hashable(encodeEdition(built, sweater.id, size.id, "")));
+      const shape = shapeOf(built.knitting);
+      const path = shapePath(shape);
       const file = existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : undefined;
-      if (file?.version !== settledVersion || file.deltas?.length !== settledLength(built.stitches)) covered = false;
-    }
-    const fingerprint = hash.digest("hex");
-    return {
-      id: sweater.id,
-      sizes: sweater.sizes.map((size) => size.id),
-      fingerprint,
-      needed: !covered || manifest[sweater.id] !== fingerprint,
-    };
-  });
+      const fits = file?.version === settledVersion && file.deltas?.length === settledLength(built.stitches);
+      return { id: sweater.id, size: size.id, edition, shape, settled: fits, needed: !fits || shapes[editionKey(sweater.id, size.id, edition)] !== shape };
+    }),
+  );
 };
 
 if (process.argv[1]?.endsWith("settlement-plan.mjs")) {
   const plan = await withSite(settlementPlan);
   const needed = plan.filter((target) => target.needed);
-  console.log(needed.length ? needed.map((target) => target.id).join(" ") : "Every sweater's sizes are settled and current.");
+  console.log(needed.length ? needed.map((target) => `${target.id}/${target.size}`).join(" ") : "Every sweater's sizes are settled and current.");
   if (process.argv.includes("--check") && needed.length) process.exitCode = 1;
 }

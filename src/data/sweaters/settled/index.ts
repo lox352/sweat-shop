@@ -1,38 +1,30 @@
 import { SettledFile, decodeSettled } from "./format";
-import { editionUrl, isSuperseded } from "../editions";
+import { currentEdition } from "../editions";
+import shapes from "./shapes.json";
 
 /**
- * Where each sweater comes to rest, size by size: worked out once by
- * scripts/settle.mjs and committed, one file a size, <sweater>--<size>.json.
+ * Where each sweater comes to rest: worked out once by scripts/settle.mjs and
+ * committed, a file a shape, public/shapes/<shape>.json.
  *
- * A sweater's shape depends only on its knitting, so every knitter's copy of
- * a size settles to the same shape, and none of them need wait for it. Each
- * file is its own chunk, fetched only when that size is on screen.
- *
- * Those are each size's knitting as it is now. The settled sweater of an
- * edition a size has moved on from is kept beside that edition's frozen copy
- * (see keep.ts), for the projects still knitting it.
+ * A sweater's shape depends only on its fabric, so every knitter's copy of a
+ * size settles to the same shape, and none of them need wait for it; and a
+ * design recoloured, or given a step more, has the shape it had. shapes.json
+ * says which shape each edition of each size has (see scripts/shapes.mjs):
+ * the size's knitting now, and each edition it has moved on from, for the
+ * projects still knitting those. A file is fetched only when its size is on
+ * screen, and kept by the service worker from then on.
  */
-const files = import.meta.glob<{ default: SettledFile }>("./*.json");
+const shapeOf = (sweaterId: string, sizeId: string, edition?: string): string | undefined =>
+  (shapes as Record<string, string>)[`${sweaterId}--${sizeId}--${edition ?? currentEdition(sweaterId, sizeId)}`];
 
-/** Whether a size has been settled, without fetching it - or, for an edition it has moved on from, may have been kept. */
-export const hasSettled = (sweaterId: string, sizeId: string, edition?: string): boolean =>
-  isSuperseded(sweaterId, sizeId, edition) || `./${sweaterId}--${sizeId}.json` in files;
+/** The shape an edition of a size has, if it has been settled, without fetching it: the size's edition now, for none given. */
+export const settledShape = shapeOf;
 
-/** Where a size's fabric came to rest, stitch by stitch in id order: see format's allPositions for every stitch. */
-export const loadSettled = async (sweaterId: string, sizeId: string, edition?: string): Promise<Float32Array | undefined> => {
-  if (isSuperseded(sweaterId, sizeId, edition)) {
-    try {
-      const response = await fetch(editionUrl(sweaterId, sizeId, edition).replace(/\.json$/, ".settled.json"));
-      return response.ok ? decodeSettled((await response.json()) as SettledFile) : undefined;
-    } catch {
-      return undefined;
-    }
-  }
-  const load = files[`./${sweaterId}--${sizeId}.json`];
-  if (!load) return undefined;
+/** Where a shape's fabric came to rest, stitch by stitch in id order: see format's allPositions for every stitch. */
+export const loadSettled = async (shape: string): Promise<Float32Array | undefined> => {
   try {
-    return decodeSettled((await load()).default);
+    const response = await fetch(`${import.meta.env.BASE_URL}shapes/${shape}.json`);
+    return response.ok ? decodeSettled((await response.json()) as SettledFile) : undefined;
   } catch {
     return undefined;
   }

@@ -10,7 +10,7 @@ const files = dir => readdirSync(dir, { withFileTypes: true }).flatMap(entry => 
 // own size, which the service worker keeps once it has been shown. So is each
 // frozen edition of a size's knitting, which only a project knitting it needs.
 const assets = files("dist").filter(path => !path.endsWith("/sw.js") &&
-  !path.startsWith("dist/assets/settled/") && !path.startsWith("dist/editions/")).sort();
+  !path.startsWith("dist/shapes/") && !path.startsWith("dist/editions/")).sort();
 const hash = createHash("sha256");
 for (const path of assets) hash.update(path).update(readFileSync(path));
 const template = readFileSync("scripts/service-worker.js", "utf8");
