@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import type { SweaterPattern } from "../data/sweaters/types";
+import type { Design } from "../data/sweaters/types";
 import type { Stitch } from "../types/Stitch";
 import { type RoundIndex, roundNames } from "../knitting/progress";
-import { sweaterStitches } from "../knitting/useSweater";
+import { sweaterStitches, whenKnittable } from "../knitting/useSweater";
 import { firstDifference } from "../data/sweaters/editions/difference";
-import { prepareKnitting } from "../data/sweaters/editions";
 
 /**
  * A note on a project whose design's knitting has moved on since it was
@@ -13,7 +12,7 @@ import { prepareKnitting } from "../data/sweaters/editions";
  * first differ says whether moving would touch anything already knitted.
  */
 const PatternUpdated: React.FC<{
-  sweater: SweaterPattern;
+  sweater: Design;
   sizeId: string;
   stitches: Stitch[];
   index: RoundIndex;
@@ -27,7 +26,7 @@ const PatternUpdated: React.FC<{
   useEffect(() => {
     let open = true;
     // The size's knitting now: its frozen copy where that can be had, or else worked out here, once the page is up.
-    void (prepareKnitting(sweater.id, sizeId) ?? Promise.resolve()).then(() => {
+    void (whenKnittable(sweater, sizeId) ?? Promise.resolve()).then(() => {
       if (!open) return;
       const id = firstDifference(stitches, sweaterStitches(sweater, sizeId).stitches);
       if (id === undefined) return setDiffers("same");

@@ -10,6 +10,9 @@
  *   what stands between a knitter and their chart;
  * - the 3D stage: three.js and the drawing of the sweater, fetched only when
  *   the sweater is on screen;
+ * - the builder: the designs' own files and the engine that knits them,
+ *   fetched only where a pattern has to be worked out in the browser after
+ *   all (see knitting/builder);
  * - a settled size: one size's settled sweater, fetched with it;
  * - a frozen edition: one size's knitting as a project part way through
  *   knits it, fetched only by such a project (see data/sweaters/editions).
@@ -34,9 +37,12 @@ const kb = 1024;
  * over: 240KB. The two Nasca feline jumpers - their felines a vector model
  * drawn as stitches at whatever size a jumper has room for, and the raglan
  * and round-yoke knitting that lays them in - bring it to 242KB: 250KB.
+ * Then the designs' own files and the engine go, into the builder: a page
+ * reads the designs from a catalogue and their knitting from frozen copies,
+ * and is 198KB: 210KB. The builder is 72KB.
  */
 // A frozen edition of the largest size is 19KB.
-const budgets = { page: 250 * kb, stage: 260 * kb, settled: 300 * kb, edition: 40 * kb };
+const budgets = { page: 210 * kb, stage: 260 * kb, builder: 85 * kb, settled: 300 * kb, edition: 40 * kb };
 
 const files = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
@@ -44,7 +50,7 @@ const files = (dir) =>
   );
 const gzipped = (path) => gzipSync(readFileSync(path), { level: 9 }).length;
 const kind = (path) =>
-  path.includes("/settled/") ? "settled" : /\/SweaterStage-[^/]+\.js$/.test(path) ? "stage" : "page";
+  path.includes("/settled/") ? "settled" : /\/SweaterStage-[^/]+\.js$/.test(path) ? "stage" : /\/builder-[^/]+\.js$/.test(path) ? "builder" : "page";
 
 const assets = files("dist/assets").filter((path) => /\.(js|css)$/.test(path));
 const page = assets.filter((path) => kind(path) === "page").reduce((total, path) => total + gzipped(path), 0);

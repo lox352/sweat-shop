@@ -2,7 +2,7 @@ import { useMemo, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { isFabric } from "../types/Stitch";
-import { sweaterById } from "../data/sweaters";
+import { sweaterById } from "../data/sweaters/catalogue";
 import { sweaterStitches } from "../knitting/useSweater";
 import { Palette, rgbOf, yarnFor } from "../knitting/palette";
 import { pose } from "../physics/pose";

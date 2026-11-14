@@ -1,7 +1,7 @@
-import { sweaterById } from "../data/sweaters";
-import type { SweaterPattern } from "../data/sweaters/types";
-import { compiled, compiledKnitting, editionOf, frozenEdition, isSuperseded } from "../data/sweaters/editions";
-import { sweaterStitches } from "../knitting/useSweater";
+import { sweaterById } from "../data/sweaters/catalogue";
+import type { Design } from "../data/sweaters/types";
+import { editionOf, frozenEdition, isSuperseded } from "../data/sweaters/editions";
+import { knittable, sweaterStitches } from "../knitting/useSweater";
 import { currentVersion, listProjects, type Project, writeProject } from "./projects";
 import { isLog, readLog, writeLog, type Row } from "../knitting/timing/log";
 
@@ -24,11 +24,11 @@ export const backupText = () => JSON.stringify({ format: "sweat-shop-projects", 
  * is now: until its frozen copy has been fetched there is nothing to hold its
  * progress against, and a finished sweater must not be refused for it.
  */
-const pastTheEnd = (sweater: SweaterPattern, p: BackupProject): boolean => {
+const pastTheEnd = (sweater: Design, p: BackupProject): boolean => {
   const edition = editionOf(p);
   if (isSuperseded(sweater.id, p.sizeId, edition) && !frozenEdition(sweater.id, p.sizeId, edition)) return false;
-  // Nor is a pattern worked out to find its end, where the site knits from frozen copies and this one has not been fetched.
-  if (compiled.on && !compiledKnitting(sweater.id, p.sizeId, edition)) return false;
+  // Nor is a pattern fetched or worked out to find its end: only where its knitting is already to hand.
+  if (!knittable(sweater, p.sizeId, edition)) return false;
   return p.progress >= sweaterStitches(sweater, p.sizeId, edition).stitches.length;
 };
 

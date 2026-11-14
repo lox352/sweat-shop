@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { SweaterPattern } from "../data/sweaters/types";
+import type { Design } from "../data/sweaters/types";
 import { compiledKnitting, editionMissing, frozenEdition, isSuperseded, loadEdition, prepareKnitting } from "../data/sweaters/editions";
-import { buildSweater } from "./engine";
 import { type SweaterStitches } from "./knitted";
 import { type ChartLayout, layOutSweater } from "./layout";
 import { type RoundIndex, indexRounds } from "./progress";
@@ -11,30 +10,52 @@ import { markersPassed } from "./marker-routes";
 import { type ChartView, chartViews, layOutView, markersInView, viewFollowedAt } from "./views";
 
 /**
- * A sweater's stitches and rounds, for a size.
- *
- * Building them is pure and quick enough - eighty thousand small objects for
- * a medium - but it is the same answer every time for a given design and
- * size, and the home page, the design page and a project all ask for it, so
- * it is worth keeping. Colourways share the knitting completely.
+ * What works a pattern out, where it is loaded: see builder.ts, which is most
+ * of the weight a page would otherwise carry, and is fetched only when a
+ * pattern has to be worked out here.
  */
-const cache = new Map<string, ReturnType<typeof buildSweater>>();
+type Builder = (design: Design, sizeId?: string) => SweaterStitches;
+let builder: Builder | undefined;
+export const setBuilder = (build: Builder) => {
+  builder = build;
+};
+let loadingBuilder: Promise<void> | undefined;
+const loadBuilder = () => (loadingBuilder ??= import("./builder").then(() => undefined));
+
+/** Patterns worked out here, kept: the same answer every time for a design and size. */
+const cache = new Map<string, SweaterStitches>();
 
 /**
  * A size's knitting: from its frozen copy where that has been fetched - the
  * size's edition now, or the one a project is on that the size has moved on
- * from - and otherwise built here, as the size is now. See useKnitting, which
- * waits for the copy, and data/sweaters/editions.
+ * from - and otherwise worked out here, as the size is now. See
+ * whenKnittable, which a caller waits on first, and data/sweaters/editions.
  */
-export const sweaterStitches = (pattern: SweaterPattern, sizeId?: string, edition?: string) => {
+export const sweaterStitches = (pattern: Design, sizeId?: string, edition?: string): SweaterStitches => {
   const frozen = sizeId && compiledKnitting(pattern.id, sizeId, edition);
   if (frozen) return frozen;
   const key = `${pattern.id}::${sizeId ?? ""}`;
   const cached = cache.get(key);
   if (cached) return cached;
-  const built = buildSweater(pattern, sizeId);
+  if (!builder) throw new Error(`${pattern.id} ${sizeId ?? ""}: its knitting has not been fetched, nor what works it out`);
+  const built = builder(pattern, sizeId);
   cache.set(key, built);
   return built;
+};
+
+/** Whether a size's knitting can be had at once: see whenKnittable. */
+export const knittable = (pattern: Design, sizeId?: string, edition?: string): boolean =>
+  !!builder || !!(sizeId && compiledKnitting(pattern.id, sizeId, edition)) || cache.has(`${pattern.id}::${sizeId ?? ""}`);
+
+/**
+ * What to wait for before a size's knitting can be had, or undefined once it
+ * can: its frozen copy, or, where that cannot be fetched, what works a
+ * pattern out here.
+ */
+export const whenKnittable = (pattern: Design, sizeId?: string, edition?: string): Promise<void> | undefined => {
+  const copy = sizeId && prepareKnitting(pattern.id, sizeId, edition);
+  if (copy) return copy;
+  return knittable(pattern, sizeId, edition) ? undefined : loadBuilder();
 };
 
 /**
@@ -69,7 +90,7 @@ export const seamLayout = (built: SweaterStitches): ChartLayout => {
  * pattern places very few.
  */
 const counts = new WeakMap<SweaterStitches, Map<number | undefined, { view: View; index: RoundIndex }>>();
-export const countedAt = (pattern: SweaterPattern, built: SweaterStitches, progress: number) => {
+export const countedAt = (pattern: Design, built: SweaterStitches, progress: number) => {
   const beginning = beginningAt(built, progress);
   let kept = counts.get(built);
   if (!kept) counts.set(built, (kept = new Map()));
@@ -140,14 +161,14 @@ export const useEditionReady = (
  * while its frozen copy is fetched, so that the published site never works a
  * pattern out where it can fetch the answer. See editions' prepareKnitting.
  */
-export const useKnitting = (pattern: SweaterPattern, sizeId?: string, edition?: string) => {
-  const waiting = sizeId && prepareKnitting(pattern.id, sizeId, edition);
+export const useKnitting = (pattern: Design, sizeId?: string, edition?: string) => {
+  const waiting = whenKnittable(pattern, sizeId, edition);
   if (waiting) throw waiting;
   return useMemo(() => sweaterStitches(pattern, sizeId, edition), [pattern, sizeId, edition]);
 };
 
 /** A sweater, and its rounds as the knitter counts them once `progress` stitches are worked: see countedAt. */
-export const useSweater = (pattern: SweaterPattern, sizeId?: string, progress = 0, edition?: string) => {
+export const useSweater = (pattern: Design, sizeId?: string, progress = 0, edition?: string) => {
   const built = useKnitting(pattern, sizeId, edition);
   const { view, index } = countedAt(pattern, built, progress);
   const yoke = useMemo(() => yokeRounds(built), [built]);
@@ -161,7 +182,7 @@ export const useSweater = (pattern: SweaterPattern, sizeId?: string, progress = 
  * The size to show first: the one made for a chest nearest an average
  * adult's, rather than whichever happens to be in the middle of the list.
  */
-export const defaultSize = (pattern: SweaterPattern) =>
+export const defaultSize = (pattern: Design) =>
   pattern.sizes.reduce((best, size) =>
     Math.abs(size.toFitChestCm - 96) < Math.abs(best.toFitChestCm - 96) ? size : best,
   );

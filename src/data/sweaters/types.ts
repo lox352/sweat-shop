@@ -452,6 +452,21 @@ export interface SweaterPattern {
   revisions?: Revision[];
 }
 
+/** A size without its knitting: what it measures and is knitted on. */
+export type SizeAbout = Omit<Size, "sections" | "checks">;
+
+/**
+ * A design without its knitting: everything the site shows of one - what it
+ * is called, its sizes and their measurements, its colourways, what it says of
+ * its stitches - and nothing a sweater is built from. The site reads designs
+ * from the catalogue (see catalogue/), written from these files by `npm run
+ * editions`, and their knitting from its editions, so that no page carries a
+ * chart or the working out of a pattern. A SweaterPattern is one of these.
+ * What else only the knitting or its tests read is left out too: what each
+ * slot is for, the design's fabrics, and the rules it keeps.
+ */
+export type Design = Omit<SweaterPattern, "charts" | "sizes" | "slotRoles" | "tensions" | "rules" | "slotsVaryBySize"> & { sizes: SizeAbout[] };
+
 /** A change to a design's knitting after projects were saved against it: see SweaterPattern.revisions. */
 export interface Revision {
   /** What changed, in a few words. */
