@@ -1,5 +1,5 @@
-import { Stitch, isFabric, isStep } from "../types/Stitch";
-import { consumption } from "../types/StitchType";
+import { Stitch, isFabric, isStep } from "../pattern/Stitch";
+import { consumption } from "../pattern/StitchType";
 import { adjacentStitchDistance } from "../constants";
 
 /**

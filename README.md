@@ -54,7 +54,7 @@ a design, size by size  ->  Needles  ->  Stitch[] + rounds, by piece
             the chart, the sweater, the row counter, the knitting panel
 ```
 
-See `src/knitting/needles.ts` and `src/knitting/engine.ts`.
+See `src/compiler/engine/needles.ts` and `src/compiler/engine/engine.ts`.
 
 ## The sweater in three dimensions
 
@@ -71,13 +71,13 @@ answer every time, and is never loaded by the site at all. Its answers are
 committed as **shapes**, in `public/shapes/`: a position for each stitch of
 the fabric, and none for the steps between - a change of needles, a turn -
 which are put beside the stitch before them. A shape is named by a hash of
-its fabric and the physics, and `src/data/sweaters/settled/shapes.json` says
+its fabric and the physics, and `src/library/settled/shapes.json` says
 which shape each edition of each size has, so a size recoloured keeps the
 shape it had, and a project still on an older edition keeps its own.
 
 The physics stands on the rounds as they are worked from each piece's seam,
 the middle of the back or of an underarm, whatever marker a pattern counts
-its rounds from: see `src/physics/knitting.ts`.
+its rounds from: see `src/pattern/knitting.ts`.
 
 ```sh
 npm run settle                 # every size of every sweater
@@ -106,7 +106,7 @@ hundred and twenty-five thousand, which the hat site's sixty-four-triangle stitc
 never draw on a phone. Here each stitch is a single quad, one instance of
 one mesh, with the stitch painted on by its shader: a chevron whose point
 dips into the stitch it was worked into, so each column of stitches nests
-together like knitting. See `src/model/stitch-quad.ts`. three.js and all of
+together like knitting. See `src/ui/model/stitch-quad.ts`. three.js and all of
 this load only when the sweater is on screen, and the instructions work
 without them.
 
@@ -135,9 +135,9 @@ were graded.
 
 Adding a design is one file, one line and one command:
 
-1. Write `src/data/sweaters/<id>.ts`: its charts (drawn as rows of
+1. Write `src/compiler/designs/<id>.ts`: its charts (drawn as rows of
    characters), its colourways, and each size's script.
-2. Add it to the list in `src/data/sweaters/index.ts`.
+2. Add it to the list in `src/compiler/designs/index.ts`.
 3. `npm run editions`, and commit what it writes: see Editions.
 
 The tests then knit every size of it through and check that it states its
@@ -153,7 +153,7 @@ now and then - a chart corrected, a better way to shape a yoke - and a project
 part way through should not have its knitting change under it.
 
 So each knitting a size has had is kept, as an **edition**, named by a hash of
-it. `src/data/sweaters/editions/manifest.json` says which edition of each size
+it. `src/library/editions/manifest.json` says which edition of each size
 is current, and which was the first the site named; `public/editions/` holds a
 frozen copy of each, the built sweater itself, so it decodes to the same
 stitches whatever the code that built it has since become.
@@ -177,7 +177,7 @@ stitches whatever the code that built it has since become.
 
 A page reads no design's own file. What it shows of a design - its name, its
 sizes and their measurements, its colourways - it reads from the
-**catalogue** (`src/data/sweaters/catalogue/`): every design without its
+**catalogue** (`src/library/catalogue/`): every design without its
 knitting, written from the designs' files. The designs' files and the engine
 that knits them are no part of the site.
 
@@ -204,12 +204,32 @@ projects out in the world knit from them.
 What a frozen copy holds, and what the chart, the knitting panel and the
 sweater in three dimensions all read, is one thing: a size knitted, its
 stitches and steps in the order they are worked and the rounds they fall in
-(`src/knitting/knitted.ts`). The engine makes one from a design; an edition is
+(`src/pattern/knitted.ts`). The engine makes one from a design; an edition is
 one frozen. Nothing that shows a sweater knows how its pattern was written or
 worked out.
 
 A change to what rounds are called in the chart's margin, or to how wide a
 stitch is drawn, is not a change to the knitting and makes no new edition.
+
+## How the code is laid out
+
+One rule: **the compiler writes files, and the site reads them.** Nothing a
+browser loads can work a pattern out.
+
+| Folder | What it is | May import |
+|---|---|---|
+| `src/pattern/` | The words everything shares: a stitch, a knitted sweater, a design as the site shows it, the wools. | nothing else |
+| `src/compiler/` | The designs as they are written (`designs/`) and the engine that knits them (`engine/`). Run by the scripts and the tests, never by the site. | anything |
+| `src/physics/` | Posing and settling a sweater. | `pattern` |
+| `src/library/` | What was published, fetched and decoded: the catalogue, editions, shapes. The only place that knows an address. | `pattern` |
+| `src/reading/` | What is read off a knitted sweater: the chart's layout, the rounds as counted, the views, yardage, colours. | `pattern` |
+| `src/projects/` | What the knitter owns: projects, backups, settings, knitting time. | the above |
+| `src/ui/` | The pages, the chart, the sweater in three dimensions. | all but `compiler` |
+| `scripts/` | The command line over the compiler and the physics: `editions`, `settle`, the dev server's live patterns. | |
+
+`eslint.config.js` holds each layer to its row. What is published is static
+and named by what it holds: an edition by its knitting, a shape by its fabric
+and the physics.
 
 ## Running it
 

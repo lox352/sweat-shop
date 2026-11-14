@@ -4,7 +4,7 @@
  *
  *     node scripts/strip-colourways.mjs
  *
- * Writes src/data/sweaters/wool-week/strips/colourways.json, which is
+ * Writes src/compiler/designs/wool-week/strips/colourways.json, which is
  * reviewed and committed; the designs read that, never this - the yarn
  * library is far too big to ship to a phone for it. Rerun after changing a
  * hat's file, a palette or the yarn library.
@@ -24,9 +24,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 const root = path.join(path.dirname(new URL(import.meta.url).pathname), "..");
-const dir = path.join(root, "src/data/sweaters/wool-week");
+const dir = path.join(root, "src/compiler/designs/wool-week");
 const out = path.join(dir, "strips/colourways.json");
-const library = JSON.parse(fs.readFileSync(path.join(root, "src/data/yarns/shetland-yarns.json"), "utf8"));
+const library = JSON.parse(fs.readFileSync(path.join(root, "src/pattern/yarns/shetland-yarns.json"), "utf8"));
 const years = Object.fromEntries(
   fs.readdirSync(dir).filter((f) => /^sww\d\d\.json$/.test(f)).map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"))).map((y) => [y.year, y]),
 );

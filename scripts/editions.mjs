@@ -6,7 +6,7 @@ export { nameOf };
 
 /**
  * Every size's knitting, named and frozen as an edition: see
- * src/data/sweaters/editions.
+ * src/library/editions.
  *
  * An edition is named by a hash of its knitting, so a change to a size's
  * knitting makes a new one, and a change to anything else - a label, how a
@@ -23,22 +23,22 @@ export { nameOf };
  *   npm run editions              name every size, freeze any new edition, and update the manifest
  *   npm run editions -- --check   fail if anything is out of date, and write nothing
  */
-export const editionsDir = "src/data/sweaters/editions";
-/** Served as they are, each at an address its name gives: see editions/index.ts. */
+export const editionsDir = "src/library/editions";
+/** Served as they are, each at an address its name gives: see library/editions/index.ts. */
 export const frozenDir = "public/editions";
 export const manifestFile = `${editionsDir}/manifest.json`;
 
 
-/** Every design without its knitting, as the site reads them: see src/data/sweaters/catalogue. */
-export const cataloguePath = "src/data/sweaters/catalogue/catalogue.json";
+/** Every design without its knitting, as the site reads them: see src/library/catalogue. */
+export const cataloguePath = "src/library/catalogue/catalogue.json";
 
 export const frozenPath = (design, size, edition) => `${frozenDir}/${design}--${size}--${edition}.json`;
 
 /** Every size of every design, built now and named, with its frozen file as it would be written. */
 export const editionsNow = async (load) => {
-  const { sweaters } = await load("/src/data/sweaters/index.ts");
-  const { buildSweater } = await load("/src/knitting/engine.ts");
-  const { encodeEdition, hashable } = await load("/src/data/sweaters/editions/format.ts");
+  const { sweaters } = await load("/src/compiler/designs/index.ts");
+  const { buildSweater } = await load("/src/compiler/engine/engine.ts");
+  const { encodeEdition, hashable } = await load("/src/library/editions/format.ts");
   const shapeOf = await shapeNamer(load);
   const out = [];
   for (const sweater of sweaters) {
@@ -56,8 +56,8 @@ const main = async () => {
   const check = process.argv.includes("--check");
   const manifest = existsSync(manifestFile) ? JSON.parse(readFileSync(manifestFile, "utf8")) : {};
   const { now, catalogue } = await withSite(async (load) => {
-    const { sweaters } = await load("/src/data/sweaters/index.ts");
-    const { encodeCatalogue } = await load("/src/data/sweaters/catalogue/format.ts");
+    const { sweaters } = await load("/src/compiler/designs/index.ts");
+    const { encodeCatalogue } = await load("/src/library/catalogue/format.ts");
     // After the editions: a sampler's yarns are those its sizes knit, known once they are knitted.
     const now = await editionsNow(load);
     return { now, catalogue: `${JSON.stringify(encodeCatalogue(sweaters))}\n` };

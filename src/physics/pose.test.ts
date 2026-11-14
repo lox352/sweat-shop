@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { buildSweater } from "../knitting/engine";
-import { testBandedSweater, testSweater } from "../knitting/test-sweater";
-import { sweaterById, sweaters } from "../data/sweaters";
+import { buildSweater } from "../compiler/engine/engine";
+import { testBandedSweater, testSweater } from "../compiler/engine/test-sweater";
+import { sweaterById, sweaters } from "../compiler/designs";
 import { distance, pose } from "./pose";
 import { ropesOf } from "./ropes";
 

@@ -30,10 +30,10 @@ export const withSite = async (work) => {
 
 /** Every size, with its edition and shape now, and whether that has still to be settled. */
 export const settlementPlan = async (load) => {
-  const { sweaters } = await load("/src/data/sweaters/index.ts");
-  const { buildSweater } = await load("/src/knitting/engine.ts");
-  const { settledLength, settledVersion } = await load("/src/data/sweaters/settled/format.ts");
-  const { encodeEdition, hashable } = await load("/src/data/sweaters/editions/format.ts");
+  const { sweaters } = await load("/src/compiler/designs/index.ts");
+  const { buildSweater } = await load("/src/compiler/engine/engine.ts");
+  const { settledLength, settledVersion } = await load("/src/library/settled/format.ts");
+  const { encodeEdition, hashable } = await load("/src/library/editions/format.ts");
   const shapeOf = await shapeNamer(load);
   const shapes = readShapes();
   return sweaters.flatMap((sweater) =>

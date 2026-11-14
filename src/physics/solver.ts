@@ -1,7 +1,7 @@
-import { Stitch, isFabric, isStep } from "../types/Stitch";
-import { consumption, makesTwo } from "../types/StitchType";
+import { Stitch, isFabric, isStep } from "../pattern/Stitch";
+import { consumption, makesTwo } from "../pattern/StitchType";
 import { adjacentStitchDistance } from "../constants";
-import type { Knitting } from "./knitting";
+import type { Knitting } from "../pattern/knitting";
 import type { Pose } from "./pose";
 import { ropesOf } from "./ropes";
 import { Tuning, defaultTuning } from "./tuning";

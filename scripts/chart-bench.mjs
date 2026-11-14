@@ -35,12 +35,12 @@ const nothing = new Proxy(
 );
 
 await withSite(async (load) => {
-  const { sweaterById } = await load("/src/data/sweaters/index.ts");
-  const { buildSweater } = await load("/src/knitting/engine.ts");
-  const { layOutSweater } = await load("/src/knitting/layout.ts");
-  const { sceneOf } = await load("/src/knitting/chart-scene.ts");
-  const { LiveColumns, mapOf, placeFrom } = await load("/src/knitting/column-window.ts");
-  const { paintRegion, laidOutPlaces, defaultColours } = await load("/src/knitting/chart-painter.ts");
+  const { sweaterById } = await load("/src/compiler/designs/index.ts");
+  const { buildSweater } = await load("/src/compiler/engine/engine.ts");
+  const { layOutSweater } = await load("/src/reading/layout.ts");
+  const { sceneOf } = await load("/src/ui/chart/chart-scene.ts");
+  const { LiveColumns, mapOf, placeFrom } = await load("/src/ui/chart/column-window.ts");
+  const { paintRegion, laidOutPlaces, defaultColours } = await load("/src/ui/chart/chart-painter.ts");
 
   for (const [id, size] of [["hamefarin", "4xl"], ["paul-klee", "6xl"]]) {
     const sweater = sweaterById(id);

@@ -1,8 +1,8 @@
-import { Stitch, isFabric, isStep } from "../types/Stitch";
-import { consumption } from "../types/StitchType";
+import { Stitch, isFabric, isStep } from "../pattern/Stitch";
+import { consumption } from "../pattern/StitchType";
 import { adjacentStitchDistance } from "../constants";
-import type { Knitting } from "./knitting";
-import type { SeamKind } from "../knitting/needles";
+import type { Knitting } from "../pattern/knitting";
+import type { SeamKind } from "../pattern/rounds";
 import { Vec, add, cross, length, lerp, scale, sub } from "./vector";
 import { ropesOf } from "./ropes";
 

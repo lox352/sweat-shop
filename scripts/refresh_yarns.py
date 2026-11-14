@@ -7,7 +7,7 @@ anything.
 
 There are two halves to it, and only the first one is interesting.
 
-  The library itself - src/data/yarns/shetland-yarns.json - is written from a
+  The library itself - src/pattern/yarns/shetland-yarns.json - is written from a
   catalogue of Shetland wool: one entry per shade, with a spinner, a yarn, a
   colour, a shade number and a link to buy it. It is stored grouped by yarn
   rather than as a flat list of shades, because that is how wool is sold, how
@@ -47,7 +47,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-LIBRARY = ROOT / "src/data/yarns/shetland-yarns.json"
+LIBRARY = ROOT / "src/pattern/yarns/shetland-yarns.json"
 HATS = sorted((ROOT / "src/data/hats").glob("sww*.ts"))
 
 # A shade as the hat files write it: everything readable on one line, the

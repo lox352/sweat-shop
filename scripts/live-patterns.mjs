@@ -1,15 +1,15 @@
 import { existsSync, readFileSync } from "node:fs";
 
 // Named here, not taken from editions.mjs: the site's config loads this, and that script starts a server of its own.
-const cataloguePath = "src/data/sweaters/catalogue/catalogue.json";
-const manifestFile = "src/data/sweaters/editions/manifest.json";
+const cataloguePath = "src/library/catalogue/catalogue.json";
+const manifestFile = "src/library/editions/manifest.json";
 
 /**
  * Developing, the patterns as they are in hand.
  *
  * The site has one way to a pattern: it reads the catalogue of designs, and
  * fetches each size's knitting as a frozen edition (see
- * src/data/sweaters/editions). Those files are written by `npm run editions`,
+ * src/library/editions). Those files are written by `npm run editions`,
  * so they are as old as its last run. While developing, the server writes
  * them afresh instead - the catalogue, the manifest, and each size's edition
  * now when it is asked for - from the designs and the engine as they are,
@@ -23,7 +23,7 @@ export const livePatterns = () => {
   const load = (path) => server.ssrLoadModule(path);
   const manifestNow = async () => {
     const manifest = existsSync(manifestFile) ? JSON.parse(readFileSync(manifestFile, "utf8")) : {};
-    const { sweaters } = await load("/src/data/sweaters/index.ts");
+    const { sweaters } = await load("/src/compiler/designs/index.ts");
     // A design or size not yet named has an edition all the same, for as long as it is being worked on.
     for (const sweater of sweaters) for (const size of sweater.sizes) (manifest[sweater.id] ??= {})[size.id] ??= { first: live, current: live };
     return manifest;
@@ -40,9 +40,9 @@ export const livePatterns = () => {
         try {
           const [, design, size, edition] = asked;
           if ((await manifestNow())[design]?.[size]?.current !== edition) return next();
-          const { sweaters } = await load("/src/data/sweaters/index.ts");
-          const { buildSweater } = await load("/src/knitting/engine.ts");
-          const { encodeEdition } = await load("/src/data/sweaters/editions/format.ts");
+          const { sweaters } = await load("/src/compiler/designs/index.ts");
+          const { buildSweater } = await load("/src/compiler/engine/engine.ts");
+          const { encodeEdition } = await load("/src/library/editions/format.ts");
           const sweater = sweaters.find((one) => one.id === design);
           response.setHeader("Content-Type", "application/json");
           response.setHeader("Cache-Control", "no-store");
@@ -66,9 +66,9 @@ export const livePatterns = () => {
       const file = id.split("?")[0];
       if (file.endsWith(`/${manifestFile}`)) return JSON.stringify(await manifestNow());
       if (!file.endsWith(`/${cataloguePath}`)) return undefined;
-      const { sweaters } = await load("/src/data/sweaters/index.ts");
-      const { buildSweater } = await load("/src/knitting/engine.ts");
-      const { encodeCatalogue } = await load("/src/data/sweaters/catalogue/format.ts");
+      const { sweaters } = await load("/src/compiler/designs/index.ts");
+      const { buildSweater } = await load("/src/compiler/engine/engine.ts");
+      const { encodeCatalogue } = await load("/src/library/catalogue/format.ts");
       // A sampler's yarns are those its sizes knit, known once they are knitted: see editions.mjs.
       for (const sweater of sweaters) if (sweater.slotsVaryBySize) for (const size of sweater.sizes) buildSweater(sweater, size.id);
       return JSON.stringify(encodeCatalogue(sweaters));

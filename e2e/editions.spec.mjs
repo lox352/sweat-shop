@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 
 /*
  * A project knits the edition of its size's knitting it was started on: see
- * src/data/sweaters/editions. No size has been superseded for these to open,
+ * src/library/editions. No size has been superseded for these to open,
  * so one is made up: Hamefarin's medium as it is now, under an older name,
  * with its last two yarns the other way round - the same number of stitches,
  * and a difference part way down the yoke.
@@ -12,7 +12,7 @@ test.use({ serviceWorkers: "block" });
 
 const older = "0123456789ab";
 const id = "project-1760000000000";
-const manifest = JSON.parse(await readFile("src/data/sweaters/editions/manifest.json", "utf8"));
+const manifest = JSON.parse(await readFile("src/library/editions/manifest.json", "utf8"));
 const current = manifest.hamefarin.m.current;
 const olderFile = async () => {
   const file = JSON.parse(await readFile(`public/editions/hamefarin--m--${current}.json`, "utf8"));

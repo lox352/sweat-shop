@@ -48,11 +48,11 @@ await withSite(async (load) => {
     return;
   }
 
-  const { sweaterById } = await load("/src/data/sweaters/index.ts");
-  const { buildSweater } = await load("/src/knitting/engine.ts");
+  const { sweaterById } = await load("/src/compiler/designs/index.ts");
+  const { buildSweater } = await load("/src/compiler/engine/engine.ts");
   const { pose } = await load("/src/physics/pose.ts");
   const { settle } = await load("/src/physics/solver.ts");
-  const { encodeSettled, fabricPositions } = await load("/src/data/sweaters/settled/format.ts");
+  const { encodeSettled, fabricPositions } = await load("/src/library/settled/format.ts");
   mkdirSync(shapesDir, { recursive: true });
   const shapes = readShapes();
   const record = (target) => {
