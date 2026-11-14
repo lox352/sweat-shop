@@ -9,7 +9,7 @@ import { sweaterById, sweaters } from "../../compiler/designs/index";
 import { EditionFile, decodeEdition, encodeEdition, hashable } from "./format";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const frozen = join(here, "../../../../public/editions");
+const frozen = join(here, "../../../public/editions");
 const nameOf = (file: EditionFile) => createHash("sha256").update(hashable(file)).digest("hex").slice(0, 12);
 const entries = JSON.parse(readFileSync(join(here, "manifest.json"), "utf8")) as Record<string, Record<string, { first: string; current: string }>>;
 const stale = "out of date: run npm run editions and commit what it writes";

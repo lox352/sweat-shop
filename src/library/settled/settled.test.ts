@@ -8,7 +8,7 @@ import { currentEdition } from "../editions";
 import { decodeEdition, type EditionFile } from "../editions/format";
 import shapes from "./shapes.json";
 // @ts-expect-error a script, with no types of its own
-import { physicsFiles } from "../../../../scripts/shapes.mjs";
+import { physicsFiles } from "../../../scripts/shapes.mjs";
 import { SettledFile, allPositions, decodeSettled, encodeSettled, fabricPositions, settledLength } from "./format";
 
 /** How many rounds' height a settled waist may rise and fall by on its way round. */

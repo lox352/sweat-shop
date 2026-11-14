@@ -13,7 +13,7 @@ const current = currentEdition(design, size)!;
 /** An edition the size has "moved on from": its knitting now, under another name, with one yarn changed so the two can be told apart. */
 const older = "0123456789ab";
 const olderFile = () => {
-  const file = JSON.parse(readFileSync(join(here, `../../../../public/editions/${design}--${size}--${current}.json`), "utf8"));
+  const file = JSON.parse(readFileSync(join(here, `../../../public/editions/${design}--${size}--${current}.json`), "utf8"));
   file.edition = older;
   file.stitches.slots = file.stitches.slots.map((slot: string) => `${slot}-old`);
   return file;
