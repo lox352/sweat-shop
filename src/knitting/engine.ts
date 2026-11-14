@@ -1,7 +1,7 @@
-import Needles, { type Held, RoundKind } from "./needles";
+import Needles from "./needles";
 import { adjacentStitchDistance, verticalStitchDistance } from "../constants";
 import type { Knitting } from "../physics/knitting";
-import { Stitch } from "../types/Stitch";
+import { type SweaterStitches, markSpacer } from "../types/Knitted";
 import { StitchType } from "../types/StitchType";
 import {
   Chart,
@@ -23,27 +23,6 @@ import {
  * pieces: the yoke, then the body, then each sleeve, one after another in the
  * order they are knitted, with the stitches on hold in between.
  */
-
-export interface SweaterStitches {
-  stitches: Stitch[];
-  rounds: number[][];
-  /** A label per round, for the chart's margin: "Border, row 3". */
-  roundLabels: string[];
-  /** The piece each round belongs to. */
-  roundPieces: string[];
-  /** Whether each is a round or a short row, and from which side: see Needles.row. */
-  roundKinds: RoundKind[];
-  /** Every run of stitches put on hold, and when it is taken up again: see Needles.Held. */
-  holds: Held[];
-  /** The rounds after which the needles are changed, 1-based. */
-  needleChanges: number[];
-  /** The counts the design names; see Size.checks. */
-  checks: Record<string, number>;
-  /** How tall a round is, in the units the stitches are laid out in. */
-  roundHeight: number;
-  /** The knitting as the physics sees it, its rounds worked from each piece's seam: see physics/knitting. */
-  knitting: Knitting;
-}
 
 /**
  * How tall a round of this size is, relative to how wide a stitch is: the
@@ -227,15 +206,6 @@ export const sizeOf = (pattern: SweaterPattern, sizeId?: string): Size => {
   if (!size) throw new Error(`${pattern.id}: no size ${sizeId}`);
   return size;
 };
-
-/**
- * A stitch knitted from a chart cell that only spaces the pattern out (see
- * ChartCell.spacer), for a picture of the sweater to leave out. Kept as a plain
- * mark on the stitch, not a field of the Stitch type: that type is part of
- * what a settled sweater is keyed on, and the mark is no part of its shape.
- */
-const markSpacer = (stitch: Stitch) => Object.assign(stitch, { spacer: true });
-export const isSpacer = (stitch: Stitch | undefined): boolean => !!(stitch as { spacer?: true } | undefined)?.spacer;
 
 export const buildSweater = (
   pattern: SweaterPattern,

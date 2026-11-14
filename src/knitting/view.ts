@@ -1,6 +1,6 @@
 import { isFabric, isStep } from "../types/Stitch";
 import { consumption } from "../types/StitchType";
-import type { SweaterStitches } from "./engine";
+import type { SweaterStitches } from "../types/Knitted";
 import { type Cell, type ChartLayout, chartRows } from "./layout";
 import { markerRoutes, markersPassed } from "./marker-routes";
 import type { RoundKind } from "./needles";

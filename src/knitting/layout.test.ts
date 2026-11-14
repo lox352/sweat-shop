@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildSweater, type SweaterStitches } from "./engine";
+import { buildSweater } from "./engine";
+import { type SweaterStitches } from "../types/Knitted";
 import { chartRows, layOut, layOutSweater, mirrorLayout } from "./layout";
 import { testBandedSweater, testSweater, testSweaterWithShortRows } from "./test-sweater";
 import { indexRounds } from "./progress";

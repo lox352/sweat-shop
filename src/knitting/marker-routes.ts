@@ -1,6 +1,6 @@
 import { type Stitch, isFabric } from "../types/Stitch";
 import { consumption, makesTwo } from "../types/StitchType";
-import type { SweaterStitches } from "./engine";
+import type { SweaterStitches } from "../types/Knitted";
 
 /**
  * Where a stitch marker goes, round by round.

@@ -49,8 +49,13 @@ const kind = (path) =>
 const assets = files("dist/assets").filter((path) => /\.(js|css)$/.test(path));
 const page = assets.filter((path) => kind(path) === "page").reduce((total, path) => total + gzipped(path), 0);
 // Frozen editions are served as they are, beside the assets: the largest stands for them all.
-const editions = existsSync("dist/editions") ? files("dist/editions").map((path) => [path.replace("dist/", ""), gzipped(path), budgets.edition]) : [];
-const largest = editions.sort((a, b) => b[1] - a[1]).slice(0, 1);
+// Beside them, the settled sweater of an edition a size has moved on from, held to a settled size's budget.
+const served = existsSync("dist/editions") ? files("dist/editions") : [];
+const largestOf = (paths, budget) => paths.map((path) => [path.replace("dist/", ""), gzipped(path), budget]).sort((a, b) => b[1] - a[1]).slice(0, 1);
+const largest = [
+  ...largestOf(served.filter((path) => !path.endsWith(".settled.json")), budgets.edition),
+  ...largestOf(served.filter((path) => path.endsWith(".settled.json")), budgets.settled),
+];
 const rows = [
   ["the page", page, budgets.page],
   ...largest,

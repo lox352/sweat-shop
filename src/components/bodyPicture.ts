@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { SlotId } from "../data/sweaters/types";
 import type { Stitch } from "../types/Stitch";
 import { consumption } from "../types/StitchType";
-import { isSpacer } from "../knitting/engine";
+import { isSpacer } from "../types/Knitted";
 import { yarnFor, type Palette } from "../knitting/palette";
 
 /**

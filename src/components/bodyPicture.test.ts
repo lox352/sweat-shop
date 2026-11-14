@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import paulKlee from "../data/sweaters/paul-klee";
 import hamefarin from "../data/sweaters/hamefarin";
-import { buildSweater, isSpacer } from "../knitting/engine";
+import { buildSweater } from "../knitting/engine";
+import { isSpacer } from "../types/Knitted";
 import { bodyRounds, paintedRows } from "./bodyPicture";
 
 describe.each([
