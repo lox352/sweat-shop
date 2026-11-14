@@ -53,6 +53,21 @@ self.addEventListener("activate", event => {
       return { key, at: noted ? Number(await noted.text()) : 0 };
     }));
     installed.sort((a, b) => b.at - a.at);
+    /*
+     * A frozen edition is what a project part way through knits (see below),
+     * and its file never changes, so the ones a release going kept come with
+     * it into this one: a project must still open offline however many
+     * releases have come and gone since its edition was fetched.
+     */
+    const cache = await caches.open(cacheName);
+    for (const { key } of installed) {
+      const old = await caches.open(key);
+      for (const { url } of await old.keys()) {
+        if (!url.startsWith(urlFor("editions/")) || (await cache.match(url))) continue;
+        const kept = await old.match(url);
+        if (kept) await cache.put(url, kept);
+      }
+    }
     for (const { key } of installed.slice(1)) await caches.delete(key);
     await self.clients.claim();
   })());
@@ -70,9 +85,10 @@ self.addEventListener("fetch", event => {
   /*
    * A size's settled sweater is not prepared in advance - there are many, and
    * a knitter needs one - so it is kept the first time it is shown, and is
-   * there offline from then on.
+   * there offline from then on. So is a frozen edition of a size's knitting,
+   * which only a project still knitting it fetches.
    */
-  if (url.pathname.startsWith(`${scope.pathname}assets/settled/`)) {
+  if (url.pathname.startsWith(`${scope.pathname}assets/settled/`) || url.pathname.startsWith(`${scope.pathname}editions/`)) {
     event.respondWith((async () => {
       const cached = await caches.match(key);
       if (cached) return cached;

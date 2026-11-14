@@ -19,6 +19,8 @@ export interface SweaterModelProps {
   palette: Palette;
   /** Id of the last stitch worked; earlier stitches are shown in their wool. */
   progress: number;
+  /** The edition of the knitting to show, for a project that knits one its size has moved on from: see data/sweaters/editions. */
+  edition?: string;
 }
 
 /**

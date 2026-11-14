@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { sweaterById } from "../data/sweaters";
 import { SlotId } from "../data/sweaters/types";
-import { useSweater, viewChart } from "../knitting/useSweater";
+import { useEditionReady, useSweater, viewChart } from "../knitting/useSweater";
+import { currentEdition, editionOf, frozenEdition, isSuperseded } from "../data/sweaters/editions";
+import PatternUpdated from "./PatternUpdated";
 import { makeOnesAtMarkers } from "../knitting/marker-routes";
 import type { ChartView } from "../knitting/views";
 import { colourwayLabel, keyOf, paletteOf, slotNames, trimmed } from "../knitting/palette";
@@ -157,6 +159,14 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
 
   const knitting = params.get(knittingParam) === "1";
   const sweater = project ? sweaterById(project.sweaterId) : undefined;
+  // A project knits the edition it was started on, fetched first if the design's knitting has moved on since: see data/sweaters/editions.
+  const editionReady = useEditionReady(project?.sweaterId, project?.sizeId, project ? editionOf(project) : undefined);
+  const takeUpdate = useCallback(() => {
+    change((current) => {
+      const edition = currentEdition(current.sweaterId, current.sizeId);
+      return edition ? { ...current, edition } : current;
+    });
+  }, [change]);
   useTimeRecording(project && sweater && view === "chart" ? project.id : undefined, knitting);
 
   useEffect(() => {
@@ -263,6 +273,29 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
     );
   }
 
+  // Never some other knitting for want of the project's own: its progress only means anything in its own edition.
+  if (editionReady.state !== "ready") {
+    return (
+      <PageLayout title={project.name ?? sweater.name}>
+        {editionReady.state === "loading" ? (
+          <p className="quiet">Opening the pattern as you started it…</p>
+        ) : (
+          <>
+            <p>
+              This pattern has been updated since you started it, and the version you are knitting could not be
+              fetched. Your progress is safe. Check your connection and try again.
+            </p>
+            <p>
+              <Button variant="primary" onClick={editionReady.retry}>
+                Try again
+              </Button>
+            </p>
+          </>
+        )}
+      </PageLayout>
+    );
+  }
+
   // Knitting happens on the chart page; an old link that asked for it on the
   // overview is sent there.
   if (view === "overview" && knitting) {
@@ -289,6 +322,7 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
       setColourway={setColourway}
       setTrim={setTrim}
       setShade={setShade}
+      takeUpdate={takeUpdate}
     />
   );
 };
@@ -305,6 +339,7 @@ const ProjectView: React.FC<{
   setColourway: (id: string) => void;
   setTrim: (trim: string | undefined) => void;
   setShade: (slots: SlotId[], chosen: Chosen | undefined) => void;
+  takeUpdate: () => void;
 }> = ({
   view,
   sweaterId,
@@ -317,11 +352,13 @@ const ProjectView: React.FC<{
   setColourway,
   setTrim,
   setShade,
+  takeUpdate,
 }) => {
   const sweater = sweaterById(sweaterId)!;
   const size = sweater.sizes.find((s) => s.id === project.sizeId) ?? sweater.sizes[0];
   // The rounds as the knitter counts them where the knitting has got to: see knitting/view.
-  const built = useSweater(sweater, size.id, project.progress);
+  const edition = editionOf(project);
+  const built = useSweater(sweater, size.id, project.progress, edition);
   const { stitches, rounds, index, yoke, holdRegions, view: counted, views, following } = built;
   /*
    * Which of the chart's views it shows: the one the knitting is in while you
@@ -344,6 +381,10 @@ const ProjectView: React.FC<{
   const shownView = chosen && chosen.id !== tabOf(knittingIn) ? chosen : knittingIn;
   const chart = shownView ? viewChart(built, counted, shownView) : { layout: counted.layout, markers: counted.markers };
   const makeOnes = useMemo(() => makeOnesAtMarkers({ stitches, knitting: built.knitting }), [stitches, built.knitting]);
+  // The design's knitting has moved on since this project began: it says so, and offers the update.
+  const updated = isSuperseded(sweater.id, size.id, edition) && frozenEdition(sweater.id, size.id, edition) ? (
+    <PatternUpdated sweater={sweater} sizeId={size.id} stitches={stitches} index={index} progress={project.progress} onSwitch={takeUpdate} />
+  ) : null;
   const tabs = finished.length > 1 && shownView && (
     <ViewTabs
       views={finished}
@@ -457,6 +498,7 @@ const ProjectView: React.FC<{
         className={knitting ? "knit-screen" : undefined}
       >
         <section className="section chart-page" data-view={shownView?.id}>
+          {!knitting && updated}
           {!knitting && tabs}
           <Chart
             key={shownView?.id}
@@ -540,11 +582,13 @@ const ProjectView: React.FC<{
         </Link>
       }
     >
+      {updated}
       <div className="project-layout">
         <div className="project-stage">
           <SweaterModel
             sweaterId={sweater.id}
             sizeId={size.id}
+            edition={edition}
             palette={palette}
             progress={project.progress}
           />

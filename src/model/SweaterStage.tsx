@@ -17,6 +17,8 @@ export interface SweaterStageProps {
   palette: Palette;
   /** Id of the last stitch worked; earlier stitches are shown in their wool. */
   progress: number;
+  /** The edition of the knitting to show: see data/sweaters/editions. */
+  edition?: string;
   reducedMotion: boolean;
   /** Where its fabric came to rest, when that is known: see data/sweaters/settled. */
   settled?: Float32Array;
@@ -34,9 +36,10 @@ export interface SweaterStageProps {
  * that did it. A size not yet settled is drawn blocked, as physics/pose.ts
  * lays it out, which is where the settling starts from.
  */
-export default function SweaterStage({ sweaterId, sizeId, palette, progress, reducedMotion, settled }: SweaterStageProps) {
+export default function SweaterStage({ sweaterId, sizeId, palette, progress, edition, reducedMotion, settled }: SweaterStageProps) {
   const controls = useRef<OrbitLike | null>(null);
-  const built = useMemo(() => sweaterStitches(sweaterById(sweaterId)!, sizeId), [sweaterId, sizeId]);
+  // A size's knitting as the project knits it; settled positions only fit it if its knitting is still the shape that was settled.
+  const built = useMemo(() => sweaterStitches(sweaterById(sweaterId)!, sizeId, edition), [sweaterId, sizeId, edition]);
   const positions = useMemo(
     () =>
       settled && settled.length === settledLength(built.stitches)

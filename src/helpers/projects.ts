@@ -1,6 +1,7 @@
 import { Overrides } from "../knitting/palette";
 import { deleteLog, readLog, writeLog } from "../knitting/timing/log";
 import { currentRevision, migration } from "./revisions";
+import { currentEdition } from "../data/sweaters/editions";
 
 /**
  * A project is a sweater you are knitting.
@@ -8,8 +9,10 @@ import { currentRevision, migration } from "./revisions";
  * It is tiny, and deliberately so. The stitches are a pure function of the
  * design and the size, and the colours a pure function of the colourway, so
  * none of that is worth storing: an id, a couple of choices and how far you
- * have got is the whole of it. That also means a project saved today still
- * opens after a chart is corrected, because it never held a copy of one.
+ * have got is the whole of it. What it does keep is which edition of the
+ * knitting it was started on (see data/sweaters/editions), so that a chart
+ * corrected under it never moves a stitch of a project part way through: the
+ * knitter is offered the correction, and chooses when to take it.
  */
 
 export const currentVersion = 1;
@@ -32,6 +35,11 @@ export interface Project {
    * SweaterPattern.revisions. Left out by a project saved before any.
    */
   revision?: number;
+  /**
+   * The edition of its size's knitting it knits: see data/sweaters/editions.
+   * Left out by a project saved before editions, which knits the first.
+   */
+  edition?: string;
   startedAt: string;
   updatedAt: string;
 }
@@ -95,6 +103,7 @@ const isProject = (value: unknown): value is Project => {
   if (!validDate(candidate.startedAt) || !validDate(candidate.updatedAt) ||
     (candidate.name !== undefined && typeof candidate.name !== "string") ||
     (candidate.trim !== undefined && typeof candidate.trim !== "string") ||
+    (candidate.edition !== undefined && typeof candidate.edition !== "string") ||
     (candidate.version !== undefined && candidate.version !== currentVersion) ||
     (candidate.revision !== undefined && !(Number.isSafeInteger(candidate.revision) && candidate.revision >= 0))) return false;
   if (candidate.shades !== undefined) {
@@ -210,6 +219,7 @@ export const startProject = (
   trim?: string,
 ): Project => {
   const revision = currentRevision(sweaterId);
+  const edition = currentEdition(sweaterId, sizeId);
   return writeProject({
     version: currentVersion,
     id: `${prefix}${crypto.randomUUID()}`,
@@ -220,6 +230,7 @@ export const startProject = (
     shades: Object.keys(shades).length > 0 ? shades : undefined,
     progress: 0,
     ...(revision > 0 ? { revision } : {}),
+    ...(edition ? { edition } : {}),
     startedAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });

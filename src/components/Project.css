@@ -377,3 +377,15 @@
     border-color: var(--ink-faint);
   }
 }
+
+/* A project whose design's knitting has moved on since it began: see PatternUpdated. */
+.pattern-updated {
+  border: 2px solid var(--ink-soft);
+  border-left-width: 6px;
+  padding: 0.75rem 1rem;
+  margin: 0 0 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+.pattern-updated p { margin: 0; }
+.pattern-updated-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }

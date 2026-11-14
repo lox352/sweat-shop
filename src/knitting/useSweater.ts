@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SweaterPattern } from "../data/sweaters/types";
+import { editionMissing, frozenEdition, isSuperseded, loadEdition } from "../data/sweaters/editions";
 import { type SweaterStitches, buildSweater } from "./engine";
 import { type ChartLayout, layOutSweater } from "./layout";
 import { type RoundIndex, indexRounds } from "./progress";
@@ -18,7 +19,16 @@ import { type ChartView, chartViews, layOutView, markersInView, viewFollowedAt }
  */
 const cache = new Map<string, ReturnType<typeof buildSweater>>();
 
-export const sweaterStitches = (pattern: SweaterPattern, sizeId?: string) => {
+/**
+ * A size's knitting as it is now, or, given an edition its knitting has since
+ * moved on from, that edition's frozen copy - once it has been fetched: see
+ * useEditionReady, and data/sweaters/editions.
+ */
+export const sweaterStitches = (pattern: SweaterPattern, sizeId?: string, edition?: string) => {
+  if (sizeId && isSuperseded(pattern.id, sizeId, edition)) {
+    const frozen = frozenEdition(pattern.id, sizeId, edition);
+    if (frozen) return frozen;
+  }
   const key = `${pattern.id}::${sizeId ?? ""}`;
   const cached = cache.get(key);
   if (cached) return cached;
@@ -93,9 +103,41 @@ export const viewChart = (built: SweaterStitches, counted: View, view: ChartView
   return chart;
 };
 
+/**
+ * Whether an edition's knitting is ready to build from. At once, unless it is
+ * one a size has moved on from and its frozen copy has still to be fetched,
+ * which this starts: "loading" until it comes, and "failed" if it cannot be
+ * reached, with `retry` to try again. An edition the site has no copy of is
+ * ready too, and knitted as the size is now.
+ */
+export const useEditionReady = (
+  design: string | undefined,
+  size: string | undefined,
+  edition: string | undefined,
+): { state: "ready" | "loading" | "failed"; retry: () => void } => {
+  const needed = !!design && !!size && isSuperseded(design, size, edition);
+  const ready = !needed || !!frozenEdition(design!, size!, edition!) || editionMissing(design!, size!, edition!);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [, fetched] = useState(0);
+  useEffect(() => {
+    if (!needed || ready) return;
+    let open = true;
+    setFailed(false);
+    loadEdition(design!, size!, edition!).then(
+      () => open && fetched((n) => n + 1),
+      () => open && setFailed(true),
+    );
+    return () => {
+      open = false;
+    };
+  }, [design, size, edition, needed, ready, attempt]);
+  return { state: ready ? "ready" : failed ? "failed" : "loading", retry: () => setAttempt((n) => n + 1) };
+};
+
 /** A sweater, and its rounds as the knitter counts them once `progress` stitches are worked: see countedAt. */
-export const useSweater = (pattern: SweaterPattern, sizeId?: string, progress = 0) => {
-  const built = useMemo(() => sweaterStitches(pattern, sizeId), [pattern, sizeId]);
+export const useSweater = (pattern: SweaterPattern, sizeId?: string, progress = 0, edition?: string) => {
+  const built = useMemo(() => sweaterStitches(pattern, sizeId, edition), [pattern, sizeId, edition]);
   const { view, index } = countedAt(pattern, built, progress);
   const yoke = useMemo(() => yokeRounds(built), [built]);
   const holds = useMemo(() => holdRegions(built.stitches, built.holds), [built]);

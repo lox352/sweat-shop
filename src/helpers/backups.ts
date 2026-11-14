@@ -1,4 +1,6 @@
 import { sweaterById } from "../data/sweaters";
+import type { SweaterPattern } from "../data/sweaters/types";
+import { editionOf, frozenEdition, isSuperseded } from "../data/sweaters/editions";
 import { sweaterStitches } from "../knitting/useSweater";
 import { currentVersion, listProjects, type Project, writeProject } from "./projects";
 import { isLog, readLog, writeLog, type Row } from "../knitting/timing/log";
@@ -15,6 +17,19 @@ export const backupText = () => JSON.stringify({ format: "sweat-shop-projects", 
     return timeLog.length > 0 ? { ...project, timeLog } : project;
   }) });
 
+/**
+ * Whether a project's progress is past the end of its knitting - where that
+ * can be told. A project knits its own edition (see data/sweaters/editions),
+ * and one its size has moved on from may be longer or shorter than the size
+ * is now: until its frozen copy has been fetched there is nothing to hold its
+ * progress against, and a finished sweater must not be refused for it.
+ */
+const pastTheEnd = (sweater: SweaterPattern, p: BackupProject): boolean => {
+  const edition = editionOf(p);
+  if (isSuperseded(sweater.id, p.sizeId, edition) && !frozenEdition(sweater.id, p.sizeId, edition)) return false;
+  return p.progress >= sweaterStitches(sweater, p.sizeId, edition).stitches.length;
+};
+
 export function parseBackup(text: string): BackupProject[] {
   if (text.length > maxBackupBytes) throw new Error("Backup is too large (maximum 10 MB).");
   const data = JSON.parse(text);
@@ -26,7 +41,8 @@ export function parseBackup(text: string): BackupProject[] {
       !sweater.colourways.some(c => c.id === p.colourwayId) ||
       p.version !== currentVersion || !Number.isSafeInteger(p.progress) || p.progress < 0 ||
       (p.revision !== undefined && !(Number.isSafeInteger(p.revision) && p.revision >= 0)) ||
-      p.progress >= sweaterStitches(sweater, p.sizeId).stitches.length ||
+      (p.edition !== undefined && (typeof p.edition !== "string" || !/^[0-9a-f]{1,64}$/.test(p.edition))) ||
+      pastTheEnd(sweater, p) ||
       (p.name !== undefined && (typeof p.name !== "string" || p.name.length > 200)) ||
       (p.trim !== undefined && (typeof p.trim !== "string" || p.trim.length > 200)) ||
       typeof p.startedAt !== "string" || !Number.isFinite(Date.parse(p.startedAt))) {
@@ -47,6 +63,8 @@ export function parseBackup(text: string): BackupProject[] {
       ...(p.trim ? { trim: p.trim } : {}),
       // The revision of its design the progress counts in, which reading it brings up to date: see revisions.
       ...(p.revision ? { revision: p.revision } : {}),
+      // The edition of the knitting it knits, kept so a restored project knits what it did: see data/sweaters/editions.
+      ...(p.edition ? { edition: p.edition } : {}),
       shades: p.shades, startedAt: p.startedAt, updatedAt: new Date().toISOString(),
       ...(p.timeLog ? { timeLog: p.timeLog } : {}) };
   });
