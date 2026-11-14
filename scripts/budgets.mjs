@@ -10,12 +10,14 @@
  *   what stands between a knitter and their chart;
  * - the 3D stage: three.js and the drawing of the sweater, fetched only when
  *   the sweater is on screen;
- * - a settled size: one size's settled sweater, fetched with it.
+ * - a settled size: one size's settled sweater, fetched with it;
+ * - a frozen edition: one size's knitting as a project part way through
+ *   knits it, fetched only by such a project (see data/sweaters/editions).
  *
  * Each budget leaves some room over what the site costs now, so that it
  * fails on a real jump rather than on every change.
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 
@@ -33,7 +35,8 @@ const kb = 1024;
  * drawn as stitches at whatever size a jumper has room for, and the raglan
  * and round-yoke knitting that lays them in - bring it to 242KB: 250KB.
  */
-const budgets = { page: 250 * kb, stage: 260 * kb, settled: 300 * kb };
+// A frozen edition of the largest size is 19KB.
+const budgets = { page: 250 * kb, stage: 260 * kb, settled: 300 * kb, edition: 40 * kb };
 
 const files = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
@@ -45,8 +48,12 @@ const kind = (path) =>
 
 const assets = files("dist/assets").filter((path) => /\.(js|css)$/.test(path));
 const page = assets.filter((path) => kind(path) === "page").reduce((total, path) => total + gzipped(path), 0);
+// Frozen editions are served as they are, beside the assets: the largest stands for them all.
+const editions = existsSync("dist/editions") ? files("dist/editions").map((path) => [path.replace("dist/", ""), gzipped(path), budgets.edition]) : [];
+const largest = editions.sort((a, b) => b[1] - a[1]).slice(0, 1);
 const rows = [
   ["the page", page, budgets.page],
+  ...largest,
   ...assets
     .filter((path) => kind(path) !== "page")
     .map((path) => [path.replace("dist/assets/", ""), gzipped(path), budgets[kind(path)]]),

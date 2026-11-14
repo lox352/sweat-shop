@@ -47,3 +47,16 @@ it("recovers failed saves as copies when another tab changed the persisted proje
   expect(listProjects().find(p => p.id !== original.id)?.progress).toBe(5);
   expect(getStorageNotice()).toContain("recovered copy");
 });
+
+it("records the edition of the knitting a project is started on, and keeps it", () => {
+  const project = startProject("hamefarin", "m", "c");
+  expect(project.edition).toMatch(/^[0-9a-f]{12}$/);
+  expect(readProject(project.id)?.edition).toBe(project.edition);
+  // One saved before editions has none, and is left without: it knits the first (see data/sweaters/editions).
+  const { edition: _edition, ...before } = project;
+  void _edition;
+  localStorage.setItem(project.id, JSON.stringify(before));
+  expect(readProject(project.id)?.edition).toBeUndefined();
+  localStorage.setItem(project.id, JSON.stringify({ ...project, edition: 7 }));
+  expect(readProject(project.id)).toBeUndefined();
+});

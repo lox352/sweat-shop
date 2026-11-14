@@ -141,6 +141,50 @@ counts truthfully and keeps the rules of Fair Isle: two colours a round and
 no float longer than seven stitches. A design's own test file holds it to
 whatever else it promises - its measurements, or what its pattern says.
 
+## Editions: a project knits what it was started on
+
+A project's progress is the id of the last stitch it worked, so it only means
+anything against the knitting it was counted in. A design's knitting changes
+now and then - a chart corrected, a better way to shape a yoke - and a project
+part way through should not have its knitting change under it.
+
+So each knitting a size has had is kept, as an **edition**, named by a hash of
+it. `src/data/sweaters/editions/manifest.json` says which edition of each size
+is current, and which was the first the site named; `public/editions/` holds a
+frozen copy of each, the built sweater itself, so it decodes to the same
+stitches whatever the code that built it has since become.
+
+- A project records the edition it was started on. One saved before editions
+  knits the first.
+- While that edition is current, its knitting is built in the browser as it
+  always was. Once a change supersedes it, the project fetches the frozen
+  copy - a file of some 15KB over the wire, kept by the service worker from
+  then on - and knits that. If it cannot be fetched, the project says so and
+  shows nothing, never some other knitting.
+- The project's pages then say the pattern has been updated, where the update
+  first differs, and whether that is before or after where the knitting has
+  got to. Moving on is the knitter's choice; their place may need putting
+  right with *Knit up to here* where the two differ behind them.
+- The sweater in three dimensions is settled for a size's knitting as it is
+  now. A project on an older edition with a different number of stitches is
+  drawn as posed, not settled.
+
+**When a change alters any size's knitting**, the tests fail until its
+editions are named and frozen:
+
+```sh
+npm run editions              # name every size; freeze any new edition; update the manifest
+npm run editions -- --check   # fail if anything is out of date, and write nothing
+```
+
+Commit what it writes. The manifest's diff is the list of sizes whose knitting
+changed, which is worth reading: a size that changed and was not meant to is a
+bug. Frozen copies are never rewritten once superseded, and never deleted -
+projects out in the world knit from them.
+
+A change to what rounds are called in the chart's margin, or to how wide a
+stitch is drawn, is not a change to the knitting and makes no new edition.
+
 ## Running it
 
 ```sh
@@ -152,6 +196,7 @@ npm run build
 npm run budgets  # what a phone fetches, gzipped, against its budgets
 npm run test:e2e
 node scripts/grade.mjs   # regrade the sizes, to review and commit
+npm run editions # after a change to any size's knitting: see Editions
 ```
 
 ## Deploying

@@ -16,6 +16,7 @@ function cacheStorage() {
     const store = stores.get(name)!;
     return {
       match: async (key: string) => store.get(key)?.clone(),
+      keys: async () => [...store.keys()].map((url) => ({ url })),
       put: async (key: string, response: Response) => { store.set(key, response); },
       addAll: async (requests: Request[]) => {
         const responses = await Promise.all(requests.map((request) => server(request)));
@@ -129,4 +130,40 @@ it("keeps the release before for a page still open on it, and lets older ones go
   w.handlers.fetch({ request: { method: "GET", mode: "no-cors", url: `${scope}assets/before.js` },
     respondWith: (value: Promise<Response>) => { response = value; } });
   expect(await (await response).text()).toBe("the release before's script");
+});
+
+it("keeps a frozen edition once it is fetched, and brings it along through every release after", async () => {
+  // Not prepared in advance: only a project still knitting an edition needs it.
+  const edition = `${scope}editions/hamefarin--m--0123456789ab.json`;
+  const first = worker("one");
+  first.caches.serveWith(async (request) => new Response(request.url === edition ? "the knitting as it was" : page("app.js")));
+  await first.run("install");
+  expect(first.caches.stores.get("sweat-shop-static-one")!.has(edition)).toBe(false);
+  first.fetch.mockResolvedValue(new Response("the knitting as it was"));
+  let response: Promise<Response> = Promise.resolve(new Response(""));
+  const respondWith = (value: Promise<Response>) => { response = value; };
+  first.handlers.fetch({ request: { method: "GET", mode: "cors", url: edition }, respondWith });
+  expect(await (await response).text()).toBe("the knitting as it was");
+  expect(first.caches.stores.get("sweat-shop-static-one")!.has(edition)).toBe(true);
+  first.handlers.fetch({ request: { method: "GET", mode: "cors", url: edition }, respondWith });
+  expect(await (await response).text()).toBe("the knitting as it was");
+  expect(first.fetch).toHaveBeenCalledOnce();
+
+  // Three releases on, the one that fetched it is long gone, and the project still opens offline.
+  const w = worker("four");
+  const stamped = async (name: string, at: number, files: Record<string, string> = {}) => {
+    const cache = await w.caches.api.open(name);
+    await cache.put(`${scope}__installed__`, new Response(String(at)));
+    for (const [url, body] of Object.entries(files)) await cache.put(url, new Response(body));
+  };
+  await stamped("sweat-shop-static-one", 1, { [edition]: "the knitting as it was" });
+  await stamped("sweat-shop-static-two", 2);
+  await stamped("sweat-shop-static-three", 3);
+  await w.run("install");
+  await w.run("activate");
+  expect([...w.caches.stores.keys()].sort()).toEqual(["sweat-shop-static-four", "sweat-shop-static-three"]);
+  expect(w.caches.stores.get("sweat-shop-static-four")!.has(edition)).toBe(true);
+  w.fetch.mockRejectedValue(new TypeError("offline"));
+  w.handlers.fetch({ request: { method: "GET", mode: "cors", url: edition }, respondWith });
+  expect(await (await response).text()).toBe("the knitting as it was");
 });

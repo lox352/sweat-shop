@@ -11,7 +11,8 @@ import {
   projectsChanged,
   renameProject,
 } from "../helpers/projects";
-import { countedAt, sweaterStitches, yokeRounds } from "../knitting/useSweater";
+import { countedAt, sweaterStitches, useEditionReady, yokeRounds } from "../knitting/useSweater";
+import { editionOf } from "../data/sweaters/editions";
 import { positionOf, totals } from "../knitting/progress";
 import { colourwayLabel, paletteOf, trimmed } from "../knitting/palette";
 import PageLayout from "./ui/PageLayout";
@@ -36,7 +37,8 @@ const describe = (project: Project) => {
   const sweater = sweaterById(project.sweaterId);
   if (!sweater) return undefined;
   const size = sweater.sizes.find((s) => s.id === project.sizeId) ?? sweater.sizes[0];
-  const built = sweaterStitches(sweater, size.id);
+  // The edition the project knits: see data/sweaters/editions. Until a superseded one is fetched, the knitting as it is now.
+  const built = sweaterStitches(sweater, size.id, editionOf(project));
   const { stitches } = built;
   // Counted as the project's own pages count it, from the beginning of the round in force.
   const { index } = countedAt(sweater, built, project.progress);
@@ -54,6 +56,7 @@ const ProjectCard: React.FC<{
   onDelete: () => void;
 }> = ({ project, onRename, onDelete }) => {
   const navigate = useNavigate();
+  useEditionReady(project.sweaterId, project.sizeId, editionOf(project));
   const described = describe(project);
   const time = useKnittingTime(project.id, described?.stitches ?? noStitches, project.progress);
   if (!described) return null;
