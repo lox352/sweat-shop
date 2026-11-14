@@ -68,9 +68,12 @@ Rapier, settled in a browser; a sweater is ten times that, in every size.
 So `src/physics/solver.ts` is a small position-based solver in plain
 TypeScript that settles a size in Node in a minute or so, gives the same
 answer every time, and is never loaded by the site at all. Its answers are
-committed, a size to a file, in `src/data/sweaters/settled/`: a position for
-each stitch of the fabric, and none for the steps between - a change of
-needles, a turn - which are put beside the stitch before them.
+committed as **shapes**, in `public/shapes/`: a position for each stitch of
+the fabric, and none for the steps between - a change of needles, a turn -
+which are put beside the stitch before them. A shape is named by a hash of
+its fabric and the physics, and `src/data/sweaters/settled/shapes.json` says
+which shape each edition of each size has, so a size recoloured keeps the
+shape it had, and a project still on an older edition keeps its own.
 
 The physics stands on the rounds as they are worked from each piece's seam,
 the middle of the back or of an underarm, whatever marker a pattern counts
@@ -82,10 +85,10 @@ npm run settle -- --changed    # only those whose knitting or physics changed
 npm run bench                  # each piece's tension and frill, size by size
 ```
 
-A sweater is settled again when its knitting or the physics changes, and
-only then. Recolouring it never re-settles it, and nor does a step gained or
-lost: see `scripts/settlement-plan.mjs`. On `main`, `settle-missing.yml` does that by
-itself and commits the answer.
+A size is settled again when its fabric or the physics changes, and only
+then. Recolouring it never re-settles it, and nor does a step gained or
+lost: see `scripts/shapes.mjs`. On `main`, `settle-missing.yml` does that by
+itself and commits the answer; until it has, the size is drawn as posed.
 
 The settling starts from `src/physics/pose.ts`, which lays the sweater out
 blocked with every rope at or under its length. The body hangs straight
@@ -170,12 +173,7 @@ stitches whatever the code that built it has since become.
   first differs, and whether that is before or after where the knitting has
   got to. Moving on is the knitter's choice; their place may need putting
   right with *Knit up to here* where the two differ behind them.
-- The sweater in three dimensions is settled for a size's knitting as it is
-  now. When a size is settled again for a new edition, the settled sweater of
-  the edition before is kept beside its frozen copy
-  (`public/editions/<design>--<size>--<edition>.settled.json`), and a project
-  still on that edition is shown it. `scripts/settled-editions.json` records
-  which edition each size's settled file is for.
+- The sweater in three dimensions is each edition's own: see shapes, above.
 
 A page reads no design's own file. What it shows of a design - its name, its
 sizes and their measurements, its colourways - it reads from the

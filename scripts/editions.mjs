@@ -1,6 +1,8 @@
-import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { withSite } from "./settlement-plan.mjs";
+import { editionKey, nameOf, readShapes, shapeNamer, shapePath, writeShapes } from "./shapes.mjs";
+
+export { nameOf };
 
 /**
  * Every size's knitting, named and frozen as an edition: see
@@ -13,7 +15,8 @@ import { withSite } from "./settlement-plan.mjs";
  * way through it will knit from is already there, made by the code that
  * built it. Superseded copies are never rewritten.
  *
- * And the catalogue: every design without its knitting, which is all the site
+ * And which shape each has, where that is settled already (see shapes.mjs),
+ * so that a recoloured size keeps its settled sweater. And the catalogue: every design without its knitting, which is all the site
  * reads of a design. It is written here too, so that one command brings
  * everything the site is published from up to date with the designs.
  *
@@ -25,8 +28,6 @@ export const editionsDir = "src/data/sweaters/editions";
 export const frozenDir = "public/editions";
 export const manifestFile = `${editionsDir}/manifest.json`;
 
-/** An edition's name, from its knitting: see format's hashable. */
-export const nameOf = (hashable) => createHash("sha256").update(hashable).digest("hex").slice(0, 12);
 
 /** Every design without its knitting, as the site reads them: see src/data/sweaters/catalogue. */
 export const cataloguePath = "src/data/sweaters/catalogue/catalogue.json";
@@ -38,12 +39,14 @@ export const editionsNow = async (load) => {
   const { sweaters } = await load("/src/data/sweaters/index.ts");
   const { buildSweater } = await load("/src/knitting/engine.ts");
   const { encodeEdition, hashable } = await load("/src/data/sweaters/editions/format.ts");
+  const shapeOf = await shapeNamer(load);
   const out = [];
   for (const sweater of sweaters) {
     for (const size of sweater.sizes) {
-      const draft = encodeEdition(buildSweater(sweater, size.id), sweater.id, size.id, "");
+      const built = buildSweater(sweater, size.id);
+      const draft = encodeEdition(built, sweater.id, size.id, "");
       const edition = nameOf(hashable(draft));
-      out.push({ design: sweater.id, size: size.id, edition, json: JSON.stringify({ ...draft, edition }) });
+      out.push({ design: sweater.id, size: size.id, edition, shape: shapeOf(built.knitting), json: JSON.stringify({ ...draft, edition }) });
     }
   }
   return out;
@@ -65,6 +68,15 @@ const main = async () => {
     stale.push("the catalogue of designs");
     if (!check) writeFileSync(cataloguePath, catalogue);
   }
+  // An edition whose shape is settled already - a recolouring of one that was - has it from the start: see shapes.mjs.
+  const shapes = readShapes();
+  for (const { design, size, edition, shape } of now) {
+    const key = editionKey(design, size, edition);
+    if (shapes[key] === shape || !existsSync(shapePath(shape))) continue;
+    stale.push(`${design} ${size}: its shape, ${shape}, is settled and not recorded`);
+    shapes[key] = shape;
+  }
+  if (!check) writeShapes(shapes);
   for (const { design, size, edition, json } of now) {
     const entry = (manifest[design] ??= {})[size] ?? {};
     const path = frozenPath(design, size, edition);

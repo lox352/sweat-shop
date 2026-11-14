@@ -10,7 +10,8 @@
  *   what stands between a knitter and their chart;
  * - the 3D stage: three.js and the drawing of the sweater, fetched only when
  *   the sweater is on screen;
- * - a settled size: one size's settled sweater, fetched with it;
+ * - a settled shape: one size's settled sweater, fetched with it (see
+ *   scripts/shapes.mjs);
  * - a frozen edition: one size's knitting, fetched when that size is shown
  *   (see data/sweaters/editions).
  *
@@ -47,18 +48,15 @@ const files = (dir) =>
   );
 const gzipped = (path) => gzipSync(readFileSync(path), { level: 9 }).length;
 const kind = (path) =>
-  path.includes("/settled/") ? "settled" : /\/SweaterStage-[^/]+\.js$/.test(path) ? "stage" : "page";
+  /\/SweaterStage-[^/]+\.js$/.test(path) ? "stage" : "page";
 
 const assets = files("dist/assets").filter((path) => /\.(js|css)$/.test(path));
 const page = assets.filter((path) => kind(path) === "page").reduce((total, path) => total + gzipped(path), 0);
 // Frozen editions are served as they are, beside the assets: the largest stands for them all.
 // Beside them, the settled sweater of an edition a size has moved on from, held to a settled size's budget.
-const served = existsSync("dist/editions") ? files("dist/editions") : [];
-const largestOf = (paths, budget) => paths.map((path) => [path.replace("dist/", ""), gzipped(path), budget]).sort((a, b) => b[1] - a[1]).slice(0, 1);
-const largest = [
-  ...largestOf(served.filter((path) => !path.endsWith(".settled.json")), budgets.edition),
-  ...largestOf(served.filter((path) => path.endsWith(".settled.json")), budgets.settled),
-];
+const largestOf = (dir, budget) =>
+  (existsSync(dir) ? files(dir) : []).map((path) => [path.replace("dist/", ""), gzipped(path), budget]).sort((a, b) => b[1] - a[1]).slice(0, 1);
+const largest = [...largestOf("dist/editions", budgets.edition), ...largestOf("dist/shapes", budgets.settled)];
 const rows = [
   ["the page", page, budgets.page],
   ...largest,

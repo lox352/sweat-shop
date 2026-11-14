@@ -1,7 +1,6 @@
 import React, { lazy, Suspense, useEffect, useState } from "react";
 import { Palette } from "../knitting/palette";
-import { hasSettled, loadSettled } from "../data/sweaters/settled";
-import { isSuperseded } from "../data/sweaters/editions";
+import { loadSettled, settledShape } from "../data/sweaters/settled";
 import PreviewBoundary from "./PreviewBoundary";
 
 /** How tall the stage is, so nothing on the page moves when it arrives. */
@@ -38,34 +37,33 @@ const known = new Map<string, Float32Array>();
 /** The sweater in three dimensions, on the design's page and a project's. */
 const SweaterModel: React.FC<SweaterModelProps> = (props) => {
   const { sweaterId, sizeId, edition } = props;
-  // A project on an edition its size has moved on from is shown that edition's settled sweater, where one was kept.
-  const key = isSuperseded(sweaterId, sizeId, edition) ? `${sweaterId}--${sizeId}--${edition}` : `${sweaterId}--${sizeId}`;
-  const wanted = settledWanted() && hasSettled(sweaterId, sizeId, edition);
-  const [settled, setSettled] = useState(() => known.get(key));
-  /** The size whose file has been asked for and has answered, found or not. */
-  const [looked, setLooked] = useState<string | undefined>(() => (known.has(key) ? key : undefined));
+  // The shape its edition has, if that has been settled: a project's own edition's, or the size's now.
+  const shape = settledWanted() ? settledShape(sweaterId, sizeId, edition) : undefined;
+  const [settled, setSettled] = useState(() => (shape ? known.get(shape) : undefined));
+  /** The shape whose file has been asked for and has answered, found or not. */
+  const [looked, setLooked] = useState<string | undefined>(() => (shape && known.has(shape) ? shape : undefined));
   useEffect(() => {
     let live = true;
-    setSettled(known.get(key));
-    if (!wanted || known.has(key)) {
-      setLooked(key);
+    setSettled(shape ? known.get(shape) : undefined);
+    if (!shape || known.has(shape)) {
+      setLooked(shape);
       return;
     }
-    loadSettled(sweaterId, sizeId, edition).then((positions) => {
+    loadSettled(shape).then((positions) => {
       if (!live) return;
-      if (positions) known.set(key, positions);
+      if (positions) known.set(shape, positions);
       setSettled(positions);
-      setLooked(key);
+      setLooked(shape);
     });
     return () => {
       live = false;
     };
-  }, [key, wanted, sweaterId, sizeId, edition]);
+  }, [shape]);
   const reducedMotion =
     typeof window !== "undefined" &&
     window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   // Nothing is drawn until a settled sweater has had its chance to arrive, so it is never seen jumping into its shape.
-  const waiting = wanted && looked !== key;
+  const waiting = !!shape && looked !== shape;
   return (
     <div
       className="sweater-canvas"

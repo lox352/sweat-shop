@@ -11,12 +11,12 @@
  *     npm run settle -- --changed    only those whose knitting or physics changed
  *     npm run settle -- hamefarin --size m
  *
- * A sweater's entry in the manifest moves on only once every one of its
- * sizes has settled, so an interrupted run is picked up again by --changed.
+ * Each is written as its shape (see shapes.mjs) as soon as it has settled, so
+ * an interrupted run is picked up again by --changed.
  */
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
-import { manifestPath, settledDir, settlementPlan, withSite } from "./settlement-plan.mjs";
-import { nameOf } from "./editions.mjs";
+import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { settlementPlan, withSite } from "./settlement-plan.mjs";
+import { editionKey, pruneShapes, readShapes, shapePath, shapesDir, writeShapes } from "./shapes.mjs";
 
 /*
  * Progress goes to settle.log as well as the terminal: Node holds back output
@@ -41,7 +41,7 @@ await withSite(async (load) => {
   const unknown = requested.filter((id) => !plan.some((target) => target.id === id));
   if (unknown.length) throw new Error(`No sweater called ${unknown.join(", ")}`);
   const targets = plan.filter((target) =>
-    requested.length ? requested.includes(target.id) : !args.includes("--changed") || target.needed,
+    (!onlySize || target.size === onlySize) && (requested.length ? requested.includes(target.id) : !args.includes("--changed") || target.needed),
   );
   if (!targets.length) {
     say("Every sweater's sizes are settled and current.");
@@ -53,43 +53,39 @@ await withSite(async (load) => {
   const { pose } = await load("/src/physics/pose.ts");
   const { settle } = await load("/src/physics/solver.ts");
   const { encodeSettled, fabricPositions } = await load("/src/data/sweaters/settled/format.ts");
-  const { encodeEdition, hashable } = await load("/src/data/sweaters/editions/format.ts");
-  const { keepSettled, noteSettled } = await load("/src/data/sweaters/settled/keep.ts");
-  mkdirSync(settledDir, { recursive: true });
-  const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : {};
+  mkdirSync(shapesDir, { recursive: true });
+  const shapes = readShapes();
+  const record = (target) => {
+    shapes[editionKey(target.id, target.size, target.edition)] = target.shape;
+    writeShapes(shapes);
+  };
 
+  let all = true;
   for (const target of targets) {
-    const sweater = sweaterById(target.id);
-    const sizes = target.sizes.filter((size) => !onlySize || size === onlySize);
-    let all = sizes.length === target.sizes.length;
-    for (const sizeId of sizes) {
-      const label = `${target.id}/${sizeId}`;
-      const built = buildSweater(sweater, sizeId);
-      const started = Date.now();
-      const result = settle(built.knitting, pose(built.knitting), {}, ({ steps, moved }) => {
-        if (steps % 50 === 0) {
-          say(`  ${label}: ${steps} steps, the average stitch moving ${moved.toFixed(5)} of its width a step, ${((Date.now() - started) / 1000).toFixed(0)}s`);
-        }
-      });
-      const seconds = ((Date.now() - started) / 1000).toFixed(0);
-      if (!result.rested) {
-        say(`${label}: did not come to rest in ${result.steps} steps (${seconds}s); not written`);
-        all = false;
-        continue;
+    const label = `${target.id}/${target.size}`;
+    // Its shape is there already - a recolouring, say - and only wants recording.
+    if (target.settled && args.includes("--changed")) {
+      record(target);
+      say(`${label}: its shape ${target.shape} is settled already`);
+      continue;
+    }
+    const built = buildSweater(sweaterById(target.id), target.size);
+    const started = Date.now();
+    const result = settle(built.knitting, pose(built.knitting), {}, ({ steps, moved }) => {
+      if (steps % 50 === 0) {
+        say(`  ${label}: ${steps} steps, the average stitch moving ${moved.toFixed(5)} of its width a step, ${((Date.now() - started) / 1000).toFixed(0)}s`);
       }
-      const file = encodeSettled(fabricPositions(built.stitches, result.positions));
-      // The settled sweater of the edition before is kept for the projects still knitting it: see settled/keep.
-      const edition = nameOf(hashable(encodeEdition(built, target.id, sizeId, "")));
-      const kept = keepSettled(target.id, sizeId, edition);
-      if (kept) say(`${label}: the edition before's settled sweater kept as ${kept}`);
-      writeFileSync(`${settledDir}/${target.id}--${sizeId}.json`, JSON.stringify(file));
-      noteSettled(target.id, sizeId, edition);
-      say(`${label}: settled in ${result.steps} steps, ${seconds}s`);
+    });
+    const seconds = ((Date.now() - started) / 1000).toFixed(0);
+    if (!result.rested) {
+      say(`${label}: did not come to rest in ${result.steps} steps (${seconds}s); not written`);
+      all = false;
+      continue;
     }
-    if (all) {
-      manifest[target.id] = target.fingerprint;
-      writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-      say(`${target.id}: every size settled; the manifest is up to date`);
-    }
+    writeFileSync(shapePath(target.shape), JSON.stringify(encodeSettled(fabricPositions(built.stitches, result.positions))));
+    record(target);
+    say(`${label}: settled in ${result.steps} steps, ${seconds}s, as shape ${target.shape}`);
   }
+  // A shape no edition has any longer is let go only once nothing is still waiting on its replacement.
+  if (all && !requested.length && !onlySize) for (const file of pruneShapes(shapes)) say(`${file}: no edition has this shape any longer; removed`);
 });

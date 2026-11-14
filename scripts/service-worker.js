@@ -6,6 +6,13 @@ const urlFor = path => new URL(path, self.registration.scope).href;
 const urls = assets.map(urlFor);
 /** Where each release's cache notes when it was installed, to tell the release before from older ones. */
 const stamp = urlFor("__installed__");
+/**
+ * A frozen edition of a size's knitting, and a settled shape: each a file
+ * named by what it holds, which never changes, fetched only when its size is
+ * shown. So neither is prepared in advance, and both are kept from the first
+ * time they are fetched, through every release after.
+ */
+const keeps = url => url.startsWith(urlFor("editions/")) || url.startsWith(urlFor("shapes/"));
 
 /** Whether a release's page names only scripts and stylesheets that came with the release. */
 const whole = async cache => {
@@ -63,7 +70,7 @@ self.addEventListener("activate", event => {
     for (const { key } of installed) {
       const old = await caches.open(key);
       for (const { url } of await old.keys()) {
-        if (!url.startsWith(urlFor("editions/")) || (await cache.match(url))) continue;
+        if (!keeps(url) || (await cache.match(url))) continue;
         const kept = await old.match(url);
         if (kept) await cache.put(url, kept);
       }
@@ -86,7 +93,7 @@ self.addEventListener("message", event => {
     const cache = await caches.open(cacheName);
     for (const path of keep) {
       const url = urlFor(path);
-      if (!url.startsWith(urlFor("editions/")) || (await caches.match(url))) continue;
+      if (!keeps(url) || (await caches.match(url))) continue;
       try {
         const response = await fetch(url);
         if (response.ok) await cache.put(url, response);
@@ -113,7 +120,7 @@ self.addEventListener("fetch", event => {
    * there offline from then on. So is a frozen edition of a size's knitting,
    * which only a project still knitting it fetches.
    */
-  if (url.pathname.startsWith(`${scope.pathname}assets/settled/`) || url.pathname.startsWith(`${scope.pathname}editions/`)) {
+  if (keeps(url.href)) {
     event.respondWith((async () => {
       const cached = await caches.match(key);
       if (cached) return cached;

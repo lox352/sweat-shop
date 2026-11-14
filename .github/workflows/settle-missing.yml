@@ -1,7 +1,7 @@
 name: Settle missing or changed sweaters
 
-# A sweater is settled again when its knitting or the physics changes - not
-# its colours - and the answer committed. See scripts/settlement-plan.mjs.
+# A size is settled again when its fabric or the physics changes - not its
+# colours - and the answer committed. See scripts/shapes.mjs.
 # Settling needs nothing but Node: no build and no browser.
 
 on:
@@ -15,6 +15,7 @@ on:
       - "src/types/**"
       - "src/constants.ts"
       - "scripts/settle*.mjs"
+      - "scripts/shapes.mjs"
       - ".github/workflows/settle-missing.yml"
   workflow_dispatch:
 
@@ -48,15 +49,16 @@ jobs:
       - run: npm run settle -- --changed
         if: steps.plan.outputs.needed == 'true'
       - name: Verify every size
-        run: npx vitest run src/data/sweaters/settled/settled.test.ts
+        run: |
+          node scripts/settlement-plan.mjs --check
+          npx vitest run src/data/sweaters/settled/settled.test.ts
       - name: Commit settled positions
         id: commit
         if: steps.plan.outputs.needed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/data/sweaters/settled/*.json scripts/settlement-manifest.json scripts/settled-editions.json
-          git add public/editions/*.settled.json 2>/dev/null || true
+          git add -A public/shapes src/data/sweaters/settled/shapes.json
           if git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
