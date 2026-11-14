@@ -1,0 +1,95 @@
+import React, { useEffect, useMemo } from "react";
+import type { Face, Hold, NeedleChange, Turn } from "../chart/chart-marks";
+import { Stitch } from "../../pattern/Stitch";
+import { Palette, shownSlots } from "../../reading/palette";
+import { stitchKey } from "../../reading/stitch-key";
+import { KeyList } from "../chart/ChartHelp";
+import type { StitchKeyId, StitchNote } from "../../pattern/design";
+
+type Notes = Partial<Record<StitchKeyId, StitchNote>>;
+
+/**
+ * The colours and every stitch in this sweater: the whole key, for the
+ * symbols as the chart shows them from the side towards you.
+ */
+const FullKey: React.FC<{
+  stitches: Stitch[];
+  palette: Palette;
+  notes?: Notes;
+  current?: string;
+  needles?: NeedleChange[];
+  holds?: Hold[];
+  turns?: Turn[];
+  face?: Face;
+}> = ({ stitches, palette, notes, current, needles, holds, turns, face = "right" }) => {
+  // The stitch in hand first, where it is seen without scrolling.
+  const entries = useMemo(() => {
+    const all = stitchKey(stitches, notes, face);
+    return [...all.filter((e) => e.id === current), ...all.filter((e) => e.id !== current)];
+  }, [stitches, notes, current, face]);
+  const yarns = Object.entries(palette).filter(
+    ([, yarn], i, all) => all.findIndex(([, other]) => other.name === yarn.name && other.hex === yarn.hex) === i,
+  );
+  return (
+    <div className="full-key">
+      <ul className="full-key-yarns">
+        {yarns.map(([slot, yarn]) => (
+          <li key={slot}>
+            <span className="swatch" style={{ background: yarn.hex }} /> {shownSlots([slot])[0]} · {yarn.name}
+          </li>
+        ))}
+      </ul>
+      <KeyList entries={entries} current={current} needles={needles} holds={holds} turns={turns} />
+    </div>
+  );
+};
+
+/**
+ * The whole key while knitting, in a sheet over the lower part of the screen.
+ *
+ * Full-screen knitting has no room for the key below the chart, and the panel
+ * already explains the stitches in the round in hand. This is for everything
+ * else: which yarn is which, or a stitch further on.
+ */
+export const KeySheet: React.FC<{
+  stitches: Stitch[];
+  palette: Palette;
+  notes?: Notes;
+  current?: string;
+  needles?: NeedleChange[];
+  holds?: Hold[];
+  turns?: Turn[];
+  /** The side of the sweater towards the knitter, which the chart shows. */
+  face?: Face;
+  onClose: () => void;
+}> = ({ stitches, palette, notes, current, needles, holds, turns, face, onClose }) => {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="key-sheet" role="dialog" aria-label="Key">
+      <div className="key-sheet-head">
+        <strong>Key</strong>
+        <button type="button" className="key-sheet-close" aria-label="Close the key" onClick={onClose}>
+          ×
+        </button>
+      </div>
+      <div className="key-sheet-body">
+        <FullKey
+          stitches={stitches}
+          palette={palette}
+          notes={notes}
+          current={current}
+          needles={needles}
+          holds={holds}
+          turns={turns}
+          face={face}
+        />
+      </div>
+    </div>
+  );
+};

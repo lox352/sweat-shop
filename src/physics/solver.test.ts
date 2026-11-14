@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
-import { buildSweater } from "../knitting/engine";
-import { testSweater } from "../knitting/test-sweater";
+import { buildSweater } from "../compiler/engine/engine";
+import { testSweater } from "../compiler/engine/test-sweater";
 import { pose } from "./pose";
 import { settle } from "./solver";
 

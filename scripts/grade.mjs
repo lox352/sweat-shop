@@ -9,7 +9,7 @@
  * every number in it, and check that the measurements it was graded to
  * really are what it knits up to. Rerun this only to regrade.
  *
- * The structure it grades is the design's own (src/data/sweaters/
+ * The structure it grades is the design's own (src/compiler/designs/
  * simmer-dim.ts): a ribbed neck and a first increase round straight after
  * it, then five bands each preceded by an increase round, then plain rounds
  * to the depth of the yoke; a body with an echo of the small peerie above its

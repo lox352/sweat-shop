@@ -11,7 +11,7 @@
  * changing colourway never touches the knitting.
  */
 
-import type { WoolId } from "../data/yarns";
+import type { WoolId } from "./yarns";
 
 /**
  * A yarn slot, as the design names it: "A", "B", "C"... for a design drawn
@@ -103,7 +103,7 @@ export interface SizeAbout {
   /**
    * Metres of each yarn, where the pattern states them: a bought pattern's
    * own shopping list, which is better than any estimate. Left out, they
-   * are worked out from the stitches; see knitting/yardage.
+   * are worked out from the stitches; see reading/yardage.
    */
   yardage?: Record<SlotId, number>;
 }

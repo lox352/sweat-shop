@@ -1,8 +1,8 @@
-import { sweaters } from "./data/sweaters";
-import type { Design, SweaterPattern } from "./data/sweaters/types";
-import { buildSweater } from "./knitting/engine";
-import type { SweaterStitches } from "./knitting/knitted";
-import { knitInHand } from "./knitting/useSweater";
+import { sweaters } from "./compiler/designs";
+import type { Design, SweaterPattern } from "./compiler/designs/types";
+import { buildSweater } from "./compiler/engine/engine";
+import type { SweaterStitches } from "./pattern/knitted";
+import { knitInHand } from "./library/knitting";
 
 /*
  * The tests knit the designs as they are in hand, at once, where the site

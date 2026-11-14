@@ -13,7 +13,7 @@
  * - a settled shape: one size's settled sweater, fetched with it (see
  *   scripts/shapes.mjs);
  * - a frozen edition: one size's knitting, fetched when that size is shown
- *   (see data/sweaters/editions).
+ *   (see library/editions).
  *
  * Each budget leaves some room over what the site costs now, so that it
  * fails on a real jump rather than on every change.

@@ -1,6 +1,6 @@
 import { adjacentStitchDistance } from "../constants";
-import { consumption } from "../types/StitchType";
-import type { Knitting } from "./knitting";
+import { consumption } from "../pattern/StitchType";
+import type { Knitting } from "../pattern/knitting";
 
 /**
  * How a piece came out, measured off a settled sweater: the shape of its

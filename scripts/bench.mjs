@@ -28,12 +28,12 @@ const overrides = Object.fromEntries(
 );
 
 await withSite(async (load) => {
-  const { sweaters } = await load("/src/data/sweaters/index.ts");
-  const { buildSweater } = await load("/src/knitting/engine.ts");
+  const { sweaters } = await load("/src/compiler/designs/index.ts");
+  const { buildSweater } = await load("/src/compiler/engine/engine.ts");
   const { pose } = await load("/src/physics/pose.ts");
   const { settle } = await load("/src/physics/solver.ts");
   const { measurePiece } = await load("/src/physics/gauge.ts");
-  const { allPositions, decodeSettled } = await load("/src/data/sweaters/settled/format.ts");
+  const { allPositions, decodeSettled } = await load("/src/library/settled/format.ts");
 
   for (const sweater of sweaters) {
     for (const size of sweater.sizes.filter((candidate) => !onlySize || candidate.id === onlySize)) {

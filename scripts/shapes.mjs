@@ -6,7 +6,7 @@ import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from "no
  *
  * A shape depends on the fabric alone - each stitch's kind, what it is linked
  * to and how wide and tall it is, and the rounds from each piece's seam (see
- * settled/topology) - and on the physics that settles it. So it is named by
+ * physics/topology) - and on the physics that settles it. So it is named by
  * a hash of the two, and `public/shapes/<name>.json` is the settled sweater of
  * every edition of every size with that fabric: a design recoloured is a new
  * edition of the same shape, and nothing is settled again. Not the colours,
@@ -17,36 +17,38 @@ import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from "no
  * still knitting those. An edition not in it is drawn as posed until it is.
  */
 export const shapesDir = "public/shapes";
-export const shapesFile = "src/data/sweaters/settled/shapes.json";
+export const shapesFile = "src/library/settled/shapes.json";
 
 /**
  * Everything the settling runs on, named one by one and hashed by what each
  * holds, so that moving a file changes no shape's name. The bench's measuring
- * tape (physics/gauge) changes nothing the settling does.
+ * tape (physics/gauge) changes nothing the settling does, and nor does how
+ * the fabric is told apart (physics/topology), which is hashed itself.
  */
 export const physicsFiles = [
   "src/constants.ts",
-  "src/physics/knitting.ts",
+  "src/pattern/knitting.ts",
   "src/physics/pose.ts",
   "src/physics/ropes.ts",
   "src/physics/solver.ts",
   "src/physics/tuning.ts",
   "src/physics/vector.ts",
-  "src/types/Point.ts",
-  "src/types/RGB.ts",
-  "src/types/Stitch.ts",
-  "src/types/StitchType.ts",
+  "src/pattern/Point.ts",
+  "src/pattern/RGB.ts",
+  "src/pattern/Stitch.ts",
+  "src/pattern/StitchType.ts",
 ];
 
 export const physicsNow = () => {
   const hash = createHash("sha256");
-  for (const path of physicsFiles) hash.update(readFileSync(path, "utf8")).update("\n");
+  // Where a file imports from is no part of what it does: left out, so that moving another file changes no name either.
+  for (const path of physicsFiles) hash.update(readFileSync(path, "utf8").replace(/from "[^"]*"/g, 'from ""')).update("\n");
   return hash.digest("hex");
 };
 
 /** What names the shape of a knitting, built or decoded from an edition: see above. */
 export const shapeNamer = async (load) => {
-  const { topologyOf } = await load("/src/data/sweaters/settled/topology.ts");
+  const { topologyOf } = await load("/src/physics/topology.ts");
   const physics = physicsNow();
   return (knitting) => createHash("sha256").update(physics).update(JSON.stringify(topologyOf(knitting))).digest("hex").slice(0, 12);
 };

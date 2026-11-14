@@ -1,7 +1,7 @@
 import { test, expect } from "playwright/test";
 import { readFile } from "node:fs/promises";
 
-const editions = JSON.parse(await readFile("src/data/sweaters/editions/manifest.json", "utf8"));
+const editions = JSON.parse(await readFile("src/library/editions/manifest.json", "utf8"));
 const design = "#/sweater/hamefarin";
 const position = page => page.locator(".knitting-panel [role=status]");
 const steps = /^(Joined|Changed|Held|On the needles|Turned|Placed|Taken off): carry on$/;
@@ -39,7 +39,7 @@ const klee = { sweaterId: "paul-klee", sizeId: "m1", colourwayId: "klee" };
  * twenty thousand stitches a round at a time is no way to reach the divide.
  */
 async function knittedTo(page, progress, choices = medium) {
-  // On its size's knitting as it is now, as a project started today is: see src/data/sweaters/editions.
+  // On its size's knitting as it is now, as a project started today is: see src/library/editions.
   const edition = editions[choices.sweaterId][choices.sizeId].current;
   await page.goto("");
   await page.evaluate(({ progress, choices, edition }) => {
@@ -70,7 +70,7 @@ async function tapBeside(page, across) {
 
 /*
  * In a medium: the yoke's last stitch, the body's bind-off's, and where the
- * steps fall in the order of work. See src/knitting/engine.ts.
+ * steps fall in the order of work. See src/compiler/engine/engine.ts.
  */
 const yokeDone = 21146;
 const bodyDone = 56077;

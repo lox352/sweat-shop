@@ -6,7 +6,7 @@
  *
  * Run by hand, once, against a checkout of lox352/wool-week; its output is
  * reviewed and committed, as the hat site's extracted charts are. Each year
- * lands in src/data/sweaters/wool-week/<id>.json and nowhere else, so a year
+ * lands in src/compiler/designs/wool-week/<id>.json and nowhere else, so a year
  * can be taken out again in one commit - the hat site's two-file rule, kept.
  *
  * What comes over is what the samplers knit from: every chart but 2026's
@@ -24,7 +24,7 @@ import path from "node:path";
 const source = process.argv[2];
 if (!source) throw new Error("usage: import-wool-week.mjs <path to a wool-week checkout>");
 const hats = path.join(source, "src/data/hats");
-const out = path.join(path.dirname(new URL(import.meta.url).pathname), "../src/data/sweaters/wool-week");
+const out = path.join(path.dirname(new URL(import.meta.url).pathname), "../src/compiler/designs/wool-week");
 
 // The hat files are TypeScript importing JSON: copied somewhere they can be loaded as they are.
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "wool-week-"));
