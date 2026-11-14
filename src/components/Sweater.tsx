@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { startTransition, useCallback, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { sweaterById } from "../data/sweaters";
 import { SlotId, Size } from "../data/sweaters/types";
@@ -230,7 +230,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
               type="button"
               className={`size-option${option.id === size.id ? " is-chosen" : ""}`}
               aria-pressed={option.id === size.id}
-              onClick={() => setSizeId(option.id)}
+              onClick={() => startTransition(() => setSizeId(option.id))}
             >
               <strong>{option.label}</strong>
               <span className="quiet">{option.fits ?? `to fit ${option.toFitChestCm}cm`}</span>

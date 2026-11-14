@@ -16,6 +16,7 @@
  */
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { manifestPath, settledDir, settlementPlan, withSite } from "./settlement-plan.mjs";
+import { nameOf } from "./editions.mjs";
 
 /*
  * Progress goes to settle.log as well as the terminal: Node holds back output
@@ -52,6 +53,8 @@ await withSite(async (load) => {
   const { pose } = await load("/src/physics/pose.ts");
   const { settle } = await load("/src/physics/solver.ts");
   const { encodeSettled, fabricPositions } = await load("/src/data/sweaters/settled/format.ts");
+  const { encodeEdition, hashable } = await load("/src/data/sweaters/editions/format.ts");
+  const { keepSettled, noteSettled } = await load("/src/data/sweaters/settled/keep.ts");
   mkdirSync(settledDir, { recursive: true });
   const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : {};
 
@@ -75,7 +78,12 @@ await withSite(async (load) => {
         continue;
       }
       const file = encodeSettled(fabricPositions(built.stitches, result.positions));
+      // The settled sweater of the edition before is kept for the projects still knitting it: see settled/keep.
+      const edition = nameOf(hashable(encodeEdition(built, target.id, sizeId, "")));
+      const kept = keepSettled(target.id, sizeId, edition);
+      if (kept) say(`${label}: the edition before's settled sweater kept as ${kept}`);
       writeFileSync(`${settledDir}/${target.id}--${sizeId}.json`, JSON.stringify(file));
+      noteSettled(target.id, sizeId, edition);
       say(`${label}: settled in ${result.steps} steps, ${seconds}s`);
     }
     if (all) {

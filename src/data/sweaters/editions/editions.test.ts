@@ -3,7 +3,8 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { buildSweater, isSpacer } from "../../../knitting/engine";
+import { buildSweater } from "../../../knitting/engine";
+import { isSpacer } from "../../../knitting/knitted";
 import { sweaterById, sweaters } from "../index";
 import { EditionFile, decodeEdition, encodeEdition, hashable } from "./format";
 
@@ -32,7 +33,8 @@ describe("every size's edition", () => {
 });
 
 describe("the frozen editions", () => {
-  const files = readdirSync(frozen).filter((name) => name.endsWith(".json"));
+  // Beside them, the settled sweaters of editions since superseded: see settled/keep.
+  const files = readdirSync(frozen).filter((name) => name.endsWith(".json") && !name.endsWith(".settled.json"));
 
   it("each knit what their name says, and never change", () => {
     for (const name of files) {

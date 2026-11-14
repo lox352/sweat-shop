@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { sweaters, sweaterById } from "../data/sweaters";
 import {
@@ -11,7 +11,9 @@ import {
   projectsChanged,
   renameProject,
 } from "../helpers/projects";
-import { countedAt, sweaterStitches, useEditionReady, yokeRounds } from "../knitting/useSweater";
+import { countedAt, useKnitting, yokeRounds } from "../knitting/useSweater";
+import type { SweaterStitches } from "../knitting/knitted";
+import type { SweaterPattern } from "../data/sweaters/types";
 import { editionOf } from "../data/sweaters/editions";
 import { positionOf, totals } from "../knitting/progress";
 import { colourwayLabel, paletteOf, trimmed } from "../knitting/palette";
@@ -22,7 +24,6 @@ import NameDialog from "./ui/NameDialog";
 import BodyStrip from "./BodyStrip";
 import { useKnittingTime } from "../knitting/timing/useKnittingTime";
 import { timeLine } from "../knitting/timing/format";
-import type { Stitch } from "../types/Stitch";
 import "./Home.css";
 
 const formatDate = (iso: string) =>
@@ -33,12 +34,8 @@ const formatDate = (iso: string) =>
   });
 
 /** How far through a project is, and what it is called. */
-const describe = (project: Project) => {
-  const sweater = sweaterById(project.sweaterId);
-  if (!sweater) return undefined;
+const describe = (project: Project, sweater: SweaterPattern, built: SweaterStitches) => {
   const size = sweater.sizes.find((s) => s.id === project.sizeId) ?? sweater.sizes[0];
-  // The edition the project knits: see data/sweaters/editions. Until a superseded one is fetched, the knitting as it is now.
-  const built = sweaterStitches(sweater, size.id, editionOf(project));
   const { stitches } = built;
   // Counted as the project's own pages count it, from the beginning of the round in force.
   const { index } = countedAt(sweater, built, project.progress);
@@ -48,18 +45,25 @@ const describe = (project: Project) => {
   return { sweater, counts, position, colourway, size, stitches, yoke: yokeRounds(built) };
 };
 
-const noStitches: Stitch[] = [];
+type CardProps = { project: Project; onRename: () => void; onDelete: () => void };
 
-const ProjectCard: React.FC<{
-  project: Project;
-  onRename: () => void;
-  onDelete: () => void;
-}> = ({ project, onRename, onDelete }) => {
+/** A project's card, once its knitting is to hand: see useKnitting. A project of a design no longer known has none. */
+const ProjectCard: React.FC<CardProps> = (props) => {
+  const sweater = sweaterById(props.project.sweaterId);
+  return sweater ? (
+    <Suspense fallback={<li className="project-card" aria-busy="true" />}>
+      <KnownProjectCard {...props} sweater={sweater} />
+    </Suspense>
+  ) : null;
+};
+
+const KnownProjectCard: React.FC<CardProps & { sweater: SweaterPattern }> = ({ project, onRename, onDelete, sweater: design }) => {
   const navigate = useNavigate();
-  useEditionReady(project.sweaterId, project.sizeId, editionOf(project));
-  const described = describe(project);
-  const time = useKnittingTime(project.id, described?.stitches ?? noStitches, project.progress);
-  if (!described) return null;
+  const sizeId = (design.sizes.find((s) => s.id === project.sizeId) ?? design.sizes[0]).id;
+  // The edition the project knits: see data/sweaters/editions.
+  const built = useKnitting(design, sizeId, editionOf(project));
+  const described = describe(project, design, built);
+  const time = useKnittingTime(project.id, described.stitches, project.progress);
   const { sweater, counts, position, colourway, size, stitches, yoke } = described;
   const id = bareIdFor(project.id);
   const palette = paletteOf(colourway, project.shades);
@@ -133,6 +137,13 @@ const ProjectCard: React.FC<{
   );
 };
 
+/** A design's yoke, in its first colourway, across its card. */
+const DesignStrip: React.FC<{ sweater: SweaterPattern }> = ({ sweater }) => {
+  const built = useKnitting(sweater, sweater.sizes[0].id);
+  const palette = useMemo(() => paletteOf(sweater.colourways[0]), [sweater]);
+  return <BodyStrip stitches={built.stitches} rounds={yokeRounds(built)} palette={palette} className="design-card-body" />;
+};
+
 const Home: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [renaming, setRenaming] = useState<Project>();
@@ -183,17 +194,12 @@ const Home: React.FC = () => {
         <h2>The designs</h2>
         <ul className="design-list">
           {sweaters.map((sweater) => {
-            const palette = paletteOf(sweater.colourways[0]);
-            const built = sweaterStitches(sweater, sweater.sizes[0].id);
             return (
               <li key={sweater.id}>
                 <Link to={`/sweater/${sweater.id}`} className="design-card">
-                  <BodyStrip
-                    stitches={built.stitches}
-                    rounds={yokeRounds(built)}
-                    palette={palette}
-                    className="design-card-body"
-                  />
+                  <Suspense fallback={<div className="design-card-body" aria-busy="true" />}>
+                    <DesignStrip sweater={sweater} />
+                  </Suspense>
                   <span className="design-card-text">
                     <span className="eyebrow">
                       {sweater.sizes.length} sizes · {sweater.colourways.length} colourways

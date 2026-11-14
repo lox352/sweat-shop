@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useEffect, useState } from "react";
 import { Palette } from "../knitting/palette";
 import { hasSettled, loadSettled } from "../data/sweaters/settled";
+import { isSuperseded } from "../data/sweaters/editions";
 import PreviewBoundary from "./PreviewBoundary";
 
 /** How tall the stage is, so nothing on the page moves when it arrives. */
@@ -36,9 +37,10 @@ const known = new Map<string, Float32Array>();
 
 /** The sweater in three dimensions, on the design's page and a project's. */
 const SweaterModel: React.FC<SweaterModelProps> = (props) => {
-  const { sweaterId, sizeId } = props;
-  const key = `${sweaterId}--${sizeId}`;
-  const wanted = settledWanted() && hasSettled(sweaterId, sizeId);
+  const { sweaterId, sizeId, edition } = props;
+  // A project on an edition its size has moved on from is shown that edition's settled sweater, where one was kept.
+  const key = isSuperseded(sweaterId, sizeId, edition) ? `${sweaterId}--${sizeId}--${edition}` : `${sweaterId}--${sizeId}`;
+  const wanted = settledWanted() && hasSettled(sweaterId, sizeId, edition);
   const [settled, setSettled] = useState(() => known.get(key));
   /** The size whose file has been asked for and has answered, found or not. */
   const [looked, setLooked] = useState<string | undefined>(() => (known.has(key) ? key : undefined));
@@ -49,7 +51,7 @@ const SweaterModel: React.FC<SweaterModelProps> = (props) => {
       setLooked(key);
       return;
     }
-    loadSettled(sweaterId, sizeId).then((positions) => {
+    loadSettled(sweaterId, sizeId, edition).then((positions) => {
       if (!live) return;
       if (positions) known.set(key, positions);
       setSettled(positions);
@@ -58,7 +60,7 @@ const SweaterModel: React.FC<SweaterModelProps> = (props) => {
     return () => {
       live = false;
     };
-  }, [key, wanted, sweaterId, sizeId]);
+  }, [key, wanted, sweaterId, sizeId, edition]);
   const reducedMotion =
     typeof window !== "undefined" &&
     window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;

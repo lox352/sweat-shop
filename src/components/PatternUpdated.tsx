@@ -4,6 +4,7 @@ import type { Stitch } from "../types/Stitch";
 import { type RoundIndex, roundNames } from "../knitting/progress";
 import { sweaterStitches } from "../knitting/useSweater";
 import { firstDifference } from "../data/sweaters/editions/difference";
+import { prepareKnitting } from "../data/sweaters/editions";
 
 /**
  * A note on a project whose design's knitting has moved on since it was
@@ -24,15 +25,20 @@ const PatternUpdated: React.FC<{
 
   // Building the knitting as it is now takes a moment: done once the page is up, not before it.
   useEffect(() => {
-    const later = window.setTimeout(() => {
+    let open = true;
+    // The size's knitting now: its frozen copy where that can be had, or else worked out here, once the page is up.
+    void (prepareKnitting(sweater.id, sizeId) ?? Promise.resolve()).then(() => {
+      if (!open) return;
       const id = firstDifference(stitches, sweaterStitches(sweater, sizeId).stitches);
       if (id === undefined) return setDiffers("same");
       let at = id;
       while (at > 0 && !index.roundOf.has(at)) at--;
       const round = index.roundOf.get(at);
       setDiffers({ id, round: round ? roundNames(index)[round - 1] : `stitch ${id}` });
-    }, 50);
-    return () => window.clearTimeout(later);
+    });
+    return () => {
+      open = false;
+    };
   }, [sweater, sizeId, stitches, index]);
 
   return (

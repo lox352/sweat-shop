@@ -1,4 +1,4 @@
-import type { SweaterStitches } from "../../../knitting/engine";
+import type { SweaterStitches } from "../../../knitting/knitted";
 import { type EditionFile, decodeEdition } from "./format";
 
 /**
@@ -8,10 +8,15 @@ import { type EditionFile, decodeEdition } from "./format";
  * format.ts and scripts/editions.mjs), and the manifest says which edition is
  * current and which was the first the site named. A project records the
  * edition it was started on; one saved before editions existed knits the
- * first. While a project's edition is current its knitting is built as it
- * always was. Once a change supersedes it, the project knits the frozen copy,
- * fetched when it is opened, until its knitter chooses to move on: nothing
- * published later moves a stitch of anyone's knitting.
+ * first. Once a change supersedes it, the project knits the frozen copy until
+ * its knitter chooses to move on: nothing published later moves a stitch of
+ * anyone's knitting.
+ *
+ * The published site knits every size from its frozen copy, the current
+ * edition's too, so that no phone works a pattern out for itself: working one
+ * out is the slowest thing the site does, and the answer is the same for
+ * everyone. See prepareKnitting. Where a current edition's copy cannot be
+ * had - offline, on a size never opened - the size is built as it always was.
  *
  * A frozen copy is a file served as it is, at an address its name gives, so
  * the page carries no list of them however many a design comes to have, and
@@ -92,8 +97,53 @@ export const loadEdition = (design: string, size: string, edition: string): Prom
   return pending;
 };
 
+/**
+ * Whether sizes are knitted from their frozen copies. In the published site;
+ * not while developing, where the copies are those of the last `npm run
+ * editions` and the knitting is whatever is being worked on, nor in the unit
+ * tests, which knit what the code builds.
+ */
+export const compiled = { on: import.meta.env.PROD };
+
+/** Copies asked for and not had, this visit: not asked for again by a page that can do without. */
+const gaveUp = new Set<string>();
+
+/** The edition a size is knitted from, for a project on `edition` or for none: its own if superseded, else the size's now. */
+export const knittedEdition = (design: string, size: string, edition?: string): string | undefined =>
+  isSuperseded(design, size, edition) && !editionMissing(design, size, edition) ? edition : currentEdition(design, size);
+
+/** A size's knitting from its frozen copy, if that has been fetched: see prepareKnitting. */
+export const compiledKnitting = (design: string, size: string, edition?: string): SweaterStitches | undefined => {
+  const from = knittedEdition(design, size, edition);
+  return from ? frozenEdition(design, size, from) : undefined;
+};
+
+/**
+ * The fetching of a size's frozen copy, where there is one to wait for:
+ * undefined once it is had, or was asked for and could not be. It never
+ * rejects - a page that waits on it then knits what it can - so a project
+ * on a superseded edition, which must have its own knitting or none, asks
+ * with loadEdition first: see useEditionReady.
+ */
+export const prepareKnitting = (design: string, size: string, edition?: string): Promise<void> | undefined => {
+  if (!compiled.on) return undefined;
+  const from = knittedEdition(design, size, edition);
+  if (!from) return undefined;
+  const key = keyOf(design, size, from);
+  if (fetched.has(key) || gaveUp.has(key)) return undefined;
+  return loadEdition(design, size, from).then(
+    (known) => {
+      if (known === "missing") gaveUp.add(key);
+    },
+    () => {
+      gaveUp.add(key);
+    },
+  );
+};
+
 /** For tests: forget what has been fetched. */
 export const forgetEditions = () => {
   fetched.clear();
   loading.clear();
+  gaveUp.clear();
 };

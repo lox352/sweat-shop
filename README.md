@@ -156,18 +156,27 @@ stitches whatever the code that built it has since become.
 
 - A project records the edition it was started on. One saved before editions
   knits the first.
-- While that edition is current, its knitting is built in the browser as it
-  always was. Once a change supersedes it, the project fetches the frozen
-  copy - a file of some 15KB over the wire, kept by the service worker from
-  then on - and knits that. If it cannot be fetched, the project says so and
-  shows nothing, never some other knitting.
+- The published site knits every size from its frozen copy - a file of some
+  15KB over the wire, kept by the service worker from then on - so no phone
+  works a pattern out for itself: that is the slowest thing the site does,
+  and the answer is the same for everyone. Where the copy of a size's
+  knitting as it is now cannot be had, offline on a size never opened, the
+  pattern is worked out in the browser as it always was. Developing, and in
+  the unit tests, it always is: the copies are those of the last `npm run
+  editions`.
+- A project on an edition its size has moved on from knits that edition's
+  copy. If it cannot be fetched, the project says so and shows nothing, never
+  some other knitting.
 - The project's pages then say the pattern has been updated, where the update
   first differs, and whether that is before or after where the knitting has
   got to. Moving on is the knitter's choice; their place may need putting
   right with *Knit up to here* where the two differ behind them.
 - The sweater in three dimensions is settled for a size's knitting as it is
-  now. A project on an older edition with a different number of stitches is
-  drawn as posed, not settled.
+  now. When a size is settled again for a new edition, the settled sweater of
+  the edition before is kept beside its frozen copy
+  (`public/editions/<design>--<size>--<edition>.settled.json`), and a project
+  still on that edition is shown it. `scripts/settled-editions.json` records
+  which edition each size's settled file is for.
 
 **When a change alters any size's knitting**, the tests fail until its
 editions are named and frozen:
@@ -181,6 +190,13 @@ Commit what it writes. The manifest's diff is the list of sizes whose knitting
 changed, which is worth reading: a size that changed and was not meant to is a
 bug. Frozen copies are never rewritten once superseded, and never deleted -
 projects out in the world knit from them.
+
+What a frozen copy holds, and what the chart, the knitting panel and the
+sweater in three dimensions all read, is one thing: a size knitted, its
+stitches and steps in the order they are worked and the rounds they fall in
+(`src/knitting/knitted.ts`). The engine makes one from a design; an edition is
+one frozen. Nothing that shows a sweater knows how its pattern was written or
+worked out.
 
 A change to what rounds are called in the chart's margin, or to how wide a
 stitch is drawn, is not a change to the knitting and makes no new edition.

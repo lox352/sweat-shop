@@ -90,17 +90,20 @@ test("a project whose edition cannot be fetched is not shown some other knitting
   await expect(page.locator(".knitting-panel [role=status]")).toBeAttached();
 });
 
-test("a project on its size's knitting as it is now fetches no edition, and one newly started records it", async ({ page }) => {
+test("a project on its size's knitting as it is now knits that from its frozen copy, and one newly started records it", async ({ page }) => {
   const asked = [];
   page.on("request", (request) => {
-    if (request.url().includes("/editions/")) asked.push(request.url());
+    if (request.url().includes("/editions/")) asked.push(request.url().split("/").pop());
   });
   // Saved before editions: it knits the first, which is still the size's knitting.
   await projectOn(page, undefined, 400);
+  asked.length = 0;
   await page.goto("#/project/1760000000000");
   await expect(page.locator(".measurements").first()).toBeVisible();
   await expect(note(page)).toHaveCount(0);
   expect((await saved(page)).edition).toBeUndefined();
+  // The pattern is fetched, not worked out here: the size's edition now, and no other.
+  expect(asked).toEqual([`hamefarin--m--${current}.json`]);
 
   await page.evaluate(() => localStorage.clear());
   await page.goto("#/sweater/hamefarin");
@@ -109,5 +112,12 @@ test("a project on its size's knitting as it is now fetches no edition, and one 
   const started = await page.evaluate(() => JSON.parse(localStorage.getItem(Object.keys(localStorage).find((key) => key.startsWith("project-")))));
   // Whatever size the design page starts in, its edition now.
   expect(started.edition).toBe(manifest.hamefarin[started.sizeId].current);
-  expect(asked).toEqual([]);
+});
+
+test("where a size's frozen copy cannot be had, its pattern is worked out here as it always was", async ({ page }) => {
+  await page.route("**/editions/**", (route) => route.abort());
+  await page.goto("#/sweater/hamefarin");
+  await page.getByRole("button", { name: "Start knitting this", exact: true }).click();
+  await expect(page.getByRole("button", { name: "End of round", exact: true })).toBeVisible();
+  await expect(page.locator(".knitting-panel [role=status]")).toBeAttached();
 });

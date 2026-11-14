@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { SweaterPattern } from "../data/sweaters/types";
-import { editionMissing, frozenEdition, isSuperseded, loadEdition } from "../data/sweaters/editions";
-import { type SweaterStitches, buildSweater } from "./engine";
+import { compiledKnitting, editionMissing, frozenEdition, isSuperseded, loadEdition, prepareKnitting } from "../data/sweaters/editions";
+import { buildSweater } from "./engine";
+import { type SweaterStitches } from "./knitted";
 import { type ChartLayout, layOutSweater } from "./layout";
 import { type RoundIndex, indexRounds } from "./progress";
 import { holdRegions } from "./holds";
@@ -20,15 +21,14 @@ import { type ChartView, chartViews, layOutView, markersInView, viewFollowedAt }
 const cache = new Map<string, ReturnType<typeof buildSweater>>();
 
 /**
- * A size's knitting as it is now, or, given an edition its knitting has since
- * moved on from, that edition's frozen copy - once it has been fetched: see
- * useEditionReady, and data/sweaters/editions.
+ * A size's knitting: from its frozen copy where that has been fetched - the
+ * size's edition now, or the one a project is on that the size has moved on
+ * from - and otherwise built here, as the size is now. See useKnitting, which
+ * waits for the copy, and data/sweaters/editions.
  */
 export const sweaterStitches = (pattern: SweaterPattern, sizeId?: string, edition?: string) => {
-  if (sizeId && isSuperseded(pattern.id, sizeId, edition)) {
-    const frozen = frozenEdition(pattern.id, sizeId, edition);
-    if (frozen) return frozen;
-  }
+  const frozen = sizeId && compiledKnitting(pattern.id, sizeId, edition);
+  if (frozen) return frozen;
   const key = `${pattern.id}::${sizeId ?? ""}`;
   const cached = cache.get(key);
   if (cached) return cached;
@@ -135,9 +135,20 @@ export const useEditionReady = (
   return { state: ready ? "ready" : failed ? "failed" : "loading", retry: () => setAttempt((n) => n + 1) };
 };
 
+/**
+ * A size's knitting, for a component: suspended, under the nearest Suspense,
+ * while its frozen copy is fetched, so that the published site never works a
+ * pattern out where it can fetch the answer. See editions' prepareKnitting.
+ */
+export const useKnitting = (pattern: SweaterPattern, sizeId?: string, edition?: string) => {
+  const waiting = sizeId && prepareKnitting(pattern.id, sizeId, edition);
+  if (waiting) throw waiting;
+  return useMemo(() => sweaterStitches(pattern, sizeId, edition), [pattern, sizeId, edition]);
+};
+
 /** A sweater, and its rounds as the knitter counts them once `progress` stitches are worked: see countedAt. */
 export const useSweater = (pattern: SweaterPattern, sizeId?: string, progress = 0, edition?: string) => {
-  const built = useMemo(() => sweaterStitches(pattern, sizeId, edition), [pattern, sizeId, edition]);
+  const built = useKnitting(pattern, sizeId, edition);
   const { view, index } = countedAt(pattern, built, progress);
   const yoke = useMemo(() => yokeRounds(built), [built]);
   const holds = useMemo(() => holdRegions(built.stitches, built.holds), [built]);
