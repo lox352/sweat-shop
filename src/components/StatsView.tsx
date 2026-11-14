@@ -13,7 +13,7 @@ import React, { useEffect } from "react";
 import type { Stitch } from "../types/Stitch";
 import { type KeyId, stitchKey } from "../knitting/stitch-key";
 import { Swatch, NeedlesSwatch } from "../knitting/ChartHelp";
-import type { SweaterPattern } from "../data/sweaters/types";
+import type { Design } from "../data/sweaters/types";
 import type { TimeDetail } from "../knitting/timing/detail";
 import type { Column, TimeSummary } from "../knitting/timing/model";
 import { duration, range } from "../knitting/timing/format";
@@ -175,7 +175,7 @@ interface SpeedRow {
   extra?: boolean;
 }
 
-const speedRows = (stitches: Stitch[], notes: SweaterPattern["stitchNotes"], time: TimeDetail): SpeedRow[] => {
+const speedRows = (stitches: Stitch[], notes: Design["stitchNotes"], time: TimeDetail): SpeedRow[] => {
   const rows: SpeedRow[] = [];
   for (const entry of stitchKey(stitches, notes)) {
     const column = opOf[entry.id];
@@ -199,7 +199,7 @@ const speedRows = (stitches: Stitch[], notes: SweaterPattern["stitchNotes"], tim
 /** The knitter's own time for each kind of stitch in this sweater, in a sheet like the key. */
 export const SpeedsSheet: React.FC<{
   stitches: Stitch[];
-  notes: SweaterPattern["stitchNotes"];
+  notes: Design["stitchNotes"];
   time: TimeDetail;
   onClose: () => void;
 }> = ({ stitches, notes, time, onClose }) => {

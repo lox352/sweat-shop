@@ -11,6 +11,9 @@ interface Gesture {
   /** And where that point is on screen, which is where it has to stay. */
   screenX: number;
   screenY: number;
+  /** Where the fingers are now, between them: see end. */
+  atX: number;
+  atY: number;
 }
 
 /**
@@ -67,6 +70,8 @@ export function usePinchZoom(
         originY: clientY - box.top,
         screenX: clientX,
         screenY: clientY,
+        atX: clientX,
+        atY: clientY,
       };
       sheet.style.transformOrigin = `${gesture.current.originX}px ${gesture.current.originY}px`;
       /*
@@ -93,12 +98,22 @@ export function usePinchZoom(
         sheet.style.transform = "";
         return;
       }
+      /*
+       * The point under the fingers as they lift, kept there: not the one
+       * they began on. Panned as it pinches, Safari scrolls the box under
+       * the fingers, and the columns and rows open and close as it goes, so
+       * that a point found where the fingers began was somewhere else on the
+       * chart by the end - the box sent there, thousands of pixels off.
+       * Read from the sheet as it shows now, scaled.
+       */
+      const box = sheet.getBoundingClientRect();
+      const scale = g.cell / g.startCell;
       settle.current = {
         ratio: next / g.startCell,
-        originX: g.originX,
-        originY: g.originY,
-        screenX: g.screenX,
-        screenY: g.screenY,
+        originX: (g.atX - box.left) / scale,
+        originY: (g.atY - box.top) / scale,
+        screenX: g.atX,
+        screenY: g.atY,
       };
       setCell(next);
     };
@@ -122,6 +137,8 @@ export function usePinchZoom(
       const g = gesture.current;
       if (!g || event.touches.length !== 2 || startDistance === 0) return;
       event.preventDefault();
+      g.atX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
+      g.atY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
       scaleTo((g.startCell * distance(event.touches)) / startDistance);
     };
     const onTouchEnd = (event: TouchEvent) => {

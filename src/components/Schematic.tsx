@@ -1,5 +1,5 @@
 import React from "react";
-import { Size } from "../data/sweaters/types";
+import type { SizeAbout } from "../data/sweaters/types";
 import "./Schematic.css";
 
 /**
@@ -15,7 +15,7 @@ import "./Schematic.css";
  */
 const armAngle = (45 * Math.PI) / 180;
 
-export const Schematic: React.FC<{ size: Size }> = ({ size }) => {
+export const Schematic: React.FC<{ size: SizeAbout }> = ({ size }) => {
   const { finished } = size;
   const halfChest = finished.chestCm / 4;
   const neck = finished.neckCm / 3.2;

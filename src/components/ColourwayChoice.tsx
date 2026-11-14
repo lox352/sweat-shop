@@ -1,5 +1,5 @@
 import React, { RefObject, useEffect, useMemo, useRef, useState } from "react";
-import type { Colourway, SweaterPattern } from "../data/sweaters/types";
+import type { Colourway, Design } from "../data/sweaters/types";
 import { inkOn, ownBalls, paletteOf, trimIdOf, type Overrides, type Palette } from "../knitting/palette";
 import BodyStrip from "./BodyStrip";
 import { bodyRounds, stitchScale, usePainting } from "./bodyPicture";
@@ -154,7 +154,7 @@ const DockingStrip: React.FC<{ body: Body; palette: Palette; until?: RefObject<E
  * wool of the knitter's own, so starting from another colourway resets it.
  */
 const TrimChoice: React.FC<{
-  trim: NonNullable<SweaterPattern["trim"]>;
+  trim: NonNullable<Design["trim"]>;
   colourway: Colourway;
   /** The colourway as the design gives it, before any trim is chosen. */
   given: Colourway;
@@ -233,8 +233,8 @@ const ColourwayChoice: React.FC<{
   palette: Palette;
   body: Body;
   onStartFrom: (colourwayId: string) => void;
-  /** The design's trim, where it has one, and choosing among the colourway's: see SweaterPattern.trim. */
-  trim?: SweaterPattern["trim"];
+  /** The design's trim, where it has one, and choosing among the colourway's: see Design.trim. */
+  trim?: Design["trim"];
   /** The trim chosen, if any, by its wool: see palette's trimIdOf. */
   trimChosen?: string;
   onTrim?: (trim: string | undefined) => void;

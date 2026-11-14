@@ -1,0 +1,238 @@
+{
+ "feline-raglan": {
+  "2xl": {
+   "first": "c8854fe2da2c",
+   "current": "c8854fe2da2c"
+  },
+  "3xl": {
+   "first": "83372c56f46d",
+   "current": "83372c56f46d"
+  },
+  "4xl": {
+   "first": "84ffbbf1c283",
+   "current": "84ffbbf1c283"
+  },
+  "l": {
+   "first": "f803c8ee964e",
+   "current": "f803c8ee964e"
+  },
+  "m": {
+   "first": "9a01171522f0",
+   "current": "9a01171522f0"
+  },
+  "s": {
+   "first": "09980f2ede0b",
+   "current": "09980f2ede0b"
+  },
+  "xl": {
+   "first": "37be8439b738",
+   "current": "37be8439b738"
+  },
+  "xs": {
+   "first": "9cf4716549bf",
+   "current": "9cf4716549bf"
+  }
+ },
+ "feline-yoke": {
+  "2xl": {
+   "first": "02531f5a53e6",
+   "current": "02531f5a53e6"
+  },
+  "3xl": {
+   "first": "8c6084f4bf36",
+   "current": "8c6084f4bf36"
+  },
+  "4xl": {
+   "first": "be4ffa6ef4ca",
+   "current": "be4ffa6ef4ca"
+  },
+  "l": {
+   "first": "c618bde496ed",
+   "current": "c618bde496ed"
+  },
+  "m": {
+   "first": "fa3f224ebd7b",
+   "current": "fa3f224ebd7b"
+  },
+  "s": {
+   "first": "7ad9764a3e2f",
+   "current": "7ad9764a3e2f"
+  },
+  "xl": {
+   "first": "0b5647eaa5d3",
+   "current": "0b5647eaa5d3"
+  },
+  "xs": {
+   "first": "85a73bb8c180",
+   "current": "85a73bb8c180"
+  }
+ },
+ "hamefarin": {
+  "2xl": {
+   "first": "667e6cdadbc4",
+   "current": "667e6cdadbc4"
+  },
+  "3xl": {
+   "first": "01c9015359c9",
+   "current": "01c9015359c9"
+  },
+  "4xl": {
+   "first": "a772e7675696",
+   "current": "a772e7675696"
+  },
+  "l": {
+   "first": "603e936a4790",
+   "current": "603e936a4790"
+  },
+  "m": {
+   "first": "93312f5433fd",
+   "current": "93312f5433fd"
+  },
+  "s": {
+   "first": "7847a76770d5",
+   "current": "7847a76770d5"
+  },
+  "xl": {
+   "first": "4434f002be66",
+   "current": "4434f002be66"
+  },
+  "xs": {
+   "first": "cad642efad85",
+   "current": "cad642efad85"
+  }
+ },
+ "paul-klee": {
+  "2xl": {
+   "first": "34f09fe6ea39",
+   "current": "34f09fe6ea39"
+  },
+  "2xs": {
+   "first": "1ccbbb769c1b",
+   "current": "1ccbbb769c1b"
+  },
+  "3xl": {
+   "first": "0fafbc5357fc",
+   "current": "0fafbc5357fc"
+  },
+  "4xl": {
+   "first": "eaf601e0397b",
+   "current": "eaf601e0397b"
+  },
+  "5xl": {
+   "first": "249dc65245e9",
+   "current": "249dc65245e9"
+  },
+  "6xl": {
+   "first": "61237623d9b3",
+   "current": "61237623d9b3"
+  },
+  "k1": {
+   "first": "5a967f230e37",
+   "current": "5a967f230e37"
+  },
+  "k2": {
+   "first": "08948838b3bf",
+   "current": "08948838b3bf"
+  },
+  "k3": {
+   "first": "004052c5c6a6",
+   "current": "004052c5c6a6"
+  },
+  "k4": {
+   "first": "f8109d93d669",
+   "current": "f8109d93d669"
+  },
+  "l": {
+   "first": "3df22934f4cd",
+   "current": "3df22934f4cd"
+  },
+  "m1": {
+   "first": "816658657028",
+   "current": "816658657028"
+  },
+  "m2": {
+   "first": "3b640cecce14",
+   "current": "3b640cecce14"
+  },
+  "s": {
+   "first": "36b45657895e",
+   "current": "36b45657895e"
+  },
+  "xl": {
+   "first": "afd950a9ac4b",
+   "current": "afd950a9ac4b"
+  },
+  "xs": {
+   "first": "7a63ae8f4d5b",
+   "current": "7a63ae8f4d5b"
+  }
+ },
+ "wool-week-strips-lined-oldest": {
+  "2xl": {
+   "first": "2e50ba9526ad",
+   "current": "2e50ba9526ad"
+  },
+  "3xl": {
+   "first": "0d860572ccfd",
+   "current": "0d860572ccfd"
+  },
+  "4xl": {
+   "first": "944014296283",
+   "current": "944014296283"
+  },
+  "l": {
+   "first": "81b706dc8176",
+   "current": "81b706dc8176"
+  },
+  "m": {
+   "first": "626f64968eb6",
+   "current": "626f64968eb6"
+  },
+  "s": {
+   "first": "646c8cfb1885",
+   "current": "646c8cfb1885"
+  },
+  "xl": {
+   "first": "5002eb32b5e1",
+   "current": "5002eb32b5e1"
+  },
+  "xs": {
+   "first": "0770802c2345",
+   "current": "0770802c2345"
+  }
+ },
+ "wool-week-strips-once-oldest": {
+  "2xl": {
+   "first": "1d14504a8c0e",
+   "current": "1d14504a8c0e"
+  },
+  "3xl": {
+   "first": "930614781ea3",
+   "current": "930614781ea3"
+  },
+  "4xl": {
+   "first": "5581b14c0e03",
+   "current": "5581b14c0e03"
+  },
+  "l": {
+   "first": "96c7e2900293",
+   "current": "96c7e2900293"
+  },
+  "m": {
+   "first": "9d1bb6aa8bd6",
+   "current": "9d1bb6aa8bd6"
+  },
+  "s": {
+   "first": "f8c7d02ab594",
+   "current": "f8c7d02ab594"
+  },
+  "xl": {
+   "first": "bc8dac9f83a1",
+   "current": "bc8dac9f83a1"
+  },
+  "xs": {
+   "first": "8e5235f84622",
+   "current": "8e5235f84622"
+  }
+ }
+}

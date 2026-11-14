@@ -2243,6 +2243,20 @@ export class TileView {
     return moved;
   }
 
+  /**
+   * Where the stitch the box is going to will come to rest worked out again,
+   * and the box sent on there if that has changed (see onAim): what was held
+   * taken into the scroll (see absorb), the box went on by as much, nothing
+   * on screen moving - to where the stitch would have come to rest had what
+   * was held stayed so. Held at the chart's edge, that was past it, and
+   * going on to the next round zoomed out, from far along the one before,
+   * the box stopped up to 530 pixels short of the edge, the stitch out of
+   * sight past it.
+   */
+  aimAgain() {
+    this.reAim(true);
+  }
+
   /** The stitch at a point on screen, if any. */
   stitchAt(clientX: number, clientY: number): number | undefined {
     const content = this.content;

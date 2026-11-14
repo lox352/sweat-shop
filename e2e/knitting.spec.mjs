@@ -1051,3 +1051,39 @@ test("a prepared project reloads and saves progress offline", async ({ page, con
   await page.reload();
   await expect(position(page)).toHaveText(progress);
 });
+
+test("a pinch that pans as it zooms leaves the stitch under the fingers where they lift", async ({ page }) => {
+  // Zoomed in on the yoke of a large sampler, part way along a round: columns close and open as the box pans.
+  await knittedTo(page, 9922, { sweaterId: "wool-week-strips-once-oldest", sizeId: "l", colourwayId: "naturals-dark" });
+  await expect(page.locator(".chart-next")).toBeInViewport();
+  await page.waitForTimeout(800);
+  const outline = () => page.locator(".chart-next").evaluate((mark) => {
+    const r = mark.getBoundingClientRect();
+    return [r.left, r.top];
+  });
+  // Two fingers spread a fifth apart, their middle moved down and left, the box panned under them as Safari pans it.
+  await page.locator(".chart-scroll").evaluate(async (box) => {
+    const r = box.getBoundingClientRect();
+    const [x, y] = [r.left + r.width / 2, r.top + r.height / 2];
+    const at = (k) => [-1, 1].map((side, identifier) => new Touch({
+      identifier, target: box, clientX: x - 80 * k + side * 60 * (1 + 0.2 * k), clientY: y - 60 * k,
+    }));
+    const send = (type, touches, changed = touches) =>
+      box.dispatchEvent(new TouchEvent(type, { touches, targetTouches: touches, changedTouches: changed, bubbles: true, cancelable: true }));
+    const frame = () => new Promise((done) => requestAnimationFrame(done));
+    send("touchstart", at(0));
+    for (let step = 1; step <= 20; step++) {
+      await frame();
+      send("touchmove", at(step / 20));
+      box.scrollBy(80 / 20, 60 / 20);
+    }
+    await frame();
+    window.__lifted = (() => { const m = document.querySelector(".chart-next").getBoundingClientRect(); return [m.left, m.top]; })();
+    send("touchend", [], at(1));
+  });
+  const lifted = await page.evaluate(() => window.__lifted);
+  await page.waitForTimeout(1200);
+  const settled = await outline();
+  expect(Math.abs(settled[0] - lifted[0])).toBeLessThan(20);
+  expect(Math.abs(settled[1] - lifted[1])).toBeLessThan(20);
+});
