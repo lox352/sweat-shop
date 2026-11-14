@@ -130,11 +130,12 @@ without them.
 See [DESIGN.md](DESIGN.md) for how each was made, and how Hamefarin's sizes
 were graded.
 
-Adding a design is one file and one line:
+Adding a design is one file, one line and one command:
 
 1. Write `src/data/sweaters/<id>.ts`: its charts (drawn as rows of
    characters), its colourways, and each size's script.
 2. Add it to the list in `src/data/sweaters/index.ts`.
+3. `npm run editions`, and commit what it writes: see Editions.
 
 The tests then knit every size of it through and check that it states its
 counts truthfully and keeps the rules of Fair Isle: two colours a round and
@@ -178,11 +179,21 @@ stitches whatever the code that built it has since become.
   still on that edition is shown it. `scripts/settled-editions.json` records
   which edition each size's settled file is for.
 
-**When a change alters any size's knitting**, the tests fail until its
-editions are named and frozen:
+A page reads no design's own file. What it shows of a design - its name, its
+sizes and their measurements, its colourways - it reads from the
+**catalogue** (`src/data/sweaters/catalogue/`): every design without its
+knitting, written from the designs' files. The designs' files and the engine
+that knits them are the **builder** (`src/knitting/builder.ts`), a part of
+the site fetched only where a pattern has to be worked out in the browser
+after all. Developing, and in the tests, it is loaded first, and the designs
+shown are the designs as they are in hand.
+
+**When a change alters any size's knitting, or anything a design says of
+itself**, the tests fail until its editions are named and frozen and the
+catalogue written again:
 
 ```sh
-npm run editions              # name every size; freeze any new edition; update the manifest
+npm run editions              # name every size; freeze any new edition; update the manifest and the catalogue
 npm run editions -- --check   # fail if anything is out of date, and write nothing
 ```
 
