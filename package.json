@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "settle": "node scripts/settle.mjs",
+    "editions": "node scripts/editions.mjs",
     "bench": "node scripts/bench.mjs",
     "budgets": "node scripts/budgets.mjs"
   },

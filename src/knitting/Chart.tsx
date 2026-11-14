@@ -16,7 +16,7 @@ import { type HoldRegion, onHoldAt } from "./holds";
 import StitchPicker from "./StitchPicker";
 import { keyEntryAt } from "./stitch-key";
 import { useSettings } from "../helpers/settings";
-import type { SweaterPattern } from "../data/sweaters/types";
+import type { Design } from "../data/sweaters/types";
 import { usePinchZoom } from "./usePinchZoom";
 import { Glide } from "./glide";
 import { scrollModes } from "./scroll-modes";
@@ -67,7 +67,7 @@ interface ChartProps {
    */
   onJump?: (progress: number) => void;
   /** What the pattern says about its stitches, for the symbol key. */
-  stitchNotes?: SweaterPattern["stitchNotes"];
+  stitchNotes?: Design["stitchNotes"];
   /** How far up the window the followed stitch sits, as a share of it. */
   followAt?: number;
   /** Painted over the chart: a heat map of the knitter's pace, say. */
@@ -340,6 +340,7 @@ const Chart: React.FC<ChartProps> = ({
       made.shift(by);
       const aimed = aimedAt.current;
       if (aimed) aimedAt.current = { ...aimed, left: aimed.left + by.left, top: aimed.top + by.top };
+      tilesRef.current?.aimAgain();
     });
     glide.current = made;
     return () => {

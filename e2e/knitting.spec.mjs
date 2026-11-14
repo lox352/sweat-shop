@@ -1,6 +1,7 @@
 import { test, expect } from "playwright/test";
 import { readFile } from "node:fs/promises";
 
+const editions = JSON.parse(await readFile("src/data/sweaters/editions/manifest.json", "utf8"));
 const design = "#/sweater/hamefarin";
 const position = page => page.locator(".knitting-panel [role=status]");
 const steps = /^(Joined|Changed|Held|On the needles|Turned|Placed|Taken off): carry on$/;
@@ -38,14 +39,16 @@ const klee = { sweaterId: "paul-klee", sizeId: "m1", colourwayId: "klee", revisi
  * twenty thousand stitches a round at a time is no way to reach the divide.
  */
 async function knittedTo(page, progress, choices = medium) {
+  // On its size's knitting as it is now, as a project started today is: see src/data/sweaters/editions.
+  const edition = editions[choices.sweaterId][choices.sizeId].current;
   await page.goto("");
-  await page.evaluate(({ progress, choices }) => {
+  await page.evaluate(({ progress, choices, edition }) => {
     const now = new Date().toISOString();
     const id = "project-1760000000000";
     localStorage.setItem(id, JSON.stringify({
-      version: 1, id, ...choices, progress, startedAt: now, updatedAt: now,
+      version: 1, id, ...choices, edition, progress, startedAt: now, updatedAt: now,
     }));
-  }, { progress, choices });
+  }, { progress, choices, edition });
   await page.goto("#/project/1760000000000/chart?knitting=1");
   await expect(position(page)).toBeAttached();
 }
@@ -937,24 +940,24 @@ test("zoomed out as far as it goes, the chart's whole width fits the box, and it
 });
 
 test("between its sleeves going on hold, the chart is what is left on the needles: the first sleeve gone, the second still there", async ({ page }) => {
-  // Each Year Once in a medium: its right sleeve on hold at 29464, its left at 29635.
+  // Each Year Once in a medium: its right sleeve on hold at 29516, its left at 29687.
   const sampler = { sweaterId: "wool-week-strips-once-oldest", sizeId: "m", colourwayId: "early-light" };
   const chartPage = page.locator(".chart-page");
   await knittedTo(page, 29400, sampler);
   await expect(chartPage).toHaveAttribute("data-view", "neck");
-  await knittedTo(page, 29500, sampler);
-  await expect(chartPage).toHaveAttribute("data-view", "remaining-29464");
+  await knittedTo(page, 29600, sampler);
+  await expect(chartPage).toHaveAttribute("data-view", "remaining-29516");
   // The tabs are the finished pattern's views: the body's is the one the knitting is in, and shows it as it stands.
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
   await expect(page.getByRole("tab")).toHaveCount(4);
   await expect(page.getByRole("tab", { name: /^Body/ })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("tab", { name: /^Body/ })).toContainText("knitting");
-  await expect(chartPage).toHaveAttribute("data-view", "remaining-29464");
+  await expect(chartPage).toHaveAttribute("data-view", "remaining-29516");
   // Wider than the body's, by the second sleeve's stitches.
   const columns = () => page.locator(".chart-tiles").getAttribute("data-columns");
   const between = Number(await columns());
   await knittedTo(page, 29700, sampler);
-  await expect(chartPage).toHaveAttribute("data-view", "remaining-29635");
+  await expect(chartPage).toHaveAttribute("data-view", "remaining-29687");
   expect(between).toBeGreaterThan(Number(await columns()));
 });
 
@@ -1050,4 +1053,40 @@ test("a prepared project reloads and saves progress offline", async ({ page, con
   const progress = await position(page).textContent();
   await page.reload();
   await expect(position(page)).toHaveText(progress);
+});
+
+test("a pinch that pans as it zooms leaves the stitch under the fingers where they lift", async ({ page }) => {
+  // Zoomed in on the yoke of a large sampler, part way along a round: columns close and open as the box pans.
+  await knittedTo(page, 9922, { sweaterId: "wool-week-strips-once-oldest", sizeId: "l", colourwayId: "naturals-dark" });
+  await expect(page.locator(".chart-next")).toBeInViewport();
+  await page.waitForTimeout(800);
+  const outline = () => page.locator(".chart-next").evaluate((mark) => {
+    const r = mark.getBoundingClientRect();
+    return [r.left, r.top];
+  });
+  // Two fingers spread a fifth apart, their middle moved down and left, the box panned under them as Safari pans it.
+  await page.locator(".chart-scroll").evaluate(async (box) => {
+    const r = box.getBoundingClientRect();
+    const [x, y] = [r.left + r.width / 2, r.top + r.height / 2];
+    const at = (k) => [-1, 1].map((side, identifier) => new Touch({
+      identifier, target: box, clientX: x - 80 * k + side * 60 * (1 + 0.2 * k), clientY: y - 60 * k,
+    }));
+    const send = (type, touches, changed = touches) =>
+      box.dispatchEvent(new TouchEvent(type, { touches, targetTouches: touches, changedTouches: changed, bubbles: true, cancelable: true }));
+    const frame = () => new Promise((done) => requestAnimationFrame(done));
+    send("touchstart", at(0));
+    for (let step = 1; step <= 20; step++) {
+      await frame();
+      send("touchmove", at(step / 20));
+      box.scrollBy(80 / 20, 60 / 20);
+    }
+    await frame();
+    window.__lifted = (() => { const m = document.querySelector(".chart-next").getBoundingClientRect(); return [m.left, m.top]; })();
+    send("touchend", [], at(1));
+  });
+  const lifted = await page.evaluate(() => window.__lifted);
+  await page.waitForTimeout(1200);
+  const settled = await outline();
+  expect(Math.abs(settled[0] - lifted[0])).toBeLessThan(20);
+  expect(Math.abs(settled[1] - lifted[1])).toBeLessThan(20);
 });

@@ -58,3 +58,25 @@ it("carries a project's trim with it, and refuses one that is not a string", () 
   broken.projects[0].trim = 104;
   expect(() => parseBackup(JSON.stringify(broken))).toThrow();
 });
+
+it("keeps the edition of the knitting each project knits, and refuses one that is no edition's name", () => {
+  const p = startProject(s.id, s.sizes[0].id, s.colourways[0].id);
+  expect(p.edition).toBeTruthy();
+  const [copy] = restoreBackup(parseBackup(backupText()));
+  expect(copy.edition).toBe(p.edition);
+  const text = JSON.parse(backupText());
+  text.projects[0].edition = "../../index";
+  expect(() => parseBackup(JSON.stringify(text))).toThrow();
+  // A backup made before editions has none, and its projects knit the first.
+  delete text.projects[0].edition;
+  expect(parseBackup(JSON.stringify(text))[0].edition).toBeUndefined();
+});
+
+it("does not hold a project on an edition its size has moved on from to the size's length now", () => {
+  startProject(s.id, s.sizes[0].id, s.colourways[0].id);
+  const text = JSON.parse(backupText());
+  // Finished, on an older edition a few stitches longer than the size is now.
+  text.projects[0].edition = "0123456789ab";
+  text.projects[0].progress = 10_000_000;
+  expect(parseBackup(JSON.stringify(text))[0]).toMatchObject({ edition: "0123456789ab", progress: 10_000_000 });
+});

@@ -15,6 +15,8 @@ export interface TilesHandle {
   hold(id: number | undefined): void;
   /** The box scrolled by the page this frame, and how far it was moved on for what was held: see TileView.scrolled. */
   scrolled(): { left: number; top: number } | undefined;
+  /** Where the stitch the box is going to will come to rest worked out again: see TileView.aimAgain. */
+  aimAgain(): void;
   /** The box about to be sent straight to a stitch: see TileView.jumpTo. */
   jumpTo(id: number, inBox: { x: number; y: number }): { x: number; y: number } | undefined;
   /** Where to send the box for a stitch to come to rest in it: see TileView.aimTo. */
@@ -84,6 +86,7 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetM
     stitchAt: (x, y) => viewRef.current?.stitchAt(x, y),
     hold: (id) => viewRef.current?.hold(id),
     scrolled: () => viewRef.current?.scrolled(),
+    aimAgain: () => viewRef.current?.aimAgain(),
     jumpTo: (id, inBox) => viewRef.current?.jumpTo(id, inBox),
     aimTo: (id, inBox) => viewRef.current?.aimTo(id, inBox),
     glideTo: (id, inBox, smooth) => viewRef.current?.glideTo(id, inBox, smooth),
