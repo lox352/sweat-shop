@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { editionOf, editionUrl } from "../data/sweaters/editions";
+import { listProjects } from "../helpers/projects";
 
 export default function OfflineStatus() {
   const [message, setMessage] = useState("");
@@ -24,7 +26,18 @@ export default function OfflineStatus() {
           }
         });
       });
-      navigator.serviceWorker.ready.then(() => {
+      navigator.serviceWorker.ready.then(async (ready) => {
+        // A project's pattern fetched before the worker was up is kept now: see scripts/service-worker.js.
+        const keep = listProjects().flatMap((project) => {
+          const edition = editionOf(project);
+          return edition ? [editionUrl(project.sweaterId, project.sizeId, edition)] : [];
+        });
+        await new Promise<void>((kept) => {
+          const { port1, port2 } = new MessageChannel();
+          port1.onmessage = () => kept();
+          setTimeout(kept, 10_000);
+          ready.active?.postMessage({ keep }, [port2]);
+        });
         say("Ready for offline knitting. External pattern and yarn links need an internet connection.");
       });
     }).catch(() => say("Offline access is unavailable in this browser. Your projects are still saved locally when browser storage is available."));

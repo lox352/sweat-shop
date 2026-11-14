@@ -73,6 +73,31 @@ self.addEventListener("activate", event => {
   })());
 });
 
+/*
+ * The editions the knitter's own projects knit, named by the page once this
+ * worker is up: one fetched before it was - on a first visit - was never
+ * kept, and a pattern can be had no other way offline. The page is answered
+ * when they are kept, or could not be.
+ */
+self.addEventListener("message", event => {
+  const keep = event.data?.keep;
+  if (!Array.isArray(keep)) return;
+  event.waitUntil((async () => {
+    const cache = await caches.open(cacheName);
+    for (const path of keep) {
+      const url = urlFor(path);
+      if (!url.startsWith(urlFor("editions/")) || (await caches.match(url))) continue;
+      try {
+        const response = await fetch(url);
+        if (response.ok) await cache.put(url, response);
+      } catch {
+        // Kept when it is next fetched.
+      }
+    }
+    event.ports[0]?.postMessage("kept");
+  })());
+});
+
 self.addEventListener("fetch", event => {
   const request = event.request;
   if (request.method !== "GET") return;
