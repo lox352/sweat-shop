@@ -1,6 +1,7 @@
 import { test, expect } from "playwright/test";
 import { readFile } from "node:fs/promises";
 
+const editions = JSON.parse(await readFile("src/data/sweaters/editions/manifest.json", "utf8"));
 const design = "#/sweater/hamefarin";
 const position = page => page.locator(".knitting-panel [role=status]");
 const steps = /^(Joined|Changed|Held|On the needles|Turned|Placed|Taken off): carry on$/;
@@ -38,14 +39,16 @@ const klee = { sweaterId: "paul-klee", sizeId: "m1", colourwayId: "klee", revisi
  * twenty thousand stitches a round at a time is no way to reach the divide.
  */
 async function knittedTo(page, progress, choices = medium) {
+  // On its size's knitting as it is now, as a project started today is: see src/data/sweaters/editions.
+  const edition = editions[choices.sweaterId][choices.sizeId].current;
   await page.goto("");
-  await page.evaluate(({ progress, choices }) => {
+  await page.evaluate(({ progress, choices, edition }) => {
     const now = new Date().toISOString();
     const id = "project-1760000000000";
     localStorage.setItem(id, JSON.stringify({
-      version: 1, id, ...choices, progress, startedAt: now, updatedAt: now,
+      version: 1, id, ...choices, edition, progress, startedAt: now, updatedAt: now,
     }));
-  }, { progress, choices });
+  }, { progress, choices, edition });
   await page.goto("#/project/1760000000000/chart?knitting=1");
   await expect(position(page)).toBeAttached();
 }
