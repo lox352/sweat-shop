@@ -1,6 +1,6 @@
-import type { Held, RoundKind } from "../knitting/needles";
+import type { Held, RoundKind } from "./needles";
 import type { Knitting } from "../physics/knitting";
-import type { Stitch } from "./Stitch";
+import type { Stitch } from "../types/Stitch";
 
 /**
  * A size of a design, knitted: its stitches and steps in the order they are

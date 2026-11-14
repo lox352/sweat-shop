@@ -12,7 +12,7 @@ import {
   renameProject,
 } from "../helpers/projects";
 import { countedAt, useKnitting, yokeRounds } from "../knitting/useSweater";
-import type { SweaterStitches } from "../types/Knitted";
+import type { SweaterStitches } from "../knitting/knitted";
 import type { SweaterPattern } from "../data/sweaters/types";
 import { editionOf } from "../data/sweaters/editions";
 import { positionOf, totals } from "../knitting/progress";

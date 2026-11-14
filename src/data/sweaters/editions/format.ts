@@ -1,4 +1,4 @@
-import type { SweaterStitches } from "../../../types/Knitted";
+import type { SweaterStitches } from "../../../knitting/knitted";
 import type { Held, RoundKind, SeamKind } from "../../../knitting/needles";
 import type { Stitch } from "../../../types/Stitch";
 import type { StitchType } from "../../../types/StitchType";

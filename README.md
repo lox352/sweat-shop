@@ -194,7 +194,7 @@ projects out in the world knit from them.
 What a frozen copy holds, and what the chart, the knitting panel and the
 sweater in three dimensions all read, is one thing: a size knitted, its
 stitches and steps in the order they are worked and the rounds they fall in
-(`src/types/Knitted.ts`). The engine makes one from a design; an edition is
+(`src/knitting/knitted.ts`). The engine makes one from a design; an edition is
 one frozen. Nothing that shows a sweater knows how its pattern was written or
 worked out.
 

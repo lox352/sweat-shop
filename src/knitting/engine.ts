@@ -1,7 +1,7 @@
 import Needles from "./needles";
 import { adjacentStitchDistance, verticalStitchDistance } from "../constants";
 import type { Knitting } from "../physics/knitting";
-import { type SweaterStitches, markSpacer } from "../types/Knitted";
+import { type SweaterStitches, markSpacer } from "./knitted";
 import { StitchType } from "../types/StitchType";
 import {
   Chart,

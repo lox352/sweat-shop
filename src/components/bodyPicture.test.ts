@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import paulKlee from "../data/sweaters/paul-klee";
 import hamefarin from "../data/sweaters/hamefarin";
 import { buildSweater } from "../knitting/engine";
-import { isSpacer } from "../types/Knitted";
+import { isSpacer } from "../knitting/knitted";
 import { bodyRounds, paintedRows } from "./bodyPicture";
 
 describe.each([

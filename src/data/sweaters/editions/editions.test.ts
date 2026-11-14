@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "../../../knitting/engine";
-import { isSpacer } from "../../../types/Knitted";
+import { isSpacer } from "../../../knitting/knitted";
 import { sweaterById, sweaters } from "../index";
 import { EditionFile, decodeEdition, encodeEdition, hashable } from "./format";
 

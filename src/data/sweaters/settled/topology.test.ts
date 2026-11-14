@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "../../../knitting/engine";
-import { type SweaterStitches } from "../../../types/Knitted";
+import { type SweaterStitches } from "../../../knitting/knitted";
 import { testBandedSweater, testSweater } from "../../../knitting/test-sweater";
 import { pose } from "../../../physics/pose";
 import { settle } from "../../../physics/solver";

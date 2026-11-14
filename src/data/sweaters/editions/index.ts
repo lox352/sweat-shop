@@ -1,4 +1,4 @@
-import type { SweaterStitches } from "../../../types/Knitted";
+import type { SweaterStitches } from "../../../knitting/knitted";
 import { type EditionFile, decodeEdition } from "./format";
 
 /**

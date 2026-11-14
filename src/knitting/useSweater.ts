@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { SweaterPattern } from "../data/sweaters/types";
 import { compiledKnitting, editionMissing, frozenEdition, isSuperseded, loadEdition, prepareKnitting } from "../data/sweaters/editions";
 import { buildSweater } from "./engine";
-import { type SweaterStitches } from "../types/Knitted";
+import { type SweaterStitches } from "./knitted";
 import { type ChartLayout, layOutSweater } from "./layout";
 import { type RoundIndex, indexRounds } from "./progress";
 import { holdRegions } from "./holds";
