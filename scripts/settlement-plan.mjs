@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { createServer } from "vite";
-import { editionKey, readShapes, shapeNamer, shapePath } from "./shapes.mjs";
+import { editionKey, nameOf, readShapes, shapeNamer, shapePath } from "./shapes.mjs";
 
 /**
  * Which sizes need settling.
@@ -34,7 +34,6 @@ export const settlementPlan = async (load) => {
   const { buildSweater } = await load("/src/knitting/engine.ts");
   const { settledLength, settledVersion } = await load("/src/data/sweaters/settled/format.ts");
   const { encodeEdition, hashable } = await load("/src/data/sweaters/editions/format.ts");
-  const { nameOf } = await import("./editions.mjs");
   const shapeOf = await shapeNamer(load);
   const shapes = readShapes();
   return sweaters.flatMap((sweater) =>

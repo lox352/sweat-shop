@@ -12,7 +12,7 @@ const stamp = urlFor("__installed__");
  * shown. So neither is prepared in advance, and both are kept from the first
  * time they are fetched, through every release after.
  */
-const kept = url => url.startsWith(urlFor("editions/")) || url.startsWith(urlFor("shapes/"));
+const keeps = url => url.startsWith(urlFor("editions/")) || url.startsWith(urlFor("shapes/"));
 
 /** Whether a release's page names only scripts and stylesheets that came with the release. */
 const whole = async cache => {
@@ -70,7 +70,7 @@ self.addEventListener("activate", event => {
     for (const { key } of installed) {
       const old = await caches.open(key);
       for (const { url } of await old.keys()) {
-        if (!kept(url) || (await cache.match(url))) continue;
+        if (!keeps(url) || (await cache.match(url))) continue;
         const kept = await old.match(url);
         if (kept) await cache.put(url, kept);
       }
@@ -93,7 +93,7 @@ self.addEventListener("message", event => {
     const cache = await caches.open(cacheName);
     for (const path of keep) {
       const url = urlFor(path);
-      if (!kept(url) || (await caches.match(url))) continue;
+      if (!keeps(url) || (await caches.match(url))) continue;
       try {
         const response = await fetch(url);
         if (response.ok) await cache.put(url, response);
@@ -120,7 +120,7 @@ self.addEventListener("fetch", event => {
    * there offline from then on. So is a frozen edition of a size's knitting,
    * which only a project still knitting it fetches.
    */
-  if (kept(url.href)) {
+  if (keeps(url.href)) {
     event.respondWith((async () => {
       const cached = await caches.match(key);
       if (cached) return cached;

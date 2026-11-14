@@ -1,7 +1,8 @@
-import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { withSite } from "./settlement-plan.mjs";
-import { editionKey, readShapes, shapeNamer, shapePath, writeShapes } from "./shapes.mjs";
+import { editionKey, nameOf, readShapes, shapeNamer, shapePath, writeShapes } from "./shapes.mjs";
+
+export { nameOf };
 
 /**
  * Every size's knitting, named and frozen as an edition: see
@@ -27,8 +28,6 @@ export const editionsDir = "src/data/sweaters/editions";
 export const frozenDir = "public/editions";
 export const manifestFile = `${editionsDir}/manifest.json`;
 
-/** An edition's name, from its knitting: see format's hashable. */
-export const nameOf = (hashable) => createHash("sha256").update(hashable).digest("hex").slice(0, 12);
 
 /** Every design without its knitting, as the site reads them: see src/data/sweaters/catalogue. */
 export const cataloguePath = "src/data/sweaters/catalogue/catalogue.json";

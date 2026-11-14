@@ -51,6 +51,9 @@ export const shapeNamer = async (load) => {
   return (knitting) => createHash("sha256").update(physics).update(JSON.stringify(topologyOf(knitting))).digest("hex").slice(0, 12);
 };
 
+/** A name from what is named: twelve hex digits of its hash. An edition's, from its knitting (see editions.mjs). */
+export const nameOf = (named) => createHash("sha256").update(named).digest("hex").slice(0, 12);
+
 export const shapePath = (name) => `${shapesDir}/${name}.json`;
 export const editionKey = (design, size, edition) => `${design}--${size}--${edition}`;
 

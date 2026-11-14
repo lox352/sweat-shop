@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildSweater } from "../../../knitting/engine";
 import { testSweater } from "../../../knitting/test-sweater";
 import { pose } from "../../../physics/pose";
-import { sweaterById, sweaters } from "../index";
+import { sweaterById } from "../index";
 import { currentEdition } from "../editions";
 import { decodeEdition, type EditionFile } from "../editions/format";
 import shapes from "./shapes.json";
