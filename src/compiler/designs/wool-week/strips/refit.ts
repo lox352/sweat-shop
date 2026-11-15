@@ -1,5 +1,5 @@
 import { type Part, type Round, edgeOf as edge, groundOf, isPlain, lettersOfRound, measured, seamsOf, topDown } from "./cuts";
-import { type Frame, type Measured, type Plan, type Row, type Strip, splitOf } from "./plan";
+import { type Frame, type Gauge, type Measured, type Plan, type Row, type Strip, splitOf } from "./plan";
 import { background } from "./quanta";
 
 /**
@@ -446,10 +446,10 @@ const fitSleeve = (total: number, ends: Ends): Placed[] => {
 
 const toRow = (r: R): Row => ("plain" in r ? { year: r.year, plain: r.plain } : r);
 
-export const refit = (size: Measured, sizeId: string): Plan => {
+export const refit = (size: Measured, sizeId: string, g?: Gauge): Plan => {
   const start = starts[sizeId];
   if (!start) throw new Error(`no refit for size ${sizeId}`);
-  const sp = splitOf(size);
+  const sp = splitOf(size, g);
   const piece = { top: true, bottom: false };
   const whole = { top: true, bottom: true };
   // The yoke: the houses' seed borders only if everything else fits whole; trims 2016's borders, 2014's outer rows, then the sheep in threes.

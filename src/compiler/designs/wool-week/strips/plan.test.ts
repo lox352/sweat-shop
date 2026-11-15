@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { lettersOf } from "./cuts";
 import { plainBetween } from "./quanta";
 import { measured } from "./design";
-import { type Row, planOf } from "./plan";
+import { type Row, budgets, gauge, planOf, ribsAt } from "./plan";
 
 const years = Array.from({ length: 13 }, (_, i) => 2014 + i);
 const lettersOfRow = (r: Row) => ("plain" in r ? [r.plain] : lettersOf(r.year, r.chart)[r.row - 1]);
@@ -148,5 +148,21 @@ describe("a plain round between quanta that don't go together", () => {
     const at = (row: string) => rows.indexOf(row);
     expect(rows[at("A1") + 1]).toBe("plain");
     expect(rows[at("C1") + 1]).toBe("plain");
+  });
+});
+
+describe("a sampler's rounds at another tension", () => {
+  const large = measured.find((m) => m.id === "l")!.finished;
+
+  it("are the same lengths in fewer rounds where the knitting is looser, the ribs with them", () => {
+    const own = budgets(large);
+    const loose = budgets(large, { stitches: 2.33, rounds: 2.5 });
+    expect(ribsAt(gauge)).toEqual({ neck: 9, hem: 14, cuff: 14 });
+    expect(ribsAt({ stitches: 2.33, rounds: 2.5 })).toEqual({ neck: 6, hem: 9, cuff: 9 });
+    // 41.5cm of body: 158 rounds at 38 to 10cm, 104 at 25, less the hem's rib and two.
+    expect(own.body).toBe(158 - 14 - 2);
+    expect(loose.body).toBe(104 - 9 - 2);
+    expect(loose.yoke).toBeLessThan(own.yoke);
+    expect(loose.sleeve).toBeLessThan(own.sleeve);
   });
 });

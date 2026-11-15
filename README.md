@@ -246,7 +246,6 @@ npm run lint
 npm run build
 npm run budgets  # what a phone fetches, gzipped, against its budgets
 npm run test:e2e
-node scripts/grade.mjs   # regrade the sizes, to review and commit
 npm run editions # after a change to any size's knitting: see Editions
 ```
 
