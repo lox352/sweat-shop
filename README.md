@@ -196,6 +196,12 @@ npm run editions              # name every size; freeze any new edition; update 
 npm run editions -- --check   # fail if anything is out of date, and write nothing
 ```
 
+`node scripts/readings.mjs --check` holds every frozen edition, the ones sizes
+have moved on from too, to reading as it did: its rounds as counted, what the
+panel says in each, the key, the chart and its views, time and yarn. A change
+to how patterns are read that means to change one of those says so by writing
+`scripts/readings.json` again.
+
 Commit what it writes. The manifest's diff is the list of sizes whose knitting
 changed, which is worth reading: a size that changed and was not meant to is a
 bug. Frozen copies are never rewritten once superseded, and never deleted -

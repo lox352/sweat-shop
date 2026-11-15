@@ -31,15 +31,33 @@ export type Effort =
   | "castOn" | "knit" | "purl" | "tbl" | "decrease" | "doubleDecrease" | "makeOne" | "kfb" | "pickUp" | "bindOff"
   | "join" | "hold" | "resume" | "needles" | "turn";
 
+/**
+ * A move on the needles: what a recipe is written in. Close to the abstract
+ * machine knitting machines are programmed for (Knitout's), a needle at a
+ * time, so that a kind is a few of them and the engine knows only the moves.
+ *
+ * - `take`: take the next so many loops off the needle, to work.
+ * - `bar`, `strand`, `edge`: what a new loop is drawn through when it is not
+ *   a loop on the needle - the bar between two stitches, nothing at all, a
+ *   stitch of an edge. They take nothing.
+ * - `make`: draw one new loop of yarn through what was taken.
+ * - `slip`: move the loop taken across as it is, with no new yarn.
+ * - `passOver`: lift the loop before this one over it, fastening that one.
+ * - `keep`: the loop goes on the needle. `finish`: it is fastened off.
+ */
+export type Move = { take: number } | "bar" | "strand" | "edge" | "make" | "slip" | "passOver" | "keep" | "finish";
+
 export interface Kind {
   family: Family;
   /** The method, as a knitter would name it. */
   variant: string;
-  /** How many loops on the needle it works. */
+  /** How it is worked, in moves on the needles: what the engine does for one. A step has none; what it does is the engine's own. */
+  recipe: Move[];
+  /** How many loops on the needle it works: what its recipe takes. */
   takes: number;
   /** Makes two loops of one: its second is the make-one stored straight after it. */
   makesTwo?: true;
-  /** Leaves nothing on the needle. */
+  /** Leaves nothing on the needle: its recipe finishes its loop. */
   finishes?: true;
   /** Worked purlwise: a rib's "p". */
   purlwise?: true;
@@ -53,41 +71,58 @@ export interface Kind {
   effort?: Effort;
 }
 
-const kind = (family: Family, variant: string, takes: number, said: string, rest: Partial<Kind> = {}): Kind => ({ family, variant, takes, said, ...rest });
+/** A recipe as it is written: "take(2) make keep". */
+const movesOf = (recipe: string): Move[] =>
+  recipe.split(" ").filter(Boolean).map((word) => {
+    const taken = /^take\((\d+)\)$/.exec(word);
+    return taken ? { take: Number(taken[1]) } : (word as Move);
+  });
+
+const kind = (family: Family, variant: string, written: string, said: string, rest: Partial<Kind> = {}): Kind => {
+  const recipe = movesOf(written);
+  const takes = recipe.reduce((total, move) => total + (typeof move === "object" ? move.take : 0), 0);
+  return { family, variant, recipe, takes, said, ...(recipe.includes("finish") ? { finishes: true as const } : {}), ...rest };
+};
+
+const one = "take(1) make keep";
+const two = "take(2) make keep";
+const three = "take(3) make keep";
+// Drawn through the bar between two stitches. A KFB's second loop is stored as one too, and is worked into the KFB's own stitch: see the engine.
+const fromTheBar = "bar make keep";
 
 export const kinds: Record<KindId, Kind> = {
-  castOn: kind("castOn", "longTail", 0, "cast on", { perStitch: true, effort: "castOn" }),
-  k1: kind("work", "knit", 1, "knit", { otherSide: "p1", perStitch: true, effort: "knit" }),
-  p1: kind("work", "purl", 1, "purl", { otherSide: "k1", purlwise: true, perStitch: true, effort: "purl" }),
-  k1tbl: kind("work", "knitTbl", 1, "knit", { after: "tbl", otherSide: "p1tbl", perStitch: true, effort: "tbl" }),
-  p1tbl: kind("work", "purlTbl", 1, "purl", { after: "tbl", otherSide: "k1tbl", purlwise: true, perStitch: true, effort: "tbl" }),
-  m1: kind("increase", "m1", 0, "m1", { otherSide: "m1p", effort: "makeOne" }),
-  m1p: kind("increase", "m1p", 0, "m1p", { otherSide: "m1", purlwise: true, effort: "makeOne" }),
+  castOn: kind("castOn", "longTail", "strand make keep", "cast on", { perStitch: true, effort: "castOn" }),
+  k1: kind("work", "knit", one, "knit", { otherSide: "p1", perStitch: true, effort: "knit" }),
+  p1: kind("work", "purl", one, "purl", { otherSide: "k1", purlwise: true, perStitch: true, effort: "purl" }),
+  k1tbl: kind("work", "knitTbl", one, "knit", { after: "tbl", otherSide: "p1tbl", perStitch: true, effort: "tbl" }),
+  p1tbl: kind("work", "purlTbl", one, "purl", { after: "tbl", otherSide: "k1tbl", purlwise: true, perStitch: true, effort: "tbl" }),
+  m1: kind("increase", "m1", fromTheBar, "m1", { otherSide: "m1p", effort: "makeOne" }),
+  m1p: kind("increase", "m1p", fromTheBar, "m1p", { otherSide: "m1", purlwise: true, effort: "makeOne" }),
   // A KFB puts its new stitch past the first, and so does a PFB: turned over, each is the other's mirror. See reading/sides.
-  kfb: kind("split", "kfb", 1, "KFB", { makesTwo: true, otherSide: "pbf", effort: "kfb" }),
-  kbf: kind("split", "kbf", 1, "KBF", { makesTwo: true, otherSide: "pfb", effort: "kfb" }),
-  pfb: kind("split", "pfb", 1, "PFB", { makesTwo: true, otherSide: "kbf", purlwise: true, effort: "kfb" }),
-  pbf: kind("split", "pbf", 1, "PBF", { makesTwo: true, otherSide: "kfb", purlwise: true, effort: "kfb" }),
-  k2tog: kind("decrease", "k2tog", 2, "k2tog", { otherSide: "p2tog", effort: "decrease" }),
-  p2tog: kind("decrease", "p2tog", 2, "p2tog", { otherSide: "k2tog", purlwise: true, effort: "decrease" }),
-  ssk: kind("decrease", "ssk", 2, "ssk", { otherSide: "ssp", effort: "decrease" }),
-  ssp: kind("decrease", "ssp", 2, "ssp", { otherSide: "ssk", purlwise: true, effort: "decrease" }),
-  s2kp: kind("decrease", "s2kp", 3, "s2kp", { otherSide: "s2pp", effort: "doubleDecrease" }),
-  s2pp: kind("decrease", "s2pp", 3, "s2pp", { otherSide: "s2kp", purlwise: true, effort: "doubleDecrease" }),
-  sk2p: kind("decrease", "sk2p", 3, "sk2p", { otherSide: "p2sps", effort: "doubleDecrease" }),
-  p2sps: kind("decrease", "p2sps", 3, "p2sps", { otherSide: "sk2p", purlwise: true, effort: "doubleDecrease" }),
-  sl1po: kind("slip", "passCastOnOver", 1, "slip 1 and pass the cast-on over", { effort: "decrease" }),
-  pickUp: kind("pickUp", "knit", 0, "pick up and knit", { otherSide: "pickUpPurl", perStitch: true, effort: "pickUp" }),
-  pickUpPurl: kind("pickUp", "purl", 0, "pick up and purl", { otherSide: "pickUp", purlwise: true, perStitch: true, effort: "pickUp" }),
-  bindOff: kind("bindOff", "knitwise", 1, "bind off", { finishes: true, otherSide: "bindOffPurl", perStitch: true, effort: "bindOff" }),
-  bindOffPurl: kind("bindOff", "purlwise", 1, "bind off purlwise", { finishes: true, otherSide: "bindOff", purlwise: true, perStitch: true, effort: "bindOff" }),
+  kfb: kind("split", "kfb", one, "KFB", { makesTwo: true, otherSide: "pbf", effort: "kfb" }),
+  kbf: kind("split", "kbf", one, "KBF", { makesTwo: true, otherSide: "pfb", effort: "kfb" }),
+  pfb: kind("split", "pfb", one, "PFB", { makesTwo: true, otherSide: "kbf", purlwise: true, effort: "kfb" }),
+  pbf: kind("split", "pbf", one, "PBF", { makesTwo: true, otherSide: "kfb", purlwise: true, effort: "kfb" }),
+  k2tog: kind("decrease", "k2tog", two, "k2tog", { otherSide: "p2tog", effort: "decrease" }),
+  p2tog: kind("decrease", "p2tog", two, "p2tog", { otherSide: "k2tog", purlwise: true, effort: "decrease" }),
+  ssk: kind("decrease", "ssk", two, "ssk", { otherSide: "ssp", effort: "decrease" }),
+  ssp: kind("decrease", "ssp", two, "ssp", { otherSide: "ssk", purlwise: true, effort: "decrease" }),
+  s2kp: kind("decrease", "s2kp", three, "s2kp", { otherSide: "s2pp", effort: "doubleDecrease" }),
+  s2pp: kind("decrease", "s2pp", three, "s2pp", { otherSide: "s2kp", purlwise: true, effort: "doubleDecrease" }),
+  sk2p: kind("decrease", "sk2p", three, "sk2p", { otherSide: "p2sps", effort: "doubleDecrease" }),
+  p2sps: kind("decrease", "p2sps", three, "p2sps", { otherSide: "sk2p", purlwise: true, effort: "doubleDecrease" }),
+  sl1po: kind("slip", "passCastOnOver", "take(1) slip passOver keep", "slip 1 and pass the cast-on over", { effort: "decrease" }),
+  pickUp: kind("pickUp", "knit", "edge make keep", "pick up and knit", { otherSide: "pickUpPurl", perStitch: true, effort: "pickUp" }),
+  pickUpPurl: kind("pickUp", "purl", "edge make keep", "pick up and purl", { otherSide: "pickUp", purlwise: true, perStitch: true, effort: "pickUp" }),
+  bindOff: kind("bindOff", "knitwise", "take(1) make finish", "bind off", { otherSide: "bindOffPurl", perStitch: true, effort: "bindOff" }),
+  bindOffPurl: kind("bindOff", "purlwise", "take(1) make finish", "bind off purlwise", { otherSide: "bindOff", purlwise: true, perStitch: true, effort: "bindOff" }),
   // The steps: part of the order of work, and no fabric.
-  join: kind("step", "join", 0, "join in the round", { effort: "join" }),
-  needles: kind("step", "needles", 0, "change needles", { effort: "needles" }),
-  hold: kind("step", "hold", 0, "put stitches on hold", { effort: "hold" }),
-  resume: kind("step", "resume", 0, "take up the held stitches", { effort: "resume" }),
-  turn: kind("step", "german", 0, "turn and make a double stitch", { effort: "turn" }),
-  marker: kind("step", "marker", 0, "place a marker"),
+  join: kind("step", "join", "", "join in the round", { effort: "join" }),
+  needles: kind("step", "needles", "", "change needles", { effort: "needles" }),
+  hold: kind("step", "hold", "", "put stitches on hold", { effort: "hold" }),
+  resume: kind("step", "resume", "", "take up the held stitches", { effort: "resume" }),
+  turn: kind("step", "german", "", "turn and make a double stitch", { effort: "turn" }),
+  marker: kind("step", "marker", "", "place a marker"),
 };
 
 /** A kind's name in full: "decrease.k2tog". */
