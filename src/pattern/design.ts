@@ -83,6 +83,12 @@ export interface Measurements {
   cuffCm: number;
 }
 
+/** How tightly something is knitted: stitches and rounds to 10cm. */
+export interface Tension {
+  stitchesPer10cm: number;
+  roundsPer10cm: number;
+}
+
 /** A size without its knitting: what it measures and is knitted on. */
 export interface SizeAbout {
   id: string;

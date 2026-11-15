@@ -1,14 +1,15 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { sweaterById } from "../../library/catalogue";
-import { SlotId } from "../../pattern/design";
+import type { SlotId, Tension } from "../../pattern/design";
 import { useSweater } from "../useSweater";
 import { viewChart } from "../../reading/counted";
 import { currentEdition, editionOf, isSuperseded, errataOf } from "../../library/editions";
 import PatternUpdated from "./PatternUpdated";
+import MyTension from "./MyTension";
 import { makeOnesAtMarkers } from "../../reading/marker-routes";
 import type { ChartView } from "../../reading/views";
-import { colourwayLabel, keyOf, paletteOf, slotNames, trimmed } from "../../reading/palette";
+import { colourwayLabel, keyOf, paletteOf, slotNames, trimmed, type Overrides } from "../../reading/palette";
 import { totals, positionOf, currentRun, whereYouAre, roundNames, roundWhats } from "../../reading/progress";
 import { keyEntryAt } from "../../reading/stitch-key";
 import { faceAfter, holdsIn, needleChangesIn, turnsIn } from "../chart/chart-marks";
@@ -46,6 +47,9 @@ const statsParam = "stats";
 /** "Under 1%", "3%": how far through, never rounded up to done. */
 const percentKnitted = (worked: number, percent: number) =>
   `${worked > 0 && percent < 1 ? "Under 1" : Math.floor(percent)}%`;
+
+/** No wool chosen of the knitter's own: one object, so what is drawn from it is not drawn again for nothing. */
+const noShades: Overrides = {};
 
 /**
  * The chart's views as tabs over it: from the neck, the body and each sleeve,
@@ -232,6 +236,14 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
     change(current => ({ ...current, trim }));
   }, [change]);
 
+  const setTension = useCallback((tension: Tension | undefined) => {
+    change((current) => {
+      const without = { ...current };
+      delete without.tension;
+      return tension ? { ...without, tension } : without;
+    });
+  }, [change]);
+
   const setShade = useCallback((slots: SlotId[], chosen: Chosen | undefined) => {
     change((current) => {
       const shades = { ...current.shades };
@@ -303,6 +315,7 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
       setColourway={setColourway}
       setTrim={setTrim}
       setShade={setShade}
+      setTension={setTension}
       takeUpdate={takeUpdate}
     />
   );
@@ -320,6 +333,7 @@ const ProjectView: React.FC<{
   setColourway: (id: string) => void;
   setTrim: (trim: string | undefined) => void;
   setShade: (slots: SlotId[], chosen: Chosen | undefined) => void;
+  setTension: (tension: Tension | undefined) => void;
   takeUpdate: (moved: (progress: number) => number | undefined) => void;
 }> = ({
   view,
@@ -333,6 +347,7 @@ const ProjectView: React.FC<{
   setColourway,
   setTrim,
   setShade,
+  setTension,
   takeUpdate,
 }) => {
   const sweater = sweaterById(sweaterId)!;
@@ -607,7 +622,7 @@ const ProjectView: React.FC<{
         <ColourwayChoice
           colourways={sweater.colourways}
           colourway={colourway}
-          overrides={project.shades ?? {}}
+          overrides={project.shades ?? noShades}
           palette={palette}
           body={body}
           onStartFrom={setColourway}
@@ -620,12 +635,14 @@ const ProjectView: React.FC<{
           colourway={colourway}
           metres={metres}
           stated={size.yardage !== undefined}
-          overrides={project.shades ?? {}}
+          overrides={project.shades ?? noShades}
           onChange={setShade}
           body={body}
           palette={palette}
         />
       </section>
+
+      <MyTension key={project.id} size={size} tension={project.tension} onChange={setTension} />
 
       <NextStep
         title={position.finished ? "All knitted" : counts.worked > 0 ? "Carry on" : "Ready to cast on?"}

@@ -1,4 +1,5 @@
 import { Overrides } from "../reading/palette";
+import type { Tension } from "../pattern/design";
 import { deleteLog } from "./timing/log";
 import { currentEdition } from "../library/editions";
 
@@ -34,9 +35,22 @@ export interface Project {
    * Left out by a project saved before editions, which knits the size's edition now.
    */
   edition?: string;
+  /**
+   * The tension its knitter measured in their own knitting, where they have
+   * said: what the pattern knits up to at it is shown beside what it was
+   * written for. See reading/tension.
+   */
+  tension?: Tension;
   startedAt: string;
   updatedAt: string;
 }
+
+/** Whether something read back is a tension: two sensible numbers. */
+export const isTension = (value: unknown): value is Tension => {
+  const tension = value as Partial<Tension> | null;
+  const sensible = (n: unknown) => typeof n === "number" && Number.isFinite(n) && n >= 2 && n <= 200;
+  return typeof tension === "object" && tension !== null && sensible(tension.stitchesPer10cm) && sensible(tension.roundsPer10cm);
+};
 
 const prefix = "project-";
 const pending = new Map<string, Project>();
@@ -98,6 +112,7 @@ const isProject = (value: unknown): value is Project => {
     (candidate.name !== undefined && typeof candidate.name !== "string") ||
     (candidate.trim !== undefined && typeof candidate.trim !== "string") ||
     (candidate.edition !== undefined && typeof candidate.edition !== "string") ||
+    (candidate.tension !== undefined && !isTension(candidate.tension)) ||
     (candidate.version !== undefined && candidate.version !== currentVersion)) return false;
   if (candidate.shades !== undefined) {
     if (!candidate.shades || typeof candidate.shades !== "object" || Array.isArray(candidate.shades)) return false;
