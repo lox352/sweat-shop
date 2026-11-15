@@ -147,3 +147,19 @@ export const actionsOf = (rows: Row[]): Action[] => {
   }
   return actions;
 };
+
+/**
+ * A log moved on with its project's progress, where that has been carried
+ * into another edition of its knitting: each change of progress, from where
+ * it began carried over to where it ended carried over. A place the two have
+ * none for is kept as it was.
+ */
+export const movedLog = (rows: Row[], moved: (id: number) => number | undefined): Row[] => {
+  let progress = 0;
+  return rows.map(([seconds, change, ...flag]) => {
+    const from = progress;
+    progress += change;
+    const to = (id: number) => moved(id) ?? id;
+    return [seconds, change === 0 ? 0 : to(progress) - to(from), ...flag];
+  });
+};

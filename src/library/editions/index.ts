@@ -25,7 +25,13 @@ import { type EditionFile, decodeEdition } from "./format";
  * once it has been fetched: see scripts/service-worker.js.
  */
 
-type Manifest = Record<string, Record<string, { first: string; current: string }>>;
+/**
+ * Each size's first and current edition, and, where the current one puts a
+ * mistake right, `errata`: what it corrects, in a sentence, which the update
+ * offered to a project on an older edition says. Written by hand after `npm
+ * run editions`, and kept until the size's knitting moves on again.
+ */
+type Manifest = Record<string, Record<string, { first: string; current: string; errata?: string }>>;
 
 const manifest: Manifest =
   Object.values(import.meta.glob<{ default: Manifest }>("./manifest.json", { eager: true }))[0]?.default ?? {};
@@ -35,6 +41,9 @@ const keyOf = (design: string, size: string, edition: string) => `${design}--${s
 /** Where a frozen copy is served from. */
 export const editionUrl = (design: string, size: string, edition: string) =>
   `${import.meta.env.BASE_URL}editions/${keyOf(design, size, edition)}.json`;
+
+/** What a size's edition now corrects, where it says. */
+export const errataOf = (design: string, size: string): string | undefined => manifest[design]?.[size]?.errata;
 
 /** The edition a size's knitting is now. */
 export const currentEdition = (design: string, size: string): string | undefined => manifest[design]?.[size]?.current;
