@@ -1,6 +1,6 @@
 import type { SweaterStitches } from "../../pattern/knitted";
 import { type EditionFile, decodeEdition } from "./format";
-import { ownEdition } from "./own";
+import { keepEdition, ownEdition } from "./own";
 
 /**
  * Which edition of a size's knitting each project knits.
@@ -108,6 +108,8 @@ export const loadEdition = (design: string, size: string, edition?: string): Pro
     const own = ownEdition(design, size, from);
     pending = (own ? Promise.resolve(own) : fetchEdition(design, size, from))
       .then((file) => {
+        // An edition the size has moved on from is knitted only by projects begun on it: kept with them, it need not stay published for ever.
+        if (!own && isSuperseded(design, size, from)) keepEdition(file);
         const known = decodeEdition(file);
         fetched.set(key, known);
         failed.delete(key);

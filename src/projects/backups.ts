@@ -27,7 +27,7 @@ export const maxBackupBytes = 10_000_000;
 export const backupText = () => JSON.stringify({ format: "sweat-shop-projects", version: 1,
   exportedAt: new Date().toISOString(), projects: listProjects().map((project): BackupProject => {
     const timeLog = readLog(project.id);
-    const knitting = project.fit && project.edition ? ownEdition(project.sweaterId, project.sizeId, project.edition) : undefined;
+    const knitting = project.edition ? ownEdition(project.sweaterId, project.sizeId, project.edition) : undefined;
     return { ...project, ...(timeLog.length > 0 ? { timeLog } : {}), ...(knitting ? { knitting } : {}) };
   }) });
 
@@ -55,9 +55,10 @@ export function parseBackup(text: string): BackupProject[] {
       p.version !== currentVersion || !Number.isSafeInteger(p.progress) || p.progress < 0 ||
       (p.edition !== undefined && (typeof p.edition !== "string" || !/^[0-9a-f]{1,64}$/.test(p.edition))) ||
       (p.tension !== undefined && !isTension(p.tension)) ||
-      // A project fitted to its knitter knits knitting of its own, which must come with it.
-      (p.fit !== undefined && (!isFit(p.fit) || !isOwnKnitting(p))) ||
-      (p.fit === undefined && p.knitting !== undefined) ||
+      // A project fitted to its knitter knits knitting of its own, which must come with it; any that comes must be what the project knits.
+      (p.fit !== undefined && !isFit(p.fit)) ||
+      ((p.fit !== undefined || p.knitting !== undefined) && !isOwnKnitting(p)) ||
+      (p.upTo !== undefined && (typeof p.upTo !== "string" || !/^[0-9a-f]{1,64}$/.test(p.upTo))) ||
       pastTheEnd(sweater, p) ||
       (p.name !== undefined && (typeof p.name !== "string" || p.name.length > 200)) ||
       (p.trim !== undefined && (typeof p.trim !== "string" || p.trim.length > 200)) ||
@@ -80,7 +81,9 @@ export function parseBackup(text: string): BackupProject[] {
       // The edition of the knitting it knits, kept so a restored project knits what it did: see library/editions.
       ...(p.edition ? { edition: p.edition } : {}),
       ...(p.tension ? { tension: { stitchesPer10cm: p.tension.stitchesPer10cm, roundsPer10cm: p.tension.roundsPer10cm } } : {}),
-      ...(p.fit ? { fit: p.fit, knitting: p.knitting } : {}),
+      ...(p.fit ? { fit: p.fit } : {}),
+      ...(p.knitting ? { knitting: p.knitting } : {}),
+      ...(p.upTo ? { upTo: p.upTo } : {}),
       shades: p.shades, startedAt: p.startedAt, updatedAt: new Date().toISOString(),
       ...(p.timeLog ? { timeLog: p.timeLog } : {}) };
   });

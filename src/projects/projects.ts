@@ -49,6 +49,13 @@ export interface Project {
    * library/editions/own.
    */
   fit?: ProjectFit;
+  /**
+   * The published edition its knitting is up to date with, where that is
+   * not the edition it knits: knitting of its own (fitted, or joined to an
+   * update part way through), or an older edition whose update changes
+   * nothing ahead. It is offered an update once the size moves on from this.
+   */
+  upTo?: string;
   startedAt: string;
   updatedAt: string;
 }
@@ -147,6 +154,7 @@ const isProject = (value: unknown): value is Project => {
     (candidate.edition !== undefined && typeof candidate.edition !== "string") ||
     (candidate.tension !== undefined && !isTension(candidate.tension)) ||
     (candidate.fit !== undefined && !isFit(candidate.fit)) ||
+    (candidate.upTo !== undefined && typeof candidate.upTo !== "string") ||
     (candidate.version !== undefined && candidate.version !== currentVersion)) return false;
   if (candidate.shades !== undefined) {
     if (!candidate.shades || typeof candidate.shades !== "object" || Array.isArray(candidate.shades)) return false;

@@ -37,9 +37,12 @@ const Refit: React.FC<{
   fit: ProjectFit | undefined;
   /** What the knitting calls each of its rounds, from 0: see progress.roundNames. */
   roundNames: string[];
+  /** What it is called and why it is offered, where that is not the knitter's tension: an update that can't be joined to their knitting (see PatternUpdated). */
+  title?: string;
+  lead?: string;
   onTake: (fitted: Fitted) => void;
   onGoBack: () => void;
-}> = ({ sweater, size, knitted, progress, tension, fit, roundNames, onTake, onGoBack }) => {
+}> = ({ sweater, size, knitted, progress, tension, fit, roundNames, title = "Fit the rest to your tension", lead, onTake, onGoBack }) => {
   const options = sweater.fitting?.options ?? [];
   const [step, setStep] = useState<Step>({ at: "rest" });
   const [option, setOption] = useState<string | undefined>(fit?.option ?? options[0]?.id);
@@ -91,12 +94,12 @@ const Refit: React.FC<{
 
   return (
     <div className="refit">
-      <h3>Fit the rest to your tension</h3>
+      <h3>{title}</h3>
       {step.at === "rest" && (
         <>
           <p>
-            The rest of the pattern can be worked out again from where you are, so that it comes as near the size as it can at your tension. What you
-            have knitted stays as it is.
+            {lead ??
+              "The rest of the pattern can be worked out again from where you are, so that it comes as near the size as it can at your tension. What you have knitted stays as it is."}
           </p>
           <p className="quiet">It is worked out on this device, and can take up to a minute. Nothing changes until you have seen it.</p>
           <p>

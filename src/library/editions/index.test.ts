@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sweaterById } from "../../compiler/designs/index";
 import { sweaterStitches } from "../knitting";
+import { ownEdition } from "./own";
 import { currentEdition, editionFailed, editionKnitting, editionOf, editionUrl, forgetEditions, isSuperseded, loadEdition } from "./index";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -30,6 +31,7 @@ const answering = (reply: () => Response | Promise<Response>) => {
 afterEach(() => {
   vi.unstubAllGlobals();
   forgetEditions();
+  localStorage.clear();
 });
 
 describe("which edition a project knits", () => {
@@ -70,6 +72,12 @@ describe("an edition", () => {
     expect(frozen.stitches[1].slot).toBe(`${now.stitches[1].slot}-old`);
     // The size's own edition, and no edition at all, are its knitting as built.
     expect(sweaterStitches(pattern, size, current)).toBe(now);
+
+    // An edition its size has moved on from is kept on the device, for the project that knits it: it need not stay published.
+    expect(ownEdition(design, size, older)?.edition).toBe(older);
+    forgetEditions();
+    await loadEdition(design, size, older);
+    expect(fetching).toHaveBeenCalledTimes(1);
   });
 
   it("that cannot be had - unreachable, or none of that name - is no other knitting, and is asked for again", async () => {

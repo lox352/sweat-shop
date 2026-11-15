@@ -1,4 +1,4 @@
-import { encodeEdition, hashable } from "../library/editions/format";
+import { asEdition } from "../library/editions/own";
 import type { FitAnswer, FitQuestion } from "../library/fit";
 import { cutAfter, fit } from "./fit";
 
@@ -8,12 +8,6 @@ import { cutAfter, fit } from "./fit";
  * again (see library/fit). The page waits on it without stopping.
  */
 const scope = self as unknown as { postMessage(answer: FitAnswer): void; onmessage: ((event: MessageEvent<FitQuestion>) => void) | null };
-
-/** An edition's name, as scripts/shapes.mjs gives one: twelve hex digits of the hash of its knitting. */
-const nameOf = async (named: string): Promise<string> => {
-  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(named));
-  return [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 12);
-};
 
 scope.onmessage = async ({ data: { design, sizeId, knitted, progress, tension, option } }) => {
   try {
@@ -28,8 +22,7 @@ scope.onmessage = async ({ data: { design, sizeId, knitted, progress, tension, o
       // A hundred steps is all a progress bar shows.
       if (fraction - told >= 0.01) scope.postMessage({ progress: (told = fraction) });
     });
-    const draft = encodeEdition(fitted.knitted, design, sizeId, "");
-    const file = { ...draft, edition: await nameOf(hashable(draft)) };
+    const file = await asEdition(fitted.knitted, design, sizeId);
     scope.postMessage({ fitted: { file, round, tension, finished: fitted.finished, notes: fitted.notes, written: fitted.written, ...(option ? { option } : {}) } });
   } catch (error) {
     scope.postMessage({ cannot: `The rest could not be worked out: ${error instanceof Error ? error.message : String(error)}.` });
