@@ -1,7 +1,8 @@
 import { Overrides } from "../reading/palette";
 import type { Measurements, Tension } from "../pattern/design";
 import { deleteLog } from "./timing/log";
-import { currentEdition } from "../library/editions";
+import { currentEdition, editionKey } from "../library/editions";
+import { dropShapesBut } from "../library/settled/own";
 import type { EditionFile } from "../library/editions/format";
 import { dropEditionsBut, keepEdition } from "../library/editions/own";
 
@@ -270,7 +271,7 @@ export const deleteProject = (id: string) => {
     pending.delete(storageKeyFor(id));
     pendingBase.delete(storageKeyFor(id));
     // And any knitting that was its own.
-    dropEditionsBut(listProjects());
+    dropUnknitted();
     notifyChanged();
   } catch {
     notice("The project could not be deleted from browser storage. Please try again.");
@@ -284,8 +285,12 @@ export const keepKnitting = (file: EditionFile): boolean => {
   return false;
 };
 
-/** Drop any knitting kept on the device that no project knits now. */
-export const dropUnknitted = () => dropEditionsBut(listProjects());
+/** Drop any knitting kept on the device that no project knits now, and any shape settled for it. */
+export const dropUnknitted = () => {
+  const projects = listProjects();
+  dropEditionsBut(projects);
+  void dropShapesBut(projects.flatMap((project) => (project.edition ? [editionKey(project.sweaterId, project.sizeId, project.edition)] : [])));
+};
 
 export const renameProject = (id: string, name: string) => {
   const project = readProject(id);

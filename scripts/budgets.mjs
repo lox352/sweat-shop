@@ -16,7 +16,9 @@
  *   (see library/editions);
  * - the fitting: the designs' planners and the engine, in a worker, fetched
  *   only when a knitter asks for the rest of their sweater to be worked out
- *   again for their tension (see library/fit).
+ *   again for their tension (see library/fit);
+ * - the settling: the physics, in a worker, fetched only to settle such a
+ *   sweater into its shape (see physics/settling).
  *
  * Each budget leaves some room over what the site costs now, so that it
  * fails on a real jump rather than on every change.
@@ -44,7 +46,7 @@ const kb = 1024;
  */
 // A frozen edition of the largest size is 19KB.
 // The fitting worker is 78KB: every design's planner and charts, and the engine.
-const budgets = { page: 210 * kb, stage: 260 * kb, settled: 300 * kb, edition: 40 * kb, fitting: 100 * kb };
+const budgets = { page: 210 * kb, stage: 260 * kb, settled: 300 * kb, edition: 40 * kb, fitting: 100 * kb, settling: 20 * kb };
 
 const files = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
@@ -52,7 +54,7 @@ const files = (dir) =>
   );
 const gzipped = (path) => gzipSync(readFileSync(path), { level: 9 }).length;
 const kind = (path) =>
-  /\/SweaterStage-[^/]+\.js$/.test(path) ? "stage" : /\/fit\.worker-[^/]+\.js$/.test(path) ? "fitting" : "page";
+  /\/SweaterStage-[^/]+\.js$/.test(path) ? "stage" : /\/fit\.worker-[^/]+\.js$/.test(path) ? "fitting" : /\/settle\.worker-[^/]+\.js$/.test(path) ? "settling" : "page";
 
 const assets = files("dist/assets").filter((path) => /\.(js|css)$/.test(path));
 const page = assets.filter((path) => kind(path) === "page").reduce((total, path) => total + gzipped(path), 0);

@@ -18,3 +18,16 @@
     grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   }
 }
+
+.sweater-settling {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-faint);
+  display: grid;
+  gap: 0.35rem;
+}
+
+.sweater-settling progress {
+  width: 100%;
+  max-width: 24rem;
+}

@@ -11,9 +11,10 @@ const files = dir => readdirSync(dir, { withFileTypes: true }).flatMap(entry => 
 // frozen edition of a size's knitting, which only a project knitting it needs.
 // And the fitting worker - the designs' planners and the engine - which is
 // fetched only when a knitter asks for the rest of their sweater to be worked
-// out again: see src/library/fit.
+// out again: see src/library/fit. And the settling worker, fetched only to
+// settle such a sweater: see src/physics/settling.
 const assets = files("dist").filter(path => !path.endsWith("/sw.js") &&
-  !path.startsWith("dist/shapes/") && !path.startsWith("dist/editions/") && !/\/fit\.worker-[^/]+\.js$/.test(path)).sort();
+  !path.startsWith("dist/shapes/") && !path.startsWith("dist/editions/") && !/\/(fit|settle)\.worker-[^/]+\.js$/.test(path)).sort();
 const hash = createHash("sha256");
 for (const path of assets) hash.update(path).update(readFileSync(path));
 const template = readFileSync("scripts/service-worker.js", "utf8");
