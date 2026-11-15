@@ -281,6 +281,13 @@ worked out again:
   the device and carried in backups, with the tension, the measurements and
   the round it was fitted from on the project (`fit`).
 
+Two designs can so far. **Each Year Once** plans on from the last round of
+a year on its yoke: the years not yet knitted, every one cut to the rounds
+there are, or fewer of them fuller. **Hamefarin** plans on from the last
+round of a band of its yoke: the bands still to come graded from the
+stitches on the needles, one left out where the yoke has no depth for it.
+The lined-up sampler, the feline jumpers and Paul Klee can't yet.
+
 `node scripts/fit.mjs <design> <size> <round> <sts> <rounds>` writes a fit out
 to read, every way the design offers, in `docs/written/refits/`.
 

@@ -1,5 +1,5 @@
-import type { Chart, RoundSpec, Section, SweaterPattern } from "./types";
-import { type Grade, grade, measured, standard } from "./hamefarin-grade";
+import type { Chart, Fitting, RoundSpec, Section, SweaterPattern } from "./types";
+import { type Grade, bandRounds, grade, gradeOn, measured, standard } from "./hamefarin-grade";
 import { band, corrugatedRib, increaseEvenly, underarmDecrease } from "./writing";
 
 /**
@@ -140,7 +140,10 @@ const edge = (): RoundSpec[] => [
   { type: "bindOff", slot: "A", fabric: "rib" },
 ];
 
-const sleeve = (piece: string, label: string, g: Grade): Section => {
+/** What the divide leaves and the body and sleeves are knitted to: a size's grade, or one graded on from a yoke part knitted. */
+type Below = Pick<Grade, "back" | "front" | "sleeve" | "underarm" | "bodyRounds" | "firstDecrease" | "decreases" | "sleeveTail">;
+
+const sleeve = (piece: string, label: string, g: Below): Section => {
   const top = g.sleeve + g.underarm;
   let count = top;
   const shaping: RoundSpec[] = [];
@@ -207,6 +210,11 @@ const sectionsFor = (g: Grade): Section[] => [
       ...plain(g.pad),
     ],
   },
+  ...belowFor(g),
+];
+
+/** The divide, the body and both sleeves. */
+const belowFor = (g: Below): Section[] => [
   {
     label: "Body",
     piece: "body",
@@ -257,6 +265,80 @@ const checksFor = (g: Grade): Record<string, number> => {
   };
 };
 
+/* ------------------------------------------------------- fitted part way */
+
+/** The five bands of the yoke, by their charts, in the order they are knitted. */
+const bandIds = ["peerie", "border", "seeds", "oxo", "lozenges"];
+/** Which band a round is the last of, by what the knitting calls it: none for any other round. */
+const bandEnding = (label: string): number =>
+  bandIds.findIndex((id, at) => label === `${charts.find((one) => one.id === id)!.name}, row ${bandRounds[at]}`);
+
+/**
+ * Hamefarin from part of its yoke knitted, after the last round of a band:
+ * the bands still to come graded on from the stitches on the needles, for
+ * the knitter's tension (see hamefarin-grade's gradeOn), then the body and
+ * sleeves at it.
+ */
+const fitting: Fitting = {
+  cutAfter: (knitted, from) => {
+    for (let round = Math.max(1, from); round <= knitted.rounds.length; round++) {
+      if (knitted.roundPieces[round - 1] !== "yoke") return undefined;
+      if (knitted.roundKinds[round - 1] === "round" && bandEnding(knitted.roundLabels[round - 1]) >= 0) return round;
+    }
+    return undefined;
+  },
+  plan: ({ finished, tension, from: { knitted, round } }) => {
+    const done = bandEnding(knitted.roundLabels[round - 1] ?? "") + 1;
+    if (done === 0 || knitted.roundPieces[round - 1] !== "yoke") throw new Error(`the rest can't be planned from round ${round}: it is not the last round of a band of the yoke`);
+    const count = knitted.rounds[round - 1].length;
+    const on = gradeOn(
+      finished,
+      { stitches: tension.stitchesPer10cm / 10, rounds: tension.roundsPer10cm / 10 },
+      { neck: knitted.rounds[0].length, count, worked: knitted.roundKinds.slice(0, round).filter((kind) => kind === "round").length, done },
+    );
+    let at = count;
+    const yoke: RoundSpec[] = [
+      ...on.bands.flatMap(({ band, plain: before, to }) => {
+        // An increase round with nothing to add is a plain round, which a band still begins after.
+        const first: RoundSpec = to > at ? increase(at, to, bandIds[band]) : { type: "rounds", count: 1, slot: "A", check: bandIds[band] };
+        at = to;
+        return [...plain(before), first, chart(bandIds[band], bandRounds[band])];
+      }),
+      ...plain(on.pad),
+    ];
+    const top = on.below.sleeve + on.below.underarm;
+    const cuff = top - 2 * on.below.decreases.reduce((total, { times }) => total + times, 0);
+    const named = (bands: number[]) => bands.map((band) => charts.find((one) => one.id === bandIds[band])!.name).join(", ");
+    const notes = [
+      on.bands.length > 0
+        ? `The yoke has ${named(on.bands.map(({ band }) => band))} still to come, and grows from ${count} stitches to ${on.yoke}.`
+        : "The yoke is as deep as it is to be at this tension: it divides for the body and sleeves once its plain rounds are done.",
+      ...(on.dropped.length > 0 ? [`Left out, for want of depth at this tension: ${named(on.dropped)}.`] : []),
+      ...(on.deeper > 0 ? [`The yoke comes ${on.deeper} round${on.deeper === 1 ? "" : "s"} deeper than the size's, which the body is shorter by.`] : []),
+      ...(Math.abs(on.over) > 0.02 * (on.yoke - on.over)
+        ? [
+            `The yoke divides on ${on.yoke} stitches, ${Math.abs(on.over)} ${on.over > 0 ? "more" : "fewer"} than this tension wants for the size. ` +
+              `They are shared between the body and the sleeves: the chest comes to ${on.finished.chestCm}cm for ${finished.chestCm}cm, the upper arm to ${on.finished.upperArmCm}cm for ${finished.upperArmCm}cm.`,
+          ]
+        : []),
+    ];
+    return {
+      sections: [...(yoke.length > 0 ? [{ label: "Yoke", piece: "yoke", rounds: yoke }] : []), ...belowFor(on.below)],
+      charts,
+      checks: {
+        ...Object.fromEntries(on.bands.map(({ band, to }) => [bandIds[band], to])),
+        body: on.below.back + on.below.front + 2 * on.below.underarm,
+        "sleeve-left:top": top,
+        "sleeve-left:cuff": cuff,
+        "sleeve-right:top": top,
+        "sleeve-right:cuff": cuff,
+      },
+      finished: on.finished,
+      notes,
+    };
+  },
+};
+
 /*
  * The sizes: standard body measurements with about ten centimetres of ease
  * at the chest, graded at the pattern's tension (see hamefarin-grade). The
@@ -284,6 +366,7 @@ const hamefarin: SweaterPattern = {
     { id: "sleeve-left", label: "Left sleeve" },
     { id: "sleeve-right", label: "Right sleeve" },
   ],
+  fitting,
   slots: ["A", "B", "C", "D", "E", "F", "G", "H"],
   slotRoles: {
     A: "body and darkest ground",

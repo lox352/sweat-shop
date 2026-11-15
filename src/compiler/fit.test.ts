@@ -58,3 +58,57 @@ describe("a sweater fitted to its knitter, part way through", () => {
     expect(fitted.notes[0]).toMatch(/The yoke has \d+ rounds more/);
   });
 });
+
+describe("Hamefarin fitted part way through its yoke", () => {
+  const whole = buildSweater(sweaterById("hamefarin")!, "m");
+  const endOfBand = (name: string) => whole.roundLabels.findIndex((label, at) => label.startsWith(`${name}, row`) && !whole.roundLabels[at + 1]?.startsWith(`${name}, row`)) + 1;
+  const border = endOfBand("Border");
+
+  it("can be planned from the last round of a band of the yoke", () => {
+    expect(cutAfter("hamefarin", whole, 1)).toBe(endOfBand("Peerie"));
+    expect(cutAfter("hamefarin", whole, border - 3)).toBe(border);
+    expect(cutAfter("hamefarin", whole, whole.roundPieces.indexOf("body") + 1)).toBeUndefined();
+    expect(fitOptions("hamefarin")).toEqual([]);
+  });
+
+  it("at the pattern's own tension, the rest is the size's: the same counts, the same length", () => {
+    const fitted = fit({ design: "hamefarin", sizeId: "m", knitted: whole, round: border, tension: { stitchesPer10cm: 28, roundsPer10cm: 32 } });
+    expect(fitted.knitted.checks).toMatchObject({ lozenges: whole.checks.lozenges, body: whole.checks.body, "sleeve-left:cuff": whole.checks["sleeve-left:cuff"] });
+    expect(fitted.knitted.rounds.length).toBe(whole.rounds.length);
+    expect(fitted.finished).toMatchObject({ chestCm: 105.5, bodyLengthCm: 37, sleeveLengthCm: 45 });
+  });
+
+  it("a looser knitter's yoke is deep enough sooner: bands are left out, and what the yoke has over is shared out and said", () => {
+    const fitted = fit({ design: "hamefarin", sizeId: "m", knitted: whole, round: border, tension: { stitchesPer10cm: 22, roundsPer10cm: 24 } });
+    const kept = whole.rounds[border - 1][whole.rounds[border - 1].length - 1] + 1;
+    expect(fitted.knitted.stitches.slice(0, kept).map(({ type, slot, links }) => ({ type, slot, links }))).toEqual(whole.stitches.slice(0, kept).map(({ type, slot, links }) => ({ type, slot, links })));
+    expect(fitted.notes.join(" ")).toMatch(/Left out, for want of depth at this tension: .*Lozenges/);
+    expect(fitted.knitted.rounds.length).toBeLessThan(whole.rounds.length);
+    // 37cm of body at 24 rounds to 10cm, the yoke's extra depth off it.
+    expect(fitted.finished.bodyLengthCm).toBeLessThanOrEqual(37);
+    expect(fitted.finished.sleeveLengthCm).toBe(45);
+  });
+
+  it("every size can be planned on from every band, tighter and looser, or says why not", () => {
+    const pattern = sweaterById("hamefarin")!;
+    const said: string[] = [];
+    let planned = 0;
+    for (const size of pattern.sizes) {
+      const knitted = buildSweater(pattern, size.id);
+      for (let round = cutAfter("hamefarin", knitted, 1); round !== undefined; round = cutAfter("hamefarin", knitted, round + 1)) {
+        for (const tension of [{ stitchesPer10cm: 24, roundsPer10cm: 28 }, { stitchesPer10cm: 30, roundsPer10cm: 36 }, { stitchesPer10cm: 26, roundsPer10cm: 34 }]) {
+          try {
+            const fitted = fit({ design: "hamefarin", sizeId: size.id, knitted, round, tension });
+            expect(fitted.knitted.roundPieces.at(-1)).toBe("sleeve-right");
+            planned++;
+          } catch (error) {
+            said.push(`${size.id} ${round} ${tension.stitchesPer10cm}: ${(error as Error).message}`);
+          }
+        }
+      }
+    }
+    expect(said.every((one) => /fitted: /.test(one)), said.join("\n")).toBe(true);
+    expect(planned).toBeGreaterThan(90);
+    expect(said.length, said.join("\n")).toBeLessThan(20);
+  }, 600000);
+});
