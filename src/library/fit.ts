@@ -1,4 +1,4 @@
-import type { Measurements, Tension } from "../pattern/design";
+import type { Design, Measurements, Tension } from "../pattern/design";
 import type { SweaterStitches } from "../pattern/knitted";
 import type { EditionFile } from "./editions/format";
 
@@ -41,6 +41,14 @@ export interface Fitted {
   written: string;
   option?: string;
 }
+
+/**
+ * Whether the rest of a knitting might still be worked out again: its design
+ * can be, and nothing is on hold yet - the whole sweater is still one round
+ * on the needles. The design has the last word, when it is asked.
+ */
+export const mayFit = (design: Design, knitted: SweaterStitches, progress: number): boolean =>
+  !!design.fitting && !knitted.holds.some((held) => held.heldAt <= progress);
 
 /** What the worker says back: how far it has got, then the fit, or why there is none. */
 export type FitAnswer = { progress: number } | { fitted: Fitted } | { cannot: string };

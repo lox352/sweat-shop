@@ -44,9 +44,8 @@ test("a project started before its pattern was updated knits what it was started
   await page.goto("#/project/1760000000000");
   await expect(note(page)).toBeVisible();
   await expect(note(page)).toContainText("You are still knitting the version you started");
-  // Where the two first differ, and that it is still to come.
-  await expect(note(page)).toContainText(/The update first differs at Yoke, round \d+\./);
-  await expect(note(page)).toContainText("switching changes nothing you have knitted");
+  // The update is all ahead of the knitter: it can be taken as it is published.
+  await expect(note(page)).toContainText("Everything you have knitted is the same in the update. 11 rounds ahead of you are different.");
   expect(asked).toHaveLength(1);
   // Nothing of the project's has been touched by opening it.
   expect(await saved(page)).toMatchObject({ progress: 400, edition: older });
@@ -58,22 +57,75 @@ test("a project started before its pattern was updated knits what it was started
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
   await expect(note(page)).toBeVisible();
 
-  // Moving on is asked twice, and then the project is on its size's knitting as it is now.
-  await note(page).getByRole("button", { name: "Switch to the updated pattern", exact: true }).click();
-  await note(page).getByRole("button", { name: "Not now", exact: true }).click();
-  expect(await saved(page)).toMatchObject({ edition: older });
-  await note(page).getByRole("button", { name: "Switch to the updated pattern", exact: true }).click();
-  await note(page).getByRole("button", { name: "Yes, switch", exact: true }).click();
+  // Taken, the project is on its size's knitting as it is now, its place where it was.
+  await note(page).getByRole("button", { name: "Update from here", exact: true }).click();
   await expect(note(page)).toHaveCount(0);
   expect(await saved(page)).toMatchObject({ progress: 400, edition: current });
 });
 
-test("a change before where a project has got to is said to be", async ({ page }) => {
-  await page.route(`**/editions/hamefarin--m--${older}.json`, async (route) => route.fulfill({ contentType: "application/json", body: await olderFile() }));
+/** The first stitch of a round of the size's knitting, the rounds counted from 1: a round is written as runs of stitches, each its first and how many. */
+const startOf = async (round) => JSON.parse(await readFile(`public/editions/hamefarin--m--${current}.json`, "utf8")).rounds[round - 1][0];
+const servingOlder = (page) => page.route(`**/editions/hamefarin--m--${older}.json`, async (route) => route.fulfill({ contentType: "application/json", body: await olderFile() }));
+
+test("an update with changes behind the knitter and ahead is taken from the round in hand: their rounds are kept, and the rest is the update's", async ({ page }) => {
+  await servingOlder(page);
+  // Part way round round 50 of the yoke: the two differ in rounds 36 and 45 behind, and from 56 on ahead.
+  const progress = (await startOf(50)) + 100;
+  await projectOn(page, older, progress);
+  await page.goto("#/project/1760000000000");
+  await expect(note(page)).toContainText("is the same pattern again at Yoke, round 50");
+  await expect(note(page)).toContainText("9 rounds ahead of you are different");
+  await note(page).getByRole("button", { name: "Update from the end of Yoke, round 50", exact: true }).click();
+  await expect(note(page)).toHaveCount(0);
+  // The knitting is now the project's own: neither edition, up to date with the size's, and kept on the device.
+  const project = await saved(page);
+  expect(project.progress).toBe(progress);
+  expect(project.upTo).toBe(current);
+  expect([older, current]).not.toContain(project.edition);
+  const own = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), `edition-hamefarin--m--${project.edition}`);
+  const [was, now] = [JSON.parse(await olderFile()), JSON.parse(await readFile(`public/editions/hamefarin--m--${current}.json`, "utf8"))];
+  expect(own.rounds).toEqual(now.rounds);
+  // Its yarns to the end of round 50 are the older edition's, and from there the update's.
+  const yarns = (file, from, to) => {
+    const each = [];
+    for (let at = 0; at < file.stitches.slot.length; at += 2) for (let n = 0; n < file.stitches.slot[at + 1]; n++) each.push(file.stitches.slots[file.stitches.slot[at]]);
+    return each.slice(from, to).join("");
+  };
+  const end = await startOf(51);
+  expect(yarns(own, 0, end)).toBe(yarns(was, 0, end));
+  expect(yarns(own, end)).toBe(yarns(now, end));
+  // It opens again from the device, with neither edition to be fetched, on the stitch it was on.
+  await page.route("**/editions/**", (route) => route.abort());
+  await page.goto("#/project/1760000000000/chart?knitting=1");
+  await expect(page.locator(".knitting-panel [role=status]")).toBeAttached();
+  await expect(note(page)).toHaveCount(0);
+});
+
+test("an update all behind the knitter is said once, and changes nothing", async ({ page }) => {
+  await servingOlder(page);
+  const all = JSON.parse(await readFile(`public/editions/hamefarin--m--${current}.json`, "utf8")).stitches.count;
+  await projectOn(page, older, all - 1);
+  await page.goto("#/project/1760000000000");
+  await expect(note(page)).toContainText("The change is in what you have already knitted, from Yoke, round 36 to");
+  await expect(note(page)).toContainText("Nothing ahead of you changes");
+  await note(page).getByRole("button", { name: "Understood", exact: true }).click();
+  await expect(note(page)).toHaveCount(0);
+  expect(await saved(page)).toMatchObject({ progress: all - 1, edition: older, upTo: current });
+  // The edition it stays on is kept with it, so it need not stay published.
+  expect(await page.evaluate((key) => localStorage.getItem(key) !== null, `edition-hamefarin--m--${older}`)).toBe(true);
+  await page.reload();
+  await expect(page.locator(".measurements").first()).toBeVisible();
+  await expect(note(page)).toHaveCount(0);
+});
+
+test("an update that can't be joined to the knitting, in a design that can't work the rest out again, leaves the knitter as they were", async ({ page }) => {
+  await servingOlder(page);
+  // On the body: the two differ behind, in the yoke, and ahead, above the hem, and stitches are on hold between.
   await projectOn(page, older, 30000);
   await page.goto("#/project/1760000000000");
-  await expect(note(page)).toContainText("That is before where you are");
-  await expect(note(page)).toContainText("Knit up to here");
+  await expect(note(page)).toContainText("can't be joined to your knitting. You knit on as you were.");
+  await expect(note(page).getByRole("button")).toHaveCount(0);
+  expect(await saved(page)).toMatchObject({ progress: 30000, edition: older });
 });
 
 test("a project whose edition cannot be fetched is not shown some other knitting", async ({ page }) => {

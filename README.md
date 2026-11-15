@@ -169,10 +169,24 @@ stitches whatever the code that built it has since become.
 - A project on an edition its size has moved on from knits that edition's
   copy. Where a copy cannot be fetched, the page says so and offers to try
   again; it never shows some other knitting.
-- The project's pages then say the pattern has been updated, where the update
-  first differs, and whether that is before or after where the knitting has
-  got to. Moving on is the knitter's choice; their place may need putting
-  right with *Knit up to here* where the two differ behind them.
+- The project's pages then say the pattern has been updated. Nothing is ever
+  done to what is knitted, so what the update is to a knitter depends only on
+  where it falls from their needles (`src/library/editions/difference.ts`):
+  - **all behind them**, the rest the same stitches: they are told what was
+    put right, once, and knit on what they have;
+  - **all ahead**: *Update from here* moves them to the published edition,
+    their place where it was;
+  - **round them**: the two are compared a round at a time, and from the
+    first round at or after theirs that is the same in both, their rounds
+    are joined to the update's - *Update from the end of round N*;
+  - **on other counts for good**: nothing to join. A design that can works
+    the rest out afresh on the device (see "Fitting a sweater part way
+    through"); otherwise they knit on.
+- Knitting joined to an update, or fitted, is the project's own: an edition
+  named by its knitting like any other, kept on the device and in backups.
+  So is an older edition a project stays on, which then need not stay
+  published. The project records the published edition it is up to date
+  with (`upTo`), and is offered the next update when the size moves on.
 - The sweater in three dimensions is each edition's own: see shapes, above.
 
 A page reads no design's own file. What it shows of a design - its name, its

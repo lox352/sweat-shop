@@ -7,8 +7,6 @@ import { buildSweater } from "../../compiler/engine/engine";
 import { isSpacer } from "../../pattern/knitted";
 import { sweaterById, sweaters } from "../../compiler/designs/index";
 import { EditionFile, decodeEdition, encodeEdition, hashable } from "./format";
-import { carryOver, firstDifference } from "./difference";
-import type { Stitch } from "../../pattern/Stitch";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const frozen = join(here, "../../../public/editions");
@@ -91,45 +89,4 @@ describe("an edition's name", () => {
     relabelled.stitches.fabrics = relabelled.stitches.fabrics.map((fabric) => `${fabric}0`);
     expect(nameOf(relabelled)).toBe(nameOf(file));
   });
-});
-
-describe("a place carried over to another edition", () => {
-  const knitting = (types: string[]) =>
-    types.map((type, id) => ({ id, type, slot: "MC", piece: "yoke", links: id > 0 ? [id - 1] : [] })) as unknown as Stitch[];
-
-  it("is the same before the two first differ, shifted in the stretch they end with, and none in what changed", () => {
-    // Two stitches taken out of the middle: the k2togs, where the update knits on.
-    const mine = knitting(["castOn", "k1", "k1", "k2tog", "k2tog", "k1", "k1", "k1"]);
-    const now = knitting(["castOn", "k1", "k1", "k1", "k1", "k1"]);
-    const moved = carryOver(mine, now);
-    expect(moved(0)).toBe(0);
-    expect(moved(2)).toBe(2);
-    // Into what changed: nowhere to be.
-    expect(moved(3)).toBeUndefined();
-    // The last of what changed worked: on to the shared stretch.
-    expect(moved(4)).toBe(2);
-    expect(moved(7)).toBe(5);
-  });
-
-  it("is the same throughout for editions that knit alike", () => {
-    const mine = knitting(["castOn", "k1", "k1"]);
-    expect(carryOver(mine, knitting(["castOn", "k1", "k1"]))(2)).toBe(2);
-  });
-
-  it("carries a project from each older edition to its size's edition now where the two line up", () => {
-    for (const [design, sizes] of Object.entries(entries)) {
-      for (const [size, { current }] of Object.entries(sizes)) {
-        for (const name of readdirSync(frozen).filter((one) => one.startsWith(`${design}--${size}--`) && !one.includes(current))) {
-          const read = (file: string) => decodeEdition(JSON.parse(readFileSync(join(frozen, file), "utf8")) as EditionFile).stitches;
-          const mine = read(name);
-          const now = read(`${design}--${size}--${current}.json`);
-          const moved = carryOver(mine, now);
-          const first = firstDifference(mine, now)!;
-          // Every place before the first difference is itself, and the last stitch of either is the last of the other.
-          expect(moved(first - 1)).toBe(first - 1);
-          expect(moved(mine.length - 1)).toBe(now.length - 1);
-        }
-      }
-    }
-  }, 300000);
 });

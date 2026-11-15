@@ -8,7 +8,9 @@ import { currentEdition, editionOf, isSuperseded, errataOf } from "../../library
 import PatternUpdated from "./PatternUpdated";
 import MyTension from "./MyTension";
 import Refit from "./Refit";
-import type { Fitted } from "../../library/fit";
+import { type Fitted, mayFit } from "../../library/fit";
+import { asEdition } from "../../library/editions/own";
+import type { SweaterStitches } from "../../pattern/knitted";
 import { sameTension, yarnPerStitch } from "../../reading/tension";
 import { makeOnesAtMarkers } from "../../reading/marker-routes";
 import type { ChartView } from "../../reading/views";
@@ -35,7 +37,7 @@ import SweaterModel from "./SweaterModel";
 import Chart from "../chart/Chart";
 import KnittingPanel from "./KnittingPanel";
 import { KeySheet } from "./KnitKey";
-import { movedLog, readLog, recordProgress, writeLog } from "../../projects/timing/log";
+import { recordProgress } from "../../projects/timing/log";
 import { useKnittingTime, useTimeDetail, useTimeRecording } from "../useKnittingTime";
 import { TimeFigures, TimeLine } from "./KnittingTime";
 import { SpeedsSheet, StatsPanel, StitchTime } from "./StatsView";
@@ -169,16 +171,29 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
 
   const knitting = params.get(knittingParam) === "1";
   const sweater = project ? sweaterById(project.sweaterId) : undefined;
-  // Moving on to the update: the project's place, and its knitting-time log, carried over where the two editions have it. See PatternUpdated.
-  const takeUpdate = useCallback((moved: (progress: number) => number | undefined) => {
+  // The update taken as published: every stitch knitted is the same in it, so the project's place is where it was. See PatternUpdated.
+  const takeUpdate = useCallback(() => {
     change((current) => {
       const edition = currentEdition(current.sweaterId, current.sizeId);
       if (!edition) return current;
-      const progress = moved(current.progress) ?? current.progress;
-      const rows = readLog(current.id);
-      if (rows.length > 0) writeLog(current.id, movedLog(rows, moved));
-      return { ...current, edition, progress };
+      const { upTo, ...rest } = current;
+      void upTo;
+      return { ...rest, edition };
     });
+    dropUnknitted();
+  }, [change]);
+  // An update that changes nothing ahead, seen: the project knits on what it has, which is up to date with it.
+  const seeUpdate = useCallback(() => {
+    change((current) => ({ ...current, edition: editionOf(current), upTo: currentEdition(current.sweaterId, current.sizeId) }));
+  }, [change]);
+  // The update taken from a round: the knitter's rounds to it and the update's from there, knitting of the project's own.
+  const joinUpdate = useCallback(async (knitting: SweaterStitches) => {
+    const current = currentProject.current;
+    if (!current) return;
+    const file = await asEdition(knitting, current.sweaterId, current.sizeId);
+    if (!keepKnitting(file)) return;
+    change((now) => ({ ...now, edition: file.edition, upTo: currentEdition(now.sweaterId, now.sizeId) }));
+    dropUnknitted();
   }, [change]);
   useTimeRecording(project && sweater && view === "chart" ? project.id : undefined, knitting);
 
@@ -263,13 +278,16 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
         from: current.fit ? current.fit.from : editionOf(current),
         ...(fitted.option ? { option: fitted.option } : {}),
       },
+      // Worked out from the pattern as it is now.
+      upTo: currentEdition(current.sweaterId, current.sizeId),
     }));
     dropUnknitted();
   }, [change]);
 
   const leaveFit = useCallback(() => {
     change((current) => {
-      const { fit, ...rest } = current;
+      const { fit, upTo, ...rest } = current;
+      void upTo;
       return fit?.from ? { ...rest, edition: fit.from } : current;
     });
     dropUnknitted();
@@ -348,6 +366,8 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
       setShade={setShade}
       setTension={setTension}
       takeUpdate={takeUpdate}
+      seeUpdate={seeUpdate}
+      joinUpdate={joinUpdate}
       takeFit={takeFit}
       leaveFit={leaveFit}
     />
@@ -367,7 +387,9 @@ const ProjectView: React.FC<{
   setTrim: (trim: string | undefined) => void;
   setShade: (slots: SlotId[], chosen: Chosen | undefined) => void;
   setTension: (tension: Tension | undefined) => void;
-  takeUpdate: (moved: (progress: number) => number | undefined) => void;
+  takeUpdate: () => void;
+  seeUpdate: () => void;
+  joinUpdate: (knitting: SweaterStitches) => void;
   takeFit: (fitted: Fitted) => void;
   leaveFit: () => void;
 }> = ({
@@ -384,6 +406,8 @@ const ProjectView: React.FC<{
   setShade,
   setTension,
   takeUpdate,
+  seeUpdate,
+  joinUpdate,
   takeFit,
   leaveFit,
 }) => {
@@ -415,8 +439,21 @@ const ProjectView: React.FC<{
   const chart = shownView ? viewChart(built, counted, shownView) : { layout: counted.layout, markers: counted.markers };
   const makeOnes = useMemo(() => makeOnesAtMarkers({ stitches, knitting: built.knitting }), [stitches, built.knitting]);
   // The design's knitting has moved on since this project began: it says so, and offers the update.
-  const updated = !project.fit && isSuperseded(sweater.id, size.id, edition) ? (
-    <PatternUpdated sweater={sweater} sizeId={size.id} stitches={stitches} index={index} progress={project.progress} onSwitch={takeUpdate} errata={errataOf(sweater.id, size.id)} />
+  const updated = isSuperseded(sweater.id, size.id, project.upTo ?? edition) ? (
+    <PatternUpdated
+      sweater={sweater}
+      size={size}
+      knitted={built}
+      index={index}
+      progress={project.progress}
+      tension={project.tension}
+      fit={project.fit}
+      errata={errataOf(sweater.id, size.id)}
+      onSeen={seeUpdate}
+      onSwitch={takeUpdate}
+      onJoin={joinUpdate}
+      onFit={takeFit}
+    />
   ) : null;
   const tabs = finished.length > 1 && shownView && (
     <ViewTabs
@@ -685,7 +722,8 @@ const ProjectView: React.FC<{
       </section>
 
       <MyTension key={project.id} size={size} fitted={fitted} tension={project.tension} onChange={setTension}>
-        {sweater.fitting && project.tension && !position.finished && (project.fit || !sameTension(size, project.tension)) && (
+        {/* Where the rest is worked out for this tension already, it says so; where it could be, it offers to. */}
+        {project.tension && (sameTension(fitted ?? size, project.tension) ? !!fitted : mayFit(sweater, built, project.progress)) && (
           <Refit
             sweater={sweater}
             size={size}

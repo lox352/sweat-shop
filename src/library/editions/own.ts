@@ -1,4 +1,5 @@
-import type { EditionFile } from "./format";
+import type { SweaterStitches } from "../../pattern/knitted";
+import { type EditionFile, encodeEdition, hashable } from "./format";
 
 /**
  * Editions a project owns: knitting no published file holds, kept on the
@@ -13,6 +14,13 @@ import type { EditionFile } from "./format";
  */
 const prefix = "edition-";
 const keyFor = (design: string, size: string, edition: string) => `${prefix}${design}--${size}--${edition}`;
+
+/** Knitting as an edition of its own, named as a published one is: twelve hex digits of the hash of its knitting (see scripts/shapes.mjs). */
+export const asEdition = async (knitting: SweaterStitches, design: string, size: string): Promise<EditionFile> => {
+  const draft = encodeEdition(knitting, design, size, "");
+  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(hashable(draft)));
+  return { ...draft, edition: [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 12) };
+};
 
 /** An edition kept on the device, if this one is. */
 export const ownEdition = (design: string, size: string, edition: string): EditionFile | undefined => {

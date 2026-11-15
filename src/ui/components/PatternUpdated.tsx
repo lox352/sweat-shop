@@ -1,84 +1,140 @@
 import { useEffect, useState } from "react";
-import type { Design } from "../../pattern/design";
-import type { Stitch } from "../../pattern/Stitch";
+import type { Design, SizeAbout, Tension } from "../../pattern/design";
+import type { SweaterStitches } from "../../pattern/knitted";
 import { type RoundIndex, roundNames } from "../../reading/progress";
 import { whenKnitting } from "../../library/knitting";
-import { carryOver, firstDifference } from "../../library/editions/difference";
+import { type Update, updateFor } from "../../library/editions/difference";
+import { type Fitted, mayFit } from "../../library/fit";
+import type { ProjectFit } from "../../projects/projects";
+import Refit from "./Refit";
+
+const rounds = (count: number) => `${count} round${count === 1 ? "" : "s"}`;
 
 /**
  * A note on a project whose design's knitting has moved on since it was
- * started: it still knits what it was started on (see library/editions),
- * and its knitter may move to the update when it suits them. Where the two
- * first differ says whether moving would touch anything already knitted.
+ * started. It still knits what it was started on, and nothing is ever done
+ * to what is knitted: what the update is to this knitter depends on where it
+ * falls from their needles (see editions/difference), and the note says
+ * which, and offers what can be had - nothing to decide, the update from
+ * here, the update from a round ahead, or the rest worked out afresh.
  */
 const PatternUpdated: React.FC<{
   sweater: Design;
-  sizeId: string;
-  stitches: Stitch[];
+  size: SizeAbout;
+  knitted: SweaterStitches;
   index: RoundIndex;
   progress: number;
-  /** Moving on: with where each place is in the update, where it has one. See editions' carryOver. */
-  onSwitch: (moved: (progress: number) => number | undefined) => void;
+  /** The knitter's own tension, where they have said, and where their knitting is fitted to it. */
+  tension: Tension | undefined;
+  fit: ProjectFit | undefined;
   /** Said by whoever published the update, where it puts right a mistake: see the editions manifest. */
   errata?: string;
-}> = ({ sweater, sizeId, stitches, index, progress, onSwitch, errata }) => {
-  const [differs, setDiffers] = useState<{ id: number; round: string } | "same" | undefined>();
-  const [moved, setMoved] = useState<(progress: number) => number | undefined>(() => (at: number) => at);
-  const [asking, setAsking] = useState(false);
+  /** Told of an update that changes nothing ahead: nothing more to say of it. */
+  onSeen: () => void;
+  /** Taking the update as published: every stitch knitted is the same in it. */
+  onSwitch: () => void;
+  /** Taking the update from a round: the knitter's rounds to it, and the update's from there. */
+  onJoin: (knitting: SweaterStitches) => void;
+  /** Taking the rest worked out afresh from the updated pattern. */
+  onFit: (fitted: Fitted) => void;
+}> = ({ sweater, size, knitted, index, progress, tension, fit, errata, onSeen, onSwitch, onJoin, onFit }) => {
+  const [update, setUpdate] = useState<Update>();
 
   useEffect(() => {
     let open = true;
-    // The size's knitting now; where it cannot be fetched, the note does without where the two differ.
-    void whenKnitting(sweater, sizeId).then((now) => {
+    // The size's knitting now; where it cannot be fetched, the note does without how the two differ.
+    void whenKnitting(sweater, size.id).then((now) => {
       if (!open) return;
-      const id = firstDifference(stitches, now.stitches);
-      setMoved(() => carryOver(stitches, now.stitches));
-      if (id === undefined) return setDiffers("same");
-      let at = id;
-      while (at > 0 && !index.roundOf.has(at)) at--;
-      const round = index.roundOf.get(at);
-      setDiffers({ id, round: round ? roundNames(index)[round - 1] : `stitch ${id}` });
+      const found = updateFor(knitted, now, progress);
+      // Knitting fitted to its knitter is not the pattern's to join an update to: only ever worked out again.
+      setUpdate(fit && found.kind !== "behind" ? { kind: "apart" } : found);
     }, () => undefined);
     return () => {
       open = false;
     };
-  }, [sweater, sizeId, stitches, index]);
+    // Where the knitter is when the note is first shown: it does not change under them as they knit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sweater, size.id, knitted, fit]);
+
+  const names = roundNames(index);
+  const lead = errata ? "This pattern has been corrected since you started it." : "This pattern has been updated since you started it.";
+
+  if (update?.kind === "behind") {
+    const [first, last] = [update.changed[0], update.changed[update.changed.length - 1]];
+    return (
+      <aside className="pattern-updated" aria-label="This pattern has been updated">
+        <p>
+          <strong>{lead}</strong>{" "}
+          {first
+            ? `The change is in what you have already knitted, ${first === last ? names[first - 1] : `from ${names[first - 1]} to ${names[last - 1]}`}. `
+            : ""}
+          Nothing ahead of you changes, and your chart stays as you knitted it.
+        </p>
+        {errata && <p className="pattern-updated-errata">{errata}</p>}
+        <p className="pattern-updated-actions">
+          <button type="button" className="btn" onClick={onSeen}>
+            Understood
+          </button>
+        </p>
+      </aside>
+    );
+  }
 
   return (
     <aside className="pattern-updated" aria-label="This pattern has been updated">
       <p>
-        <strong>{errata ? "This pattern has been corrected since you started it." : "This pattern has been updated since you started it."}</strong>{" "}
-        You are still knitting the version you started, so nothing has moved.
+        <strong>{lead}</strong> You are still knitting the version you started, and nothing you have knitted is ever changed.
       </p>
       {errata && <p className="pattern-updated-errata">{errata}</p>}
-      {differs === "same" && <p>The update knits the same stitches as yours, so switching keeps your place.</p>}
-      {differs && differs !== "same" && (
-        <p>
-          The update first differs at <strong>{differs.round}</strong>.{" "}
-          {differs.id > progress
-            ? "That is after where you are, so switching changes nothing you have knitted."
-            : moved(progress) !== undefined
-              ? "That is before where you are, but from here on the two are the same knitting: switching keeps your place, and charts some of what you have knitted differently."
-              : "That is before where you are, and where you are is part of what changed: switching charts some of what you have knitted differently, and your place will need putting right with Knit up to here."}
-        </p>
+      {update?.kind === "ahead" && (
+        <>
+          <p>
+            Everything you have knitted is the same in the update. {rounds(update.changed.length)} ahead of you {update.changed.length === 1 ? "is" : "are"}{" "}
+            different.
+          </p>
+          <p className="pattern-updated-actions">
+            <button type="button" className="btn btn-primary" onClick={onSwitch}>
+              Update from here
+            </button>
+          </p>
+        </>
       )}
-      {asking ? (
-        <p className="pattern-updated-actions">
-          Switch to the updated pattern?{" "}
-          <button type="button" className="btn btn-primary" onClick={() => onSwitch(moved)}>
-            Yes, switch
-          </button>{" "}
-          <button type="button" className="btn" onClick={() => setAsking(false)}>
-            Not now
-          </button>
-        </p>
-      ) : (
-        <p className="pattern-updated-actions">
-          <button type="button" className="btn" onClick={() => setAsking(true)}>
-            Switch to the updated pattern
-          </button>
-        </p>
+      {update?.kind === "joined" && (
+        <>
+          <p>
+            The update differs from what you have knitted, and is the same pattern again at <strong>{names[update.round - 1]}</strong>. Your rounds to the
+            end of that one stay as they are, and the update is knitted from there: {rounds(update.changed.length)} ahead of you{" "}
+            {update.changed.length === 1 ? "is" : "are"} different.
+          </p>
+          <p className="pattern-updated-actions">
+            <button type="button" className="btn btn-primary" onClick={() => onJoin(update.knitting)}>
+              Update from the end of {names[update.round - 1]}
+            </button>
+          </p>
+        </>
       )}
+      {update?.kind === "apart" &&
+        (mayFit(sweater, knitted, progress) ? (
+          <Refit
+            sweater={sweater}
+            size={size}
+            knitted={knitted}
+            progress={progress}
+            tension={tension ?? { stitchesPer10cm: size.stitchesPer10cm, roundsPer10cm: size.roundsPer10cm }}
+            fit={undefined}
+            roundNames={names}
+            title="Work the rest out from the updated pattern"
+            lead={
+              fit
+                ? "The rest of your pattern was worked out for your tension from the pattern as it was. It can be worked out again from the pattern as it is now."
+                : "The update is on other stitch counts from where you are on, so it can't be joined to your knitting as it is. The rest can be worked out again from the updated pattern, for the stitches on your needles."
+            }
+            onTake={onFit}
+            onGoBack={() => undefined}
+          />
+        ) : (
+          <p>The update is on other stitch counts from where you are on, so it can't be joined to your knitting. You knit on as you were.</p>
+        ))}
     </aside>
   );
 };
