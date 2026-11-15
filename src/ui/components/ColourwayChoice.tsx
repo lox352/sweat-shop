@@ -301,4 +301,5 @@ const ColourwayChoice: React.FC<{
   );
 };
 
-export default ColourwayChoice;
+// Drawn again only when what it shows changes: a sampler has many colourways of a thousand yarns each, and a project changes for other reasons.
+export default React.memo(ColourwayChoice);

@@ -1,0 +1,42 @@
+.my-tension-form p {
+  margin: 0.4rem 0;
+}
+
+.my-tension-form input {
+  width: 5.5rem;
+  font: inherit;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: inherit;
+}
+
+.my-tension-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.my-tension-table {
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+.my-tension-table th,
+.my-tension-table td {
+  padding: 0.3rem 1.25rem 0.3rem 0;
+  text-align: left;
+  border-bottom: 1px solid var(--rule);
+  font-variant-numeric: tabular-nums;
+}
+
+.my-tension-table thead th,
+.my-tension-table tbody th {
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.72rem;
+  font-weight: normal;
+  color: var(--ink-faint);
+}

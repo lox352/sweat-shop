@@ -2,7 +2,7 @@ import { sweaterById } from "../library/catalogue";
 import type { Design } from "../pattern/design";
 import { editionOf } from "../library/editions";
 import { knittingToHand } from "../library/knitting";
-import { currentVersion, listProjects, type Project, writeProject } from "./projects";
+import { currentVersion, isTension, listProjects, type Project, writeProject } from "./projects";
 import { isLog, readLog, writeLog, type Row } from "./timing/log";
 
 /** A project as a backup holds it: with its knitting-time log, if it has one. */
@@ -40,6 +40,7 @@ export function parseBackup(text: string): BackupProject[] {
       !sweater.colourways.some(c => c.id === p.colourwayId) ||
       p.version !== currentVersion || !Number.isSafeInteger(p.progress) || p.progress < 0 ||
       (p.edition !== undefined && (typeof p.edition !== "string" || !/^[0-9a-f]{1,64}$/.test(p.edition))) ||
+      (p.tension !== undefined && !isTension(p.tension)) ||
       pastTheEnd(sweater, p) ||
       (p.name !== undefined && (typeof p.name !== "string" || p.name.length > 200)) ||
       (p.trim !== undefined && (typeof p.trim !== "string" || p.trim.length > 200)) ||
@@ -61,6 +62,7 @@ export function parseBackup(text: string): BackupProject[] {
       ...(p.trim ? { trim: p.trim } : {}),
       // The edition of the knitting it knits, kept so a restored project knits what it did: see library/editions.
       ...(p.edition ? { edition: p.edition } : {}),
+      ...(p.tension ? { tension: { stitchesPer10cm: p.tension.stitchesPer10cm, roundsPer10cm: p.tension.roundsPer10cm } } : {}),
       shades: p.shades, startedAt: p.startedAt, updatedAt: new Date().toISOString(),
       ...(p.timeLog ? { timeLog: p.timeLog } : {}) };
   });

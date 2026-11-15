@@ -129,4 +129,5 @@ const WoolList: React.FC<WoolListProps> = ({
   );
 };
 
-export default WoolList;
+// Drawn again only when what it lists changes: see ColourwayChoice.
+export default React.memo(WoolList);
