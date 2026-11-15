@@ -1,7 +1,7 @@
 import { type Held, type RoundKind, type SeamKind, beginning } from "../../pattern/rounds";
-import { Stitch } from "../../pattern/Stitch";
+import { Stitch, secondLoop } from "../../pattern/Stitch";
 import { StitchType } from "../../pattern/StitchType";
-import { boundOff, kinds, makesTwo } from "../../pattern/kinds";
+import { kinds } from "../../pattern/kinds";
 
 /**
  * The knitting, as a knitter has it: the stitches on the needles.
@@ -286,42 +286,37 @@ export default class Needles {
     return out;
   }
 
-  /** Work one stitch, or one instruction - a k2tog is one stitch made of two. */
+  /**
+   * Work one stitch, or one instruction - a k2tog is one stitch made of two -
+   * by its kind's recipe: see kinds' Move. Nothing here knows one kind from
+   * another but by the moves it is written in.
+   */
   knit(type: StitchType, slot: string, from?: number): Stitch {
     if (!this.working) throw new Error("start a round before knitting into it");
-    // Slipping a stitch and passing the last cast on over it binds that one off.
-    if (type === "sl1po") {
-      const passed = this.yarn === undefined ? undefined : this.stitches[this.yarn];
-      if (passed?.type !== "castOn" || this.next[this.next.length - 1] !== passed.id) {
-        throw new Error(`${this.label}: there is no stitch just cast on to pass over`);
-      }
-      this.next.pop();
-    }
-    const worked = this.take(kinds[type].takes);
-    const links = [...worked];
-    /*
-     * A KFB or a KBF makes two loops out of one stitch: the first is stored
-     * as itself, the second as the make-one straight after it. That second loop
-     * is worked into the same stitch, so it is held by it too, rather than
-     * only by its neighbour.
-     */
     const previous = this.yarn === undefined ? undefined : this.stitches[this.yarn];
-    if (type === "m1" && makesTwo(previous?.type)) links.push(previous!.links[0]);
-    if (this.yarn !== undefined) links.push(this.yarn);
-    const stitch = this.push({
-      links,
-      type,
-      slot,
-      piece: this.piece,
-      width: this.width,
-      rise: this.rise,
-      ...(from === undefined ? {} : { from }),
-    });
-    this.made.push(stitch.id);
-    this.onCourse(stitch.id);
-    // A bound-off stitch is finished: nothing is left on the needle for it.
-    if (!boundOff(type)) this.next.push(stitch.id);
-    this.yarn = stitch.id;
+    const worked: number[] = [];
+    let stitch: Stitch | undefined;
+    for (const move of kinds[type].recipe) {
+      if (typeof move === "object") worked.push(...this.take(move.take));
+      else if (move === "make" || move === "slip") {
+        const links = [...worked];
+        // A KFB or a KBF makes two loops of one stitch: its second, the make-one straight after it, is worked into that stitch too, and so held by it.
+        if (secondLoop({ type } as Stitch, previous)) links.push(previous!.links[0]);
+        if (this.yarn !== undefined) links.push(this.yarn);
+        stitch = this.push({ links, type, slot, piece: this.piece, width: this.width, rise: this.rise, ...(from === undefined ? {} : { from }) });
+        this.made.push(stitch.id);
+        this.onCourse(stitch.id);
+        this.yarn = stitch.id;
+      } else if (move === "passOver") {
+        // The loop before this one is lifted over it and so bound off: the last stitch cast on, over the stitch slipped after it.
+        if (previous?.type !== "castOn" || this.next[this.next.length - 1] !== previous.id) {
+          throw new Error(`${this.label}: there is no stitch just cast on to pass over`);
+        }
+        this.next.pop();
+      } else if (move === "keep") this.next.push(stitch!.id);
+      // "finish" leaves nothing on the needle; "bar", "strand" and "edge" take nothing from it.
+    }
+    if (!stitch) throw new Error(`${this.label}: ${type} is a step, and makes no stitch`);
     return stitch;
   }
 
