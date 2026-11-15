@@ -39,7 +39,6 @@ interface Extra {
   marker?: string;
   removed?: boolean;
   begins?: boolean;
-  catch?: true;
 }
 
 interface PackedHeld {
@@ -77,6 +76,12 @@ export interface EditionFile {
     link: Runs<number>;
     /** The copies of a column a band has doubled: see engine's isSpacer. */
     spacers: Ranges;
+    /**
+     * The stitches a float is caught on (see Stitch.catch), each as how far on
+     * from the one before: thousands of them in a picture knitted large, most
+     * the same few stitches apart. Left out where there are none.
+     */
+    catches?: number[];
     extras: Record<string, Extra>;
   };
   rounds: Ranges[];
@@ -143,7 +148,7 @@ const numbering = <T>() => {
   return { of, values };
 };
 
-const extraKeys = ["from", "holder", "count", "wrap", "marker", "removed", "begins", "catch"] as const;
+const extraKeys = ["from", "holder", "count", "wrap", "marker", "removed", "begins"] as const;
 
 /** A built sweater, frozen as an edition. `edition` is its name, worked out by whoever writes it: see hashable. */
 export const encodeEdition = (built: SweaterStitches, design: string, size: string, edition: string): EditionFile => {
@@ -154,12 +159,14 @@ export const encodeEdition = (built: SweaterStitches, design: string, size: stri
   const links = numbering<string>();
   const extras: Record<string, Extra> = {};
   const spacers: number[] = [];
+  const catches: number[] = [];
   built.stitches.forEach((stitch, id) => {
     if (stitch.id !== id) throw new Error(`stitch ${stitch.id} is not at ${id}`);
     const extra: Extra = {};
     for (const key of extraKeys) if (stitch[key] !== undefined) (extra as Record<string, unknown>)[key] = stitch[key];
     if (Object.keys(extra).length) extras[id] = extra;
     if ((stitch as { spacer?: true }).spacer) spacers.push(id);
+    if (stitch.catch) catches.push(id);
   });
   const stitches = built.stitches;
   return {
@@ -183,6 +190,7 @@ export const encodeEdition = (built: SweaterStitches, design: string, size: stri
       fabrics: fabrics.values,
       links: links.values,
       spacers: ranges(spacers),
+      ...(catches.length ? { catches: catches.map((id, k) => id - (catches[k - 1] ?? 0)) } : {}),
       extras,
     },
     rounds: built.rounds.map(ranges),
@@ -223,6 +231,8 @@ export const decodeEdition = (file: EditionFile): SweaterStitches => {
   const lengths = [type, slot, piece, side, fabric, needles, link].map((column) => column.length);
   if (lengths.some((length) => length !== coded.count)) throw new Error(`edition ${file.edition}: columns of ${lengths.join(", ")}, not ${coded.count}`);
   const spacers = new Set(unrange(coded.spacers));
+  let caughtAt = 0;
+  const catches = new Set((coded.catches ?? []).map((gap) => (caughtAt += gap)));
   const stitches: Stitch[] = [];
   for (let id = 0; id < coded.count; id++) {
     const reaches = coded.links[link[id]];
@@ -244,6 +254,7 @@ export const decodeEdition = (file: EditionFile): SweaterStitches => {
       stitch.type = otherSide(stitch.type);
     }
     if (spacers.has(id)) Object.assign(stitch, { spacer: true });
+    if (catches.has(id)) stitch.catch = true;
     stitches.push(stitch);
   }
   const holds: Held[] = file.holds.map((held) => ({
