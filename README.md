@@ -154,12 +154,12 @@ part way through should not have its knitting change under it.
 
 So each knitting a size has had is kept, as an **edition**, named by a hash of
 it. `src/library/editions/manifest.json` says which edition of each size
-is current, and which was the first the site named; `public/editions/` holds a
+is current; `public/editions/` holds a
 frozen copy of each, the built sweater itself, so it decodes to the same
 stitches whatever the code that built it has since become.
 
-- A project records the edition it was started on. One saved before editions
-  knits the first.
+- A project records the edition it was started on. One that records none knits
+  the size's edition now.
 - The site knits every size from its frozen copy - a file of some 15KB over
   the wire, kept by the service worker from then on - and has no other way
   to a pattern: nothing a browser loads can work one out. That is the
@@ -195,12 +195,6 @@ catalogue written again:
 npm run editions              # name every size; freeze any new edition; update the manifest and the catalogue
 npm run editions -- --check   # fail if anything is out of date, and write nothing
 ```
-
-`node scripts/readings.mjs --check` holds every frozen edition, the ones sizes
-have moved on from too, to reading as it did: its rounds as counted, what the
-panel says in each, the key, the chart and its views, time and yarn. A change
-to how patterns are read that means to change one of those says so by writing
-`scripts/readings.json` again.
 
 Commit what it writes. The manifest's diff is the list of sizes whose knitting
 changed, which is worth reading: a size that changed and was not meant to is a

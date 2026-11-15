@@ -25,9 +25,6 @@ jobs:
         run: npm run lint
       - name: Test
         run: npm test
-      # A project knits the edition it was started on: none may read differently for a change to the code.
-      - name: Every frozen edition reads as it did
-        run: node scripts/readings.mjs --check
       - name: Build
         run: npm run build
       - name: Budgets

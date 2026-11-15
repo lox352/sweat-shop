@@ -4,7 +4,7 @@ import { sweaterById } from "../../library/catalogue";
 import { SlotId } from "../../pattern/design";
 import { useSweater } from "../useSweater";
 import { viewChart } from "../../reading/counted";
-import { currentEdition, editionOf, isSuperseded } from "../../library/editions";
+import { currentEdition, editionOf, isSuperseded, errataOf } from "../../library/editions";
 import PatternUpdated from "./PatternUpdated";
 import { makeOnesAtMarkers } from "../../reading/marker-routes";
 import type { ChartView } from "../../reading/views";
@@ -29,7 +29,7 @@ import SweaterModel from "./SweaterModel";
 import Chart from "../chart/Chart";
 import KnittingPanel from "./KnittingPanel";
 import { KeySheet } from "./KnitKey";
-import { recordProgress } from "../../projects/timing/log";
+import { movedLog, readLog, recordProgress, writeLog } from "../../projects/timing/log";
 import { useKnittingTime, useTimeDetail, useTimeRecording } from "../useKnittingTime";
 import { TimeFigures, TimeLine } from "./KnittingTime";
 import { SpeedsSheet, StatsPanel, StitchTime } from "./StatsView";
@@ -160,10 +160,15 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
 
   const knitting = params.get(knittingParam) === "1";
   const sweater = project ? sweaterById(project.sweaterId) : undefined;
-  const takeUpdate = useCallback(() => {
+  // Moving on to the update: the project's place, and its knitting-time log, carried over where the two editions have it. See PatternUpdated.
+  const takeUpdate = useCallback((moved: (progress: number) => number | undefined) => {
     change((current) => {
       const edition = currentEdition(current.sweaterId, current.sizeId);
-      return edition ? { ...current, edition } : current;
+      if (!edition) return current;
+      const progress = moved(current.progress) ?? current.progress;
+      const rows = readLog(current.id);
+      if (rows.length > 0) writeLog(current.id, movedLog(rows, moved));
+      return { ...current, edition, progress };
     });
   }, [change]);
   useTimeRecording(project && sweater && view === "chart" ? project.id : undefined, knitting);
@@ -315,7 +320,7 @@ const ProjectView: React.FC<{
   setColourway: (id: string) => void;
   setTrim: (trim: string | undefined) => void;
   setShade: (slots: SlotId[], chosen: Chosen | undefined) => void;
-  takeUpdate: () => void;
+  takeUpdate: (moved: (progress: number) => number | undefined) => void;
 }> = ({
   view,
   sweaterId,
@@ -359,7 +364,7 @@ const ProjectView: React.FC<{
   const makeOnes = useMemo(() => makeOnesAtMarkers({ stitches, knitting: built.knitting }), [stitches, built.knitting]);
   // The design's knitting has moved on since this project began: it says so, and offers the update.
   const updated = isSuperseded(sweater.id, size.id, edition) ? (
-    <PatternUpdated sweater={sweater} sizeId={size.id} stitches={stitches} index={index} progress={project.progress} onSwitch={takeUpdate} />
+    <PatternUpdated sweater={sweater} sizeId={size.id} stitches={stitches} index={index} progress={project.progress} onSwitch={takeUpdate} errata={errataOf(sweater.id, size.id)} />
   ) : null;
   const tabs = finished.length > 1 && shownView && (
     <ViewTabs

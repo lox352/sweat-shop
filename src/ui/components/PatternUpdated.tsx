@@ -3,7 +3,7 @@ import type { Design } from "../../pattern/design";
 import type { Stitch } from "../../pattern/Stitch";
 import { type RoundIndex, roundNames } from "../../reading/progress";
 import { whenKnitting } from "../../library/knitting";
-import { firstDifference } from "../../library/editions/difference";
+import { carryOver, firstDifference } from "../../library/editions/difference";
 
 /**
  * A note on a project whose design's knitting has moved on since it was
@@ -17,9 +17,13 @@ const PatternUpdated: React.FC<{
   stitches: Stitch[];
   index: RoundIndex;
   progress: number;
-  onSwitch: () => void;
-}> = ({ sweater, sizeId, stitches, index, progress, onSwitch }) => {
+  /** Moving on: with where each place is in the update, where it has one. See editions' carryOver. */
+  onSwitch: (moved: (progress: number) => number | undefined) => void;
+  /** Said by whoever published the update, where it puts right a mistake: see the editions manifest. */
+  errata?: string;
+}> = ({ sweater, sizeId, stitches, index, progress, onSwitch, errata }) => {
   const [differs, setDiffers] = useState<{ id: number; round: string } | "same" | undefined>();
+  const [moved, setMoved] = useState<(progress: number) => number | undefined>(() => (at: number) => at);
   const [asking, setAsking] = useState(false);
 
   useEffect(() => {
@@ -28,6 +32,7 @@ const PatternUpdated: React.FC<{
     void whenKnitting(sweater, sizeId).then((now) => {
       if (!open) return;
       const id = firstDifference(stitches, now.stitches);
+      setMoved(() => carryOver(stitches, now.stitches));
       if (id === undefined) return setDiffers("same");
       let at = id;
       while (at > 0 && !index.roundOf.has(at)) at--;
@@ -42,21 +47,24 @@ const PatternUpdated: React.FC<{
   return (
     <aside className="pattern-updated" aria-label="This pattern has been updated">
       <p>
-        <strong>This pattern has been updated since you started it.</strong> You are still knitting the version you
-        started, so nothing has moved.
+        <strong>{errata ? "This pattern has been corrected since you started it." : "This pattern has been updated since you started it."}</strong>{" "}
+        You are still knitting the version you started, so nothing has moved.
       </p>
+      {errata && <p className="pattern-updated-errata">{errata}</p>}
       {differs && differs !== "same" && (
         <p>
           The update first differs at <strong>{differs.round}</strong>.{" "}
-          {differs.id <= progress
-            ? "That is before where you are: switching would chart some of what you have knitted differently, and your place may need putting right with Knit up to here."
-            : "That is after where you are, so switching changes nothing you have knitted."}
+          {differs.id > progress
+            ? "That is after where you are, so switching changes nothing you have knitted."
+            : moved(progress) !== undefined
+              ? "That is before where you are, but from here on the two are the same knitting: switching keeps your place, and charts some of what you have knitted differently."
+              : "That is before where you are, and where you are is part of what changed: switching charts some of what you have knitted differently, and your place will need putting right with Knit up to here."}
         </p>
       )}
       {asking ? (
         <p className="pattern-updated-actions">
           Switch to the updated pattern?{" "}
-          <button type="button" className="btn btn-primary" onClick={onSwitch}>
+          <button type="button" className="btn btn-primary" onClick={() => onSwitch(moved)}>
             Yes, switch
           </button>{" "}
           <button type="button" className="btn" onClick={() => setAsking(false)}>

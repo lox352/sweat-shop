@@ -90,7 +90,8 @@ const main = async () => {
       writeFileSync(path, json);
       wrote++;
     }
-    manifest[design][size] = { first: entry.first ?? edition, current: edition };
+    // What an edition corrects stays with it, and goes once it is superseded: see editions/index.ts.
+    manifest[design][size] = { current: edition, ...(changed || !entry.errata ? {} : { errata: entry.errata }) };
   }
   if (check) {
     if (stale.length) {

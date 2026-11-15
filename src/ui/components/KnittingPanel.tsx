@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo } from "react";
-import { Stitch, secondLoop } from "../../pattern/Stitch";
-import { makesTwo } from "../../pattern/kinds";
+import { Stitch } from "../../pattern/Stitch";
+import { doneWith, worksDoubleStitch } from "../../reading/spans";
 import {
   Run,
   RoundIndex,
@@ -329,6 +329,11 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
 }) => {
   const position = positionOf(stitches, progress, index);
   const run = currentRun(stitches, progress, index);
+  // A double stitch a turn made, worked in the run in hand: the panel says which, and how. See spans.
+  let doubleAt: number | undefined;
+  for (let id = run?.startId ?? 0; run && id <= run.endId && doubleAt === undefined; id++) {
+    if (worksDoubleStitch(stitches, id)) doubleAt = id - run.startId + 1;
+  }
   // A make-one at a marker in the run in hand: the panel says which side of it the new stitch goes.
   let atMarker: string | undefined;
   for (let id = run?.startId ?? 0; run && makeOnesAtMarkers && id <= run.endId && !atMarker; id++) atMarker = makeOnesAtMarkers.get(id);
@@ -343,23 +348,15 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
 
   const step = useCallback(
     (delta: number) => {
-      if (delta > 0) {
-        const next = currentRun(stitches, progress, index);
-        if (next && makesTwo(next.type) && next.startId === progress + 1 && next.endId === progress + 2) {
-          setProgress(next.endId);
-          return;
-        }
-      } else if (delta < 0) {
-        const current = stitches[progress];
-        const previous = stitches[progress - 1];
-        if (secondLoop(current, previous)) {
-          setProgress(progress - 2);
-          return;
-        }
+      // Never to rest inside what is done as one, a KFB: over the whole of it, either way. See spans.
+      const whole = doneWith(stitches, delta > 0 ? progress + 1 : progress);
+      if (whole) {
+        setProgress(delta > 0 ? whole.end - 1 : whole.start - 1);
+        return;
       }
       setProgress(progress + delta);
     },
-    [stitches, index, progress, setProgress],
+    [stitches, progress, setProgress],
   );
 
   const finishRun = useCallback(() => {
@@ -620,6 +617,13 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
         )}
       </div>
 
+
+      {doubleAt !== undefined && run && (
+        <p className="knitting-double-stitch">
+          <strong>{run.length === 1 ? "This is the double stitch" : `Stitch ${doubleAt} of these is the double stitch`}</strong>{" "}
+          <span className="quiet">a turn made: work its two legs together as one.</span>
+        </p>
+      )}
 
       {atMarker && (
         <p className="knitting-marker-order">
