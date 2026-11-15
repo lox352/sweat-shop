@@ -85,6 +85,36 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
   expect(await page.evaluate((key) => localStorage.getItem(key), `edition-${design}--l--${project.edition}`)).toBeNull();
 });
 
+test("Hamefarin is worked out again from the end of a band: the bands still to come, on the stitches there are", async ({ page }) => {
+  test.setTimeout(120_000);
+  const current = editions.hamefarin.m.current;
+  const published = JSON.parse(readFileSync(`public/editions/hamefarin--m--${current}.json`, "utf8"));
+  // The last round of the Border, the second band of the yoke.
+  const runs = published.rounds[39];
+  const progress = runs[runs.length - 2] + runs[runs.length - 1] - 1;
+  await page.goto("");
+  await page.evaluate(({ id, current, progress }) => {
+    const now = new Date().toISOString();
+    localStorage.setItem(id, JSON.stringify({
+      version: 1, id, sweaterId: "hamefarin", sizeId: "m", colourwayId: "simmer-dim", edition: current, progress,
+      tension: { stitchesPer10cm: 24, roundsPer10cm: 28 }, startedAt: now, updatedAt: now,
+    }));
+  }, { id, current, progress });
+  await page.goto("#/project/1760000000000");
+  const section = page.getByRole("region", { name: "Your tension" });
+  await section.getByRole("button", { name: "Work out the rest", exact: true }).click();
+  const shown = section.locator(".refit-shown");
+  await expect(shown).toBeVisible({ timeout: 90_000 });
+  await expect(shown).toContainText("From the end of Yoke, round 40.");
+  await expect(shown).toContainText("The yoke has Peerie seeds, OXO, Lozenges still to come, and grows from 300 stitches to 372.");
+  // One way only: nothing to choose.
+  await expect(shown.getByRole("radio")).toHaveCount(0);
+  await shown.getByRole("button", { name: "Knit the rest this way", exact: true }).click();
+  await expect(section).toContainText("The rest of your pattern is worked out for this tension");
+  const project = await page.evaluate((id) => JSON.parse(localStorage.getItem(id)), id);
+  expect(project).toMatchObject({ progress, fit: { round: 40, from: current }, upTo: current });
+});
+
 test("a design that can't be worked out again does not offer to be", async ({ page }) => {
   await page.goto("");
   await page.evaluate((id) => {
