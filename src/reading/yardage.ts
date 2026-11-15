@@ -40,5 +40,11 @@ export const ballsFor = (metres: number, ballMetres: number): number =>
   Math.max(1, Math.ceil(metres / ballMetres));
 
 /** Metres of each slot for a size: the pattern's own, where it states them, or estimated from the stitches. */
-export const metresFor = (size: Pick<SizeAbout, "yardage">, stitches: Stitch[], rounds: number[][]): Record<string, number> =>
-  size.yardage ?? metresBySlot(stitches, rounds);
+export const metresFor = (
+  size: Pick<SizeAbout, "yardage">,
+  stitches: Stitch[],
+  rounds: number[][],
+  /** How much more yarn a stitch takes than the estimate's: a knitter's own stitches, bigger or smaller than the pattern's (see tension's yarnPerStitch). */
+  perStitch = 1,
+): Record<string, number> =>
+  size.yardage ?? Object.fromEntries(Object.entries(metresBySlot(stitches, rounds)).map(([slot, metres]) => [slot, metres * perStitch]));

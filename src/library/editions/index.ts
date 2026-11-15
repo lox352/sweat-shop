@@ -1,5 +1,6 @@
 import type { SweaterStitches } from "../../pattern/knitted";
 import { type EditionFile, decodeEdition } from "./format";
+import { ownEdition } from "./own";
 
 /**
  * Which edition of a size's knitting each project knits.
@@ -12,8 +13,10 @@ import { type EditionFile, decodeEdition } from "./format";
  * anyone's knitting.
  *
  * The site knits every size from its frozen copy, the current edition's too,
- * and has no other way to a pattern: nothing a browser loads can work one
- * out. Working one out is the slowest thing there is to do, the answer is
+ * and a page has no other way to a pattern: nothing it loads can work one
+ * out. (A sweater fitted to its knitter part way through is worked out on
+ * their device, in a worker, and is then an edition of the project's own,
+ * kept there: see library/fit and own.ts.) Working one out is the slowest thing there is to do, the answer is
  * the same for everyone, and it is done once, by `npm run editions`. A size
  * whose copy cannot be fetched - offline, and never opened - says so.
  *
@@ -78,6 +81,15 @@ export const editionFailed = (design: string, size: string, edition?: string): b
   return !from || !/^[0-9a-f]+$/.test(from) || failed.has(keyOf(design, size, from));
 };
 
+const fetchEdition = async (design: string, size: string, edition: string): Promise<EditionFile> => {
+  const key = keyOf(design, size, edition);
+  const response = await fetch(editionUrl(design, size, edition));
+  if (!response.ok) throw new Error(`edition ${key}: ${response.status}`);
+  const file = (await response.json()) as EditionFile;
+  if (file.design !== design || file.size !== size || file.edition !== edition) throw new Error(`edition ${key}: not what was fetched`);
+  return file;
+};
+
 /**
  * Fetch and decode a size's frozen copy, once. Rejects where it could not be
  * reached or read, or the site has none of that name: a project is never
@@ -92,11 +104,10 @@ export const loadEdition = (design: string, size: string, edition?: string): Pro
   if (known) return Promise.resolve(known);
   let pending = loading.get(key);
   if (!pending) {
-    pending = fetch(editionUrl(design, size, from))
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`edition ${key}: ${response.status}`);
-        const file = (await response.json()) as EditionFile;
-        if (file.design !== design || file.size !== size || file.edition !== from) throw new Error(`edition ${key}: not what was fetched`);
+    // The project's own, kept on the device, before the network is asked: see own.ts.
+    const own = ownEdition(design, size, from);
+    pending = (own ? Promise.resolve(own) : fetchEdition(design, size, from))
+      .then((file) => {
         const known = decodeEdition(file);
         fetched.set(key, known);
         failed.delete(key);

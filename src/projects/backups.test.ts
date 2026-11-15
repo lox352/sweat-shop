@@ -80,3 +80,33 @@ it("does not hold a project on an edition its size has moved on from to the size
   text.projects[0].progress = 10_000_000;
   expect(parseBackup(JSON.stringify(text))[0]).toMatchObject({ edition: "0123456789ab", progress: 10_000_000 });
 });
+
+it("carries a fitted project's own knitting with it, and refuses a fit that comes without", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { currentEdition } = await import("../library/editions");
+  const { keepEdition, ownEdition } = await import("../library/editions/own");
+  const { writeProject } = await import("./projects");
+  const size = s.sizes[0];
+  const published = currentEdition(s.id, size.id)!;
+  const knitting = { ...JSON.parse(readFileSync(`public/editions/${s.id}--${size.id}--${published}.json`, "utf8")), edition: "0a0b0c0d0e0f" };
+  keepEdition(knitting);
+  const fit = { tension: { stitchesPer10cm: 24, roundsPer10cm: 30 }, finished: size.finished, round: 40, from: published };
+  writeProject({ ...startProject(s.id, size.id, s.colourways[0].id), edition: "0a0b0c0d0e0f", fit });
+  const text = backupText();
+  localStorage.clear();
+  const [copy] = restoreBackup(parseBackup(text));
+  expect(copy.fit).toEqual(fit);
+  expect(copy.edition).toBe("0a0b0c0d0e0f");
+  expect(ownEdition(s.id, size.id, "0a0b0c0d0e0f")).toEqual(knitting);
+  expect(JSON.parse(localStorage.getItem(copy.id)!).knitting).toBeUndefined();
+  // Deleted, its knitting goes with it.
+  deleteProject(copy.id);
+  expect(ownEdition(s.id, size.id, "0a0b0c0d0e0f")).toBeUndefined();
+
+  const without = JSON.parse(text);
+  delete without.projects[0].knitting;
+  expect(() => parseBackup(JSON.stringify(without))).toThrow();
+  const another = JSON.parse(text);
+  another.projects[0].knitting.edition = "ffffffffffff";
+  expect(() => parseBackup(JSON.stringify(another))).toThrow();
+});

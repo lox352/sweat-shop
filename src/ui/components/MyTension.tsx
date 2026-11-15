@@ -26,9 +26,14 @@ const signed = (cm: number) => `${cm > 0 ? "+" : cm < 0 ? "−" : ""}${Math.abs(
  */
 const MyTension: React.FC<{
   size: SizeAbout;
+  /** What the knitting in hand was written for, where that is not the size's own: the rest fitted to its knitter (see Refit). */
+  fitted?: { finished: Measurements } & Tension;
   tension: Tension | undefined;
   onChange: (tension: Tension | undefined) => void;
-}> = ({ size, tension, onChange }) => {
+  /** Anything more to say of the tension, below what it comes out at. */
+  children?: React.ReactNode;
+}> = ({ size, fitted, tension, onChange, children }) => {
+  const written = fitted ?? size;
   const [stitches, setStitches] = useState(tension ? String(tension.stitchesPer10cm) : "");
   const [stitchesOver, setStitchesOver] = useState("10");
   const [rounds, setRounds] = useState(tension ? String(tension.roundsPer10cm) : "");
@@ -39,7 +44,9 @@ const MyTension: React.FC<{
     ? { stitchesPer10cm: per10cm(numbers[0], numbers[1]), roundsPer10cm: per10cm(numbers[2], numbers[3]) }
     : undefined;
   const sensible = !!entered && [entered.stitchesPer10cm, entered.roundsPer10cm].every((n) => n >= 2 && n <= 200);
-  const knitted = tension && asKnitted(size.finished, size, tension);
+  const knitted = tension && asKnitted(written.finished, written, tension);
+  // A sweater fitted comes as near the size as what was knitted lets it: the table says how near.
+  const table = tension && (fitted || !sameTension(written, tension));
 
   const field = (label: string, value: string, set: (value: string) => void) => (
     <label>
@@ -52,7 +59,8 @@ const MyTension: React.FC<{
     <section className="section my-tension" aria-labelledby="my-tension-heading">
       <h2 id="my-tension-heading">Your tension</h2>
       <p className="quiet">
-        The pattern is written for {size.stitchesPer10cm} stitches and {size.roundsPer10cm} rounds to 10cm. Lay your knitting flat and
+        {fitted ? "The rest of your pattern is worked out for" : "The pattern is written for"} {written.stitchesPer10cm} stitches and{" "}
+        {written.roundsPer10cm} rounds to 10cm. Lay your knitting flat and
         count what you have over a measured length, the longer the better.
       </p>
       <form
@@ -92,11 +100,13 @@ const MyTension: React.FC<{
             <strong>
               {tension.stitchesPer10cm} stitches and {tension.roundsPer10cm} rounds to 10cm.
             </strong>{" "}
-            {sameTension(size, tension)
-              ? "That is the pattern's tension: knitted as written, it comes out as designed."
-              : "Knitted as written at that tension, this sweater comes out:"}
+            {!sameTension(written, tension)
+              ? "Knitted as written at that tension, this sweater comes out:"
+              : fitted
+                ? "That is the tension the rest is worked out for. It comes out:"
+                : "That is the pattern's tension: knitted as written, it comes out as designed."}
           </p>
-          {!sameTension(size, tension) && (
+          {table && (
             <table className="my-tension-table">
               <thead>
                 <tr>
@@ -124,6 +134,7 @@ const MyTension: React.FC<{
           )}
         </div>
       )}
+      {children}
     </section>
   );
 };

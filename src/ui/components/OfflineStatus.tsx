@@ -30,7 +30,8 @@ export default function OfflineStatus() {
         // A project's pattern fetched before the worker was up is kept now: see scripts/service-worker.js.
         const keep = listProjects().flatMap((project) => {
           const edition = editionOf(project);
-          return edition ? [editionUrl(project.sweaterId, project.sizeId, edition)] : [];
+          // Knitting that is the project's own is on the device already, and at no address: see library/editions/own.
+          return edition && !project.fit ? [editionUrl(project.sweaterId, project.sizeId, edition)] : [];
         });
         await new Promise<void>((kept) => {
           const { port1, port2 } = new MessageChannel();

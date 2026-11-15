@@ -17,7 +17,7 @@
  * the grading worked out once and that the tests check every stitch of.
  */
 
-import type { Design, Measurements, SizeAbout, SlotId, Tension } from "../../pattern/design";
+import type { Design, FitOption, Measurements, SizeAbout, SlotId, Tension } from "../../pattern/design";
 import type { SweaterStitches } from "../../pattern/knitted";
 
 export type * from "../../pattern/design";
@@ -311,7 +311,7 @@ export interface Fitted {
  */
 export interface Fitting {
   /** The ways the rest can be laid out, where the knitter has a choice. */
-  options?: { id: string; label: string; detail: string }[];
+  options?: FitOption[];
   /** The first round, at or after `round`, after which the rest can be planned afresh; none once it no longer can. */
   cutAfter(knitted: SweaterStitches, round: number): number | undefined;
   plan(ask: FitRequest): Fitted;

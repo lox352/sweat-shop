@@ -185,5 +185,18 @@ export interface Design {
   colourways: Colourway[];
   /** Anything the design says about its stitches. See StitchNote. */
   stitchNotes?: Partial<Record<StitchKeyId, StitchNote>>;
+  /**
+   * Whether the rest of a size can be planned afresh from one part knitted,
+   * for a knitter whose tension is not the pattern's, and the ways it can be
+   * laid out where the knitter has a choice: see library/fit.
+   */
+  fitting?: { options?: FitOption[] };
   sizes: SizeAbout[];
+}
+
+/** One way a design can lay out the rest of a sweater part knitted. */
+export interface FitOption {
+  id: string;
+  label: string;
+  detail: string;
 }

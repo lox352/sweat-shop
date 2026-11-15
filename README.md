@@ -219,12 +219,20 @@ stitch is drawn, is not a change to the knitting and makes no new edition.
 ## How the code is laid out
 
 One rule: **the compiler writes files, and the site reads them.** Nothing a
-browser loads can work a pattern out.
+page loads can work a pattern out.
+
+One exception, and a deliberate one: a knitter whose tension is not the
+pattern's can ask for the rest of their sweater to be worked out again from
+where they are. That is done once in a sweater, for one knitter alone, so it
+runs on their device: `src/library/fit.ts` starts a worker
+(`src/compiler/fit.worker.ts`) that is fetched when they ask and not before,
+and what comes back is an edition of the project's own, kept on the device
+(`src/library/editions/own.ts`). See "Fitting a sweater part way through".
 
 | Folder | What it is | May import |
 |---|---|---|
 | `src/pattern/` | The words everything shares: a stitch, a knitted sweater, a design as the site shows it, the wools. | nothing else |
-| `src/compiler/` | The designs as they are written (`designs/`) and the engine that knits them (`engine/`). Run by the scripts and the tests, never by the site. | anything |
+| `src/compiler/` | The designs as they are written (`designs/`) and the engine that knits them (`engine/`). Run by the scripts and the tests, and by the site only in the fitting worker. | anything |
 | `src/physics/` | Posing and settling a sweater. | `pattern` |
 | `src/library/` | What was published, fetched and decoded: the catalogue, editions, shapes. The only place that knows an address. | `pattern` |
 | `src/reading/` | What is read off a knitted sweater: the chart's layout, the rounds as counted, the views, yardage, colours. | `pattern` |
@@ -235,6 +243,32 @@ browser loads can work a pattern out.
 `eslint.config.js` holds each layer to its row. What is published is static
 and named by what it holds: an edition by its knitting, a shape by its fabric
 and the physics.
+
+## Fitting a sweater part way through
+
+A pattern comes out at its measurements only at its tension. A knitter who
+measures their own (**Your tension**, on a project's page) is shown what the
+pattern comes out at as written, and, for a design that can, offered the rest
+worked out again:
+
+- **What is knitted is a fact.** Every round to the one the rest is planned
+  from is kept as it is, stitch for stitch. Nothing re-derives it.
+- **The rest is the design's own planner's**, given the stitches on the
+  needles, the knitter's tension and the size's measurements (a design's
+  `fitting`, in `src/compiler/designs/types.ts`). The engine only learns to
+  carry on from knitting already made (`Needles.resume`). A published
+  edition is the same planner starting from nothing.
+- **A pattern changes only between bands**: `cutAfter` says which round, at
+  or after the knitter's, the rest can be planned from.
+- **Stitches the knitting has over what the tension wants are never
+  decreased away quietly**: they are shared out and the knitter is told what
+  the sweater then measures.
+- **The project owns the result**: an edition named by its knitting, kept on
+  the device and carried in backups, with the tension, the measurements and
+  the round it was fitted from on the project (`fit`).
+
+`node scripts/fit.mjs <design> <size> <round> <sts> <rounds>` writes a fit out
+to read, every way the design offers, in `docs/written/refits/`.
 
 ## Running it
 
