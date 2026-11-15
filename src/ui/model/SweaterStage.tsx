@@ -2,8 +2,7 @@ import { useMemo, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { isFabric } from "../../pattern/Stitch";
-import { sweaterById } from "../../library/catalogue";
-import { sweaterStitches } from "../../library/knitting";
+import type { SweaterStitches } from "../../pattern/knitted";
 import { Palette, rgbOf, yarnFor } from "../../reading/palette";
 import { pose } from "../../physics/pose";
 import { allPositions, settledLength } from "../../library/settled/format";
@@ -12,13 +11,11 @@ import FrameModel, { OrbitLike } from "./FrameModel";
 import StitchInstances from "./StitchInstances";
 
 export interface SweaterStageProps {
-  sweaterId: string;
-  sizeId: string;
+  /** The knitting to draw: whose it is, and where it came from, is no business of the stage's. */
+  knitting: SweaterStitches;
   palette: Palette;
   /** Id of the last stitch worked; earlier stitches are shown in their wool. */
   progress: number;
-  /** The edition of the knitting to show: see library/editions. */
-  edition?: string;
   reducedMotion: boolean;
   /** Where its fabric came to rest, when that is known: see library/settled. */
   settled?: Float32Array;
@@ -31,15 +28,14 @@ export interface SweaterStageProps {
  * page that never shows it, and a phone without WebGL still has every
  * instruction on the page.
  *
- * It draws the sweater where it came to rest, settled under gravity offline
- * and committed, as the hat site does it; nothing here imports the solver
- * that did it. A size not yet settled is drawn blocked, as physics/pose.ts
+ * It draws the knitting it is given, where it is given that it came to rest:
+ * it looks nothing up, and nothing here imports the solver that settles one.
+ * A knitting with no settled positions is drawn blocked, as physics/pose.ts
  * lays it out, which is where the settling starts from.
  */
-export default function SweaterStage({ sweaterId, sizeId, palette, progress, edition, reducedMotion, settled }: SweaterStageProps) {
+export default function SweaterStage({ knitting: built, palette, progress, reducedMotion, settled }: SweaterStageProps) {
   const controls = useRef<OrbitLike | null>(null);
-  // A size's knitting as the project knits it; settled positions only fit it if its knitting is still the shape that was settled.
-  const built = useMemo(() => sweaterStitches(sweaterById(sweaterId)!, sizeId, edition), [sweaterId, sizeId, edition]);
+  // Settled positions only fit the knitting if it is still the shape that was settled.
   const positions = useMemo(
     () =>
       settled && settled.length === settledLength(built.stitches)
@@ -80,7 +76,7 @@ export default function SweaterStage({ sweaterId, sizeId, palette, progress, edi
       gl={{ alpha: true, antialias: true }}
       dpr={[1, 2]}
     >
-      <FrameModel extremes={extremes} controls={controls} />
+      <FrameModel subject={built} extremes={extremes} controls={controls} />
       <OrbitControls
         ref={controls as never}
         enableDamping={!reducedMotion}

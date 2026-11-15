@@ -1,5 +1,7 @@
 import React, { lazy, Suspense, useEffect, useState } from "react";
 import { Palette } from "../../reading/palette";
+import { sweaterById } from "../../library/catalogue";
+import { knittingToHand } from "../../library/knitting";
 import { loadSettled, settledShape } from "../../library/settled";
 import PreviewBoundary from "./PreviewBoundary";
 
@@ -34,9 +36,14 @@ const settledWanted = () =>
 /** Positions already fetched this visit, so moving between pages does not fetch them again. */
 const known = new Map<string, Float32Array>();
 
-/** The sweater in three dimensions, on the design's page and a project's. */
-const SweaterModel: React.FC<SweaterModelProps> = (props) => {
-  const { sweaterId, sizeId, edition } = props;
+/**
+ * The sweater in three dimensions, on the design's page and a project's:
+ * which knitting that is, and whether it has a settled shape, are found here,
+ * and the stage is handed what it is to draw.
+ */
+const SweaterModel: React.FC<SweaterModelProps> = ({ sweaterId, sizeId, edition, palette, progress }) => {
+  // The size's knitting as the project knits it, which the page that shows this has to hand already; until it has, nothing is drawn.
+  const knitting = knittingToHand(sweaterById(sweaterId)!, sizeId, edition);
   // The shape its edition has, if that has been settled: a project's own edition's, or the size's now.
   const shape = settledWanted() ? settledShape(sweaterId, sizeId, edition) : undefined;
   const [settled, setSettled] = useState(() => (shape ? known.get(shape) : undefined));
@@ -73,7 +80,7 @@ const SweaterModel: React.FC<SweaterModelProps> = (props) => {
     >
       <PreviewBoundary>
         <Suspense fallback={<p role="status">Loading 3D preview…</p>}>
-          {!waiting && <SweaterStage {...props} reducedMotion={reducedMotion} settled={settled} />}
+          {!waiting && knitting && <SweaterStage knitting={knitting} palette={palette} progress={progress} reducedMotion={reducedMotion} settled={settled} />}
         </Suspense>
       </PreviewBoundary>
     </div>
