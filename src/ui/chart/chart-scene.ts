@@ -1,4 +1,5 @@
 import { Stitch } from "../../pattern/Stitch";
+import { makesTwo } from "../../pattern/kinds";
 import type { ChartLayout } from "../../reading/layout";
 import { type RowIndex, indexRows } from "./column-window";
 import { type Face, type Hold, type Join, type Turn, markAt } from "./chart-marks";
@@ -134,7 +135,7 @@ export const sceneOf = (
   index.id.forEach((id, k) => {
     const type = stitches[id]?.type;
     // A KFB or a KBF, and so a PBF or a PFB from behind: each a fork, from whichever side.
-    if (type === "kfb" || type === "kbf") {
+    if (makesTwo(type)) {
       forkAt[k] = 1;
       for (const other of [stitches[id].links[0], id + 1]) {
         if (rowOf[other]) forkReach = Math.max(forkReach, Math.abs(columnOf[other] - columnOf[id]));

@@ -1,7 +1,7 @@
 import type { SweaterStitches } from "../../pattern/knitted";
 import type { Held, RoundKind, SeamKind } from "../../pattern/rounds";
-import type { Stitch } from "../../pattern/Stitch";
-import type { StitchType } from "../../pattern/StitchType";
+import { type Stitch, seen } from "../../pattern/Stitch";
+import { type KindId, otherSide } from "../../pattern/kinds";
 
 /**
  * An edition: one size of one design's knitting exactly as built, frozen.
@@ -168,7 +168,8 @@ export const encodeEdition = (built: SweaterStitches, design: string, size: stri
     edition,
     stitches: {
       count: stitches.length,
-      type: runs(stitches.map((s) => types.of(s.type))),
+      // The file holds each as it looks from the right side, as it always has: see Stitch.seen.
+      type: runs(stitches.map((s) => types.of(seen(s)))),
       slot: runs(stitches.map((s) => slots.of(s.slot))),
       piece: runs(stitches.map((s) => pieces.of(s.piece))),
       side: runs(stitches.map((s) => (s.wrongSide ? 1 : 0))),
@@ -227,7 +228,7 @@ export const decodeEdition = (file: EditionFile): SweaterStitches => {
     const stitch: Stitch = {
       id,
       links: reaches === "" ? [] : reaches.split(",").map((back) => id - Number(back)),
-      type: coded.types[type[id]] as StitchType,
+      type: coded.types[type[id]] as KindId,
       slot: coded.slots[slot[id]],
       piece: coded.pieces[piece[id]],
     };
@@ -236,7 +237,11 @@ export const decodeEdition = (file: EditionFile): SweaterStitches => {
     if (rise !== "") stitch.rise = Number(rise);
     if (needles[id] !== null) stitch.needles = needles[id] as number;
     Object.assign(stitch, coded.extras[id]);
-    if (side[id]) stitch.wrongSide = true;
+    if (side[id]) {
+      stitch.wrongSide = true;
+      // Held as it is worked: the file has it as it looks from the right side.
+      stitch.type = otherSide(stitch.type);
+    }
     if (spacers.has(id)) Object.assign(stitch, { spacer: true });
     stitches.push(stitch);
   }

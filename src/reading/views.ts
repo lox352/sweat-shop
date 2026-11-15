@@ -1,4 +1,4 @@
-import { type Stitch, isFabric, isStep, worksInto } from "../pattern/Stitch";
+import { type Stitch, isFabric, isStep, worksInto, isMakeOne } from "../pattern/Stitch";
 import { boundOff } from "../pattern/kinds";
 import type { Cell, ChartLayout } from "./layout";
 import type { Held } from "../pattern/rounds";
@@ -84,7 +84,7 @@ interface Built {
  * as its loops are side by side on the needle.
  */
 const madeBeside = (stitch: Stitch): number | undefined =>
-  stitch.type === "m1" ? stitch.links[stitch.links.length - 1] : undefined;
+  isMakeOne(stitch) ? stitch.links[stitch.links.length - 1] : undefined;
 
 /**
  * Everything worked out of `from`, from the stitch `start` on: each stitch

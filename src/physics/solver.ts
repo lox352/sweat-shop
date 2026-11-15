@@ -1,5 +1,4 @@
-import { Stitch, isFabric, isStep, worksInto } from "../pattern/Stitch";
-import { makesTwo } from "../pattern/kinds";
+import { Stitch, isFabric, isStep, worksInto, secondLoop } from "../pattern/Stitch";
 import { adjacentStitchDistance } from "../constants";
 import type { Knitting } from "../pattern/knitting";
 import type { Pose } from "./pose";
@@ -71,7 +70,7 @@ const upFrom = (stitch: Stitch, byId: Stitch[]): { id: number; across: boolean }
   const worked = worksInto(stitch);
   if (worked.length > 0) return { id: worked[Math.floor(worked.length / 2)], across: false };
   if (stitch.from !== undefined) return { id: stitch.from, across: false };
-  if (stitch.type === "m1" && stitch.links.length > 1 && makesTwo(byId[stitch.id - 1]?.type)) return { id: stitch.links[0], across: false };
+  if (stitch.links.length > 1 && secondLoop(stitch, byId[stitch.id - 1])) return { id: stitch.links[0], across: false };
   // A make-one, or a cast-on part way round: the stitch beside it.
   const last = stitch.links[stitch.links.length - 1];
   return last === undefined ? undefined : { id: last, across: true };

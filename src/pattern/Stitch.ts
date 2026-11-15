@@ -1,5 +1,4 @@
-import { StitchType } from "./StitchType";
-import { kinds, makesTwo } from "./kinds";
+import { type KindId, kinds, makesTwo, otherSide } from "./kinds";
 
 /**
  * One stitch, or one step, in the order it is worked.
@@ -25,7 +24,12 @@ export interface Stitch {
    * stitch and at the first stitch of a piece begun with new yarn.
    */
   links: number[];
-  type: StitchType;
+  /**
+   * What is done: its kind, as it is worked from the side it is worked from.
+   * A stitch purled on a row worked from the wrong side is a purl. What it
+   * looks like from the right side - a knit - is `seen`.
+   */
+  type: KindId;
   /**
    * Which yarn, as a palette key: a slot letter. What it looks like is the
    * colourway's business, decided on the way to the screen, so changing
@@ -59,13 +63,7 @@ export interface Stitch {
   removed?: boolean;
   /** A "marker" step placing the round's new beginning, from the next round on. */
   begins?: boolean;
-  /**
-   * Worked from the wrong side, on a short row knitted back the other way.
-   * Its type is what it looks like from the right side - a stitch purled from
-   * the wrong side is a knit - which is what the sweater on screen draws, and
-   * the chart from the right side. What to do is the stitch from the side it
-   * is worked from: see reading/sides.ts.
-   */
+  /** Worked from the wrong side, on a short row knitted back the other way. */
   wrongSide?: boolean;
 }
 
@@ -103,4 +101,15 @@ export const worksInto = (stitch: Stitch): number[] => stitch.links.slice(0, kin
 
 /** Whether a stitch is the second loop of the one before it: the make-one straight after a KFB or a KBF. */
 export const secondLoop = (stitch: Stitch | undefined, previous: Stitch | undefined): boolean =>
-  stitch?.type === "m1" && makesTwo(previous?.type);
+  !!stitch && isMakeOne(stitch) && makesTwo(previous?.type);
+
+/** Whether a stitch is a make-one, knitwise or purlwise. */
+export const isMakeOne = (stitch: Pick<Stitch, "type">): boolean => kinds[stitch.type].family === "increase";
+
+/**
+ * What a stitch looks like from the right side of the fabric: itself, or
+ * where it was worked from the wrong side, its pair - a purl there is a knit
+ * here. What the sweater on screen draws, and the chart from the right side.
+ */
+export const seen = (stitch: Pick<Stitch, "type" | "wrongSide">): KindId =>
+  stitch.wrongSide ? otherSide(stitch.type) : stitch.type;

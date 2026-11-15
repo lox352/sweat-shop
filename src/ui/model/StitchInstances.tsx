@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Stitch } from "../../pattern/Stitch";
+import { Stitch, seen } from "../../pattern/Stitch";
 import { adjacentStitchDistance } from "../../constants";
 import { neighboursOf } from "./neighbours";
 import { createStitchGeometry, createStitchMaterial } from "./stitch-quad";
@@ -103,7 +103,7 @@ const StitchInstances: React.FC<StitchInstancesProps> = ({
    */
   useEffect(() => {
     const purls = new Float32Array(drawn.length);
-    drawn.forEach((stitch, index) => (purls[index] = stitch.type === "p1" ? 1 : 0));
+    drawn.forEach((stitch, index) => (purls[index] = seen(stitch) === "p1" ? 1 : 0));
     geometry.setAttribute("purl", new THREE.InstancedBufferAttribute(purls, 1));
     invalidate();
   }, [drawn, geometry, invalidate]);

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { SlotId } from "../../pattern/design";
-import type { Stitch } from "../../pattern/Stitch";
+import { type Stitch, seen, isMakeOne } from "../../pattern/Stitch";
 import { kinds } from "../../pattern/kinds";
 import { isSpacer } from "../../pattern/knitted";
 import { yarnFor, type Palette } from "../../reading/palette";
@@ -19,7 +19,7 @@ export const bodyRounds = (rounds: number[][], stitches: Stitch[]) => {
     for (const id of round) {
       const stitch = stitches[id];
       if (!stitch) continue;
-      if (stitch.type === "p1") return false;
+      if (seen(stitch) === "p1") return false;
       slots.add(stitch.slot);
     }
     return slots.size > 1;
@@ -73,7 +73,7 @@ export const paintedRows = (body: number[][], stitches: Stitch[]): number[][] =>
     const above = rows[y - 1];
     if (!above || round.length <= above.length) return round;
     const oneYarn = new Set(round.map((id) => stitches[id]?.slot)).size === 1;
-    const twinned = round.every((id, i) => stitches[id]?.type !== "m1" || stitches[round[i - 1]]?.type === "kfb");
+    const twinned = round.every((id, i) => !(stitches[id] && isMakeOne(stitches[id])) || stitches[round[i - 1]]?.type === "kfb");
     if (!oneYarn && !twinned) return round;
     const grown = new Map<number, number>();
     for (const id of round) {

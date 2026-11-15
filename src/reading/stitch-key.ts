@@ -1,6 +1,6 @@
 import { Stitch, isStep, joinsCastOn, secondLoop } from "../pattern/Stitch";
 import type { StitchKeyId, StitchNote } from "../pattern/design";
-import { type ChartStitch, type Face, type ReverseStitch, seenFrom, workedAs } from "./sides";
+import { type ChartStitch, type Face, type ReverseStitch, seenFrom } from "./sides";
 
 /**
  * The symbol key, worked out from the stitches a design actually uses.
@@ -338,7 +338,7 @@ export const castOnPartWay = (id: number, stitchAt: (id: number) => Stitch | und
 /** A stitch's place in the key, read as worked or as seen from a side. */
 const keyIdOf = (stitch: Stitch, view: KeyView, stitches: Stitch[]): KeyId => {
   if (stitch.type === "castOn" && castOnPartWay(stitch.id, (id) => stitches[id])) return "castOnUnderarm";
-  return (view === "worked" ? workedAs(stitch) : seenFrom(stitch, view)) as KeyId;
+  return (view === "worked" ? stitch.type : seenFrom(stitch, view)) as KeyId;
 };
 
 /**
@@ -397,7 +397,7 @@ export const stitchKey = (stitches: Stitch[], notes: Notes = {}, view: KeyView =
   stitches.forEach((stitch, index) => {
     if (stitch.type === "join" && joinAt < 0) joinAt = index;
     if (stitch.id <= 0 || (isStep(stitch) && stitch.type !== "join")) return;
-    if (stitch.type === "m1" && pairedWithKfb(stitches, index)) return;
+    if (pairedWithKfb(stitches, index)) return;
     used.add(keyIdOf(stitch, view, stitches));
   });
   const afterCastOn = joinAt >= 0 && joinsCastOn(stitches, joinAt);

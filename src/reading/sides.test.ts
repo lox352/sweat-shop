@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { type ChartStitch, reverseOf, seenFrom, workedAs } from "./sides";
+import { type ChartStitch, reverseOf, seenFrom } from "./sides";
+import { seen } from "../pattern/Stitch";
 import { type StitchType } from "../pattern/StitchType";
 import { isStepKind } from "../pattern/kinds";
 import { type Mark, forkMark, makeOneMark, markFor } from "./stitch-marks";
@@ -41,7 +42,7 @@ describe("each stitch from the other side of the fabric", () => {
 });
 
 describe("a stitch shown, and a stitch worked", () => {
-  const back = { type: "k1" as const, wrongSide: true };
+  const back = { type: "p1" as const, wrongSide: true };
   const round = { type: "k2tog" as const };
 
   it("shows a short row purled back as the knits it makes from the right side, and purls from the wrong", () => {
@@ -51,17 +52,18 @@ describe("a stitch shown, and a stitch worked", () => {
     expect(seenFrom(round, "wrong")).toBe("p2tog");
   });
 
-  it("works a short row back as purls, whichever side the chart shows", () => {
-    expect(workedAs(back)).toBe("p1");
-    expect(workedAs(round)).toBe("k2tog");
+  it("holds a short row back as the purls it is worked as, and shows it as the knits it looks like", () => {
+    expect(back.type).toBe("p1");
+    expect(seen(back)).toBe("k1");
+    expect(seen(round)).toBe("k2tog");
   });
 
   it("works the increase of a short row back as a PFB, and shows it as the KBF it looks like from the right side", () => {
-    const increase = { type: "kbf" as const, wrongSide: true };
-    expect(workedAs(increase)).toBe("pfb");
+    const increase = { type: "pfb" as const, wrongSide: true };
+    expect(seen(increase)).toBe("kbf");
     expect(seenFrom(increase, "right")).toBe("kbf");
     expect(seenFrom(increase, "wrong")).toBe("pfb");
-    expect(workedAs({ type: "kbf" as const })).toBe("kbf");
+    expect(seen({ type: "kbf" as const })).toBe("kbf");
   });
 });
 

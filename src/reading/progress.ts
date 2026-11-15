@@ -1,7 +1,5 @@
-import { Stitch, isFabric, isStep } from "../pattern/Stitch";
-import { workedAs } from "./sides";
-import { StitchType } from "../pattern/StitchType";
-import { boundOff, kinds, makesTwo } from "../pattern/kinds";
+import { Stitch, isFabric, isMakeOne, isStep } from "../pattern/Stitch";
+import { type KindId, boundOff, kinds, makesTwo } from "../pattern/kinds";
 import type { Piece } from "../pattern/design";
 import type { RoundKind } from "../pattern/rounds";
 import { chartRows } from "./layout";
@@ -256,7 +254,7 @@ export const whereYouAre = (position: Position): string =>
 
 export interface Run {
   slot: string;
-  type: StitchType;
+  type: KindId;
   length: number;
   startId: number;
   endId: number;
@@ -267,13 +265,12 @@ export interface Run {
    * time: the stitches that repeat, each with how many - one knit and one
    * purl, "(k1, p1)". A rib bound off in pattern is one too.
    */
-  repeat?: { type: StitchType; count: number }[];
+  repeat?: { type: KindId; count: number }[];
   /** The marker reached at its end, part way along the round: what it marks. */
   marker?: string;
 }
 
-/** A stitch as it is worked: one of the sweater's own, or a KFB worked from the wrong side, a PFB. */
-type Worked = StitchType | "pfb";
+type Worked = KindId;
 
 /**
  * What a knitter calls a kind: see kinds' said. The one-for-one stitches are
@@ -288,12 +285,12 @@ export const stitchWord = (type: Worked): string =>
   [words[type].said, words[type].after].filter(Boolean).join(" ");
 
 /** A rib's stitch as a pattern abbreviates it, from the side worked: "k", "p". */
-const ribLetter = (type: StitchType, wrongSide: boolean | undefined): string => (kinds[workedAs({ type, wrongSide })].purlwise ? "p" : "k");
+const ribLetter = (type: KindId): string => (kinds[type].purlwise ? "p" : "k");
 
 /** The stitches of a rib's repeat as a pattern writes them, from the side worked: "k1, p1". */
 const ribUnit = (run: Pick<Run, "repeat" | "wrongSide">): string =>
   (run.repeat ?? [])
-    .map(({ type, count }) => `${ribLetter(type, run.wrongSide)}${count}`)
+    .map(({ type, count }) => `${ribLetter(type)}${count}`)
     .join(", ");
 
 const boundOffInPattern = (run: Pick<Run, "repeat">): boolean => (run.repeat ?? []).some(({ type }) => boundOff(type));
@@ -304,7 +301,7 @@ export const runWord = (run: Pick<Run, "type" | "wrongSide" | "repeat">): string
     ? boundOffInPattern(run)
       ? "bind off in pattern"
       : `(${ribUnit(run)}) rib`
-    : stitchWord(workedAs(run));
+    : stitchWord(run.type);
 
 /** The instruction a run is: "Knit 6", "Purl 2", "K2tog x 3", "(K1, p1) x 48". */
 export const runInstruction = (run: Run): string => {
@@ -319,12 +316,12 @@ export const runInstruction = (run: Run): string => {
     const rest: string[] = [];
     for (const { type, count } of run.repeat) {
       if (left <= 0) break;
-      rest.push(`${ribLetter(type, run.wrongSide)}${Math.min(count, left)}`);
+      rest.push(`${ribLetter(type)}${Math.min(count, left)}`);
       left -= count;
     }
     phrase = [`(${ribUnit(run)}) x ${times}`, ...rest].join(", ");
   } else {
-    const { said, after, perStitch } = words[workedAs(run)];
+    const { said, after, perStitch } = words[run.type];
     phrase = perStitch
       ? [said, run.length, after].filter(Boolean).join(" ")
       : run.length === 1
@@ -336,7 +333,7 @@ export const runInstruction = (run: Run): string => {
 };
 
 /** The stitch a rib alternates with, in one yarn: a knit with a purl, and bound off so in pattern. */
-const ribPartner: Partial<Record<StitchType, StitchType>> = {
+const ribPartner: Partial<Record<KindId, KindId>> = {
   k1: "p1",
   p1: "k1",
   bindOff: "bindOffPurl",
@@ -366,7 +363,7 @@ export const currentRun = (
   // A KFB is one action at the needles but two loops: report it as one.
   if (makesTwo(type)) {
     const second = stitches[startId + 1];
-    if (second?.type === "m1" && second.slot === first.slot && index.roundOf.get(second.id) === round) {
+    if (second && isMakeOne(second) && second.slot === first.slot && index.roundOf.get(second.id) === round) {
       return {
         slot: first.slot,
         type,
@@ -409,7 +406,7 @@ export const currentRun = (
     let purls = 0;
     while (purls < 4 && alongside(stitches[endId + 1 + purls]) && stitches[endId + 1 + purls].type === partner) purls++;
     if (purls >= 1 && purls <= 3) {
-      const unit = [...Array<StitchType>(knits).fill(type), ...Array<StitchType>(purls).fill(partner)];
+      const unit = [...Array<KindId>(knits).fill(type), ...Array<KindId>(purls).fill(partner)];
       let end = startId;
       for (let id = startId; alongside(stitches[id]) && stitches[id].type === unit[(id - startId) % unit.length]; id++) {
         end = id;

@@ -3,7 +3,7 @@ import { buildSweater } from "./engine";
 import { testBandedSweater } from "./test-sweater";
 import { currentRun, indexRounds, positionOf, roundNames, runInstruction } from "../../reading/progress";
 import { holdRegions } from "../../reading/holds";
-import { workedAs } from "../../reading/sides";
+import { seen } from "../../pattern/Stitch";
 import { keyEntryAt } from "../../reading/stitch-key";
 import { isStep } from "../../pattern/Stitch";
 
@@ -28,9 +28,9 @@ describe("a yoke of two-colour bands, increased in its bands and along raglan li
   it("increases on the last short row back, as a PFB from the wrong side, and on the row to the end of the round", () => {
     const back = round("Yoke · short row 4, wrong side");
     const on = round("Yoke · short rows, to the end of the round");
-    // Stored as it looks from the right side, where a PFB's new stitch is on its right: a KBF.
-    expect(types(back).slice(0, 6)).toEqual(["k1", "k1", "kbf", "m1", "k1", "k1"]);
-    expect(workedAs(stitches[back[2]])).toBe("pfb");
+    // Held as worked, purls and a PFB; seen from the right side, where a PFB's new stitch is on its right, knits and a KBF.
+    expect(types(back).slice(0, 6)).toEqual(["p1", "p1", "pfb", "m1p", "p1", "p1"]);
+    expect(back.slice(0, 6).map((id) => seen(stitches[id]))).toEqual(["k1", "k1", "kbf", "m1", "k1", "k1"]);
     expect(runAt(back.slice(2))).toBe("PFB");
     expect(types(on)).toEqual(["k1", "k1", "kfb", "m1", "k1", "k1"]);
     // The last pair reached 3 further than the first, as asked.

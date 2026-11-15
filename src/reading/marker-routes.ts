@@ -1,5 +1,4 @@
-import { type Stitch, isFabric, worksInto } from "../pattern/Stitch";
-import { makesTwo } from "../pattern/kinds";
+import { type Stitch, isFabric, worksInto, secondLoop, isMakeOne } from "../pattern/Stitch";
 import type { SweaterStitches } from "../pattern/knitted";
 
 /**
@@ -131,7 +130,7 @@ const sidesOf = (stitches: Stitch[], round: number[], was: number): Omit<MarkerR
     const stitch = stitches[id];
     const into = worksInto(stitch);
     if (into.length > 0) return into[0] <= was;
-    if (stitch.type === "m1" && k > 0 && makesTwo(stitches[round[k - 1]].type)) return stitches[round[k - 1]].links[0] <= was;
+    if (k > 0 && secondLoop(stitch, stitches[round[k - 1]])) return stitches[round[k - 1]].links[0] <= was;
     return undefined;
   });
   let last = -1;
@@ -141,7 +140,7 @@ const sidesOf = (stitches: Stitch[], round: number[], was: number): Omit<MarkerR
   if (last < 0 || first >= round.length || sides[first] !== false) return undefined;
   // Anything worked into nothing between the two goes before it, worked before the marker is slipped.
   const free = round.slice(last + 1, first);
-  const makeOne = free.find((id) => stitches[id].type === "m1");
+  const makeOne = free.find((id) => isMakeOne(stitches[id]));
   return { before: free.length > 0 ? free[free.length - 1] : round[last], after: round[first], ...(makeOne === undefined ? {} : { makeOne }) };
 };
 

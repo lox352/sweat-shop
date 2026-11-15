@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { seen } from "../../pattern/Stitch";
 import { buildSweater, expand } from "./engine";
 import { testSweater, testSweaterWithShortRows } from "./test-sweater";
 import { isFabric, isStep } from "../../pattern/Stitch";
@@ -252,7 +253,8 @@ describe("short rows across the back of the neck", () => {
 
   it("purls the wrong side's rows, which the right side sees as knits", () => {
     for (const id of rows[1]) {
-      expect(stitches[id].type).toBe("k1");
+      expect(stitches[id].type).toBe("p1");
+      expect(seen(stitches[id])).toBe("k1");
       expect(stitches[id].wrongSide).toBe(true);
     }
     expect(stitches[rows[2][0]].wrongSide).toBeUndefined();
