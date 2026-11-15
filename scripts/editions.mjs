@@ -15,7 +15,9 @@ export { nameOf };
  * way through it will knit from is already there, made by the code that
  * built it. Superseded copies are never rewritten.
  *
- * And which shape each has, where that is settled already (see shapes.mjs),
+ * And each size's written pattern, a round a line (docs/written), so that a
+ * change to its knitting reads in review as the lines that changed. And which
+ * shape each has, where that is settled already (see shapes.mjs),
  * so that a recoloured size keeps its settled sweater. And the catalogue: every design without its knitting, which is all the site
  * reads of a design. It is written here too, so that one command brings
  * everything the site is published from up to date with the designs.
@@ -34,11 +36,16 @@ export const cataloguePath = "src/library/catalogue/catalogue.json";
 
 export const frozenPath = (design, size, edition) => `${frozenDir}/${design}--${size}--${edition}.json`;
 
+/** Each size's written pattern, as a printed pattern words it: see compiler/designs/written. For people to read, in review. */
+export const writtenDir = "docs/written";
+export const writtenPath = (design, size) => `${writtenDir}/${design}--${size}.txt`;
+
 /** Every size of every design, built now and named, with its frozen file as it would be written. */
 export const editionsNow = async (load) => {
   const { sweaters } = await load("/src/compiler/designs/index.ts");
   const { buildSweater } = await load("/src/compiler/engine/engine.ts");
   const { encodeEdition, hashable } = await load("/src/library/editions/format.ts");
+  const { writtenPattern } = await load("/src/compiler/designs/written.ts");
   const shapeOf = await shapeNamer(load);
   const out = [];
   for (const sweater of sweaters) {
@@ -46,7 +53,14 @@ export const editionsNow = async (load) => {
       const built = buildSweater(sweater, size.id);
       const draft = encodeEdition(built, sweater.id, size.id, "");
       const edition = nameOf(hashable(draft));
-      out.push({ design: sweater.id, size: size.id, edition, shape: shapeOf(built.knitting), json: JSON.stringify({ ...draft, edition }) });
+      out.push({
+        design: sweater.id,
+        size: size.id,
+        edition,
+        shape: shapeOf(built.knitting),
+        json: JSON.stringify({ ...draft, edition }),
+        written: writtenPattern(sweater, size.id, built.checks),
+      });
     }
   }
   return out;
@@ -77,6 +91,15 @@ const main = async () => {
     shapes[key] = shape;
   }
   if (!check) writeShapes(shapes);
+  for (const { design, size, written } of now) {
+    const path = writtenPath(design, size);
+    if (existsSync(path) && readFileSync(path, "utf8") === written) continue;
+    stale.push(`${design} ${size}: its written pattern`);
+    if (!check) {
+      mkdirSync(writtenDir, { recursive: true });
+      writeFileSync(path, written);
+    }
+  }
   for (const { design, size, edition, json } of now) {
     const entry = (manifest[design] ??= {})[size] ?? {};
     const path = frozenPath(design, size, edition);

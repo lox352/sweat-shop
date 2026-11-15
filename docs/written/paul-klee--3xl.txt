@@ -1,0 +1,129 @@
+Paul Klee Sweater, size 3XL
+22 sts and 34 rounds to 10cm on 3mm needles, ribbing on 2.75mm, colourwork on 3.75mm.
+
+Neck (yoke)
+  Cast on 126 in MC. (126 sts) [rib]
+  Join to work in the round.
+  20 rounds of k1, p1 in MC. [rib]
+
+Back neck (yoke)
+  Change to the main needles.
+  Shaping round in MC: k4, kfb, k8, kfb, [k10, kfb] x 9, k8, kfb, k4, to 138 sts.
+  German short rows in MC: 7 pairs, the first 5 sts past the beginning of the round, each 4 further. Last row back: p2, pfb, [p9, pfb] x 2, p5. Row to the end of the round: k2, kfb, [k9, kfb] x 2, k5. (144 sts)
+
+Colourwork (yoke)
+  Change to the colourwork needles.
+  Chart colour-1-x1, rows 1-5. (168 sts)
+  Chart colour-2-k1, rows 1-5. (192 sts)
+  Chart colour-3-k2, rows 1-5. (240 sts)
+  Chart colour-4-plain, rows 1-5. (240 sts)
+  Chart colour-5-k4, rows 1-4.
+  Chart colour-5-k4, rows 5-5. Markers: after 24, place for section 2 of 12; after 48, place for section 3 of 12; after 72, place for section 4 of 12; after 96, place for section 5 of 12; after 120, place for section 6 of 12; after 144, place for section 7 of 12; after 168, place for section 8 of 12; after 192, place for section 9 of 12; after 216, place for section 10 of 12; after 240, place for section 11 of 12; after 264, place for section 12 of 12. (288 sts)
+  Chart colour-6-plain, rows 1-5. (288 sts)
+  Chart colour-7-k6, rows 1-5. (336 sts)
+  Chart colour-8-plain, rows 1-5. (336 sts)
+  Chart colour-9-k8, rows 1-5. (384 sts)
+  Chart colour-10-plain, rows 1-5. (384 sts)
+  Chart colour-11-x9, rows 1-5. (432 sts)
+  Chart colour-12-plain, rows 1-5. (432 sts)
+
+Raglan (yoke)
+  Change to the main needles.
+  11 rounds of k1 in MC. Markers: after 36, remove the one for section 2 of 12; after 72, remove the one for section 3 of 12; after 108, remove the one for section 4 of 12; after 144, remove the one for section 5 of 12; after 180, remove the one for section 6 of 12; after 216, remove the one for section 7 of 12; after 252, remove the one for section 8 of 12; after 288, remove the one for section 9 of 12; after 324, remove the one for section 10 of 12; after 360, remove the one for section 11 of 12; after 396, remove the one for section 12 of 12.
+  1 round of k1 in MC. Markers: after 66, place for the right back raglan line; after 150, place for the right front raglan line; after 282, place for the left front raglan line; after 366, place for the left back raglan line.
+  Shaping round in MC: k65, kbf, kfb, k82, kbf, kfb, k130, kbf, kfb, k82, kbf, kfb, k65, to 440 sts.
+  1 round of k1 in MC.
+  Shaping round in MC: k66, kbf, kfb, k84, kbf, kfb, k132, kbf, kfb, k84, kbf, kfb, k66, to 448 sts.
+  1 round of k1 in MC.
+  Shaping round in MC: k67, kbf, kfb, k86, kbf, kfb, k134, kbf, kfb, k86, kbf, kfb, k67, to 456 sts.
+  1 round of k1 in MC.
+  Shaping round in MC: k68, kbf, kfb, k88, kbf, kfb, k136, kbf, kfb, k88, kbf, kfb, k68, to 464 sts.
+
+Body (body)
+  Divide, in MC: k70, remove marker for the right back raglan line, wrap the next stitch, then put 92 on hold for sleeve-right, remove marker for the right front raglan line, cast on 6, place marker for the new beginning of the round (the new beginning of the round), cast on 6, cast on 1 more, slip 1 and pass the cast-on over, k140, remove marker for the left front raglan line, wrap the next stitch, then put 92 on hold for sleeve-left, remove marker for the left back raglan line, cast on 12, cast on 1 more, slip 1 and pass the cast-on over, k70. (304 sts)
+  Knit on to the new beginning of the round, in MC.
+  75 rounds of k1 in MC.
+  Change to the ribbing needles.
+  2 rounds of k1 in MC. [rib]
+  31 rounds of k1, p1 in MC. [rib]
+  Bind off in pattern, (k1, p1), in MC. [rib]
+
+Right sleeve (sleeve-right)
+  Begin sleeve-right: pick up and knit 7, knit the held stitches, pick up and knit 7, in MC. (106 sts)
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 104 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 102 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 100 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 98 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 96 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 94 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 92 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 90 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 88 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 86 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 84 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 82 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 80 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 78 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 76 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 74 sts.
+  12 rounds of k1 in MC.
+  Change to the ribbing needles.
+  2 rounds of k1 in MC. (74 sts) [rib]
+  41 rounds of k1, p1 in MC. [rib]
+  Bind off in pattern, (k1, p1), in MC. [rib]
+
+Left sleeve (sleeve-left)
+  Begin sleeve-left: pick up and knit 7, knit the held stitches, pick up and knit 7, in MC. (106 sts)
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 104 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 102 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 100 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 98 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 96 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 94 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 92 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 90 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 88 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 86 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 84 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 82 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 80 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 78 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 76 sts.
+  5 rounds of k1 in MC.
+  Shaping round in MC: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 74 sts.
+  12 rounds of k1 in MC.
+  Change to the ribbing needles.
+  2 rounds of k1 in MC. (74 sts) [rib]
+  41 rounds of k1, p1 in MC. [rib]
+  Bind off in pattern, (k1, p1), in MC. [rib]
