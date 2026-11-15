@@ -1,0 +1,156 @@
+Hamefarin, size 2XL
+28 sts and 32 rounds to 10cm on 3.25mm needles, ribbing on 2.75mm.
+
+Neck (yoke)
+  Cast on 136 in A. (136 sts) [rib]
+  Join to work in the round.
+  Chart neck-rib, rows 1-12.
+
+Yoke (yoke)
+  Change to the main needles.
+  German short rows in A: 3 pairs, the first 22 sts past the beginning of the round, each 7 further.
+  Shaping round in A: k1, [m1, k2, m1, k3] x 3, m1, [k2, m1] x 2, [k3, m1, k2, m1] x 2, k3, m1, [k2, m1] x 2, [k3, m1, k2, m1] x 2, k3, m1, [k2, m1] x 2, [k3, m1, k2, m1] x 2, k3, m1, [k2, m1] x 2, [k3, m1, k2, m1] x 2, k3, m1, [k2, m1] x 2, [k3, m1, k2, m1] x 2, k3, m1, [k2, m1] x 2, [k3, m1, k2, m1] x 2, k3, m1, [k2, m1] x 2, [k3, m1, k2, m1] x 2, k3, m1, k1, to 192 sts.
+  1 round of k1 in A.
+  Shaping round in A: k1, [m1, k2, m1, k3] x 6, m1, [k2, m1] x 2, [k3, m1, k2, m1] x 5, k3, m1, [k2, m1] x 2, [k3, m1, k2, m1] x 5, k3, m1, [k2, m1] x 2, [k3, m1, k2, m1] x 5, k3, m1, [k2, m1] x 2, [k3, m1, k2, m1] x 5, k3, m1, [k2, m1] x 2, [k3, m1, k2, m1] x 5, k3, m1, k1, to 270 sts.
+  Chart peerie, rows 1-5.
+  2 rounds of k1 in A.
+  Shaping round in A: k2, m1, [k4, m1] x 9, [k5, m1, [k4, m1] x 10] x 5, k5, m1, k2, to 336 sts.
+  Chart border, rows 1-9.
+  2 rounds of k1 in A.
+  Shaping round in A: k2, m1, [k3, m1] x 7, [k4, m1, [k3, m1] x 8] x 11, k4, m1, k1, to 444 sts.
+  Chart seeds, rows 1-3.
+  2 rounds of k1 in A.
+  Shaping round in A: k4, [m1, k7, m1, k8] x 2, m1, [k7, m1] x 2, k8, m1, k7, m1, k8, m1, [k7, m1] x 2, k8, m1, k7, m1, k8, m1, [k7, m1] x 2, k8, m1, k7, m1, k8, m1, [k7, m1] x 2, k8, m1, k7, m1, k8, m1, [k7, m1] x 2, k8, m1, k7, m1, k8, m1, [k7, m1] x 2, k8, m1, k7, m1, k8, m1, [k7, m1] x 2, k8, m1, k7, m1, k8, m1, [k7, m1] x 2, k8, m1, k7, m1, k8, m1, [k7, m1] x 2, k8, m1, k7, m1, k8, m1, [k7, m1] x 2, k8, m1, k7, m1, k8, m1, [k7, m1] x 2, k8, m1, k7, m1, k8, m1, k3, to 504 sts.
+  Chart oxo, rows 1-17.
+  2 rounds of k1 in A.
+  Shaping round in A: k7, m1, [k14, m1] x 35, k7, to 540 sts.
+  Chart lozenges, rows 1-7.
+  9 rounds of k1 in A.
+
+Body (body)
+  Divide, in A: k87, put 96 on hold for sleeve-right, cast on 16, k174, put 96 on hold for sleeve-left, cast on 16, k87. (380 sts)
+  101 rounds of k1 in A.
+  1 round of k1 in A.
+  Chart seeds, rows 1-3.
+  1 round of k1 in A.
+  Change to the ribbing needles.
+  Chart edge-rib, rows 1-20.
+  Bind off knitwise, in A. [rib]
+
+Left sleeve (sleeve-left)
+  Begin sleeve-left: pick up and knit 8, knit the held stitches, pick up and knit 8, in A. (112 sts)
+  8 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 110 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 108 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 106 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 104 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 102 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 100 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 98 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 96 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 94 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 92 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 90 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 88 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 86 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 84 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 82 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 80 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 78 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 76 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 74 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 72 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 70 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 68 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 66 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 64 sts.
+  3 rounds of k1 in A.
+  8 rounds of k1 in A.
+  1 round of k1 in A. (64 sts)
+  Chart seeds, rows 1-3.
+  1 round of k1 in A.
+  Change to the ribbing needles.
+  Chart edge-rib, rows 1-20.
+  Bind off knitwise, in A. [rib]
+
+Right sleeve (sleeve-right)
+  Begin sleeve-right: pick up and knit 8, knit the held stitches, pick up and knit 8, in A. (112 sts)
+  8 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 110 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 108 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 106 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 104 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 102 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 100 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 98 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 96 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 94 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 92 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 90 sts.
+  4 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 88 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 86 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 84 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 82 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 80 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 78 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 76 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 74 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 72 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 70 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 68 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 66 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 64 sts.
+  3 rounds of k1 in A.
+  8 rounds of k1 in A.
+  1 round of k1 in A. (64 sts)
+  Chart seeds, rows 1-3.
+  1 round of k1 in A.
+  Change to the ribbing needles.
+  Chart edge-rib, rows 1-20.
+  Bind off knitwise, in A. [rib]

@@ -196,6 +196,11 @@ npm run editions              # name every size; freeze any new edition; update 
 npm run editions -- --check   # fail if anything is out of date, and write nothing
 ```
 
+It also writes each size's pattern as a printed pattern would word it, a round
+or an instruction a line, to `docs/written/` - "Shaping round in A: k2, m1,
+[k4, m1] x 59, k2, to 300 sts." - so a change to a size's knitting reads in
+review as the lines that changed, and not only as a new edition's name.
+
 Commit what it writes. The manifest's diff is the list of sizes whose knitting
 changed, which is worth reading: a size that changed and was not meant to is a
 bug. Frozen copies are never rewritten once superseded, and never deleted -

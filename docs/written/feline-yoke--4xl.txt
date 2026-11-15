@@ -1,0 +1,169 @@
+Nasca Felines, round yoke, size 4XL
+32 sts and 38 rounds to 10cm on 3mm needles, ribbing on 2.5mm.
+
+Yoke (yoke)
+  Cast on 164 in B. (164 sts) [rib]
+  Join to work in the round.
+  9 rounds of k1, p1 in B. Markers: after 0, place for the start of the round. [rib]
+  Change to the main needles.
+  German short rows in A: 3 pairs, the first 26 sts past the beginning of the round, each 8 further.
+  Shaping round in B: k6, [m1, k10] x 7, m1, k12, [m1, k10] x 7, m1, k6, to 180 sts.
+  1 round of k1 in B.
+  Shaping round in B: k5, [m1, k10] x 17, m1, k5, to 198 sts.
+  1 round of k1 in D.
+  Shaping round in D: k5, [m1, k10] x 4, m1, k9, [m1, k10] x 9, m1, k9, [m1, k10] x 4, m1, k5, to 218 sts.
+  1 round of k1 in D.
+  Shaping round in D: k5, [m1, k10] x 5, m1, k9, [m1, k10] x 9, m1, k9, [m1, k10] x 5, m1, k5, to 240 sts.
+  1 round of k1 in B.
+  Shaping round in B: k5, [m1, k10] x 23, m1, k5, to 264 sts.
+  Chart feline-yoke-4xl-yoke-1, rows 1-9, 1 repeats a round.
+  Shaping round in B: k3, [m1, k6] x 43, m1, k3, to 308 sts.
+  Shaping round in B: k3, [m1, k6] x 8, m1, k5, [m1, k6] x 7, m1, k5, [m1, k6] x 17, m1, k5, [m1, k6] x 7, m1, k5, [m1, k6] x 8, m1, k3, to 360 sts.
+  Chart feline-yoke-4xl-yoke-2, rows 1-13, 1 repeats a round.
+  Shaping round in B: k6, [m1, k11] x 2, m1, k12, [m1, k11] x 4, m1, k12, [m1, k11] x 4, m1, k12, [m1, k11] x 2, m1, k12, [m1, k11] x 2, m1, k12, [m1, k11] x 4, m1, k12, [m1, k11] x 4, m1, k12, [m1, k11] x 2, m1, k6, to 392 sts.
+  1 round of k1 in B.
+  Shaping round in A: k6, [m1, k11] x 2, m1, k10, [m1, k11] x 5, m1, k10, [m1, k11] x 5, m1, k10, [m1, k11] x 2, m1, k12, [m1, k11] x 2, m1, k10, [m1, k11] x 5, m1, k10, [m1, k11] x 5, m1, k10, [m1, k11] x 2, m1, k6, to 428 sts.
+  1 round of k1 in A.
+  Shaping round in A: k6, m1, k11, m1, k12, [m1, k11] x 4, m1, k12, [m1, k11] x 4, m1, k12, [m1, k11] x 4, [m1, k12, m1, k11] x 3, [m1, k11] x 3, m1, k12, [m1, k11] x 4, m1, k12, [m1, k11] x 4, m1, k12, m1, k11, m1, k6, to 466 sts.
+  1 round of k1 in A.
+  Shaping round in A: k6, [m1, k10, m1, k11] x 2, [m1, k11, m1, k10] x 5, [m1, k11] x 2, [m1, k10, m1, k11] x 2, m1, k10, m1, k12, [m1, k10, m1, k11] x 3, [m1, k11, m1, k10] x 5, [m1, k11] x 2, m1, k10, m1, k11, m1, k10, m1, k6, to 510 sts.
+  1 round of k1 in A.
+  Shaping round in A: k6, [m1, k11] x 10, m1, k12, [m1, k11] x 11, m1, k12, [m1, k11] x 11, m1, k12, [m1, k11] x 10, m1, k6, to 556 sts.
+  1 round of k1 in A.
+  Shaping round in A: k6, [m1, k11] x 5, m1, k12, [m1, k11] x 12, m1, k12, [m1, k11] x 5, m1, k12, [m1, k11] x 5, m1, k12, [m1, k11] x 12, m1, k12, [m1, k11] x 5, m1, k6, to 606 sts.
+  1 round of k1 in A.
+  Shaping round in A: k6, [m1, k11] x 2, m1, k12, [m1, k11] x 4, m1, k12, [m1, k11] x 4, m1, k12, [m1, k11] x 5, m1, k12, [m1, k11] x 4, m1, k12, [m1, k11] x 2, m1, k12, [m1, k11] x 2, m1, k12, [m1, k11] x 4, m1, k12, [m1, k11] x 5, m1, k12, [m1, k11] x 4, m1, k12, [m1, k11] x 4, m1, k12, [m1, k11] x 2, m1, k6, to 660 sts.
+  1 round of k1 in A.
+  Shaping round in A: k6, [m1, k11] x 14, m1, k10, [m1, k11] x 14, m1, k12, [m1, k11] x 14, m1, k10, [m1, k11] x 14, m1, k6, to 720 sts.
+  Chart feline-yoke-4xl-yoke-3, rows 1-48, 1 repeats a round. (720 sts)
+
+Body (body)
+  Divide, in A: k115, put 130 on hold for sleeve-right, cast on 20, k230, put 130 on hold for sleeve-left, cast on 20, k115. (500 sts)
+  Chart feline-yoke-4xl-body-1, rows 1-108, 1 repeats a round.
+  15 rounds of k1 in A.
+  4 rounds of k1 in B.
+  Chart feline-yoke-4xl-body-2, rows 1-22, 1 repeats a round.
+  2 rounds of k1 in B.
+  4 rounds of k1 in D.
+  3 rounds of k1 in B.
+  Change to the ribbing needles.
+  14 rounds of k1, p1 in B. (500 sts) [rib]
+  Bind off in pattern, (k1, p1), in B. [rib]
+
+Left sleeve (sleeve-left)
+  Begin sleeve-left: pick up and knit 10, knit the held stitches, pick up and knit 10, in A. (150 sts)
+  7 rounds of k1 in A. Markers: after 0, place for the start of the left sleeve's rounds.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 148 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 146 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 144 sts.
+  2 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 142 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 140 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 138 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 136 sts.
+  2 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 134 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 132 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 130 sts.
+  2 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 128 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 126 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 124 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 122 sts.
+  2 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 120 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 118 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 116 sts.
+  2 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 114 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 112 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 110 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 108 sts.
+  2 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 106 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 104 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 102 sts.
+  4 rounds of k1 in A.
+  Chart feline-yoke-4xl-sleeve-1, rows 1-22, 1 repeats a round.
+  6 rounds of k1 in A.
+  Chart feline-yoke-4xl-cuff, rows 1-40.
+  Shaping round in B: k1, k2tog, k3, k2tog, [k2, k2tog, [k3, k2tog] x 2] x 3, k2, k2tog, k3, k2tog, [k2, k2tog, [k3, k2tog] x 2] x 3, k1, to 80 sts.
+  Change to the ribbing needles.
+  14 rounds of k1, p1 in B. (80 sts) [rib]
+  Bind off in pattern, (k1, p1), in B. [rib]
+
+Right sleeve (sleeve-right)
+  Begin sleeve-right: pick up and knit 10, knit the held stitches, pick up and knit 10, in A. (150 sts)
+  7 rounds of k1 in A. Markers: after 0, place for the start of the right sleeve's rounds.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 148 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 146 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 144 sts.
+  2 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 142 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 140 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 138 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 136 sts.
+  2 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 134 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 132 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 130 sts.
+  2 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 128 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 126 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 124 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 122 sts.
+  2 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 120 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 118 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 116 sts.
+  2 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 114 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 112 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 110 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 108 sts.
+  2 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 106 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 104 sts.
+  3 rounds of k1 in A.
+  Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 102 sts.
+  4 rounds of k1 in A.
+  Chart feline-yoke-4xl-sleeve-1, rows 1-22, 1 repeats a round.
+  6 rounds of k1 in A.
+  Chart feline-yoke-4xl-cuff, rows 1-40.
+  Shaping round in B: k1, k2tog, k3, k2tog, [k2, k2tog, [k3, k2tog] x 2] x 3, k2, k2tog, k3, k2tog, [k2, k2tog, [k3, k2tog] x 2] x 3, k1, to 80 sts.
+  Change to the ribbing needles.
+  14 rounds of k1, p1 in B. (80 sts) [rib]
+  Bind off in pattern, (k1, p1), in B. [rib]
