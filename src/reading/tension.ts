@@ -32,3 +32,11 @@ export const per10cm = (count: number, overCm: number): number => Math.round((co
 /** Whether two tensions are near enough to knit up alike: within two per cent each way. */
 export const sameTension = (a: Tension, b: Tension): boolean =>
   Math.abs(a.stitchesPer10cm / b.stitchesPer10cm - 1) <= 0.02 && Math.abs(a.roundsPer10cm / b.roundsPer10cm - 1) <= 0.02;
+
+/**
+ * How much more yarn a stitch takes at a knitter's tension than at the one a
+ * pattern was written for: a stitch is a loop about as long as it is wide and
+ * tall together, so half by its width and half by its height.
+ */
+export const yarnPerStitch = (written: Tension, own: Tension): number =>
+  (written.stitchesPer10cm / own.stitchesPer10cm + written.roundsPer10cm / own.roundsPer10cm) / 2;

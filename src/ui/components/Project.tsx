@@ -7,6 +7,9 @@ import { viewChart } from "../../reading/counted";
 import { currentEdition, editionOf, isSuperseded, errataOf } from "../../library/editions";
 import PatternUpdated from "./PatternUpdated";
 import MyTension from "./MyTension";
+import Refit from "./Refit";
+import type { Fitted } from "../../library/fit";
+import { sameTension, yarnPerStitch } from "../../reading/tension";
 import { makeOnesAtMarkers } from "../../reading/marker-routes";
 import type { ChartView } from "../../reading/views";
 import { colourwayLabel, keyOf, paletteOf, slotNames, trimmed, type Overrides } from "../../reading/palette";
@@ -22,6 +25,8 @@ import {
   readProject,
   projectsChanged,
   writeProject,
+  keepKnitting,
+  dropUnknitted,
 } from "../../projects/projects";
 import PageLayout from "./ui/PageLayout";
 import Button from "./ui/Button";
@@ -244,6 +249,32 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
     });
   }, [change]);
 
+  // The rest worked out for the knitter's tension, taken: the knitting is now the project's own, every stitch worked where it was. See Refit.
+  const takeFit = useCallback((fitted: Fitted) => {
+    if (!keepKnitting(fitted.file)) return;
+    change((current) => ({
+      ...current,
+      edition: fitted.file.edition,
+      fit: {
+        tension: fitted.tension,
+        finished: fitted.finished,
+        round: fitted.round,
+        // The published edition it left, through any fit before this one.
+        from: current.fit ? current.fit.from : editionOf(current),
+        ...(fitted.option ? { option: fitted.option } : {}),
+      },
+    }));
+    dropUnknitted();
+  }, [change]);
+
+  const leaveFit = useCallback(() => {
+    change((current) => {
+      const { fit, ...rest } = current;
+      return fit?.from ? { ...rest, edition: fit.from } : current;
+    });
+    dropUnknitted();
+  }, [change]);
+
   const setShade = useCallback((slots: SlotId[], chosen: Chosen | undefined) => {
     change((current) => {
       const shades = { ...current.shades };
@@ -317,6 +348,8 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
       setShade={setShade}
       setTension={setTension}
       takeUpdate={takeUpdate}
+      takeFit={takeFit}
+      leaveFit={leaveFit}
     />
   );
 };
@@ -335,6 +368,8 @@ const ProjectView: React.FC<{
   setShade: (slots: SlotId[], chosen: Chosen | undefined) => void;
   setTension: (tension: Tension | undefined) => void;
   takeUpdate: (moved: (progress: number) => number | undefined) => void;
+  takeFit: (fitted: Fitted) => void;
+  leaveFit: () => void;
 }> = ({
   view,
   sweaterId,
@@ -349,6 +384,8 @@ const ProjectView: React.FC<{
   setShade,
   setTension,
   takeUpdate,
+  takeFit,
+  leaveFit,
 }) => {
   const sweater = sweaterById(sweaterId)!;
   const size = sweater.sizes.find((s) => s.id === project.sizeId) ?? sweater.sizes[0];
@@ -378,7 +415,7 @@ const ProjectView: React.FC<{
   const chart = shownView ? viewChart(built, counted, shownView) : { layout: counted.layout, markers: counted.markers };
   const makeOnes = useMemo(() => makeOnesAtMarkers({ stitches, knitting: built.knitting }), [stitches, built.knitting]);
   // The design's knitting has moved on since this project began: it says so, and offers the update.
-  const updated = isSuperseded(sweater.id, size.id, edition) ? (
+  const updated = !project.fit && isSuperseded(sweater.id, size.id, edition) ? (
     <PatternUpdated sweater={sweater} sizeId={size.id} stitches={stitches} index={index} progress={project.progress} onSwitch={takeUpdate} errata={errataOf(sweater.id, size.id)} />
   ) : null;
   const tabs = finished.length > 1 && shownView && (
@@ -395,7 +432,12 @@ const ProjectView: React.FC<{
     [sweater, project.colourwayId, project.trim],
   );
   const palette = useMemo(() => paletteOf(colourway, project.shades), [colourway, project.shades]);
-  const metres = useMemo(() => metresFor(size, stitches, rounds), [size, stitches, rounds]);
+  // Fitted to its knitter, the knitting is in their stitches, not the size's: what it measures, and the yarn a stitch takes.
+  const fitted = useMemo(() => project.fit && { finished: project.fit.finished, ...project.fit.tension }, [project.fit]);
+  const metres = useMemo(
+    () => (fitted ? metresFor({}, stitches, rounds, yarnPerStitch(size, fitted)) : metresFor(size, stitches, rounds)),
+    [size, fitted, stitches, rounds],
+  );
 
   const counts = totals(index, project.progress);
   const position = positionOf(stitches, project.progress, index);
@@ -634,7 +676,7 @@ const ProjectView: React.FC<{
         <WoolList
           colourway={colourway}
           metres={metres}
-          stated={size.yardage !== undefined}
+          stated={size.yardage !== undefined && !fitted}
           overrides={project.shades ?? noShades}
           onChange={setShade}
           body={body}
@@ -642,7 +684,21 @@ const ProjectView: React.FC<{
         />
       </section>
 
-      <MyTension key={project.id} size={size} tension={project.tension} onChange={setTension} />
+      <MyTension key={project.id} size={size} fitted={fitted} tension={project.tension} onChange={setTension}>
+        {sweater.fitting && project.tension && !position.finished && (project.fit || !sameTension(size, project.tension)) && (
+          <Refit
+            sweater={sweater}
+            size={size}
+            knitted={built}
+            progress={project.progress}
+            tension={project.tension}
+            fit={project.fit}
+            roundNames={names}
+            onTake={takeFit}
+            onGoBack={leaveFit}
+          />
+        )}
+      </MyTension>
 
       <NextStep
         title={position.finished ? "All knitted" : counts.worked > 0 ? "Carry on" : "Ready to cast on?"}

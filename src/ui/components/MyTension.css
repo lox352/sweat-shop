@@ -40,3 +40,47 @@
   font-weight: normal;
   color: var(--ink-faint);
 }
+
+.refit {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.refit progress {
+  width: 100%;
+  max-width: 24rem;
+}
+
+.refit-options {
+  border: 0;
+  padding: 0;
+  margin: 1rem 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.refit-options legend {
+  padding: 0;
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+}
+
+.refit-options label {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.refit-written {
+  max-height: 24rem;
+  overflow: auto;
+  padding: 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+}

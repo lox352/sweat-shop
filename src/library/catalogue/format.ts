@@ -49,6 +49,8 @@ const pick = <T extends object, K extends keyof T>(from: T, keys: readonly K[]):
 /** A design without its knitting, as plain data, whatever else the one given holds: see pattern/design. */
 export const aboutOf = (pattern: Design): Design => ({
   ...pick(pattern, designKeys),
+  // Only that it can be fitted, and how: the fitting itself is the compiler's.
+  ...(pattern.fitting ? { fitting: { options: pattern.fitting.options ?? [] } } : {}),
   sizes: pattern.sizes.map((size): SizeAbout => pick(size, sizeKeys)),
   colourways: pattern.colourways,
 });

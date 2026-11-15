@@ -1,7 +1,9 @@
 import { Overrides } from "../reading/palette";
-import type { Tension } from "../pattern/design";
+import type { Measurements, Tension } from "../pattern/design";
 import { deleteLog } from "./timing/log";
 import { currentEdition } from "../library/editions";
+import type { EditionFile } from "../library/editions/format";
+import { dropEditionsBut, keepEdition } from "../library/editions/own";
 
 /**
  * A project is a sweater you are knitting.
@@ -41,9 +43,40 @@ export interface Project {
    * written for. See reading/tension.
    */
   tension?: Tension;
+  /**
+   * Where the rest of its knitting was worked out again for its knitter (see
+   * library/fit). Its edition is then its own, kept on the device: see
+   * library/editions/own.
+   */
+  fit?: ProjectFit;
   startedAt: string;
   updatedAt: string;
 }
+
+/** A project's knitting fitted to its knitter: at what tension, to what measurements, and from where. */
+export interface ProjectFit {
+  tension: Tension;
+  /** What the sweater will measure. */
+  finished: Measurements;
+  /** The round the rest was planned from: every round to it is as the pattern had it. */
+  round: number;
+  /** The edition it was fitted from, to go back to. */
+  from?: string;
+  /** Which of the design's ways of laying the rest out. */
+  option?: string;
+}
+
+const measures: (keyof Measurements)[] = ["chestCm", "neckCm", "yokeDepthCm", "bodyLengthCm", "upperArmCm", "sleeveLengthCm", "cuffCm"];
+
+/** Whether something read back is a fit. */
+export const isFit = (value: unknown): value is ProjectFit => {
+  const fit = value as Partial<ProjectFit> | null;
+  return typeof fit === "object" && fit !== null && isTension(fit.tension) &&
+    typeof fit.finished === "object" && fit.finished !== null && measures.every((key) => Number.isFinite(fit.finished?.[key])) &&
+    Number.isSafeInteger(fit.round) && (fit.round ?? 0) > 0 &&
+    (fit.from === undefined || (typeof fit.from === "string" && /^[0-9a-f]{1,64}$/.test(fit.from))) &&
+    (fit.option === undefined || (typeof fit.option === "string" && fit.option.length <= 40));
+};
 
 /** Whether something read back is a tension: two sensible numbers. */
 export const isTension = (value: unknown): value is Tension => {
@@ -113,6 +146,7 @@ const isProject = (value: unknown): value is Project => {
     (candidate.trim !== undefined && typeof candidate.trim !== "string") ||
     (candidate.edition !== undefined && typeof candidate.edition !== "string") ||
     (candidate.tension !== undefined && !isTension(candidate.tension)) ||
+    (candidate.fit !== undefined && !isFit(candidate.fit)) ||
     (candidate.version !== undefined && candidate.version !== currentVersion)) return false;
   if (candidate.shades !== undefined) {
     if (!candidate.shades || typeof candidate.shades !== "object" || Array.isArray(candidate.shades)) return false;
@@ -227,11 +261,23 @@ export const deleteProject = (id: string) => {
     deleteLog(storageKeyFor(id));
     pending.delete(storageKeyFor(id));
     pendingBase.delete(storageKeyFor(id));
+    // And any knitting that was its own.
+    dropEditionsBut(listProjects());
     notifyChanged();
   } catch {
     notice("The project could not be deleted from browser storage. Please try again.");
   }
 };
+
+/** Keep knitting that is a project's own on the device (see library/editions/own), saying so where there is no room for it. */
+export const keepKnitting = (file: EditionFile): boolean => {
+  if (keepEdition(file)) return true;
+  notice("There is no room on this device to keep the pattern worked out for you. Export a backup, and delete a project you no longer need.");
+  return false;
+};
+
+/** Drop any knitting kept on the device that no project knits now. */
+export const dropUnknitted = () => dropEditionsBut(listProjects());
 
 export const renameProject = (id: string, name: string) => {
   const project = readProject(id);

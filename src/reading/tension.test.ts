@@ -24,3 +24,11 @@ describe("what a pattern knits up to at another tension", () => {
     expect(sameTension(written, { stitchesPer10cm: 30, roundsPer10cm: 38 })).toBe(false);
   });
 });
+
+it("a bigger stitch takes more yarn, by its width and its height", async () => {
+  const { yarnPerStitch } = await import("./tension");
+  const written = { stitchesPer10cm: 32, roundsPer10cm: 38 };
+  expect(yarnPerStitch(written, written)).toBe(1);
+  expect(yarnPerStitch(written, { stitchesPer10cm: 16, roundsPer10cm: 19 })).toBe(2);
+  expect(yarnPerStitch(written, { stitchesPer10cm: 23.3, roundsPer10cm: 25 })).toBeCloseTo(1.45, 1);
+});
