@@ -90,7 +90,7 @@ test("a design that can't be worked out again does not offer to be", async ({ pa
   await page.evaluate((id) => {
     const now = new Date().toISOString();
     localStorage.setItem(id, JSON.stringify({
-      version: 1, id, sweaterId: "hamefarin", sizeId: "m", colourwayId: "simmer-dim", progress: 0, tension: { stitchesPer10cm: 24, roundsPer10cm: 30 }, startedAt: now, updatedAt: now,
+      version: 1, id, sweaterId: "paul-klee", sizeId: "m1", colourwayId: "klee", progress: 0, tension: { stitchesPer10cm: 24, roundsPer10cm: 30 }, startedAt: now, updatedAt: now,
     }));
   }, id);
   await page.goto("#/project/1760000000000");
