@@ -9,6 +9,8 @@ export interface OrbitLike {
 }
 
 interface FrameModelProps {
+  /** What is being looked at: the camera is placed once for it, however its positions change after. */
+  subject: unknown;
   /** The stitches at the edges of the silhouette: see framing.ts. */
   extremes: [number, number, number][];
   controls: React.MutableRefObject<OrbitLike | null>;
@@ -26,10 +28,11 @@ const direction = new THREE.Vector3(-0.3, 0.28, 0.91).normalize();
 const fillFraction = 0.9;
 
 /**
- * Places the camera once, from where the sweater's extremes are, and then
- * leaves it alone - the hat site learned that a camera that reframes itself
- * fights whoever is turning the model. Nothing moves it afterwards except the
- * person using it.
+ * Places the camera once for what it is looking at, from where the sweater's
+ * extremes are, and then leaves it alone - the hat site learned that a camera
+ * that reframes itself fights whoever is turning the model. Nothing moves it
+ * afterwards except the person using it: not even the same sweater coming to
+ * rest in another shape. Only another sweater, or another size of frame.
  *
  * The fit is iterated rather than calculated: the camera looks down at the
  * sweater a little, and in perspective the nearer parts are larger, so
@@ -38,16 +41,16 @@ const fillFraction = 0.9;
  * steps back or in by how far the silhouette over- or under-fills the frame,
  * and moves the aim by how far off centre it lands.
  */
-const FrameModel: React.FC<FrameModelProps> = ({ extremes, controls }) => {
+const FrameModel: React.FC<FrameModelProps> = ({ subject, extremes, controls }) => {
   const camera = useThree((state) => state.camera);
   const viewport = useThree((state) => state.size);
-  const framed = useRef("");
+  const framed = useRef<{ subject: unknown; width: number; height: number }>();
 
   useEffect(() => {
     if (extremes.length === 0) return;
-    const key = `${extremes.map((point) => point.map((value) => value.toFixed(1)).join(",")).join(";")}:${viewport.width}x${viewport.height}`;
-    if (framed.current === key) return;
-    framed.current = key;
+    const was = framed.current;
+    if (was && was.subject === subject && was.width === viewport.width && was.height === viewport.height) return;
+    framed.current = { subject, width: viewport.width, height: viewport.height };
 
     const perspective = camera as THREE.PerspectiveCamera;
     const points = extremes.map(([x, y, z]) => new THREE.Vector3(x, y, z));
@@ -101,7 +104,7 @@ const FrameModel: React.FC<FrameModelProps> = ({ extremes, controls }) => {
       orbit.target.copy(centre);
       orbit.update();
     }
-  }, [extremes, camera, controls, viewport.width, viewport.height]);
+  }, [subject, extremes, camera, controls, viewport.width, viewport.height]);
 
   return null;
 };
