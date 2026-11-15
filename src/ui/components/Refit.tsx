@@ -1,21 +1,13 @@
-import React, { useEffect, useRef, useState } from "react";
-import type { Design, Measurements, SizeAbout, Tension } from "../../pattern/design";
+import React, { useEffect } from "react";
+import type { Design, SizeAbout, Tension } from "../../pattern/design";
 import type { SweaterStitches } from "../../pattern/knitted";
-import { type Fitted, askForFit } from "../../library/fit";
+import type { Fitted } from "../../library/fit";
 import type { ProjectFit } from "../../projects/projects";
+import type { Palette } from "../../reading/palette";
 import { sameTension } from "../../reading/tension";
+import { useFit } from "../useFit";
+import FitPreview from "./FitPreview";
 import Button from "./ui/Button";
-
-const rows: { key: keyof Measurements; label: string }[] = [
-  { key: "chestCm", label: "Chest" },
-  { key: "upperArmCm", label: "Upper arm" },
-  { key: "yokeDepthCm", label: "Yoke depth" },
-  { key: "bodyLengthCm", label: "Body length" },
-  { key: "sleeveLengthCm", label: "Sleeve length" },
-  { key: "cuffCm", label: "Cuff" },
-];
-
-type Step = { at: "rest" } | { at: "working"; fraction: number } | { at: "shown"; fitted: Fitted } | { at: "failed"; why: string };
 
 /**
  * The rest of the sweater worked out again for the knitter's own tension:
@@ -24,9 +16,10 @@ type Step = { at: "rest" } | { at: "working"; fraction: number } | { at: "shown"
  *
  * It is worked out on the device, which nothing else of a pattern is (see
  * library/fit), so it says it may take a while before it starts, shows how
- * far it has got, and shows what it comes to - where it changes from, what it
- * will measure, the rest written out - before anything is taken. What is
- * knitted is never touched.
+ * far it has got, and shows what it comes to (FitPreview) before anything is
+ * taken. What is knitted is never touched. The asking is useFit's and the
+ * showing FitPreview's: this is where a project offers the one and takes the
+ * other.
  */
 const Refit: React.FC<{
   sweater: Design;
@@ -35,6 +28,7 @@ const Refit: React.FC<{
   progress: number;
   tension: Tension;
   fit: ProjectFit | undefined;
+  palette: Palette;
   /** What the knitting calls each of its rounds, from 0: see progress.roundNames. */
   roundNames: string[];
   /** What it is called and why it is offered, where that is not the knitter's tension: an update that can't be joined to their knitting (see PatternUpdated). */
@@ -42,44 +36,23 @@ const Refit: React.FC<{
   lead?: string;
   onTake: (fitted: Fitted) => void;
   onGoBack: () => void;
-}> = ({ sweater, size, knitted, progress, tension, fit, roundNames, title = "Fit the rest to your tension", lead, onTake, onGoBack }) => {
-  const options = sweater.fitting?.options ?? [];
-  const [step, setStep] = useState<Step>({ at: "rest" });
-  const [option, setOption] = useState<string | undefined>(fit?.option ?? options[0]?.id);
-  const asked = useRef<{ cancel: () => void }>();
-  useEffect(() => () => asked.current?.cancel(), []);
+}> = ({ sweater, size, knitted, progress, tension, fit, palette, roundNames, title = "Fit the rest to your tension", lead, onTake, onGoBack }) => {
+  const { state, ask, reset } = useFit();
   // A tension changed is another question: what was worked out for the last is put away.
   const key = `${tension.stitchesPer10cm} ${tension.roundsPer10cm}`;
-  useEffect(() => {
-    asked.current?.cancel();
-    setStep({ at: "rest" });
-  }, [key]);
-
-  const ask = (chosen: string | undefined) => {
-    asked.current?.cancel();
-    setOption(chosen);
-    setStep({ at: "working", fraction: 0 });
-    const request = askForFit({ design: sweater.id, sizeId: size.id, knitted, progress, tension, option: chosen }, (fraction) =>
-      setStep((now) => (now.at === "working" ? { at: "working", fraction } : now)),
-    );
-    asked.current = request;
-    request.fitted.then(
-      (fitted) => setStep({ at: "shown", fitted }),
-      (error: Error) => setStep({ at: "failed", why: error.message }),
-    );
-  };
+  useEffect(reset, [key, reset]);
+  const work = () => ask({ design: sweater.id, sizeId: size.id, knitted, progress, tension });
 
   const fittedNow = fit && sameTension(fit.tension, tension);
   // Every round to the one it was fitted from is as the pattern had it: until the knitting passes it, the pattern as written can be gone back to.
   const canGoBack = fit?.from !== undefined && progress <= (knitted.rounds[fit.round - 1]?.at(-1) ?? -1);
-  const nameOf = (round: number) => roundNames[round - 1] ?? `round ${round}`;
 
-  if (fittedNow && step.at === "rest") {
+  if (fittedNow && state.at === "rest") {
     return (
       <div className="refit">
         <p>
-          The rest of your pattern is worked out for this tension, from the end of <strong>{nameOf(fit.round)}</strong>. Every round to there is as the
-          pattern had it.
+          The rest of your pattern is worked out for this tension, from the end of <strong>{roundNames[fit.round - 1] ?? `round ${fit.round}`}</strong>. Every
+          round to there is as the pattern had it.
         </p>
         {canGoBack && (
           <p>
@@ -95,7 +68,7 @@ const Refit: React.FC<{
   return (
     <div className="refit">
       <h3>{title}</h3>
-      {step.at === "rest" && (
+      {state.at === "rest" && (
         <>
           <p>
             {lead ??
@@ -103,91 +76,45 @@ const Refit: React.FC<{
           </p>
           <p className="quiet">It is worked out on this device, and can take up to a minute. Nothing changes until you have seen it.</p>
           <p>
-            <Button variant="primary" onClick={() => ask(option)}>
+            <Button variant="primary" onClick={work}>
               Work out the rest
             </Button>
           </p>
         </>
       )}
-      {step.at === "working" && (
+      {state.at === "working" && (
         <div role="status">
           <p>Working out the rest of your sweater. This can take up to a minute.</p>
-          <progress value={step.fraction} max={1} aria-label="How far the working out has got" />
+          <progress value={state.fraction} max={1} aria-label="How far the working out has got" />
         </div>
       )}
-      {step.at === "failed" && (
+      {state.at === "failed" && (
         <div role="alert">
-          <p>{step.why}</p>
+          <p>{state.why}</p>
           <p>
-            <Button onClick={() => ask(option)}>Try again</Button>
+            <Button onClick={work}>Try again</Button>
           </p>
         </div>
       )}
-      {step.at === "shown" && (
-        <div role="status" className="refit-shown">
-          <p>
-            <strong>From the end of {nameOf(step.fitted.round)}.</strong>{" "}
-            {progress < (knitted.rounds[step.fitted.round - 1]?.at(-1) ?? 0)
-              ? "Knit to there as the pattern has it. The rest changes from there:"
-              : "The rest changes from there:"}
-          </p>
-          <ul>
-            {step.fitted.notes.map((note) => (
-              <li key={note}>{note}</li>
-            ))}
-          </ul>
-          <table className="my-tension-table">
-            <thead>
-              <tr>
-                <th scope="col">
-                  <span className="visually-hidden">Measurement</span>
-                </th>
-                <th scope="col">Size</th>
-                <th scope="col">Fitted</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(({ key, label }) => (
-                <tr key={key}>
-                  <th scope="row">{label}</th>
-                  <td>{size.finished[key]}cm</td>
-                  <td>{step.fitted.finished[key]}cm</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {options.length > 1 && (
-            <fieldset className="refit-options">
-              <legend>How the rest is laid out</legend>
-              {options.map((one) => (
-                <label key={one.id}>
-                  <input type="radio" name="refit-option" checked={option === one.id} onChange={() => ask(one.id)} />
-                  <span>
-                    <strong>{one.label}.</strong> {one.detail}
-                  </span>
-                </label>
-              ))}
-            </fieldset>
-          )}
-          <details>
-            <summary>The rest, written out</summary>
-            <pre className="refit-written">{step.fitted.written}</pre>
-          </details>
-          <p className="my-tension-actions">
-            <Button
-              variant="primary"
-              onClick={() => {
-                onTake(step.fitted);
-                setStep({ at: "rest" });
-              }}
-            >
-              Knit the rest this way
-            </Button>
-            <Button variant="quiet" onClick={() => setStep({ at: "rest" })}>
-              Not now
-            </Button>
-          </p>
-        </div>
+      {state.at === "shown" && (
+        <FitPreview
+          size={size}
+          knitted={knitted}
+          progress={progress}
+          tension={tension}
+          found={state.found}
+          unfitted={state.unfitted}
+          options={sweater.fitting?.options ?? []}
+          first={fit?.option}
+          palette={palette}
+          roundNames={roundNames}
+          take="Knit the rest this way"
+          onTake={(fitted) => {
+            onTake(fitted);
+            reset();
+          }}
+          onLeave={reset}
+        />
       )}
     </div>
   );

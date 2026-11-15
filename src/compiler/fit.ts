@@ -3,7 +3,8 @@ import type { SweaterStitches } from "../pattern/knitted";
 import { sweaterById } from "./designs";
 import type { Fitting, Size, SweaterPattern } from "./designs/types";
 import { writtenPattern } from "./designs/written";
-import { buildSweater, roundHeightFor, sizeOf } from "./engine/engine";
+import { atTension } from "../reading/tension";
+import { buildSweater, sizeOf } from "./engine/engine";
 
 /**
  * A sweater fitted to its knitter, part way through: what is knitted kept as
@@ -64,16 +65,8 @@ export const fit = (ask: FitAsk, done?: (fraction: number) => void): Fit => {
    * pattern said: its stitches are as they were made, and its rounds as tall
    * for their width as the rest's will be.
    */
-  const taller = roundHeightFor(ask.tension) / ask.knitted.roundHeight;
-  const from = {
-    knitted: {
-      ...ask.knitted,
-      stitches: ask.knitted.stitches.map((stitch) => (stitch.rise === undefined ? stitch : { ...stitch, rise: stitch.rise * taller })),
-      // The counts a pattern names are of the pattern that names them: the fitted sweater's are the rest's.
-      checks: {},
-    },
-    round: ask.round,
-  };
+  // The counts a pattern names are of the pattern that names them: the fitted sweater's are the rest's.
+  const from = { knitted: { ...atTension(ask.knitted, ask.tension), checks: {} }, round: ask.round };
   const planned = fitting.plan({ finished: ask.finished ?? size.finished, tension: ask.tension, from, option: ask.option });
   // The size as it now is: its own name and needles, the rest as its knitting. Named a field at a time, as a size may work its knitting out only when asked.
   const fitted: Size = {

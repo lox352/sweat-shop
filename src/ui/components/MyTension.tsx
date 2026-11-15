@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import type { Measurements, SizeAbout, Tension } from "../../pattern/design";
-import { asKnitted, per10cm, sameTension } from "../../reading/tension";
-import Button from "./ui/Button";
+import { asKnitted, sameTension } from "../../reading/tension";
+import TensionForm from "./TensionForm";
 import "./MyTension.css";
 
 const rows: { key: keyof Measurements; label: string }[] = [
@@ -34,26 +34,9 @@ const MyTension: React.FC<{
   children?: React.ReactNode;
 }> = ({ size, fitted, tension, onChange, children }) => {
   const written = fitted ?? size;
-  const [stitches, setStitches] = useState(tension ? String(tension.stitchesPer10cm) : "");
-  const [stitchesOver, setStitchesOver] = useState("10");
-  const [rounds, setRounds] = useState(tension ? String(tension.roundsPer10cm) : "");
-  const [roundsOver, setRoundsOver] = useState("10");
-  const numbers = [stitches, stitchesOver, rounds, roundsOver].map(Number);
-  const valid = numbers.every((n) => Number.isFinite(n) && n > 0);
-  const entered: Tension | undefined = valid
-    ? { stitchesPer10cm: per10cm(numbers[0], numbers[1]), roundsPer10cm: per10cm(numbers[2], numbers[3]) }
-    : undefined;
-  const sensible = !!entered && [entered.stitchesPer10cm, entered.roundsPer10cm].every((n) => n >= 2 && n <= 200);
   const knitted = tension && asKnitted(written.finished, written, tension);
   // A sweater fitted comes as near the size as what was knitted lets it: the table says how near.
   const table = tension && (fitted || !sameTension(written, tension));
-
-  const field = (label: string, value: string, set: (value: string) => void) => (
-    <label>
-      <span className="visually-hidden">{label}</span>
-      <input type="number" inputMode="decimal" min="0" step="any" value={value} aria-label={label} onChange={(event) => set(event.target.value)} />
-    </label>
-  );
 
   return (
     <section className="section my-tension" aria-labelledby="my-tension-heading">
@@ -63,37 +46,7 @@ const MyTension: React.FC<{
         {written.roundsPer10cm} rounds to 10cm. Lay your knitting flat and
         count what you have over a measured length, the longer the better.
       </p>
-      <form
-        className="my-tension-form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (entered && sensible) onChange(entered);
-        }}
-      >
-        <p>
-          {field("Stitches counted", stitches, setStitches)} stitches over {field("Centimetres the stitches were counted over", stitchesOver, setStitchesOver)} cm
-        </p>
-        <p>
-          {field("Rounds counted", rounds, setRounds)} rounds over {field("Centimetres the rounds were counted over", roundsOver, setRoundsOver)} cm
-        </p>
-        <p className="my-tension-actions">
-          <Button type="submit" variant="primary" disabled={!sensible}>
-            {tension ? "Update" : "Compare with the pattern"}
-          </Button>
-          {tension && (
-            <Button
-              variant="quiet"
-              onClick={() => {
-                onChange(undefined);
-                setStitches("");
-                setRounds("");
-              }}
-            >
-              Clear
-            </Button>
-          )}
-        </p>
-      </form>
+      <TensionForm tension={tension} first="Compare with the pattern" onChange={onChange} />
       {tension && knitted && (
         <div role="status">
           <p>

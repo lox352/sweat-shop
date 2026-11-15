@@ -6,6 +6,7 @@ import { whenKnitting } from "../../library/knitting";
 import { type Update, updateFor } from "../../library/editions/difference";
 import { type Fitted, mayFit } from "../../library/fit";
 import type { ProjectFit } from "../../projects/projects";
+import type { Palette } from "../../reading/palette";
 import Refit from "./Refit";
 
 const rounds = (count: number) => `${count} round${count === 1 ? "" : "s"}`;
@@ -27,6 +28,7 @@ const PatternUpdated: React.FC<{
   /** The knitter's own tension, where they have said, and where their knitting is fitted to it. */
   tension: Tension | undefined;
   fit: ProjectFit | undefined;
+  palette: Palette;
   /** Said by whoever published the update, where it puts right a mistake: see the editions manifest. */
   errata?: string;
   /** Told of an update that changes nothing ahead: nothing more to say of it. */
@@ -37,7 +39,7 @@ const PatternUpdated: React.FC<{
   onJoin: (knitting: SweaterStitches) => void;
   /** Taking the rest worked out afresh from the updated pattern. */
   onFit: (fitted: Fitted) => void;
-}> = ({ sweater, size, knitted, index, progress, tension, fit, errata, onSeen, onSwitch, onJoin, onFit }) => {
+}> = ({ sweater, size, knitted, index, progress, tension, fit, palette, errata, onSeen, onSwitch, onJoin, onFit }) => {
   const [update, setUpdate] = useState<Update>();
 
   useEffect(() => {
@@ -122,6 +124,7 @@ const PatternUpdated: React.FC<{
             progress={progress}
             tension={tension ?? { stitchesPer10cm: size.stitchesPer10cm, roundsPer10cm: size.roundsPer10cm }}
             fit={undefined}
+            palette={palette}
             roundNames={names}
             title="Work the rest out from the updated pattern"
             lead={
