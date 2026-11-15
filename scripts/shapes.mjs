@@ -23,7 +23,9 @@ export const shapesFile = "src/library/settled/shapes.json";
  * Everything the settling runs on, named one by one and hashed by what each
  * holds, so that moving a file changes no shape's name. The bench's measuring
  * tape (physics/gauge) changes nothing the settling does, and nor does how
- * the fabric is told apart (physics/topology), which is hashed itself. The
+ * the fabric is told apart (physics/topology), which is hashed itself, nor
+ * how a shape is named and settled on a knitter's device (physics/naming,
+ * settling, settle.worker), which only call what is hashed here. The
  * words the physics is written in (pattern/) are not among them: what they
  * say of a fabric is in its topology already.
  */

@@ -44,7 +44,9 @@ describe("the settled sweaters", () => {
   });
 
   it("are named by everything the settling runs on", () => {
-    const physics = readdirSync("src/physics").filter((name) => name.endsWith(".ts") && !name.includes(".test.") && !["gauge.ts", "topology.ts"].includes(name));
+    // Not the bench's tape, nor how a fabric is told apart and a shape named, nor the worker a device settles one in: none changes what the settling does.
+    const beside = ["gauge.ts", "topology.ts", "naming.ts", "settling.ts", "settle.worker.ts"];
+    const physics = readdirSync("src/physics").filter((name) => name.endsWith(".ts") && !name.includes(".test.") && !beside.includes(name));
     for (const name of physics) expect(physicsFiles, `scripts/shapes.mjs does not name ${name}`).toContain(`src/physics/${name}`);
     for (const path of physicsFiles as string[]) expect(existsSync(path), path).toBe(true);
   });
