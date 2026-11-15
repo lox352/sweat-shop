@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { SlotId } from "../../pattern/design";
 import type { Stitch } from "../../pattern/Stitch";
-import { consumption } from "../../pattern/StitchType";
+import { kinds } from "../../pattern/kinds";
 import { isSpacer } from "../../pattern/knitted";
 import { yarnFor, type Palette } from "../../reading/palette";
 
@@ -35,7 +35,7 @@ export const bodyRounds = (rounds: number[][], stitches: Stitch[]) => {
 const parentOf = (stitch: Stitch | undefined): number | undefined => {
   if (!stitch) return undefined;
   const { links } = stitch;
-  return (links.length > consumption[stitch.type] ? links.slice(0, -1) : links)[0];
+  return (links.length > kinds[stitch.type].takes ? links.slice(0, -1) : links)[0];
 };
 
 /**

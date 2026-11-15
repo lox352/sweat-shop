@@ -23,20 +23,17 @@ export const shapesFile = "src/library/settled/shapes.json";
  * Everything the settling runs on, named one by one and hashed by what each
  * holds, so that moving a file changes no shape's name. The bench's measuring
  * tape (physics/gauge) changes nothing the settling does, and nor does how
- * the fabric is told apart (physics/topology), which is hashed itself.
+ * the fabric is told apart (physics/topology), which is hashed itself. The
+ * words the physics is written in (pattern/) are not among them: what they
+ * say of a fabric is in its topology already.
  */
 export const physicsFiles = [
   "src/constants.ts",
-  "src/pattern/knitting.ts",
   "src/physics/pose.ts",
   "src/physics/ropes.ts",
   "src/physics/solver.ts",
   "src/physics/tuning.ts",
   "src/physics/vector.ts",
-  "src/pattern/Point.ts",
-  "src/pattern/RGB.ts",
-  "src/pattern/Stitch.ts",
-  "src/pattern/StitchType.ts",
 ];
 
 export const physicsNow = () => {

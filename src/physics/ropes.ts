@@ -1,5 +1,5 @@
 import { Stitch, isFabric, isStep } from "../pattern/Stitch";
-import { consumption } from "../pattern/StitchType";
+import { kinds } from "../pattern/kinds";
 import { adjacentStitchDistance } from "../constants";
 
 /**
@@ -40,7 +40,7 @@ export const ropesOf = (stitches: Stitch[], roundHeight: number): Rope[] => {
     if (!isFabric(stitch)) continue;
     const width = stitch.width ?? adjacentStitchDistance;
     const rise = stitch.rise ?? roundHeight;
-    const worked = consumption[stitch.type];
+    const worked = kinds[stitch.type].takes;
     const links = stitch.links;
     const hasBefore = links.length > worked;
     // What it works, and anything else it is drawn out of (a KFB's second loop).

@@ -1,5 +1,5 @@
-import { type Stitch, isFabric, isStep } from "../pattern/Stitch";
-import { boundOff, consumption } from "../pattern/StitchType";
+import { type Stitch, isFabric, isStep, worksInto } from "../pattern/Stitch";
+import { boundOff } from "../pattern/kinds";
 import type { Cell, ChartLayout } from "./layout";
 import type { Held } from "../pattern/rounds";
 import { type MarkerLine, startLine } from "./view";
@@ -77,9 +77,6 @@ interface Built {
   holds: Held[];
   knitting: { rounds: number[][]; roundPieces: string[] };
 }
-
-/** The stitches of the round below that this one is worked into. */
-const worksInto = (stitch: Stitch): number[] => stitch.links.slice(0, consumption[stitch.type]);
 
 /**
  * A make-one is worked into nothing below it, only the bar between two

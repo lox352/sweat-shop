@@ -1,5 +1,5 @@
-import { Stitch, before, isFabric } from "../../pattern/Stitch";
-import { consumption } from "../../pattern/StitchType";
+import { Stitch, before, isFabric, worksInto } from "../../pattern/Stitch";
+import { kinds } from "../../pattern/kinds";
 
 /**
  * Which way each drawn stitch faces, as the stitches it is measured against.
@@ -40,7 +40,7 @@ export const neighboursOf = (stitches: Stitch[], rounds: number[][]): Neighbours
   const child = new Int32Array(stitches.length).fill(-1);
   for (const stitch of stitches) {
     if (!isFabric(stitch)) continue;
-    for (const id of stitch.links.slice(0, consumption[stitch.type])) {
+    for (const id of worksInto(stitch)) {
       if (child[id] === -1) child[id] = stitch.id;
     }
   }
@@ -48,7 +48,7 @@ export const neighboursOf = (stitches: Stitch[], rounds: number[][]): Neighbours
   const pairs = new Int32Array(drawn.length * 4).fill(-1);
   drawn.forEach((stitch, index) => {
     const at = index * 4;
-    const previous = before(stitch, consumption[stitch.type]);
+    const previous = before(stitch, kinds[stitch.type].takes);
     if (fabric(previous)) {
       pairs[at] = previous;
       pairs[at + 1] = stitch.id;
@@ -59,7 +59,7 @@ export const neighboursOf = (stitches: Stitch[], rounds: number[][]): Neighbours
     // A stitch worked from the wrong side, on a short row knitted back, is worked towards the round's start: turned about, it faces out as the rest do.
     if (stitch.wrongSide) [pairs[at], pairs[at + 1]] = [pairs[at + 1], pairs[at]];
     // Of what it works, the middle, as the chart anchors a decrease.
-    const worked = stitch.links.slice(0, consumption[stitch.type]).filter(fabric);
+    const worked = worksInto(stitch).filter(fabric);
     const below = worked.length > 0 ? worked[Math.floor(worked.length / 2)] : stitch.from;
     if (fabric(below)) {
       pairs[at + 2] = stitch.id;

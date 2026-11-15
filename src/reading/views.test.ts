@@ -5,8 +5,7 @@ import { testSweater, testSweaterDivided } from "../compiler/engine/test-sweater
 import { seamLayout } from "./counted";
 import { beginningAt, viewFor } from "./view";
 import { type ChartView, chartViews, layOutView, markersInView, viewFollowedAt, viewsFollowed } from "./views";
-import { isFabric } from "../pattern/Stitch";
-import { consumption } from "../pattern/StitchType";
+import { isFabric, worksInto } from "../pattern/Stitch";
 import { sweaters } from "../compiler/designs";
 
 const built = buildSweater(testSweater, "one");
@@ -39,7 +38,7 @@ describe("the chart's views", () => {
     for (const id of neck.members) {
       const stitch = built.stitches[id];
       expect(stitch.type).not.toBe("pickUp");
-      if (stitch.type !== "castOn") expect(stitch.links.slice(0, consumption[stitch.type]).some((below) => edges.has(below))).toBe(false);
+      if (stitch.type !== "castOn") expect(worksInto(stitch).some((below) => edges.has(below))).toBe(false);
     }
     expect(body.some((id) => neck.members.has(id))).toBe(true);
     expect(sleeve("sleeve-left").some((id) => neck.members.has(id))).toBe(true);
@@ -51,7 +50,7 @@ describe("the chart's views", () => {
     expect(none([...right.stitches, ...sleeve("sleeve-right")], view)).toBe(true);
     // And the yoke's stitches below them that nothing else was worked out of: the stitches each is knitted into, as far down as they are its alone.
     const neck = byId("neck");
-    const below = (id: number) => built.stitches[id].links.slice(0, consumption[built.stitches[id].type]);
+    const below = (id: number) => worksInto(built.stitches[id]);
     const theirs = right.stitches.flatMap(below).filter((id) => !view.members.has(id));
     expect(theirs.length).toBeGreaterThan(0);
     for (const id of theirs) expect(neck.members.has(id)).toBe(true);
@@ -193,7 +192,7 @@ const roundFamily = ({ stitches, holds, knitting }: SweaterStitches): Set<number
   let after = holds[0].heldAt + 1;
   while (!isFabric(stitches[after])) after++;
   const row = knitting.rounds[roundOf.get(after)!].filter((id) => isFabric(stitches[id]));
-  const into = (id: number) => stitches[id].links.slice(0, consumption[stitches[id].type]);
+  const into = (id: number) => worksInto(stitches[id]);
   const out = new Set(row);
   for (let id = row[0]; id < stitches.length; id++) {
     const stitch = stitches[id];

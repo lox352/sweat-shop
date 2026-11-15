@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { type ChartStitch, reverseOf, seenFrom, workedAs } from "./sides";
-import { consumption, stepTypes, type StitchType } from "../pattern/StitchType";
+import { type StitchType } from "../pattern/StitchType";
+import { isStepKind } from "../pattern/kinds";
 import { type Mark, forkMark, makeOneMark, markFor } from "./stitch-marks";
 
-const sweaterStitches = (Object.keys(consumption) as StitchType[]).filter((type) => !stepTypes.has(type));
+const stored: StitchType[] = ["castOn", "k1", "p1", "k1tbl", "m1", "kfb", "kbf", "k2tog", "ssk", "s2kp", "sk2p", "sl1po", "pickUp", "bindOff", "bindOffPurl", "join", "needles", "hold", "resume", "turn", "marker"];
+const steps = stored.filter(isStepKind);
+const sweaterStitches = stored.filter((type) => !isStepKind(type));
 
 describe("each stitch from the other side of the fabric", () => {
   it("is its pair, the stitch a key gives for the other side's rows", () => {
@@ -33,7 +36,7 @@ describe("each stitch from the other side of the fabric", () => {
 
   it("leaves a cast-on and the steps as they are", () => {
     expect(reverseOf("castOn")).toBe("castOn");
-    for (const step of stepTypes) expect(reverseOf(step)).toBe(step);
+    for (const step of steps) expect(reverseOf(step)).toBe(step);
   });
 });
 

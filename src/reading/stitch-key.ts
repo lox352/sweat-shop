@@ -1,5 +1,4 @@
-import { Stitch, isStep, joinsCastOn } from "../pattern/Stitch";
-import { makesTwo } from "../pattern/StitchType";
+import { Stitch, isStep, joinsCastOn, secondLoop } from "../pattern/Stitch";
 import type { StitchKeyId, StitchNote } from "../pattern/design";
 import { type ChartStitch, type Face, type ReverseStitch, seenFrom, workedAs } from "./sides";
 
@@ -322,7 +321,7 @@ const order: KeyId[] = [
 
 /** Whether an m1 is the second loop of the KFB or KBF just before it. */
 export const pairedWithKfb = (stitches: Stitch[], index: number): boolean =>
-  stitches[index]?.type === "m1" && makesTwo(stitches[index - 1]?.type);
+  secondLoop(stitches[index], stitches[index - 1]);
 
 /**
  * Whether a cast-on stitch is cast on part way round - an underarm, in the

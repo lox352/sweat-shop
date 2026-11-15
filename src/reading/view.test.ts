@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { worksInto } from "../pattern/Stitch";
 import { buildSweater } from "../compiler/engine/engine";
 import { layOutSweater } from "./layout";
-import { consumption } from "../pattern/StitchType";
 import { newBeginning, raglanLine, testSweaterWithMarkers } from "../compiler/engine/test-sweater";
 import { beginningAt, cutAt, turned, viewAt } from "./view";
 
@@ -48,7 +48,7 @@ describe("the view of the test sweater with markers", () => {
   const step = stitches.find((stitch) => stitch.type === "marker" && stitch.begins)!;
   const before = viewAt(built, layout, step.id - 1);
   const after = viewAt(built, layout, step.id);
-  const worked = (id: number) => stitches[id].links.slice(0, consumption[stitches[id].type]);
+  const worked = (id: number) => worksInto(stitches[id]);
 
   it("is the rounds from the seam until the new beginning is placed, and again once that is undone", () => {
     expect(beginningAt(built, step.id - 1)).toBeUndefined();

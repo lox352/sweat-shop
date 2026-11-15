@@ -4,7 +4,7 @@ import { type SweaterStitches } from "../pattern/knitted";
 import { chartRows, layOut, layOutSweater, mirrorLayout } from "./layout";
 import { testBandedSweater, testSweater, testSweaterWithShortRows } from "../compiler/engine/test-sweater";
 import { indexRounds } from "./progress";
-import { consumption, makesTwo } from "../pattern/StitchType";
+import { kinds, makesTwo } from "../pattern/kinds";
 import type { Stitch } from "../pattern/Stitch";
 import { sweaters } from "../compiler/designs";
 
@@ -19,7 +19,7 @@ const pieceRounds = (id: string) => {
 const offTheirStitch = (knitting: SweaterStitches, rounds: number[][], layout: ReturnType<typeof layOut>) =>
   rounds.flat().filter((id) => {
     const stitch = knitting.stitches[id];
-    if (consumption[stitch.type] !== 1) return false;
+    if (kinds[stitch.type].takes !== 1) return false;
     const below = layout.cells.get(stitch.links[0]);
     /*
      * A KFB's mirror, a KBF makes its new stitch on its right, so of its two

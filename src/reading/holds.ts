@@ -1,5 +1,5 @@
 import type { Stitch } from "../pattern/Stitch";
-import { consumption } from "../pattern/StitchType";
+import { kinds } from "../pattern/kinds";
 import type { Held } from "../pattern/rounds";
 
 /**
@@ -37,7 +37,7 @@ export const holdRegions = (stitches: Stitch[], holds: Held[]): HoldRegion[] =>
         region.add(id);
         continue;
       }
-      for (let link = 0; link < consumption[stitch.type]; link++) {
+      for (let link = 0; link < kinds[stitch.type].takes; link++) {
         if (region.has(stitch.links[link])) {
           region.add(id);
           break;

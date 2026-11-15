@@ -1,5 +1,4 @@
-import { Stitch } from "../pattern/Stitch";
-import { makesTwo } from "../pattern/StitchType";
+import { Stitch, secondLoop } from "../pattern/Stitch";
 
 /** Return the last worked id immediately before the requested next stitch. */
 export function progressBefore(stitches: Stitch[], rounds: number[][], round: number, stitch: number) {
@@ -8,6 +7,6 @@ export function progressBefore(stitches: Stitch[], rounds: number[][], round: nu
     throw new Error("Choose a valid round and stitch within that round.");
   }
   let id = ids[stitch - 1];
-  if (stitches[id]?.type === "m1" && makesTwo(stitches[id - 1]?.type)) id--;
+  if (secondLoop(stitches[id], stitches[id - 1])) id--;
   return id - 1;
 }

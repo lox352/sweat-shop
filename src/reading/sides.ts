@@ -1,5 +1,6 @@
 import type { Stitch } from "../pattern/Stitch";
 import type { StitchType } from "../pattern/StitchType";
+import { type KindId, type ReverseStitch, kinds, otherSide } from "../pattern/kinds";
 
 /** A side of the sweater: the side it is worn with out, or its reverse. */
 export type Face = "right" | "wrong";
@@ -39,37 +40,13 @@ export type Face = "right" | "wrong";
  * a turn - is the same step. A purlwise bind-off is one of the sweater's own
  * as well, where a rib is bound off in pattern.
  */
-export type ReverseStitch =
-  | "p1tbl"
-  | "p2tog"
-  | "ssp"
-  | "s2pp"
-  | "p2sps"
-  | "m1p"
-  | "pfb"
-  | "pbf"
-  | "pickUpPurl";
+export type { ReverseStitch };
 
 /** Any stitch a chart can show: one of the sweater's, or one of them from behind. */
-export type ChartStitch = StitchType | ReverseStitch;
+export type ChartStitch = KindId;
 
-const pairs: [ChartStitch, ChartStitch][] = [
-  ["k1", "p1"],
-  ["k1tbl", "p1tbl"],
-  ["k2tog", "p2tog"],
-  ["ssk", "ssp"],
-  ["s2kp", "s2pp"],
-  ["sk2p", "p2sps"],
-  ["m1", "m1p"],
-  ["kfb", "pbf"],
-  ["kbf", "pfb"],
-  ["pickUp", "pickUpPurl"],
-  ["bindOff", "bindOffPurl"],
-];
-const pairOf = new Map<ChartStitch, ChartStitch>(pairs.flatMap(([a, b]) => [[a, b], [b, a]]));
-
-/** A stitch from the other side of the fabric: its pair, or itself where it has none. */
-export const reverseOf = (stitch: ChartStitch): ChartStitch => pairOf.get(stitch) ?? stitch;
+/** A stitch from the other side of the fabric: its pair, or itself where it has none. See kinds' otherSide. */
+export const reverseOf = otherSide;
 
 /**
  * A stitch as it is worked, from the side it is worked from: what the
@@ -80,15 +57,9 @@ export const reverseOf = (stitch: ChartStitch): ChartStitch => pairOf.get(stitch
  * increase a short row may make, a KBF from the right side, is a PFB.
  */
 export const workedAs = (stitch: Pick<Stitch, "type" | "wrongSide">): StitchType | "pfb" =>
-  !stitch.wrongSide
-    ? stitch.type
-    : stitch.type === "k1"
-      ? "p1"
-      : stitch.type === "p1"
-        ? "k1"
-        : stitch.type === "kbf"
-          ? "pfb"
-          : stitch.type;
+  stitch.wrongSide && (kinds[stitch.type].family === "work" || kinds[stitch.type].family === "split")
+    ? (otherSide(stitch.type) as StitchType | "pfb")
+    : stitch.type;
 
 /**
  * What the chart shows a stitch as, seen from one side of the sweater.
