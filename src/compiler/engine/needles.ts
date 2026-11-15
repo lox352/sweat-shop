@@ -1,7 +1,7 @@
 import { type Held, type RoundKind, type SeamKind, beginning } from "../../pattern/rounds";
 import { Stitch, secondLoop } from "../../pattern/Stitch";
 import { StitchType } from "../../pattern/StitchType";
-import { kinds } from "../../pattern/kinds";
+import { kinds, otherSide } from "../../pattern/kinds";
 
 /**
  * The knitting, as a knitter has it: the stitches on the needles.
@@ -550,9 +550,10 @@ export default class Needles {
    * every place, whatever row or round made it.
    *
    * A row from the wrong side is purled, and a purl seen from the right side
-   * is a knit; that is what is stored. See Stitch.wrongSide. So is its
-   * increase: a PFB puts its new stitch on its left as it is purled, as a KFB
-   * does, which seen from the right side is on its right - a KBF.
+   * is a knit: the row is asked for as it is to look, and each stitch held as
+   * it is worked. So is its increase: a PFB puts its new stitch on its left
+   * as it is purled, as a KFB does, which seen from the right side is on its
+   * right - a KBF.
    */
   row(
     label: string,
@@ -576,7 +577,8 @@ export default class Needles {
     const make = (type: StitchType, links: number[]): Stitch => {
       const stitch = this.push({
         links: this.yarn === undefined ? links : [...links, this.yarn],
-        type,
+        // Asked for as it is to look from the right side, and held as it is worked: from the wrong side, its pair.
+        type: side === "wrong" ? otherSide(type) : type,
         slot,
         piece: this.piece,
         width,

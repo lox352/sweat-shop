@@ -18,9 +18,8 @@
  *     priced at those costs, which knows a crown of decreases or a stretch of
  *     two-colour rounds for what it is.
  */
-import { Stitch, isFabric, isStep } from "../../pattern/Stitch";
+import { Stitch, isFabric, isStep, seen } from "../../pattern/Stitch";
 import { kinds } from "../../pattern/kinds";
-import { workedAs } from "../../reading/sides";
 import type { Action } from "./log";
 
 export const operations = [
@@ -74,8 +73,8 @@ export const typical: Costs = {
   tap: 1.5,
 };
 
-// As it was worked: a knit on a row worked from the wrong side was purled. See kinds' effort.
-const baseOf = (stitch: Stitch): Operation | undefined => kinds[workedAs(stitch)].effort;
+// As it is worked: see kinds' effort.
+const baseOf = (stitch: Stitch): Operation | undefined => kinds[stitch.type].effort;
 
 /**
  * What each stitch asks of the knitter, as running totals from the start, so
@@ -94,7 +93,8 @@ export class Prefix {
       if (isStep(stitch) || !isFabric(stitch)) continue;
       if (previous && stitch.type !== "castOn" && previous.type !== "castOn") {
         if (previous.slot !== stitch.slot) ops[stitch.id].add("colourChange");
-        if ((previous.type === "p1") !== (stitch.type === "p1")) ops[stitch.id].add("knitPurlSwitch");
+        // By how the fabric looks from the right side: a short row purled back is no switch from the knitting before it.
+        if ((seen(previous) === "p1") !== (seen(stitch) === "p1")) ops[stitch.id].add("knitPurlSwitch");
       }
       previous = stitch;
     }

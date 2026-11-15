@@ -1,5 +1,5 @@
 import type { SeamKind } from "../pattern/rounds";
-import { Stitch, isFabric, worksInto, secondLoop } from "../pattern/Stitch";
+import { Stitch, isFabric, worksInto, secondLoop, isMakeOne, seen } from "../pattern/Stitch";
 import { makesTwo } from "../pattern/kinds";
 
 export interface Cell {
@@ -148,20 +148,21 @@ export const isSecondLoop = (stitch: Stitch, byId: Map<number, Stitch>): boolean
  * KBF's two loops the left-hand one stands over the stitch below: worked from
  * the right side its second, with the first, worked first, to the right of it;
  * a PFB purled back from the wrong side, which looks like a KBF from the right
- * side and is stored as one, its first. Anything else that makes two of one -
+ * side, its first. Anything else that makes two of one -
  * a make-one only ever joins a family when there is nowhere else to put it -
  * straddles it.
  *
- * Every stitch is stored as it looks from the right side, as the chart is
- * laid out, so this is the lean on the chart whichever side it was worked from.
+ * Each stitch is taken as it looks from the right side, as the chart is laid
+ * out, so this is the lean on the chart whichever side it was worked from.
  */
 const leanOf = (family: Family, byId: Map<number, Stitch>): Lean => {
   if (family.above.length > 1) {
-    const types = family.above.map((id) => byId.get(id)?.type);
+    const types = family.above.map((id) => { const stitch = byId.get(id); return stitch && seen(stitch); });
     if (types.includes("kbf")) return "left";
     return types.some(makesTwo) ? "right" : "middle";
   }
-  switch (byId.get(family.above[0])?.type) {
+  const only = byId.get(family.above[0]);
+  switch (only && seen(only)) {
     case "k2tog":
       return "right";
     case "ssk":
@@ -284,7 +285,7 @@ const letInMakeOnes = (
   round.forEach((id, k) => {
     if (column.has(id)) return;
     const stitch = byId.get(id);
-    if (stitch?.type !== "m1" || isSecondLoop(stitch, byId)) return;
+    if (!stitch || !isMakeOne(stitch) || isSecondLoop(stitch, byId)) return;
     const near = (step: number) => {
       for (let j = k + step; j >= 0 && j < round.length; j += step) {
         const at = column.get(round[j]);

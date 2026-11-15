@@ -25,7 +25,7 @@ const offTheirStitch = (knitting: SweaterStitches, rounds: number[][], layout: R
      * A KFB's mirror, a KBF makes its new stitch on its right, so of its two
      * loops the left-hand one stands over the stitch below: worked from the
      * right side its second, the stitch after it, and on a PFB purled back,
-     * which is stored as the KBF it looks like, its first.
+     * which looks like a KBF, its first.
      */
     const standing = stitch.type === "kbf" && !stitch.wrongSide ? id + 1 : id;
     return below !== undefined && below.column !== layout.cells.get(standing)!.column;
@@ -258,7 +258,7 @@ describe("a yoke of bands and raglan increases, on the chart", () => {
 
   it("lays a PFB purled back across a short row out as the KBF it looks like from the right side", () => {
     const at = knitting.roundLabels.indexOf("Yoke · short row 4, wrong side");
-    const increases = knitting.rounds[at].filter((id) => knitting.stitches[id].type === "kbf");
+    const increases = knitting.rounds[at].filter((id) => knitting.stitches[id].type === "pfb");
     expect(increases).toHaveLength(1);
     for (const id of increases) {
       const column = (one: number) => laid.cells.get(one)!.column;
@@ -273,11 +273,11 @@ describe("an increase on a row worked back, either side of the widest round", ()
   const stitch = (id: number, type: Stitch["type"], links: number[], wrongSide = false): Stitch => ({
     id, type, links, slot: "MC", piece: "yoke", ...(wrongSide ? { wrongSide: true } : {}),
   });
-  // A PFB, stored as the KBF it is from the right side, and its second loop, both worked into stitch 1.
-  const pfb = (id: number) => [stitch(id, "kbf", [1], true), stitch(id + 1, "m1", [1], true)];
+  // A PFB, the KBF it is from the right side, and its second loop, both worked into stitch 1.
+  const pfb = (id: number) => [stitch(id, "pfb", [1], true), stitch(id + 1, "m1p", [1], true)];
 
   it("stands its first loop over the stitch below and its second to its right, laid out up from the widest round", () => {
-    const stitches = [0, 1, 2, 3, 4, 5].map((id) => stitch(id, "castOn", [])).concat([stitch(6, "k1", [2], true), ...pfb(7)]);
+    const stitches = [0, 1, 2, 3, 4, 5].map((id) => stitch(id, "castOn", [])).concat([stitch(6, "p1", [2], true), ...pfb(7)]);
     const laid = layOut(stitches, [[0, 1, 2, 3, 4, 5], [6, 7, 8]], ["round", "wrong"]);
     const column = (id: number) => laid.cells.get(id)!.column;
     expect(column(7)).toBe(column(1));
@@ -286,7 +286,7 @@ describe("an increase on a row worked back, either side of the widest round", ()
   });
 
   it("and the same laid out down from it", () => {
-    const stitches = [0, 1, 2].map((id) => stitch(id, "castOn", [])).concat([stitch(3, "k1", [2], true), ...pfb(4), stitch(6, "k1", [0], true)]);
+    const stitches = [0, 1, 2].map((id) => stitch(id, "castOn", [])).concat([stitch(3, "p1", [2], true), ...pfb(4), stitch(6, "p1", [0], true)]);
     const laid = layOut(stitches, [[0, 1, 2], [3, 4, 5, 6]], ["round", "wrong"]);
     const column = (id: number) => laid.cells.get(id)!.column;
     expect(column(4)).toBe(column(1));

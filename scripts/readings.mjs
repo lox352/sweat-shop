@@ -30,7 +30,16 @@ const main = async () => {
     const { roundNames, roundParts, runInstruction } = await load("/src/reading/progress.ts");
     const { stitchKey } = await load("/src/reading/stitch-key.ts");
     const { chartViews } = await load("/src/reading/views.ts");
-    const { seenFrom, workedAs } = await load("/src/reading/sides.ts");
+    const sides = await load("/src/reading/sides.ts");
+    const { seenFrom } = sides;
+    const { secondLoop } = await load("/src/pattern/Stitch.ts");
+    /*
+     * What a stitch is worked as. A KFB's second loop is no stitch of its own
+     * to the knitter, and is read as part of the KFB: what it is called has
+     * changed (an m1 purled from the wrong side is an m1p now, held as worked)
+     * and nothing reads it.
+     */
+    const workedAs = (stitch, previous) => (secondLoop(stitch, previous) ? "second loop" : sides.workedAs ? sides.workedAs(stitch) : stitch.type);
     const { prefixFor } = await load("/src/projects/timing/model.ts");
     const { metresBySlot } = await load("/src/reading/yardage.ts");
     const { holdRegions } = await load("/src/reading/holds.ts");
@@ -61,7 +70,7 @@ const main = async () => {
           const { layout, markers } = viewChart(built, counted[1].view, view);
           return [view.id, view.label, view.kind, cells(layout), markers];
         })),
-        sides: sha(stitches.map((stitch) => [workedAs(stitch), seenFrom(stitch, "right"), seenFrom(stitch, "wrong")])),
+        sides: sha(stitches.map((stitch, id) => [workedAs(stitch, stitches[id - 1]), seenFrom(stitch, "right"), seenFrom(stitch, "wrong")])),
         time: sha([...prefixFor(stitches).counts(0, last)]),
         yarn: sha(metresBySlot(stitches, built.rounds)),
         holds: sha([holdRegions(stitches, built.holds).map((region) => [...Object.entries(region)].map(([key, value]) => [key, value instanceof Set ? [...value] : value])), [...markersPassed(built)]]),

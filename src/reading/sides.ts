@@ -1,6 +1,5 @@
-import type { Stitch } from "../pattern/Stitch";
-import type { StitchType } from "../pattern/StitchType";
-import { type KindId, type ReverseStitch, kinds, otherSide } from "../pattern/kinds";
+import { type Stitch, seen } from "../pattern/Stitch";
+import { type KindId, type ReverseStitch, otherSide } from "../pattern/kinds";
 
 /** A side of the sweater: the side it is worn with out, or its reverse. */
 export type Face = "right" | "wrong";
@@ -49,19 +48,6 @@ export type ChartStitch = KindId;
 export const reverseOf = otherSide;
 
 /**
- * A stitch as it is worked, from the side it is worked from: what the
- * knitting panel says to do, and what it is timed as.
- *
- * A short row worked back from the wrong side is stored as what it makes on
- * the right side, knits; worked, from the wrong side, it is purls, and the
- * increase a short row may make, a KBF from the right side, is a PFB.
- */
-export const workedAs = (stitch: Pick<Stitch, "type" | "wrongSide">): StitchType | "pfb" =>
-  stitch.wrongSide && (kinds[stitch.type].family === "work" || kinds[stitch.type].family === "split")
-    ? (otherSide(stitch.type) as StitchType | "pfb")
-    : stitch.type;
-
-/**
  * What the chart shows a stitch as, seen from one side of the sweater.
  *
  * From the right side, what it looks like there: a short row purled back from
@@ -70,5 +56,5 @@ export const workedAs = (stitch: Pick<Stitch, "type" | "wrongSide">): StitchType
  * not what was worked - fabric worked with the other side towards you - the
  * chart hatches it; see Chart.
  */
-export const seenFrom = (stitch: Pick<Stitch, "type">, face: Face): ChartStitch =>
-  face === "wrong" ? reverseOf(stitch.type) : stitch.type;
+export const seenFrom = (stitch: Pick<Stitch, "type" | "wrongSide">, face: Face): ChartStitch =>
+  face === "wrong" ? reverseOf(seen(stitch)) : seen(stitch);

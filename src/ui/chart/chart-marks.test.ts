@@ -94,7 +94,7 @@ describe("a short row on the chart, from either side", () => {
 
   it("is knits from the right side, as the fabric round it is, though the rows back are purled", () => {
     const back = yoke[4];
-    expect(back.every((id) => built.stitches[id].wrongSide && built.stitches[id].type === "k1")).toBe(true);
+    expect(back.every((id) => built.stitches[id].wrongSide && built.stitches[id].type === "p1")).toBe(true);
     [...yoke[3], ...back].forEach((id) => expect(markOf(id, "right")).toBeUndefined());
   });
 
@@ -152,7 +152,7 @@ describe("an increase on the chart, from either side", () => {
   const pbf = { opens: "right", purled: true, upright: true, arms: 2 };
 
   it("draws a PFB purled back as a KBF from the right side, and as a PFB, its new stitch on its left, from the wrong", () => {
-    const purled = first("Yoke · short row 4, wrong side", "kbf");
+    const purled = first("Yoke · short row 4, wrong side", "pfb");
     expect(forkOf(purled, "right")).toEqual(kbf);
     expect(forkOf(purled, "wrong")).toEqual(pfb);
   });

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { seen } from "../pattern/Stitch";
 import { sweaterById } from "../compiler/designs";
 import { buildSweater } from "../compiler/engine/engine";
 import { castOnPartWay, keyEntryAt, stitchKey } from "./stitch-key";
@@ -40,7 +41,9 @@ describe("the stitch-symbol key", () => {
     pattern.charts[0].rows[0] = pattern.charts[0].rows[0].map(({ slot }) => ({ slot }));
     const { stitches } = buildSweater(pattern, "one");
     const back = stitches.find((stitch) => stitch.wrongSide)!;
-    expect(back.type).toBe("k1");
+    // Held as it is worked, and a knit from the right side.
+    expect(back.type).toBe("p1");
+    expect(seen(back)).toBe("k1");
     // What to do: purl it.
     expect(keyEntryAt(stitches, back.id)?.id).toBe("p1");
     expect(stitchKey(stitches).map((entry) => entry.id)).toContain("p1");
