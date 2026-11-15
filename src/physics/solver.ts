@@ -1,5 +1,5 @@
-import { Stitch, isFabric, isStep } from "../pattern/Stitch";
-import { consumption, makesTwo } from "../pattern/StitchType";
+import { Stitch, isFabric, isStep, worksInto } from "../pattern/Stitch";
+import { makesTwo } from "../pattern/kinds";
 import { adjacentStitchDistance } from "../constants";
 import type { Knitting } from "../pattern/knitting";
 import type { Pose } from "./pose";
@@ -68,7 +68,7 @@ export interface Settled {
  * waist sagging under each arm, on one side of it and not the other.
  */
 const upFrom = (stitch: Stitch, byId: Stitch[]): { id: number; across: boolean } | undefined => {
-  const worked = stitch.links.slice(0, consumption[stitch.type]);
+  const worked = worksInto(stitch);
   if (worked.length > 0) return { id: worked[Math.floor(worked.length / 2)], across: false };
   if (stitch.from !== undefined) return { id: stitch.from, across: false };
   if (stitch.type === "m1" && stitch.links.length > 1 && makesTwo(byId[stitch.id - 1]?.type)) return { id: stitch.links[0], across: false };

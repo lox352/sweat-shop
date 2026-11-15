@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "../../engine/engine";
-import { consumption } from "../../../pattern/StitchType";
+import { kinds } from "../../../pattern/kinds";
 import raglan from "../feline-raglan";
 import yoke from "../feline-yoke";
 import { measured } from "../wool-week/strips/design";
@@ -159,7 +159,7 @@ describe.each([raglan, yoke].map((design) => [design.id, design] as const))("%s"
       // Every spiral whole: found by its top row, and its stitches followed down the knitting - each to the stitch worked into it - reading the spiral's rows all the way to its foot, so no increase comes in it.
       const slotOf: Record<string, string> = { ".": "B", G: "D" };
       const below = new Map<number, number>();
-      for (const stitch of built.stitches) if (stitch.type !== "m1" && consumption[stitch.type] === 1 && stitch.links.length) below.set(stitch.links[0], stitch.id);
+      for (const stitch of built.stitches) if (stitch.type !== "m1" && kinds[stitch.type].takes === 1 && stitch.links.length) below.set(stitch.links[0], stitch.id);
       const tiers = new Map<number, number>();
       goldRows.forEach((line, k) => {
         if (!line.spirals || line.spirals.row > 0) return;

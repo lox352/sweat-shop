@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo } from "react";
-import { Stitch } from "../../pattern/Stitch";
-import { makesTwo } from "../../pattern/StitchType";
+import { Stitch, secondLoop } from "../../pattern/Stitch";
+import { makesTwo } from "../../pattern/kinds";
 import {
   Run,
   RoundIndex,
@@ -352,7 +352,7 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
       } else if (delta < 0) {
         const current = stitches[progress];
         const previous = stitches[progress - 1];
-        if (current?.type === "m1" && makesTwo(previous?.type)) {
+        if (secondLoop(current, previous)) {
           setProgress(progress - 2);
           return;
         }

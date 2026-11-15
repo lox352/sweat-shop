@@ -1,6 +1,7 @@
 import { type Held, type RoundKind, type SeamKind, beginning } from "../../pattern/rounds";
 import { Stitch } from "../../pattern/Stitch";
-import { StitchType, boundOff, consumption, makesTwo } from "../../pattern/StitchType";
+import { StitchType } from "../../pattern/StitchType";
+import { boundOff, kinds, makesTwo } from "../../pattern/kinds";
 
 /**
  * The knitting, as a knitter has it: the stitches on the needles.
@@ -296,7 +297,7 @@ export default class Needles {
       }
       this.next.pop();
     }
-    const worked = this.take(consumption[type]);
+    const worked = this.take(kinds[type].takes);
     const links = [...worked];
     /*
      * A KFB or a KBF makes two loops out of one stitch: the first is stored

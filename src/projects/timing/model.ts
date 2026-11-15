@@ -19,6 +19,7 @@
  *     two-colour rounds for what it is.
  */
 import { Stitch, isFabric, isStep } from "../../pattern/Stitch";
+import { kinds } from "../../pattern/kinds";
 import { workedAs } from "../../reading/sides";
 import type { Action } from "./log";
 
@@ -73,28 +74,8 @@ export const typical: Costs = {
   tap: 1.5,
 };
 
-const baseOf = (stitch: Stitch): Operation | undefined => {
-  // As it was worked: a knit on a row worked from the wrong side was purled.
-  switch (workedAs(stitch)) {
-    case "castOn": return "castOn";
-    case "k1": return "knit";
-    case "p1": return "purl";
-    case "k1tbl": return "tbl";
-    case "k2tog": case "ssk": return "decrease";
-    case "s2kp": case "sk2p": return "doubleDecrease";
-    case "m1": return "makeOne";
-    case "kfb": case "kbf": case "pfb": return "kfb";
-    case "sl1po": return "decrease";
-    case "pickUp": return "pickUp";
-    case "bindOff": case "bindOffPurl": return "bindOff";
-    case "join": return "join";
-    case "hold": return "hold";
-    case "resume": return "resume";
-    case "needles": return "needles";
-    case "turn": return "turn";
-    default: return undefined;
-  }
-};
+// As it was worked: a knit on a row worked from the wrong side was purled. See kinds' effort.
+const baseOf = (stitch: Stitch): Operation | undefined => kinds[workedAs(stitch)].effort;
 
 /**
  * What each stitch asks of the knitter, as running totals from the start, so

@@ -1,5 +1,4 @@
-import { isFabric, isStep } from "../pattern/Stitch";
-import { consumption } from "../pattern/StitchType";
+import { isFabric, isStep, worksInto } from "../pattern/Stitch";
 import type { SweaterStitches } from "../pattern/knitted";
 import { type Cell, type ChartLayout, chartRows } from "./layout";
 import { markerRoutes, markersPassed } from "./marker-routes";
@@ -245,7 +244,7 @@ export const viewFor = (built: SweaterStitches, layoutOf: () => ChartLayout, beg
     if (r > 0) {
       for (const id of cut[0] ?? []) {
         const stitch = stitches[id];
-        for (const below of stitch.links.slice(0, consumption[stitch.type])) at = Math.max(at, row.get(below) ?? 0);
+        for (const below of worksInto(stitch)) at = Math.max(at, row.get(below) ?? 0);
       }
     }
     for (const ids of cut) {

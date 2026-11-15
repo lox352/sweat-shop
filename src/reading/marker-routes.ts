@@ -1,5 +1,5 @@
-import { type Stitch, isFabric } from "../pattern/Stitch";
-import { consumption, makesTwo } from "../pattern/StitchType";
+import { type Stitch, isFabric, worksInto } from "../pattern/Stitch";
+import { makesTwo } from "../pattern/kinds";
 import type { SweaterStitches } from "../pattern/knitted";
 
 /**
@@ -129,7 +129,7 @@ const sidesOf = (stitches: Stitch[], round: number[], was: number): Omit<MarkerR
   // True for a stitch before the marker, false after it, undefined for one worked into nothing.
   const sides = round.map((id, k): boolean | undefined => {
     const stitch = stitches[id];
-    const into = stitch.links.slice(0, consumption[stitch.type]);
+    const into = worksInto(stitch);
     if (into.length > 0) return into[0] <= was;
     if (stitch.type === "m1" && k > 0 && makesTwo(stitches[round[k - 1]].type)) return stitches[round[k - 1]].links[0] <= was;
     return undefined;
@@ -183,7 +183,7 @@ export const markersPassed = (built: Pick<SweaterStitches, "stitches" | "knittin
       if (k === undefined) return undefined;
       if (whole(k)) return { round: k, at: knitting.rounds[k].indexOf(one) };
       const stitch = stitches[one];
-      const below = stitch.links.slice(0, consumption[stitch.type])[0];
+      const below = worksInto(stitch)[0];
       if (below === undefined) return undefined;
       one = below;
     }

@@ -1,5 +1,5 @@
 import { adjacentStitchDistance } from "../constants";
-import { consumption } from "../pattern/StitchType";
+import { worksInto } from "../pattern/Stitch";
 import type { Knitting } from "../pattern/knitting";
 
 /**
@@ -68,7 +68,7 @@ export const measurePiece = (knitting: Knitting, positions: ArrayLike<number>, p
     const middle = middleOf(index);
     for (const id of round) {
       const stitch = stitches[id];
-      const worked = stitch.links.slice(0, consumption[stitch.type]);
+      const worked = worksInto(stitch);
       // One for one, and worked into the band's own fabric: a decrease leans, and the band's first round has nothing in it below.
       if (worked.length === 1 && inBand.has(worked[0])) ups.push(gap(at(id), at(worked[0])));
     }

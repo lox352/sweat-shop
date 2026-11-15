@@ -1,4 +1,5 @@
-import { StitchType, stepTypes } from "./StitchType";
+import { StitchType } from "./StitchType";
+import { kinds, makesTwo } from "./kinds";
 
 /**
  * One stitch, or one step, in the order it is worked.
@@ -73,7 +74,7 @@ export interface Stitch {
  * Joining the round, changing needles, putting stitches on hold and taking
  * them back up again are all things a knitter does, not loops of yarn.
  */
-export const isStep = (stitch: Stitch): boolean => stepTypes.has(stitch.type);
+export const isStep = (stitch: Stitch): boolean => kinds[stitch.type].family === "step";
 
 /**
  * Whether the join in the round at `id` comes straight after the cast-on, and
@@ -96,3 +97,10 @@ export const isFabric = (stitch: Stitch): boolean => stitch.id !== 0 && !isStep(
 /** The stitch before this one, which the yarn runs on from, if there is one. */
 export const before = (stitch: Stitch, consumed: number): number | undefined =>
   stitch.links.length > consumed ? stitch.links[stitch.links.length - 1] : undefined;
+
+/** The stitches a stitch works: the first of its links, as many as its kind takes. */
+export const worksInto = (stitch: Stitch): number[] => stitch.links.slice(0, kinds[stitch.type].takes);
+
+/** Whether a stitch is the second loop of the one before it: the make-one straight after a KFB or a KBF. */
+export const secondLoop = (stitch: Stitch | undefined, previous: Stitch | undefined): boolean =>
+  stitch?.type === "m1" && makesTwo(previous?.type);

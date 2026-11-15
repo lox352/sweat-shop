@@ -1,6 +1,9 @@
 /**
  * The stitches a top-down sweater is made of, and the steps between them.
  *
+ * What is so of each - how many loops it takes, what it is from the other
+ * side, what a knitter calls it - is in kinds.ts.
+ *
  * "castOn" is a stitch cast on: the loops the neck is begun with, and the
  * loops cast on part way round at each underarm when the sleeves are put
  * aside. Either way it takes nothing from the needle, because there is
@@ -80,44 +83,3 @@ export type StitchType =
   | "resume"
   | "turn"
   | "marker";
-
-/** How many stitches on the needle this one works. */
-export const consumption: Record<StitchType, number> = {
-  castOn: 0,
-  k1: 1,
-  p1: 1,
-  k1tbl: 1,
-  m1: 0,
-  kfb: 1,
-  kbf: 1,
-  k2tog: 2,
-  ssk: 2,
-  s2kp: 3,
-  sk2p: 3,
-  sl1po: 1,
-  pickUp: 0,
-  bindOff: 1,
-  bindOffPurl: 1,
-  join: 0,
-  needles: 0,
-  hold: 0,
-  resume: 0,
-  turn: 0,
-  marker: 0,
-};
-
-/** The step types: part of the order of work, but no fabric. */
-export const stepTypes: ReadonlySet<StitchType> = new Set<StitchType>([
-  "join",
-  "needles",
-  "hold",
-  "resume",
-  "turn",
-  "marker",
-]);
-
-/** Whether a stitch makes two loops of one, its second the make-one straight after it: a KFB or a KBF. */
-export const makesTwo = (type: StitchType | undefined): boolean => type === "kfb" || type === "kbf";
-
-/** Whether a stitch is bound off, leaving nothing on the needle. */
-export const boundOff = (type: StitchType | undefined): boolean => type === "bindOff" || type === "bindOffPurl";

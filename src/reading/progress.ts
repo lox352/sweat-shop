@@ -1,6 +1,7 @@
 import { Stitch, isFabric, isStep } from "../pattern/Stitch";
 import { workedAs } from "./sides";
-import { StitchType, makesTwo } from "../pattern/StitchType";
+import { StitchType } from "../pattern/StitchType";
+import { boundOff, kinds, makesTwo } from "../pattern/kinds";
 import type { Piece } from "../pattern/design";
 import type { RoundKind } from "../pattern/rounds";
 import { chartRows } from "./layout";
@@ -275,55 +276,27 @@ export interface Run {
 type Worked = StitchType | "pfb";
 
 /**
- * What a knitter calls one of these.
- *
- * The one-for-one stitches are counted as stitches - "purl 2", "pick up and
- * knit 6" - and the rest as repetitions of themselves, because that is how a
- * pattern writes them: you do not work three stitches of k2tog, you work
- * k2tog three times.
+ * What a knitter calls a kind: see kinds' said. The one-for-one stitches are
+ * counted as stitches - "purl 2", "pick up and knit 6" - and the rest as
+ * repetitions of themselves, because that is how a pattern writes them: you
+ * do not work three stitches of k2tog, you work k2tog three times.
  */
-const words: Record<Worked, { said: string; after?: string; perStitch: boolean }> = {
-  castOn: { said: "cast on", perStitch: true },
-  k1: { said: "knit", perStitch: true },
-  p1: { said: "purl", perStitch: true },
-  // The count goes in the middle, as a pattern writes it: "knit 2 tbl".
-  k1tbl: { said: "knit", after: "tbl", perStitch: true },
-  m1: { said: "m1", perStitch: false },
-  kfb: { said: "KFB", perStitch: false },
-  kbf: { said: "KBF", perStitch: false },
-  pfb: { said: "PFB", perStitch: false },
-  k2tog: { said: "k2tog", perStitch: false },
-  ssk: { said: "ssk", perStitch: false },
-  s2kp: { said: "s2kp", perStitch: false },
-  sk2p: { said: "sk2p", perStitch: false },
-  sl1po: { said: "slip 1 and pass the cast-on over", perStitch: false },
-  pickUp: { said: "pick up and knit", perStitch: true },
-  bindOff: { said: "bind off", perStitch: true },
-  bindOffPurl: { said: "bind off purlwise", perStitch: true },
-  // Steps, not stitches: never part of a run. See currentRun.
-  join: { said: "join in the round", perStitch: false },
-  needles: { said: "change needles", perStitch: false },
-  hold: { said: "put stitches on hold", perStitch: false },
-  resume: { said: "take up the held stitches", perStitch: false },
-  turn: { said: "turn and make a double stitch", perStitch: false },
-  marker: { said: "place a marker", perStitch: false },
-};
+const words = kinds;
 
 /** "knit", "purl", "knit tbl", "k2tog". */
 export const stitchWord = (type: Worked): string =>
   [words[type].said, words[type].after].filter(Boolean).join(" ");
 
-/** A rib's stitches as a pattern abbreviates them: "k", "p". */
-const ribLetter = (type: StitchType): string => (type === "p1" || type === "bindOffPurl" ? "p" : "k");
+/** A rib's stitch as a pattern abbreviates it, from the side worked: "k", "p". */
+const ribLetter = (type: StitchType, wrongSide: boolean | undefined): string => (kinds[workedAs({ type, wrongSide })].purlwise ? "p" : "k");
 
 /** The stitches of a rib's repeat as a pattern writes them, from the side worked: "k1, p1". */
 const ribUnit = (run: Pick<Run, "repeat" | "wrongSide">): string =>
   (run.repeat ?? [])
-    .map(({ type, count }) => `${ribLetter(workedAs({ type, wrongSide: run.wrongSide }) as StitchType)}${count}`)
+    .map(({ type, count }) => `${ribLetter(type, run.wrongSide)}${count}`)
     .join(", ");
 
-const boundOffInPattern = (run: Pick<Run, "repeat">): boolean =>
-  (run.repeat ?? []).some(({ type }) => type === "bindOff" || type === "bindOffPurl");
+const boundOffInPattern = (run: Pick<Run, "repeat">): boolean => (run.repeat ?? []).some(({ type }) => boundOff(type));
 
 /** A run's stitch, in words, from the side it is worked from: see workedAs. */
 export const runWord = (run: Pick<Run, "type" | "wrongSide" | "repeat">): string =>
@@ -346,7 +319,7 @@ export const runInstruction = (run: Run): string => {
     const rest: string[] = [];
     for (const { type, count } of run.repeat) {
       if (left <= 0) break;
-      rest.push(`${ribLetter(workedAs({ type, wrongSide: run.wrongSide }) as StitchType)}${Math.min(count, left)}`);
+      rest.push(`${ribLetter(type, run.wrongSide)}${Math.min(count, left)}`);
       left -= count;
     }
     phrase = [`(${ribUnit(run)}) x ${times}`, ...rest].join(", ");

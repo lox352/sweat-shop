@@ -1,7 +1,6 @@
 import type { SeamKind } from "../pattern/rounds";
-import { Stitch, isFabric } from "../pattern/Stitch";
-import { makesTwo } from "../pattern/StitchType";
-import { consumption } from "../pattern/StitchType";
+import { Stitch, isFabric, worksInto, secondLoop } from "../pattern/Stitch";
+import { makesTwo } from "../pattern/kinds";
 
 export interface Cell {
   /** The row of the chart it is drawn in, 1-based, counting up from the cast-on. */
@@ -56,10 +55,6 @@ export const chartRows = (roundPieces: string[]): number[] => {
     return row;
   });
 };
-
-/** The stitches of the round below that this one is worked into. */
-const worksInto = (stitch: Stitch): number[] =>
-  stitch.links.slice(0, consumption[stitch.type]);
 
 /**
  * Which of a family's columns the other side of it lines up with.
@@ -141,7 +136,7 @@ interface Family {
  * it, rather than a stitch picked up on its own between two others.
  */
 export const isSecondLoop = (stitch: Stitch, byId: Map<number, Stitch>): boolean =>
-  stitch.type === "m1" && makesTwo(byId.get(stitch.id - 1)?.type);
+  secondLoop(stitch, byId.get(stitch.id - 1));
 
 /**
  * How a family lines up with the round below.

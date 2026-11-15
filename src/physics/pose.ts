@@ -1,5 +1,5 @@
 import { Stitch, isFabric, isStep } from "../pattern/Stitch";
-import { consumption } from "../pattern/StitchType";
+import { kinds } from "../pattern/kinds";
 import { adjacentStitchDistance } from "../constants";
 import type { Knitting } from "../pattern/knitting";
 import type { SeamKind } from "../pattern/rounds";
@@ -172,7 +172,7 @@ export const pose = (knitting: Knitting, options: PoseOptions = {}): Pose => {
   const evenly = (round: number[]) => round.forEach((id, index) => (turn[id] = index / round.length));
   /** What a stitch was worked into: its links but the stitch before it. */
   const workedInto = (stitch: Stitch) =>
-    (stitch.links.length > consumption[stitch.type] ? stitch.links.slice(0, -1) : stitch.links)
+    (stitch.links.length > kinds[stitch.type].takes ? stitch.links.slice(0, -1) : stitch.links)
       .filter((id) => isFabric(stitches[id]));
 
   /*
