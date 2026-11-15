@@ -10,6 +10,7 @@ import {
   MarkerAt,
   RoundSpec,
   Section,
+  Start,
   ShapingOp,
   Size,
   SweaterPattern,
@@ -208,12 +209,6 @@ export const sizeOf = (pattern: SweaterPattern, sizeId?: string): Size => {
   if (!size) throw new Error(`${pattern.id}: no size ${sizeId}`);
   return size;
 };
-
-/** Knitting already made, to carry on from after one of its rounds: see Needles.resume. */
-export interface Start {
-  knitted: SweaterStitches;
-  round: number;
-}
 
 /**
  * Knit a size of a design. From the cast-on; or, given a start, on from
