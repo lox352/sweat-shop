@@ -625,6 +625,66 @@ export default class Needles {
     return this;
   }
 
+  /**
+   * The needles as they stand after a round of a knitting already made, to
+   * carry on from: its stitches as they are, the ring that round left, the
+   * markers on it, and the yarn at its last stitch.
+   *
+   * What is knitted is taken as it is and never worked out again, whatever
+   * made it. Only after a whole round, begun at the seam, with nothing on
+   * hold: a yoke before it divides, or a body, between rounds.
+   */
+  static resume(
+    knitted: {
+      stitches: Stitch[];
+      rounds: number[][];
+      roundLabels: string[];
+      roundPieces: string[];
+      roundKinds: RoundKind[];
+      holds: Held[];
+      knitting: { rounds: number[][]; roundKinds: SeamKind[]; roundPieces: string[] };
+    },
+    round: number,
+  ): Needles {
+    const made = knitted.rounds[round - 1];
+    if (!made || knitted.roundKinds[round - 1] !== "round") throw new Error(`round ${round} is no whole round to carry on from`);
+    const last = made[made.length - 1];
+    const stitches = knitted.stitches.slice(0, last + 1);
+    if (knitted.holds.some((held) => held.heldAt <= last)) throw new Error(`round ${round}: stitches are on hold`);
+    if (stitches.some((stitch) => stitch.begins)) throw new Error(`round ${round}: the beginning of the round has been moved`);
+    // Begun at the seam throughout, the rounds as counted are the rounds from the seam, one for one.
+    for (let index = 0; index < round; index++) {
+      const course = knitted.knitting.rounds[index];
+      if (course?.length !== knitted.rounds[index].length || course[0] !== knitted.rounds[index][0]) {
+        throw new Error(`round ${round}: the rounds before it are not counted from the seam`);
+      }
+    }
+    const needles = new Needles();
+    for (const stitch of stitches) needles.stitches.push({ ...stitch, links: [...stitch.links] });
+    for (let index = 0; index < round; index++) {
+      needles.rounds.push([...knitted.rounds[index]]);
+      needles.labels.push(knitted.roundLabels[index]);
+      needles.roundPieces.push(knitted.roundPieces[index]);
+      needles.roundKinds.push(knitted.roundKinds[index]);
+      needles.objective.rounds.push([...knitted.knitting.rounds[index]]);
+      needles.objective.kinds.push(knitted.knitting.roundKinds[index]);
+      needles.objective.pieces.push(knitted.knitting.roundPieces[index]);
+    }
+    for (const stitch of stitches) {
+      if (stitch.type !== "marker" || stitch.marker === undefined) continue;
+      if (stitch.removed) needles.markers.delete(stitch.marker);
+      else needles.markers.add(stitch.marker);
+    }
+    // Every stitch of a whole round is on the needles after it, in the order it was made.
+    needles.live = made.filter((id) => !kinds[stitches[id].type].finishes);
+    needles.yarn = last;
+    needles.piece = knitted.roundPieces[round - 1];
+    needles.roundsBegun = round;
+    needles.width = stitches[last].width ?? needles.width;
+    needles.rise = stitches[last].rise ?? needles.rise;
+    return needles;
+  }
+
   finish() {
     this.endRound();
     if (this.walkTo !== undefined) throw new Error("the stitches up to a new beginning of the round were never knitted on");

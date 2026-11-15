@@ -9,6 +9,7 @@ import {
   ChartCell,
   MarkerAt,
   RoundSpec,
+  Section,
   ShapingOp,
   Size,
   SweaterPattern,
@@ -208,14 +209,30 @@ export const sizeOf = (pattern: SweaterPattern, sizeId?: string): Size => {
   return size;
 };
 
+/** Knitting already made, to carry on from after one of its rounds: see Needles.resume. */
+export interface Start {
+  knitted: SweaterStitches;
+  round: number;
+}
+
+/**
+ * Knit a size of a design. From the cast-on; or, given a start, on from
+ * knitting already made - then the size's sections are the rest, what is
+ * still to be knitted, and the knitting that comes back is the whole of it,
+ * what was made and what the rest adds.
+ */
 export const buildSweater = (
   pattern: SweaterPattern,
   sizeId?: string,
+  start?: Start,
+  /** Told as each instruction is done, with how many rounds there then are: see specEnds. */
+  done?: (section: number, spec: number, rounds: number) => void,
 ): SweaterStitches => {
   const size = sizeOf(pattern, sizeId);
   const roundHeight = roundHeightFor(size);
-  const needles = new Needles();
-  const checks: Record<string, number> = {};
+  const needles = start ? Needles.resume(start.knitted, start.round) : new Needles();
+  // The counts named so far are the knitting's own; the rest names its own as it goes.
+  const checks: Record<string, number> = { ...start?.knitted.checks };
 
   /*
    * Which needles. A size gives its main needles and finer ones for the
@@ -229,8 +246,10 @@ export const buildSweater = (
         ? (size.colourNeedlesMm ?? size.needlesMm)
         : size.needlesMm;
   const startingNeedles = needleFor("rib");
-  let onNeedles = startingNeedles;
-  const needleChanges: number[] = [];
+  // Carried on, the needles in hand are the ones the last stitch made was worked on.
+  let onNeedles = (start && needles.stitches[needles.stitches.length - 1].needles) ?? startingNeedles;
+  // And the changes of needles so far, those made before the round carried on from.
+  const needleChanges: number[] = start ? start.knitted.needleChanges.filter((after) => after < start.round) : [];
 
   /** Place a marker, or take one off, as the pattern says. */
   const marker = ({ place, remove, begins }: Omit<MarkerAt, "after">) => {
@@ -522,10 +541,13 @@ export const buildSweater = (
     }
   };
 
-  for (const section of size.sections) {
+  size.sections.forEach((section, at) => {
     needles.startPiece(section.piece);
-    for (const spec of section.rounds) apply(spec, section.label);
-  }
+    section.rounds.forEach((spec, index) => {
+      apply(spec, section.label);
+      done?.(at, index, needles.rounds.length);
+    });
+  });
 
   const { stitches, rounds, roundLabels, roundPieces, roundKinds, holds, objective } = needles.finish();
   /*
@@ -549,4 +571,23 @@ export const buildSweater = (
     roundHeight,
   };
   return { stitches, rounds, roundLabels, roundPieces, roundKinds, holds, needleChanges, checks, roundHeight, knitting };
+};
+
+/**
+ * Where each instruction of a size ends, as a count of rounds: after which
+ * rounds the knitting stands between one instruction and the next, and what
+ * is still to be knitted from there.
+ */
+export const specEnds = (pattern: SweaterPattern, sizeId?: string): { round: number; rest: Section[] }[] => {
+  const { sections } = sizeOf(pattern, sizeId);
+  const ends: { round: number; rest: Section[] }[] = [];
+  buildSweater(pattern, sizeId, undefined, (section, spec, round) => {
+    // A step after a round - a change of needles - is still to do, from where that round ends: the first to end there has it.
+    if (ends[ends.length - 1]?.round === round) return;
+    ends.push({
+      round,
+      rest: [{ ...sections[section], rounds: sections[section].rounds.slice(spec + 1) }, ...sections.slice(section + 1)].filter((one) => one.rounds.length > 0),
+    });
+  });
+  return ends;
 };
