@@ -1,4 +1,5 @@
-import type { Chart, RoundSpec, Section, Size, SweaterPattern } from "./types";
+import type { Chart, RoundSpec, Section, SweaterPattern } from "./types";
+import { type Grade, grade, measured, standard } from "./hamefarin-grade";
 import { band, corrugatedRib, increaseEvenly, underarmDecrease } from "./writing";
 
 /**
@@ -115,38 +116,6 @@ const lozenges = band("lozenges", "Lozenges", [
 const charts: Chart[] = [neckRib, peerie, border, seeds, oxo, lozenges, edgeRib];
 
 /* -------------------------------------------------------------- the script */
-
-/**
- * One size's numbers, as scripts/grade.mjs worked them out: what the neck
- * casts on, what each increase round leaves, the plain rounds that make up
- * the yoke's depth, how it divides, and how the body and sleeves are shaped.
- */
-interface Grade {
-  neck: number;
-  /** The short rows across the back of the neck: see RoundSpec's shortRows. */
-  shortRows: { first: number; extend: number; pairs: number };
-  /** The first increase round, straight after the rib. */
-  first: number;
-  /** After the increase round before each band, in order. */
-  incs: [number, number, number, number, number];
-  /** Plain rounds before each band's increase round. */
-  plain: [number, number, number, number, number];
-  /** Plain rounds after the last band, down to the divide. */
-  pad: number;
-  /** All of the back, half either side of the beginning of the round. */
-  back: number;
-  front: number;
-  /** Each sleeve's held stitches. */
-  sleeve: number;
-  /** Cast on at each underarm. */
-  underarm: number;
-  /** Plain body rounds after the dividing round, before the echo. */
-  bodyRounds: number;
-  firstDecrease: number;
-  /** "Decrease every n rounds, so many times", in order. */
-  decreases: { every: number; times: number }[];
-  sleeveTail: number;
-}
 
 const plain = (count: number, slot = "A"): RoundSpec[] =>
   count > 0 ? [{ type: "rounds", count, slot }] : [];
@@ -288,106 +257,13 @@ const checksFor = (g: Grade): Record<string, number> => {
   };
 };
 
-type Graded = Omit<Size, "sections" | "checks" | "stitchesPer10cm" | "roundsPer10cm" | "needlesMm" | "ribNeedlesMm"> & {
-  grade: Grade;
-};
-
 /*
- * The sizes, as graded by scripts/grade.mjs from standard body measurements
- * with about ten centimetres of ease at the chest. The finished measurements
- * are the ones each size was graded to; the tests check that the knitting
- * comes out at them.
+ * The sizes: standard body measurements with about ten centimetres of ease
+ * at the chest, graded at the pattern's tension (see hamefarin-grade). The
+ * finished measurements are the ones each size is graded to; the tests check
+ * that the knitting comes out at them.
  */
-const graded: Graded[] = [
-  {
-    id: "xs", label: "XS", toFitChestCm: 76,
-    finished: { chestCm: 86, neckCm: 44, yokeDepthCm: 19, bodyLengthCm: 35, upperArmCm: 29, sleeveLengthCm: 43, cuffCm: 19 },
-    grade: {
-      neck: 124, shortRows: { first: 20, extend: 6, pairs: 3 }, first: 164, incs: [222, 264, 296, 336, 360],
-      plain: [1, 1, 0, 0, 0], pad: 0,
-      back: 110, front: 110, sleeve: 70, underarm: 10,
-      bodyRounds: 85,
-      firstDecrease: 8, decreases: [{ every: 7, times: 11 }, { every: 6, times: 3 }], sleeveTail: 8,
-    },
-  },
-  {
-    id: "s", label: "S", toFitChestCm: 86,
-    finished: { chestCm: 96, neckCm: 45, yokeDepthCm: 20, bodyLengthCm: 36, upperArmCm: 31, sleeveLengthCm: 44, cuffCm: 19.5 },
-    grade: {
-      neck: 124, shortRows: { first: 20, extend: 6, pairs: 3 }, first: 168, incs: [228, 276, 356, 384, 396],
-      plain: [1, 1, 1, 1, 1], pad: 0,
-      back: 124, front: 124, sleeve: 74, underarm: 10,
-      bodyRounds: 88,
-      firstDecrease: 8, decreases: [{ every: 7, times: 14 }], sleeveTail: 8,
-    },
-  },
-  {
-    id: "m", label: "M", toFitChestCm: 96,
-    finished: { chestCm: 106, neckCm: 46, yokeDepthCm: 21, bodyLengthCm: 37, upperArmCm: 33, sleeveLengthCm: 45, cuffCm: 20 },
-    grade: {
-      neck: 128, shortRows: { first: 20, extend: 6, pairs: 3 }, first: 176, incs: [240, 300, 348, 408, 432],
-      plain: [1, 2, 2, 2, 1], pad: 0,
-      back: 136, front: 136, sleeve: 80, underarm: 12,
-      bodyRounds: 91,
-      firstDecrease: 8, decreases: [{ every: 6, times: 11 }, { every: 5, times: 7 }], sleeveTail: 8,
-    },
-  },
-  {
-    id: "l", label: "L", toFitChestCm: 106,
-    finished: { chestCm: 116, neckCm: 47, yokeDepthCm: 22, bodyLengthCm: 38, upperArmCm: 35.5, sleeveLengthCm: 46, cuffCm: 21 },
-    grade: {
-      neck: 132, shortRows: { first: 21, extend: 7, pairs: 3 }, first: 184, incs: [258, 324, 424, 456, 480],
-      plain: [1, 2, 2, 2, 2], pad: 2,
-      back: 150, front: 150, sleeve: 90, underarm: 12,
-      bodyRounds: 95,
-      firstDecrease: 8, decreases: [{ every: 5, times: 20 }, { every: 4, times: 1 }], sleeveTail: 8,
-    },
-  },
-  {
-    id: "xl", label: "XL", toFitChestCm: 116,
-    finished: { chestCm: 126, neckCm: 48, yokeDepthCm: 23, bodyLengthCm: 39, upperArmCm: 38, sleeveLengthCm: 47, cuffCm: 22 },
-    grade: {
-      neck: 136, shortRows: { first: 22, extend: 7, pairs: 3 }, first: 188, incs: [258, 324, 428, 480, 504],
-      plain: [1, 2, 2, 2, 2], pad: 6,
-      back: 162, front: 162, sleeve: 90, underarm: 14,
-      bodyRounds: 98,
-      firstDecrease: 8, decreases: [{ every: 5, times: 19 }, { every: 4, times: 3 }], sleeveTail: 8,
-    },
-  },
-  {
-    id: "2xl", label: "2XL", toFitChestCm: 126,
-    finished: { chestCm: 136, neckCm: 49, yokeDepthCm: 24, bodyLengthCm: 40, upperArmCm: 41, sleeveLengthCm: 47, cuffCm: 23 },
-    grade: {
-      neck: 136, shortRows: { first: 22, extend: 7, pairs: 3 }, first: 192, incs: [270, 336, 444, 504, 540],
-      plain: [1, 2, 2, 2, 2], pad: 9,
-      back: 174, front: 174, sleeve: 96, underarm: 16,
-      bodyRounds: 101,
-      firstDecrease: 8, decreases: [{ every: 5, times: 11 }, { every: 4, times: 13 }], sleeveTail: 8,
-    },
-  },
-  {
-    id: "3xl", label: "3XL", toFitChestCm: 136,
-    finished: { chestCm: 146, neckCm: 50, yokeDepthCm: 25, bodyLengthCm: 41, upperArmCm: 44, sleeveLengthCm: 48, cuffCm: 24 },
-    grade: {
-      neck: 140, shortRows: { first: 22, extend: 7, pairs: 3 }, first: 200, incs: [282, 360, 468, 528, 588],
-      plain: [1, 2, 2, 2, 2], pad: 12,
-      back: 188, front: 188, sleeve: 106, underarm: 16,
-      bodyRounds: 104,
-      firstDecrease: 8, decreases: [{ every: 5, times: 3 }, { every: 4, times: 24 }], sleeveTail: 8,
-    },
-  },
-  {
-    id: "4xl", label: "4XL", toFitChestCm: 146,
-    finished: { chestCm: 156, neckCm: 51, yokeDepthCm: 26, bodyLengthCm: 42, upperArmCm: 47, sleeveLengthCm: 48, cuffCm: 25 },
-    grade: {
-      neck: 144, shortRows: { first: 23, extend: 7, pairs: 3 }, first: 204, incs: [288, 360, 480, 528, 624],
-      plain: [1, 2, 2, 2, 2], pad: 15,
-      back: 200, front: 200, sleeve: 112, underarm: 18,
-      bodyRounds: 107,
-      firstDecrease: 8, decreases: [{ every: 4, times: 24 }, { every: 3, times: 5 }], sleeveTail: 8,
-    },
-  },
-];
+const graded = measured.map((size) => grade(size));
 
 const hamefarin: SweaterPattern = {
   id: "hamefarin",
@@ -503,8 +379,8 @@ const hamefarin: SweaterPattern = {
   ],
   sizes: graded.map(({ grade, ...size }) => ({
     ...size,
-    stitchesPer10cm: 28,
-    roundsPer10cm: 32,
+    stitchesPer10cm: standard.stitches * 10,
+    roundsPer10cm: standard.rounds * 10,
     needlesMm: 3.25,
     ribNeedlesMm: 2.75,
     sections: sectionsFor(grade),

@@ -20,8 +20,24 @@ import type { Band } from "./slots";
  *   is room for; see refit.ts.
  */
 
-export const gauge = { stitches: 3.2, rounds: 3.8 };
-export const ribs = { neck: 9, hem: 14, cuff: 14 };
+/** A tension, to the centimetre. */
+export interface Gauge {
+  stitches: number;
+  rounds: number;
+}
+
+/** The samplers' own: 32 stitches and 38 rounds to 10cm. */
+export const gauge: Gauge = { stitches: 3.2, rounds: 3.8 };
+
+/** How deep each rib is, in centimetres: 9 rounds at the neck and 14 at the hem and cuffs, at the samplers' own tension. */
+const ribDepths = { neck: 9 / 3.8, hem: 14 / 3.8, cuff: 14 / 3.8 };
+
+/** The rounds each rib has at a tension. */
+export const ribsAt = (g: Gauge) => ({
+  neck: Math.round(ribDepths.neck * g.rounds),
+  hem: Math.round(ribDepths.hem * g.rounds),
+  cuff: Math.round(ribDepths.cuff * g.rounds),
+});
 
 export interface Measured {
   chestCm: number;
@@ -70,11 +86,14 @@ export type Layout = { kind: "lined"; newestFirst: boolean } | { kind: "refit" }
 const years = patterns.map((p) => p.year);
 
 /** Colourwork rounds each piece has, before any year is placed. */
-const budgets = (size: Measured) => ({
-  yoke: Math.round(size.yokeDepthCm * gauge.rounds) - ribs.neck - 1,
-  body: Math.round(size.bodyLengthCm * gauge.rounds) - ribs.hem - 2,
-  sleeve: Math.round(size.sleeveLengthCm * gauge.rounds) - ribs.cuff - 2,
-});
+export const budgets = (size: Measured, g: Gauge = gauge) => {
+  const ribs = ribsAt(g);
+  return {
+    yoke: Math.round(size.yokeDepthCm * g.rounds) - ribs.neck - 1,
+    body: Math.round(size.bodyLengthCm * g.rounds) - ribs.hem - 2,
+    sleeve: Math.round(size.sleeveLengthCm * g.rounds) - ribs.cuff - 2,
+  };
+};
 
 /** A strip laid out: its rounds, the cut's rows it keeps, and what the layout costs. */
 interface Framed {
@@ -214,8 +233,8 @@ const settle = (years: number[], total: number): { framed: Framed[]; cost: numbe
 
 /* ---------------------------------------------------------------- lined up */
 
-const lined = (size: Measured, newestFirst: boolean): Plan => {
-  const b = budgets(size);
+const lined = (size: Measured, newestFirst: boolean, g: Gauge): Plan => {
+  const b = budgets(size, g);
   const P = b.yoke + b.body;
   const T = P / 13;
   const lo = Math.round(0.95 * T);
@@ -303,8 +322,8 @@ const onwardOf = (last: Framed, length: number): { rows: Row[]; pattern: number;
 /* --------------------------------------------------------- each year once */
 
 /** How many years on each piece, and the yoke's depth, for the most even lengths. */
-export const splitOf = (size: Measured) => {
-  const b = budgets(size);
+export const splitOf = (size: Measured, g: Gauge = gauge) => {
+  const b = budgets(size, g);
   const T = (b.yoke + b.body + b.sleeve) / 13;
   let best: { k: number; m: number; n: number; yoke: number; body: number; sleeve: number; T: number; dev: number } | undefined;
   for (let k = 2; k <= 5; k++) {
@@ -321,5 +340,6 @@ export const splitOf = (size: Measured) => {
   return best!;
 };
 
-export const planOf = (size: Measured, layout: Layout, sizeId: string): Plan =>
-  layout.kind === "lined" ? lined(size, layout.newestFirst) : refit(size, sizeId);
+/** A size's plan: what goes where, for its measurements at a tension - the samplers' own unless another is given. */
+export const planOf = (size: Measured, layout: Layout, sizeId: string, g: Gauge = gauge): Plan =>
+  layout.kind === "lined" ? lined(size, layout.newestFirst, g) : refit(size, sizeId, g);

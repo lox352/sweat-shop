@@ -2,7 +2,7 @@ import type { Chart, ChartCell, RoundSpec, Section, ShapingOp } from "../../type
 import { decreaseEvenly, increaseEvenly } from "../../writing";
 import { yearOf } from "../years";
 import { lettersOf, solid } from "./cuts";
-import { gauge, ribs, type Measured, type Plan, type Row } from "./plan";
+import { type Gauge, gauge, ribsAt, type Measured, type Plan, type Row } from "./plan";
 import { quantumOf } from "./quanta";
 import { added, growing, increasesOf, narrowing, type Step, tileOf, unitsOf } from "./shaping";
 import { letterOf, plainSlot, trimOf } from "./slots";
@@ -477,9 +477,9 @@ const seamOffsets = (rows: Row[], steps: Step[], top: number): Map<number, numbe
   return out;
 };
 
-export const knit = (size: Measured, given: Plan, prefix: string): Knitted => {
+export const knit = (size: Measured, given: Plan, prefix: string, g: Gauge = gauge): Knitted => {
   const plan = { ...given, rows: { yoke: banded(given.rows.yoke), body: banded(given.rows.body), sleeve: banded(given.rows.sleeve) } };
-  const g = gauge;
+  const ribs = ribsAt(g);
   const neck = nearest(size.neckCm * g.stitches, 4);
   const body = nearest(size.chestCm * g.stitches, 4);
   const underarm = Math.min(24, Math.max(8, nearest(body * 0.04, 2)));
