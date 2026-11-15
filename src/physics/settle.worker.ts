@@ -17,12 +17,12 @@ scope.onmessage = async ({ data: knitting }) => {
   try {
     // Its name first: whoever asked may have the shape already, and stop this here.
     scope.postMessage({ shape: await shapeNameOf(knitting) });
-    let first: number | undefined;
+    let most = 0;
     let told = 0;
     const { positions, rested } = settle(knitting, pose(knitting), {}, (progress) => {
-      first ??= progress.moved;
-      const fraction = progressOf(first, progress);
-      // A hundred steps is all a progress bar shows.
+      most = Math.max(most, progress.moved);
+      const fraction = progressOf(most, progress);
+      // A hundred steps is all a progress bar shows, and it never goes back.
       if (fraction - told >= 0.01) scope.postMessage({ progress: (told = fraction) });
     });
     scope.postMessage({ positions, rested }, [positions.buffer]);

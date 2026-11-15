@@ -22,7 +22,7 @@ describe("a sweater settled on the device", () => {
     expect(progressOf(3, { steps: 9, moved: 0.0001 })).toBe(1);
     const half = progressOf(3, { steps: 5, moved: Math.sqrt(3 * 0.003) });
     expect(half).toBeCloseTo(0.5, 5);
-    // Moving more than at first is no progress, not less than none.
+    // Moving more than the most so far is no progress, not less than none.
     expect(progressOf(3, { steps: 2, moved: 5 })).toBe(0);
   });
 });

@@ -31,8 +31,9 @@ const fillFraction = 0.9;
  * Places the camera once for what it is looking at, from where the sweater's
  * extremes are, and then leaves it alone - the hat site learned that a camera
  * that reframes itself fights whoever is turning the model. Nothing moves it
- * afterwards except the person using it: not even the same sweater coming to
- * rest in another shape. Only another sweater, or another size of frame.
+ * afterwards except the person using it. Only another thing to look at -
+ * another sweater, or the same one come to rest in its shape - or another
+ * size of frame.
  *
  * The fit is iterated rather than calculated: the camera looks down at the
  * sweater a little, and in perspective the nearer parts are larger, so

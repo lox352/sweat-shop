@@ -27,12 +27,13 @@ export interface SettledNow {
 
 /**
  * How far a settling has got, from 0 to 1, by how far its stitches still
- * move: they slow as it nears rest, by about the same share each step, so the
- * way there is read off the logarithm of how far they move, from the first
- * step's to the stillness it stops at. Never less than it has said before.
+ * move. They gather speed as the sweater begins to fall, and from the most
+ * they move they slow as it nears rest, by about the same share each step: so
+ * the way there is read off the logarithm of how far they move, from that
+ * most to the stillness it stops at.
  */
-export const progressOf = (first: number, { moved }: Progress, still = defaultTuning.restMovement): number =>
-  first <= still || moved <= 0 ? 1 : Math.min(1, Math.max(0, Math.log(first / moved) / Math.log(first / still)));
+export const progressOf = (most: number, { moved }: Progress, still = defaultTuning.restMovement): number =>
+  most <= still || moved <= 0 ? 1 : Math.min(1, Math.max(0, Math.log(most / moved) / Math.log(most / still)));
 
 export const settleInWorker = (
   knitting: Knitting,
