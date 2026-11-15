@@ -205,7 +205,7 @@ const SHORTER = 6;
  * must be - a strip's pattern can be framed alike only at every other height,
  * and the 5% may not reach.
  */
-const settle = (years: number[], total: number): { framed: Framed[]; cost: number } | null => {
+export const settle = (years: number[], total: number): { framed: Framed[]; cost: number } | null => {
   let best: { framed: Framed[]; cost: number } | null = null;
   for (let d = 0; d <= 3; d++) {
     const mean = (total - d) / years.length;

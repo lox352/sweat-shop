@@ -25,7 +25,7 @@ import { letterOf, plainSlot, trimOf } from "./slots";
  *   touches the least foreground.
  */
 
-const nearest = (v: number, m: number) => Math.max(m, Math.round(v / m) * m);
+export const nearest = (v: number, m: number) => Math.max(m, Math.round(v / m) * m);
 
 const lum = (hex: string) => {
   const n = parseInt(hex.slice(1), 16);
@@ -41,7 +41,7 @@ const darkest = (slots: string[]) => slots.reduce((d, s) => (lightness(s) < ligh
 type ChartRow = Exclude<Row, { plain: string }>;
 const isPlain = (r: Row): r is { year: number; plain: string } => "plain" in r;
 const rowIsSolid = (r: Row) => !isPlain(r) && solid(lettersOf(r.year, r.chart)[r.row - 1]);
-const slotOfRound = (r: Row): string => (isPlain(r) ? plainSlot(r.year, r.plain) : tileOf(r)[0]);
+export const slotOfRound = (r: Row): string => (isPlain(r) ? plainSlot(r.year, r.plain) : tileOf(r)[0]);
 
 /**
  * What the samplers' markers mark, as the knitting panel names them - "Place
@@ -94,7 +94,7 @@ export interface Knitted {
  * own shades (see slots' bandSlotsOfRow). Copies, so the rows the sleeves
  * carry on from the body stay the body's.
  */
-const banded = (rows: Row[]): Row[] => {
+export const banded = (rows: Row[]): Row[] => {
   const keyOf = (r: Row) => {
     if (isPlain(r)) return null;
     const q = quantumOf(r.year, r.chart, r.row);
@@ -181,7 +181,7 @@ const madeAt = (to: number, at: number[]): ShapingOp[] => {
 };
 
 /** Specs for rounds worked on a whole number of repeats, gathering a band's rows into one chart. */
-class Writer {
+export class Writer {
   specs: RoundSpec[] = [];
   charts = new Map<string, Chart>();
   private run: { key: string; year: number; chart: string; w: number; rows: ChartRow[]; map?: number[]; seam?: number; maps?: number[][]; resized?: number } | null = null;
@@ -412,7 +412,7 @@ const tiled = (w: Writer, rows: Row[], start: number, want: (i: number) => numbe
  * The yoke's rounds as its quanta grow it (see shaping): from the neck to
  * `to`, near the target. Returns the count it leaves.
  */
-const grown = (w: Writer, rows: Row[], from: number, to: number, want: (i: number) => number): number => {
+export const grown = (w: Writer, rows: Row[], from: number, to: number, want: (i: number) => number): number => {
   const steps = growing(rows, { from, to, want });
   // Each round's yarns, stitch by stitch, as it is knitted (see Writer): for its make-ones to be put between two of one yarn where they can.
   const yarnsOf = (i: number): string[] => {
@@ -477,49 +477,36 @@ const seamOffsets = (rows: Row[], steps: Step[], top: number): Map<number, numbe
   return out;
 };
 
-export const knit = (size: Measured, given: Plan, prefix: string, g: Gauge = gauge): Knitted => {
-  const plan = { ...given, rows: { yoke: banded(given.rows.yoke), body: banded(given.rows.body), sleeve: banded(given.rows.sleeve) } };
-  const ribs = ribsAt(g);
-  const neck = nearest(size.neckCm * g.stitches, 4);
-  const body = nearest(size.chestCm * g.stitches, 4);
-  const underarm = Math.min(24, Math.max(8, nearest(body * 0.04, 2)));
-  const upperArm = nearest(size.upperArmCm * g.stitches, 2);
-  const cuff = nearest(size.cuffCm * g.stitches, 4);
-  const yokeTotal = body - 2 * underarm + 2 * (upperArm - underarm);
-  // The ribs in the trim (see colours): the neck's beside the yoke's first year, the waist's and the wrists' beside the last of the body and the sleeves.
-  const { neck: neckTrim, low: lowTrim } = trimsOf(plan.rows);
-  // And the back neck's short rows in the first band's background, into which they run on.
-  const shortRowSlot = firstGround(plan.rows.yoke);
+/** What the divide leaves, and what the body and sleeves are knitted to. */
+interface Counts {
+  /** Round the body, the underarms with it. */
+  body: number;
+  /** Cast on at each underarm. */
+  underarm: number;
+  /** Each sleeve's stitches put on hold. */
+  held: number;
+  cuff: number;
+}
 
-  /* ---------------------------------------------------------------- yoke */
-  const yoke = new Writer(prefix);
-  const first = Math.round(neck * 1.25);
-  const n = plan.rows.yoke.length;
-  // The yoke from the neck to a multiple of four nearest what the divide wants, following a target straight from a quarter more than the neck to it, four rounds before the end.
-  const target = (i: number) => first + (yokeTotal - first) * Math.min(1, (i + 4) / n);
-  const yokeEnd = grown(yoke, plan.rows.yoke, neck, nearest(yokeTotal, 4), target);
-  const yokeSpecs: RoundSpec[] = [
-    { type: "castOn", count: neck, slot: neckTrim, fabric: "rib", check: "neck" },
-    { type: "join" },
-    { type: "rounds", count: ribs.neck, slot: neckTrim, sequence: ["k", "p"], fabric: "rib", markers: [{ after: 0, place: startOfRound }] },
-    { type: "needles", to: "main" },
-    { type: "shortRows", first: Math.round(neck * 0.16), extend: Math.round(neck * 0.05), pairs: 3, slot: shortRowSlot },
-    ...yoke.done(),
-  ];
-  yokeSpecs[yokeSpecs.length - 1] = { ...yokeSpecs[yokeSpecs.length - 1], check: "yoke" };
+/**
+ * The divide and everything below it: the body to its hem, and each sleeve
+ * from its held stitches to its cuff. From a plan's rows for the two, and the
+ * counts they are knitted to - a size's own, or what a yoke already knitted
+ * leaves (see continued).
+ */
+export const below = (plan: { body: Row[]; sleeve: Row[] }, { body, underarm, held, cuff }: Counts, lowTrim: string, prefix: string, ribs: ReturnType<typeof ribsAt>) => {
   // The sleeves take what the body leaves: each sleeve's held stitches, and the underarm cast on beside them.
-  const held = (yokeEnd - (body - 2 * underarm)) / 2;
   const top = held + underarm;
   const half = (body - 2 * underarm) / 2;
 
   /* ---------------------------------------------------------------- body */
   const bodyWriter = new Writer(prefix);
   const hemCount = nearest(body, 4);
-  tiled(bodyWriter, plan.rows.body, body, () => body, false, () => hemCount);
+  tiled(bodyWriter, plan.body, body, () => body, false, () => hemCount);
   const bodySpecs: RoundSpec[] = [
     {
       type: "divide",
-      slot: slotOfRound(plan.rows.body[0]),
+      slot: slotOfRound(plan.body[0]),
       segments: [
         { work: half / 2 },
         { hold: "sleeve-right", count: held, castOn: underarm },
@@ -536,7 +523,7 @@ export const knit = (size: Measured, given: Plan, prefix: string, g: Gauge = gau
   ];
 
   /* ------------------------------------------------------------- sleeves */
-  const rows = plan.rows.sleeve;
+  const rows = plan.sleeve;
   const L = rows.length;
   // A straight taper from the upper arm to the cuff, the first few rounds left at their count. Where that would seam a band, the taper reaches the
   // cuff's count half way down the last year's band, or where that band begins, and goes straight on from there, so the band can go round on fewer
@@ -592,16 +579,10 @@ export const knit = (size: Measured, given: Plan, prefix: string, g: Gauge = gau
   });
 
   return {
-    sections: [
-      { label: "Yoke", piece: "yoke", rounds: yokeSpecs },
-      { label: "Body", piece: "body", rounds: bodySpecs },
-      sleeveSection("sleeve-left", "Left sleeve"),
-      sleeveSection("sleeve-right", "Right sleeve"),
-    ],
-    charts: [...yoke.charts.values(), ...bodyWriter.charts.values(), ...sleeve.charts.values()],
+    body: bodySpecs,
+    sleeves: [sleeveSection("sleeve-left", "Left sleeve"), sleeveSection("sleeve-right", "Right sleeve")],
+    charts: [...bodyWriter.charts.values(), ...sleeve.charts.values()],
     checks: {
-      neck,
-      yoke: yokeEnd,
       body,
       hem: hemCount,
       "sleeve-left:top": top,
@@ -609,5 +590,43 @@ export const knit = (size: Measured, given: Plan, prefix: string, g: Gauge = gau
       "sleeve-right:top": top,
       "sleeve-right:cuff": cuff,
     },
+  };
+};
+
+export const knit = (size: Measured, given: Plan, prefix: string, g: Gauge = gauge): Knitted => {
+  const plan = { ...given, rows: { yoke: banded(given.rows.yoke), body: banded(given.rows.body), sleeve: banded(given.rows.sleeve) } };
+  const ribs = ribsAt(g);
+  const neck = nearest(size.neckCm * g.stitches, 4);
+  const body = nearest(size.chestCm * g.stitches, 4);
+  const underarm = Math.min(24, Math.max(8, nearest(body * 0.04, 2)));
+  const upperArm = nearest(size.upperArmCm * g.stitches, 2);
+  const cuff = nearest(size.cuffCm * g.stitches, 4);
+  const yokeTotal = body - 2 * underarm + 2 * (upperArm - underarm);
+  // The ribs in the trim (see colours): the neck's beside the yoke's first year, the waist's and the wrists' beside the last of the body and the sleeves.
+  const { neck: neckTrim, low: lowTrim } = trimsOf(plan.rows);
+  // And the back neck's short rows in the first band's background, into which they run on.
+  const shortRowSlot = firstGround(plan.rows.yoke);
+
+  /* ---------------------------------------------------------------- yoke */
+  const yoke = new Writer(prefix);
+  const first = Math.round(neck * 1.25);
+  const n = plan.rows.yoke.length;
+  // The yoke from the neck to a multiple of four nearest what the divide wants, following a target straight from a quarter more than the neck to it, four rounds before the end.
+  const target = (i: number) => first + (yokeTotal - first) * Math.min(1, (i + 4) / n);
+  const yokeEnd = grown(yoke, plan.rows.yoke, neck, nearest(yokeTotal, 4), target);
+  const yokeSpecs: RoundSpec[] = [
+    { type: "castOn", count: neck, slot: neckTrim, fabric: "rib", check: "neck" },
+    { type: "join" },
+    { type: "rounds", count: ribs.neck, slot: neckTrim, sequence: ["k", "p"], fabric: "rib", markers: [{ after: 0, place: startOfRound }] },
+    { type: "needles", to: "main" },
+    { type: "shortRows", first: Math.round(neck * 0.16), extend: Math.round(neck * 0.05), pairs: 3, slot: shortRowSlot },
+    ...yoke.done(),
+  ];
+  yokeSpecs[yokeSpecs.length - 1] = { ...yokeSpecs[yokeSpecs.length - 1], check: "yoke" };
+  const low = below(plan.rows, { body, underarm, held: (yokeEnd - (body - 2 * underarm)) / 2, cuff }, lowTrim, prefix, ribs);
+  return {
+    sections: [{ label: "Yoke", piece: "yoke", rounds: yokeSpecs }, { label: "Body", piece: "body", rounds: low.body }, ...low.sleeves],
+    charts: [...yoke.charts.values(), ...low.charts],
+    checks: { neck, yoke: yokeEnd, ...low.checks },
   };
 };

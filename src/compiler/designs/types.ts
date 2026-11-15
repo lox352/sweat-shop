@@ -17,7 +17,8 @@
  * the grading worked out once and that the tests check every stitch of.
  */
 
-import type { Design, SizeAbout, SlotId } from "../../pattern/design";
+import type { Design, Measurements, SizeAbout, SlotId, Tension } from "../../pattern/design";
+import type { SweaterStitches } from "../../pattern/knitted";
 
 export type * from "../../pattern/design";
 
@@ -272,6 +273,50 @@ export interface Section {
   rounds: RoundSpec[];
 }
 
+/** Knitting already made, to carry on from after one of its rounds: see engine's Needles.resume. */
+export interface Start {
+  knitted: SweaterStitches;
+  round: number;
+}
+
+/** What the rest of a size is asked to be planned for: see Fitting. */
+export interface FitRequest {
+  /** What it is to measure, finished. */
+  finished: Measurements;
+  /** The knitter's own tension. */
+  tension: Tension;
+  /** What is knitted, and the round it is knitted to. */
+  from: Start;
+  /** Which of the design's ways of doing it, where it offers more than one. */
+  option?: string;
+}
+
+/** The rest of a size, planned: what is still to be knitted, and what the whole then measures. */
+export interface Fitted {
+  sections: Section[];
+  charts: Chart[];
+  /** The counts the rest names: see Size.checks. */
+  checks: Record<string, number>;
+  finished: Measurements;
+  /** What the knitter should know of it, a sentence each. */
+  notes: string[];
+}
+
+/**
+ * A design that can plan the rest of a sweater from one part knitted: for a
+ * knitter whose tension is not the pattern's, or whose pattern has changed
+ * under them. What is knitted is a fact, kept as it is; the rest is planned
+ * for what is on the needles, to come out at the measurements asked for at
+ * the tension given. See compiler/fit.
+ */
+export interface Fitting {
+  /** The ways the rest can be laid out, where the knitter has a choice. */
+  options?: { id: string; label: string; detail: string }[];
+  /** The first round, at or after `round`, after which the rest can be planned afresh; none once it no longer can. */
+  cutAfter(knitted: SweaterStitches, round: number): number | undefined;
+  plan(ask: FitRequest): Fitted;
+}
+
 /** A design as it is written: a Design, with the charts and the knitting of every size. */
 export interface SweaterPattern extends Omit<Design, "sizes"> {
   /** What each slot is for, in a word or two, where it is clear. */
@@ -298,6 +343,8 @@ export interface SweaterPattern extends Omit<Design, "sizes"> {
    * of the design's yarns out: a small one has room for less of each.
    */
   slotsVaryBySize?: boolean;
+  /** How the rest of a size is planned from one part knitted, where the design can: see Fitting. */
+  fitting?: Fitting;
 }
 
 /** Stitches a cell works on the needle. */
