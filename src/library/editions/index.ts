@@ -6,9 +6,8 @@ import { type EditionFile, decodeEdition } from "./format";
  *
  * Every size's knitting is named, as an edition, by a hash of it (see
  * format.ts and scripts/editions.mjs), and the manifest says which edition is
- * current and which was the first the site named. A project records the
- * edition it was started on; one saved before editions existed knits the
- * first. Once a change supersedes it, the project knits the frozen copy until
+ * current. A project records the edition it was started on; one that records
+ * none knits the size's edition now. Once a change supersedes it, the project knits the frozen copy until
  * its knitter chooses to move on: nothing published later moves a stitch of
  * anyone's knitting.
  *
@@ -26,12 +25,12 @@ import { type EditionFile, decodeEdition } from "./format";
  */
 
 /**
- * Each size's first and current edition, and, where the current one puts a
+ * Each size's current edition, and, where the current one puts a
  * mistake right, `errata`: what it corrects, in a sentence, which the update
  * offered to a project on an older edition says. Written by hand after `npm
  * run editions`, and kept until the size's knitting moves on again.
  */
-type Manifest = Record<string, Record<string, { first: string; current: string; errata?: string }>>;
+type Manifest = Record<string, Record<string, { current: string; errata?: string }>>;
 
 const manifest: Manifest =
   Object.values(import.meta.glob<{ default: Manifest }>("./manifest.json", { eager: true }))[0]?.default ?? {};
@@ -48,9 +47,9 @@ export const errataOf = (design: string, size: string): string | undefined => ma
 /** The edition a size's knitting is now. */
 export const currentEdition = (design: string, size: string): string | undefined => manifest[design]?.[size]?.current;
 
-/** The edition a project knits: the one it was started on, or for a project saved before editions, the first. */
+/** The edition a project knits: the one it was started on, or where it records none, the size's edition now. */
 export const editionOf = (project: { sweaterId: string; sizeId: string; edition?: string }): string | undefined =>
-  project.edition ?? manifest[project.sweaterId]?.[project.sizeId]?.first;
+  project.edition ?? manifest[project.sweaterId]?.[project.sizeId]?.current;
 
 /** Whether an edition is one its size's knitting has moved on from, and so is knitted from its frozen copy. */
 export const isSuperseded = (design: string, size: string, edition: string | undefined): edition is string => {

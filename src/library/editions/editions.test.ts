@@ -13,7 +13,7 @@ import type { Stitch } from "../../pattern/Stitch";
 const here = dirname(fileURLToPath(import.meta.url));
 const frozen = join(here, "../../../public/editions");
 const nameOf = (file: EditionFile) => createHash("sha256").update(hashable(file)).digest("hex").slice(0, 12);
-const entries = JSON.parse(readFileSync(join(here, "manifest.json"), "utf8")) as Record<string, Record<string, { first: string; current: string }>>;
+const entries = JSON.parse(readFileSync(join(here, "manifest.json"), "utf8")) as Record<string, Record<string, { current: string }>>;
 const stale = "out of date: run npm run editions and commit what it writes";
 
 describe("every size's edition", () => {
@@ -48,10 +48,9 @@ describe("the frozen editions", () => {
     }
   }, 300000);
 
-  it("include the first and the current edition of every size the manifest names", () => {
+  it("include the current edition of every size the manifest names", () => {
     for (const [design, sizes] of Object.entries(entries)) {
-      for (const [size, { first, current }] of Object.entries(sizes)) {
-        expect(files, `${design} ${size}`).toContain(`${design}--${size}--${first}.json`);
+      for (const [size, { current }] of Object.entries(sizes)) {
         expect(files, `${design} ${size}`).toContain(`${design}--${size}--${current}.json`);
       }
     }

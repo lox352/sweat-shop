@@ -31,7 +31,7 @@ export interface Project {
   progress: number;
   /**
    * The edition of its size's knitting it knits: see library/editions.
-   * Left out by a project saved before editions, which knits the first.
+   * Left out by a project saved before editions, which knits the size's edition now.
    */
   edition?: string;
   startedAt: string;

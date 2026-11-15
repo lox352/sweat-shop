@@ -25,7 +25,7 @@ export const livePatterns = () => {
     const manifest = existsSync(manifestFile) ? JSON.parse(readFileSync(manifestFile, "utf8")) : {};
     const { sweaters } = await load("/src/compiler/designs/index.ts");
     // A design or size not yet named has an edition all the same, for as long as it is being worked on.
-    for (const sweater of sweaters) for (const size of sweater.sizes) (manifest[sweater.id] ??= {})[size.id] ??= { first: live, current: live };
+    for (const sweater of sweaters) for (const size of sweater.sizes) (manifest[sweater.id] ??= {})[size.id] ??= { current: live };
     return manifest;
   };
   return {

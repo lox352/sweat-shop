@@ -1,4 +1,4 @@
-import { isFabric } from "../pattern/Stitch";
+import { isFabric, seen } from "../pattern/Stitch";
 import type { Knitting } from "../pattern/knitting";
 
 /**
@@ -18,7 +18,8 @@ export const topologyOf = (knitting: Knitting) => {
   const renumber = (id: number) => number.get(id) ?? null;
   return {
     stitches: fabric.map((stitch) => [
-      stitch.type,
+      // As the fabric is, from the right side: which side it was worked from is no part of its shape.
+      seen(stitch),
       stitch.links.map(renumber),
       stitch.from === undefined ? null : renumber(stitch.from),
       stitch.width ?? null,
