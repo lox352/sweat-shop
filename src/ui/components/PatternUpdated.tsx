@@ -51,6 +51,7 @@ const PatternUpdated: React.FC<{
         You are still knitting the version you started, so nothing has moved.
       </p>
       {errata && <p className="pattern-updated-errata">{errata}</p>}
+      {differs === "same" && <p>The update knits the same stitches as yours, so switching keeps your place.</p>}
       {differs && differs !== "same" && (
         <p>
           The update first differs at <strong>{differs.round}</strong>.{" "}

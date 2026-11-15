@@ -92,7 +92,7 @@ const line = (spec: RoundSpec, counts: Record<string, number>): string => {
     case "bindOff":
       return `Bind off ${spec.sequence ? `in pattern, (${spec.sequence.map((s) => `${s}1`).join(", ")})` : "knitwise"}, in ${spec.slot}.${end}`;
     case "shortRows":
-      return `German short rows in ${spec.slot}: ${spec.pairs} pairs, the first ${spec.first} sts past the beginning of the round, each ${spec.extend} further${spec.extendLast ? `, the last ${spec.extendLast} further again` : ""}.${
+      return `${{ german: "German" }[spec.method ?? "german"]} short rows in ${spec.slot}: ${spec.pairs} pairs, the first ${spec.first} sts past the beginning of the round, each ${spec.extend} further${spec.extendLast ? `, the last ${spec.extendLast} further again` : ""}.${
         spec.shaping?.wrong ? ` Last row back: ${shaped(spec.shaping.wrong)}.` : ""
       }${spec.shaping?.right ? ` Row to the end of the round: ${shaped(spec.shaping.right)}.` : ""}${end}`;
   }

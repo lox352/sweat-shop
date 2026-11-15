@@ -63,6 +63,13 @@ export interface Stitch {
   removed?: boolean;
   /** A "marker" step placing the round's new beginning, from the next round on. */
   begins?: boolean;
+  /**
+   * Catch the yarn, or yarns, carried behind the work as this stitch is
+   * knitted: twist it round the working yarn, so a long float is held to the
+   * fabric. Only where a design lets floats run longer than seven stitches:
+   * see compiler/engine/rules' floatCatches.
+   */
+  catch?: true;
   /** Worked from the wrong side, on a short row knitted back the other way. */
   wrongSide?: boolean;
 }

@@ -1,54 +1,54 @@
 {
  "feline-raglan": {
   "2xl": {
-   "current": "c8854fe2da2c"
+   "current": "8800ab5d870b"
   },
   "3xl": {
-   "current": "83372c56f46d"
+   "current": "8be3daad6498"
   },
   "4xl": {
-   "current": "84ffbbf1c283"
+   "current": "9eee2f3c8f47"
   },
   "l": {
-   "current": "f803c8ee964e"
+   "current": "dabf363f1d49"
   },
   "m": {
-   "current": "9a01171522f0"
+   "current": "284bc5a0aa2c"
   },
   "s": {
-   "current": "09980f2ede0b"
+   "current": "60c657d280f2"
   },
   "xl": {
-   "current": "37be8439b738"
+   "current": "f68cc88aaa34"
   },
   "xs": {
-   "current": "9cf4716549bf"
+   "current": "724bb46c0c77"
   }
  },
  "feline-yoke": {
   "2xl": {
-   "current": "02531f5a53e6"
+   "current": "8fec2927e9a0"
   },
   "3xl": {
-   "current": "8c6084f4bf36"
+   "current": "da5519aa1713"
   },
   "4xl": {
-   "current": "be4ffa6ef4ca"
+   "current": "08e95baabd7e"
   },
   "l": {
-   "current": "c618bde496ed"
+   "current": "b0f4f22f80a2"
   },
   "m": {
-   "current": "fa3f224ebd7b"
+   "current": "1c8ab89139ef"
   },
   "s": {
-   "current": "7ad9764a3e2f"
+   "current": "867d3f96b442"
   },
   "xl": {
-   "current": "0b5647eaa5d3"
+   "current": "66c135cc28d1"
   },
   "xs": {
-   "current": "85a73bb8c180"
+   "current": "c94a02b483a8"
   }
  },
  "hamefarin": {
@@ -129,54 +129,54 @@
  },
  "wool-week-strips-lined-oldest": {
   "2xl": {
-   "current": "5cd9ba9e3165"
+   "current": "9678a8b88a54"
   },
   "3xl": {
-   "current": "6a4df3f4cf83"
+   "current": "60038da88b33"
   },
   "4xl": {
-   "current": "043b75d6f9ff"
+   "current": "642f365b5afd"
   },
   "l": {
-   "current": "a5d01898bdc7"
+   "current": "97094a6a1cff"
   },
   "m": {
-   "current": "ee887fc5c4bd"
+   "current": "0df5d316853a"
   },
   "s": {
-   "current": "23a87a2032b2"
+   "current": "f130f8168ffc"
   },
   "xl": {
-   "current": "5560b3565b4f"
+   "current": "80d0e735b35f"
   },
   "xs": {
-   "current": "00fb14a5af29"
+   "current": "c6393fe72ca9"
   }
  },
  "wool-week-strips-once-oldest": {
   "2xl": {
-   "current": "8381727d19e2"
+   "current": "78d1665a9688"
   },
   "3xl": {
-   "current": "e65fe68b96b6"
+   "current": "35083e3fa9b9"
   },
   "4xl": {
-   "current": "fa855ff8f22a"
+   "current": "0d4c2d731a66"
   },
   "l": {
-   "current": "df0a4da94bdb"
+   "current": "1c3db3d85971"
   },
   "m": {
-   "current": "26e56d0c92fa"
+   "current": "a3c5f7f4e8a2"
   },
   "s": {
-   "current": "99f9eca01ead"
+   "current": "f6e7854eebf2"
   },
   "xl": {
-   "current": "27515e86e5c9"
+   "current": "9dfcdb9d229d"
   },
   "xs": {
-   "current": "be10b3055210"
+   "current": "0dffa12035e8"
   }
  }
 }

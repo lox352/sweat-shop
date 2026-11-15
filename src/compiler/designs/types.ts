@@ -236,6 +236,15 @@ export type RoundSpec = (
    */
   | {
       type: "shortRows";
+      /**
+       * How each turn is made, and the gap it leaves closed later: a choice
+       * the engine expands into the stitches and steps that method is, which
+       * differ - a shadow wrap makes a loop more, a wrap and turn a strand to
+       * pick up - and not only a name for the turn. German short rows, the
+       * one every design here works and the one left out, are the only method
+       * the engine knits yet.
+       */
+      method?: "german";
       first: number;
       extend: number;
       pairs: number;
