@@ -54,3 +54,38 @@ export const breaches = (
   });
   return out;
 };
+
+/**
+ * Where to catch the yarns carried behind the work: the stitches, in rounds
+ * of more than one yarn, as which a float longer than `longest` is caught -
+ * the other yarn twisted round the working one as that stitch is knitted, so
+ * no stretch of it hangs free for more than `longest` stitches. A float is
+ * caught as evenly along it as it divides, never at its first stitch or its
+ * last, and a stitch along in every other round, so that catches in rounds
+ * one above the other do not line up and show through.
+ */
+export const floatCatches = (stitches: Stitch[], rounds: number[][], kinds: string[], longest = 7): number[] => {
+  const out: number[] = [];
+  rounds.forEach((round, index) => {
+    if (kinds[index] !== "round") return;
+    const fabric = round.filter((id) => isFabric(stitches[id]));
+    const slots = fabric.map((id) => stitches[id].slot);
+    if (new Set(slots).size < 2) return;
+    const n = slots.length;
+    // From a change of yarn, so that no run is cut by where the round begins.
+    const start = slots.findIndex((slot, k) => slot !== slots[(k + n - 1) % n]);
+    for (let step = 0; step < n; ) {
+      let length = 1;
+      while (length < n && slots[(start + step + length) % n] === slots[(start + step) % n]) length++;
+      if (length > longest) {
+        const catches = Math.ceil(length / longest) - 1;
+        for (let k = 1; k <= catches; k++) {
+          const along = Math.min(length - 2, Math.max(1, Math.round((length * k) / (catches + 1)) - 1 + (index % 2)));
+          out.push(fabric[(start + step + along) % n]);
+        }
+      }
+      step += length;
+    }
+  });
+  return out;
+};

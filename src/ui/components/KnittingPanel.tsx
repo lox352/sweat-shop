@@ -334,6 +334,9 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
   for (let id = run?.startId ?? 0; run && id <= run.endId && doubleAt === undefined; id++) {
     if (worksDoubleStitch(stitches, id)) doubleAt = id - run.startId + 1;
   }
+  // Where in the run in hand to catch the yarn carried behind the work: see compiler/engine/rules' floatCatches.
+  const catches: number[] = [];
+  for (let id = run?.startId ?? 0; run && id <= run.endId; id++) if (stitches[id]?.catch) catches.push(id - run.startId + 1);
   // A make-one at a marker in the run in hand: the panel says which side of it the new stitch goes.
   let atMarker: string | undefined;
   for (let id = run?.startId ?? 0; run && makeOnesAtMarkers && id <= run.endId && !atMarker; id++) atMarker = makeOnesAtMarkers.get(id);
@@ -622,6 +625,17 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
         <p className="knitting-double-stitch">
           <strong>{run.length === 1 ? "This is the double stitch" : `Stitch ${doubleAt} of these is the double stitch`}</strong>{" "}
           <span className="quiet">a turn made: work its two legs together as one.</span>
+        </p>
+      )}
+
+      {run && catches.length > 0 && (
+        <p className="knitting-float-catch">
+          <strong>
+            {run.length === 1
+              ? "Catch the float on this stitch"
+              : `Catch the float on stitch${catches.length > 1 ? "es" : ""} ${catches.length > 1 ? `${catches.slice(0, -1).join(", ")} and ${catches.at(-1)}` : catches[0]} of these`}
+          </strong>{" "}
+          <span className="quiet">twist the yarn carried behind the work round the one you knit with, so the float is held to the fabric.</span>
         </p>
       )}
 

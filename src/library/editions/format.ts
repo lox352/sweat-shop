@@ -39,6 +39,7 @@ interface Extra {
   marker?: string;
   removed?: boolean;
   begins?: boolean;
+  catch?: true;
 }
 
 interface PackedHeld {
@@ -142,7 +143,7 @@ const numbering = <T>() => {
   return { of, values };
 };
 
-const extraKeys = ["from", "holder", "count", "wrap", "marker", "removed", "begins"] as const;
+const extraKeys = ["from", "holder", "count", "wrap", "marker", "removed", "begins", "catch"] as const;
 
 /** A built sweater, frozen as an edition. `edition` is its name, worked out by whoever writes it: see hashable. */
 export const encodeEdition = (built: SweaterStitches, design: string, size: string, edition: string): EditionFile => {

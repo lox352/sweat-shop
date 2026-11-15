@@ -1,4 +1,5 @@
 import Needles from "./needles";
+import { floatCatches } from "./rules";
 import { adjacentStitchDistance, verticalStitchDistance } from "../../constants";
 import type { Knitting } from "../../pattern/knitting";
 import { type SweaterStitches, markSpacer } from "../../pattern/knitted";
@@ -430,6 +431,8 @@ export const buildSweater = (
         break;
       }
       case "shortRows": {
+        // Each method is its own stitches and steps: German's are the turn, and the double stitch worked as one later. See RoundSpec.
+        if ((spec.method ?? "german") !== "german") throw new Error(`${pattern.id}: no way to knit ${spec.method} short rows yet`);
         const { width, rise } = fabricOf(pattern, roundHeight, spec.fabric);
         // How far each pair reaches past the beginning of the round: the last further, where the pattern stretches it.
         const reaches: number[] = [];
@@ -535,6 +538,8 @@ export const buildSweater = (
     if (stitch.type === "needles" || (stitch.type === "resume" && stitch.needles !== undefined)) on = stitch.needles;
     else if (on !== undefined) stitch.needles = on;
   }
+  // The floats a design's rules let run long, caught behind the work: see rules' floatCatches.
+  for (const id of floatCatches(stitches, rounds, roundKinds)) stitches[id].catch = true;
   const knitting: Knitting = {
     fromSeam: true,
     stitches,

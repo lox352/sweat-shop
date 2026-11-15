@@ -36,7 +36,8 @@
 
 /* Which side of a marker a make-one at it goes. */
 .knitting-marker-order,
-.knitting-double-stitch {
+.knitting-double-stitch,
+.knitting-float-catch {
   margin: 0.5rem 0 0;
   font-size: 0.95rem;
 }
