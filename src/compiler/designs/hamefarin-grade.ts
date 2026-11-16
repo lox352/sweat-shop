@@ -97,6 +97,18 @@ export const measured: Measured[] = [
 
 const nearest = (value: number, multiple: number) => Math.max(multiple, Math.round(value / multiple) * multiple);
 
+/** The rounds of the neck's rib. */
+export const neckRibRounds = neckRib;
+
+/*
+ * German short rows across the back of the neck, after the rib: three
+ * pairs, the first reaching a sixth of the neck past the middle of the
+ * back each way and each pair after it a twentieth further, so the last
+ * turns near the shoulders. Six rows at the middle of the back raise it
+ * about two centimetres, which is what a back neck wants.
+ */
+export const shortRowsFor = (neck: number) => ({ first: Math.round(neck * 0.16), extend: Math.round(neck * 0.05), pairs: 3 });
+
 /** The stitches a size is knitted to at a tension, which its widths alone decide. */
 export const widths = (m: Measurements, gauge: Gauge, id = "") => {
   const neck = nearest(m.neckCm * gauge.stitches, 4);
@@ -255,7 +267,7 @@ export const grade = (size: Measured, gauge: Gauge = standard): Graded => {
    * turns near the shoulders. Six rows at the middle of the back raise it
    * about two centimetres, which is what a back neck wants.
    */
-  const shortRows = { first: Math.round(neck * 0.16), extend: Math.round(neck * 0.05), pairs: 3 };
+  const shortRows = shortRowsFor(neck);
   return {
     id: size.id,
     label: size.label,
@@ -290,6 +302,8 @@ export interface Knitted {
 
 /** The rest of a size, graded on from a yoke part knitted: see gradeOn. */
 export interface GradedOn {
+  /** From the neck itself: the count after a first increase round, straight after the rib, with a plain round after it. */
+  first?: number;
   /** The bands still to knit, in order: which of the five, the plain rounds before its increase round, and the count that round leaves. */
   bands: { band: number; plain: number; to: number }[];
   /** The bands there is no depth left for. */
@@ -329,7 +343,10 @@ export const gradeOn = (m: Measurements, gauge: Gauge, knitted: Knitted): Graded
   const w = widths(m, gauge, "fitted");
   // Every round from the cast-on to the divide, the cast-on with them.
   const depth = Math.round(m.yokeDepthCm * gauge.rounds) + 1;
-  const left = depth - knitted.worked;
+  // From the neck itself, as a size graded whole: a first increase round straight after the rib and a plain round, before any band.
+  const fromNeck = knitted.done === 0;
+  const worked = knitted.worked + (fromNeck ? 2 : 0);
+  const left = depth - worked;
   const slack = Math.round(1.5 * gauge.rounds);
 
   const coming = bands.map((_band, index) => index).slice(knitted.done);
@@ -356,14 +373,21 @@ export const gradeOn = (m: Measurements, gauge: Gauge, knitted: Knitted): Graded
   const last = kept[kept.length - 1];
   const yoke = last === undefined ? knitted.count : Math.max(upTo(knitted.count, bands[last].repeat), nearest(w.yoke, bands[last].repeat));
   const reach = depth * 0.6;
-  let round = knitted.worked;
+  let round = worked;
   let count = knitted.count;
+  let first: number | undefined;
   const to = kept.map((band, at) => {
     round += plain[at] + 1;
     const { repeat, rounds } = bands[band];
     const wanted = knitted.neck + (yoke - knitted.neck) * Math.min(1, round / reach);
     const next = band === last ? yoke : Math.min(Math.max(nearest(wanted, repeat), upTo(count, repeat)), Math.floor(yoke / repeat) * repeat);
     if (next < count) throw new Error(`fitted: ${bands[band].name} has no count between ${count} and ${yoke}`);
+    // The first increase round takes the neck half way, in ratio, to the first band's count, so that no single round has to do more than about half again.
+    if (fromNeck && at === 0) {
+      first = nearest(Math.sqrt(count * next), 4);
+      if (first <= count || first >= next) throw new Error(`fitted: no first increase between ${count} and ${next}`);
+      count = first;
+    }
     if (next > 2 * count) throw new Error(`fitted: the increase before ${bands[band].name} more than doubles`);
     round += rounds;
     count = next;
@@ -380,6 +404,7 @@ export const gradeOn = (m: Measurements, gauge: Gauge, knitted: Knitted): Graded
   const cuff = w.cuff;
   const { bodyRounds, firstDecrease, decreases, sleeveTail, sleeveRounds, bodyTotal } = lengths(m, gauge, top, cuff, "fitted", deeper);
   return {
+    ...(first === undefined ? {} : { first }),
     bands: kept.map((band, at) => ({ band, plain: plain[at], to: to[at] })),
     dropped,
     pad,
@@ -390,7 +415,7 @@ export const gradeOn = (m: Measurements, gauge: Gauge, knitted: Knitted): Graded
     finished: {
       chestCm: half(body / gauge.stitches),
       neckCm: half(knitted.neck / gauge.stitches),
-      yokeDepthCm: half((knitted.worked + needed + plain.reduce((a, b) => a + b, 0) + pad - 1) / gauge.rounds),
+      yokeDepthCm: half((worked + needed + plain.reduce((a, b) => a + b, 0) + pad - 1) / gauge.rounds),
       bodyLengthCm: half(bodyTotal / gauge.rounds),
       upperArmCm: half(top / gauge.stitches),
       sleeveLengthCm: half(sleeveRounds / gauge.rounds),

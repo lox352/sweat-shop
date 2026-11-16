@@ -20,9 +20,9 @@ import { buildSweater, sizeOf } from "./engine/engine";
 export interface FitAsk {
   design: string;
   sizeId: string;
-  /** What is knitted, and the round it is knitted to: one the design can plan on from (see cutAfter). */
-  knitted: SweaterStitches;
-  round: number;
+  /** What is knitted, and the round it is knitted to: one the design can plan on from (see cutAfter). Neither, for a whole sweater from the cast-on. */
+  knitted?: SweaterStitches;
+  round?: number;
   /** The knitter's own tension. */
   tension: Tension;
   /** What it is to measure: the size's own, unless other measurements are asked for. */
@@ -33,8 +33,8 @@ export interface FitAsk {
 export interface Fit {
   /** The whole sweater: the rounds knitted, and the rest. */
   knitted: SweaterStitches;
-  /** The round the rest begins after. */
-  round: number;
+  /** The round the rest begins after: none, for a whole sweater from the cast-on. */
+  round?: number;
   tension: Tension;
   /** What it will measure. */
   finished: Measurements;
@@ -68,7 +68,8 @@ export const fit = (ask: FitAsk, done?: (fraction: number) => void): Fit => {
    * for their width as the rest's will be.
    */
   // The counts a pattern names are of the pattern that names them: the fitted sweater's are the rest's.
-  const from = { knitted: { ...atTension(ask.knitted, ask.tension), checks: {} }, round: ask.round };
+  const from = ask.knitted && ask.round !== undefined ? { knitted: { ...atTension(ask.knitted, ask.tension), checks: {} }, round: ask.round } : undefined;
+  if (!from && !fitting.whole) throw new Error(`${ask.design} can't be planned from the cast-on`);
   const planned = fitting.plan({ finished: ask.finished ?? size.finished, tension: ask.tension, from, option: ask.option });
   // The size as it now is: its own name and needles, the rest as its knitting. Named a field at a time, as a size may work its knitting out only when asked.
   const fitted: Size = {
@@ -90,7 +91,7 @@ export const fit = (ask: FitAsk, done?: (fraction: number) => void): Fit => {
   const knitted = buildSweater(rest, fitted.id, from, () => done?.(++at / steps));
   return {
     knitted,
-    round: ask.round,
+    ...(from ? { round: from.round } : {}),
     tension: ask.tension,
     finished: planned.finished,
     notes: planned.notes,

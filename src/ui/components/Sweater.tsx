@@ -1,13 +1,17 @@
 import React, { startTransition, useCallback, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { sweaterById } from "../../library/catalogue";
-import type { SlotId, SizeAbout } from "../../pattern/design";
+import type { Placement, SlotId, SizeAbout, Tension } from "../../pattern/design";
 import { defaultSize } from "../../reading/counted";
 import { useSweater } from "../useSweater";
-import { ballsOf, paletteOf, trimmed, type Overrides } from "../../reading/palette";
+import { useColourway } from "../useColourway";
+import { currentEdition } from "../../library/editions";
+import type { Fitted } from "../../library/fit";
+import { sameTension } from "../../reading/tension";
+import { ballsOf, paletteOf, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
 import { totals } from "../../reading/progress";
 import { metresFor } from "../../reading/yardage";
-import { chartPath, startProject } from "../../projects/projects";
+import { chartPath, keepKnitting, startProject } from "../../projects/projects";
 import PageLayout from "./ui/PageLayout";
 import Button from "./ui/Button";
 import SweaterModel from "./SweaterModel";
@@ -15,6 +19,8 @@ import WoolList from "./WoolList";
 import { type Chosen } from "./YarnPicker";
 import NextStep from "./ui/NextStep";
 import ColourwayChoice from "./ColourwayChoice";
+import MyTension from "./MyTension";
+import StartFitted from "./StartFitted";
 import { Schematic } from "./Schematic";
 import "./Sweater.css";
 
@@ -105,13 +111,23 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
   const [own, setOwn] = useState<Overrides>({});
   const size = sweater.sizes.find((s) => s.id === sizeId) ?? sweater.sizes[0];
   const choicesRef = useRef<HTMLElement>(null);
-  const { stitches, rounds, index, yoke } = useSweater(sweater, size.id);
+  const built = useSweater(sweater, size.id);
+  const { stitches, rounds, index, yoke } = built;
+  /** The knitter's own tension, where they have one before they begin: see StartFitted. */
+  const [tension, setTension] = useState<Tension>();
 
-  const colourway = useMemo(
-    () => trimmed(sweater.colourways.find((c) => c.id === colourwayId) ?? sweater.colourways[0], trim),
-    [sweater, colourwayId, trim],
-  );
+  const published = useMemo(() => sweater.colourways.find((c) => c.id === colourwayId) ?? sweater.colourways[0], [sweater, colourwayId]);
+  const { on: laidOn } = useColourway(published, undefined);
+  const colourway = useMemo(() => trimmed(published, trim), [published, trim]);
   const palette = useMemo(() => paletteOf(colourway, own), [colourway, own]);
+  // The colourway as it would be on a sweater planned for the knitter, with the wools that would add: for the preview of one.
+  const coloursOn = useCallback(
+    (placement: Placement | undefined) => {
+      const there = trimmed(laidOn(placement), trim);
+      return { palette: paletteOf(there, own), added: woolsAdded(colourway, there) };
+    },
+    [laidOn, colourway, trim, own],
+  );
   const metres = useMemo(() => metresFor(size, stitches, rounds), [size, stitches, rounds]);
   const counts = totals(index, 0);
   const anyApproximate = ballsOf(colourway, metres, own).some((ball) => ball.yarn.approximate);
@@ -136,6 +152,24 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
   // A project is made only now, so browsing designs never leaves one behind.
   const start = () => {
     const project = startProject(sweater.id, size.id, colourway.id, own, trim);
+    navigate(chartPath(project.id, true));
+  };
+  // And one begun on a pattern worked out for its knitter: the knitting its own from the cast-on, kept on the device first.
+  const startFitted = (fitted: Fitted) => {
+    if (!keepKnitting(fitted.file)) return;
+    const from = currentEdition(sweater.id, size.id);
+    const project = startProject(sweater.id, size.id, colourway.id, own, trim, {
+      edition: fitted.file.edition,
+      tension: fitted.tension,
+      fit: {
+        tension: fitted.tension,
+        finished: fitted.finished,
+        ...(from ? { from } : {}),
+        ...(fitted.option ? { option: fitted.option } : {}),
+        ...(fitted.placement ? { placement: fitted.placement } : {}),
+      },
+      ...(from ? { upTo: from } : {}),
+    });
     navigate(chartPath(project.id, true));
   };
 
@@ -242,6 +276,11 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
           <Schematic size={size} />
           <Measurements size={size} />
         </div>
+        <MyTension key={size.id} size={size} tension={tension} onChange={setTension}>
+          {tension && sweater.fitting?.whole && !sameTension(size, tension) && (
+            <StartFitted sweater={sweater} size={size} knitted={built} tension={tension} palette={palette} coloursOn={coloursOn} onStart={startFitted} />
+          )}
+        </MyTension>
         <p className="quiet">
           Each size is its own knitting - its own cast-on, increases and
           divide - and the chart follows the size you choose. The finished

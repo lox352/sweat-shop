@@ -18,9 +18,9 @@ import type { EditionFile } from "./editions/format";
 export interface FitQuestion {
   design: string;
   sizeId: string;
-  /** The knitting in hand, and how many of its stitches are worked. */
-  knitted: SweaterStitches;
-  progress: number;
+  /** The knitting in hand, and how many of its stitches are worked. Neither, for a whole sweater from the cast-on (see Design.fitting). */
+  knitted?: SweaterStitches;
+  progress?: number;
   /** The knitter's own tension. */
   tension: Tension;
 }
@@ -28,8 +28,8 @@ export interface FitQuestion {
 export interface Fitted {
   /** The whole sweater - the rounds knitted, and the rest - as an edition. */
   file: EditionFile;
-  /** The round the rest begins after: where the knitter is, or the first after it the design can plan on from. */
-  round: number;
+  /** The round the rest begins after: where the knitter is, or the first after it the design can plan on from. None, for a whole sweater from the cast-on. */
+  round?: number;
   tension: Tension;
   /** What it will measure. */
   finished: Measurements;
