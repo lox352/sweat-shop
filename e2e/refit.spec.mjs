@@ -41,6 +41,8 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
   const shown = section.locator(".refit-shown");
   await expect(shown).toBeVisible({ timeout: 90_000 });
   expect(scripts.filter((url) => url.includes("fit.worker")).length).toBe(1);
+  // The colourway steps down the sweater: each way is drawn in the yarns for where its years would sit, and says what that adds to the wool.
+  await expect(shown).toContainText("This colourway steps down the sweater, so the years still to come take the yarns for where they now sit. That adds 2 yarns to what the pattern listed: Cloud (764), Bramble (155).");
   await expect(shown).toContainText("416 stitches round the yoke, 20 more than this tension wants");
   await expect(shown).toContainText("The body has 2016 to 2020");
   await expect(shown.getByRole("row", { name: /Chest/ })).toContainText("122cm");
@@ -67,6 +69,11 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
   expect(project.progress).toBe(endOf(67));
   expect(project.edition).not.toBe(edition);
   expect(project.fit).toMatchObject({ round: 67, from: edition, tension: { stitchesPer10cm: 23.3, roundsPer10cm: 25 } });
+  // Where the planner put each year it planned afresh is the project's to keep, and the ribbing is beside the last of them.
+  expect(Object.keys(project.fit.placement.places)).toEqual(["2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"]);
+  expect(project.fit.placement.trims).toEqual({ "trim/21+26": ["2020", "2026"] });
+  // The wool list is the colourway as placed: the yarns it adds are on it.
+  await expect(page.locator(".wool-list")).toContainText("Bramble");
   const own = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), `edition-${design}--l--${project.edition}`);
   // Every round knitted is as it was, and the next divides the yoke.
   expect(own.rounds.slice(0, 67)).toEqual(file.rounds.slice(0, 67));
