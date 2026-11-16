@@ -167,6 +167,7 @@ const Home: React.FC = () => {
 
   return (
     <PageLayout
+      home
       title="Sweat Shop"
       eyebrow="Fair Isle yokes, from the top down"
       lede={
