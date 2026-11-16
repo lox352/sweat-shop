@@ -75,6 +75,12 @@ interface ChartProps {
   stitchNotes?: Design["stitchNotes"];
   /** How far up the window the followed stitch sits, as a share of it. */
   followAt?: number;
+  /**
+   * A stitch to bring into view, in place of the next to be knitted, where
+   * the chart is being looked over and not knitted: the first of a wool
+   * chosen, say. The chart goes to it as it does to a stitch followed.
+   */
+  showAt?: number;
   /** Painted over the chart: a heat map of the knitter's pace, say. */
   overlay?: ChartOverlay;
   /** More to say about a tapped stitch. */
@@ -126,6 +132,7 @@ const Chart: React.FC<ChartProps> = ({
   overlay,
   pickerNote,
   followAt,
+  showAt,
   pieces,
   kinds,
   roundPieces,
@@ -189,11 +196,12 @@ const Chart: React.FC<ChartProps> = ({
    * step: a step has no cell to mark, and the knitting goes on from there.
    */
   const nextId = useMemo(() => {
+    if (showAt !== undefined) return showAt;
     if (!follow) return undefined;
     let id = progress + 1;
     while (stitches[id] && isStep(stitches[id])) id++;
     return id;
-  }, [follow, progress, stitches]);
+  }, [follow, progress, stitches, showAt]);
 
   /*
    * The whole sweater, every stitch over the stitch it was worked into: the

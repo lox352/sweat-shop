@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useContext, useMemo, useState } from "react";
+import React, { lazy, Suspense, useContext, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { FitOption, Measurements, Placement, Shade, SizeAbout, Tension } from "../../pattern/design";
 import type { SweaterStitches } from "../../pattern/knitted";
@@ -50,7 +50,9 @@ const FitPreview: React.FC<{
   take: string;
   onTake: (fitted: Fitted) => void;
   onLeave: () => void;
-}> = ({ size, knitted, progress, tension, found, unfitted, options, first, palette, coloursOn, roundNames, take, onTake, onLeave }) => {
+  /** Told the way being shown while it is, and that none is once it is put away: for a page whose own way forward should then be this one. */
+  onChosen?: (fitted: Fitted | undefined) => void;
+}> = ({ size, knitted, progress, tension, found, unfitted, options, first, palette, coloursOn, roundNames, take, onTake, onLeave, onChosen }) => {
   const [chosen, setChosen] = useState(() => (found.some((one) => one.option === first) ? first : found[0]?.option));
   const fitted = found.find((one) => one.option === chosen) ?? found[0];
   const labelOf = (option: string | undefined) => options.find((one) => one.id === option)?.label ?? "Worked out for you";
@@ -66,6 +68,10 @@ const FitPreview: React.FC<{
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [knittings, found, palette, coloursOn],
   );
+  useEffect(() => {
+    onChosen?.(fitted);
+    return () => onChosen?.(undefined);
+  }, [fitted, onChosen]);
   // On a page with a stage, they are compared there, where the one sweater was.
   const stage = useContext(StageSlot);
   if (!fitted) return null;

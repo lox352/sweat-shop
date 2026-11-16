@@ -113,7 +113,17 @@ const ColourwayChoice: React.FC<{
     <>
       <p className="your-colourway">
         <strong>{colourway.name}</strong>{" "}
-        <span className="quiet">{own > 0 ? `with ${balls(own)} of your own` : `as the design gives it · ${colourway.brand}`}</span>
+        <span className="quiet">
+          {own > 0 ? (
+            `with ${balls(own)} of your own`
+          ) : (
+            <>
+              as the design gives it{" "}
+              {/* The spinner with its dot, so a line never ends on the dot alone. */}
+              <span className="your-colourway-brand">· {colourway.brand}</span>
+            </>
+          )}
+        </span>
       </p>
       {groups.length > 1 && (
         <div className="colourway-families" role="group" aria-label="Groups of colourways">

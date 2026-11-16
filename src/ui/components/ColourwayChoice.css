@@ -7,6 +7,10 @@
   font-size: var(--text-s);
 }
 
+.your-colourway-brand {
+  white-space: nowrap;
+}
+
 /* A design's colourways in groups, each a tradition: one group shown at a time. */
 .colourway-families {
   display: flex;

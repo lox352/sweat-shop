@@ -493,7 +493,10 @@ const ProjectView: React.FC<{
   // The chart is a view over the jumper's page: the way out of it, in the corner every view's is in.
   const close = (
     <Link to={overviewPath(project.id)} className="chart-close" aria-label="Close the chart">
-      ✕
+      {/* Drawn, not typed: the site's faces have no cross, and a phone puts a boxed question mark in its place. */}
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M3 3l10 10M13 3L3 13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
     </Link>
   );
   // The jumper's page: which panel it shows, kept in the address; and what opens over it.
@@ -650,7 +653,7 @@ const ProjectView: React.FC<{
       {updated}
       <p className="jumper-progress">
         <em>{position.finished ? "100%" : percentKnitted(counts.worked, counts.percent)}</em>{" "}
-        <span className="quiet">
+        <span className="quiet jumper-progress-counts">
           {counts.worked.toLocaleString()} of {counts.total.toLocaleString()} stitches
           {position.finished ? "" : ` · ${counts.remaining.toLocaleString()} to go`}
         </span>
@@ -774,7 +777,17 @@ const ProjectView: React.FC<{
       <StageLayout
         title={title}
         eyebrow={eyebrow}
-        stage={<SweaterModel sweaterId={sweater.id} sizeId={size.id} edition={edition} palette={palette} progress={project.progress} fill />}
+        stage={
+          <SweaterModel
+            sweaterId={sweater.id}
+            sizeId={size.id}
+            edition={edition}
+            palette={palette}
+            // Over its wool the jumper is drawn whole in it, knitted or not: a colourway chosen there is seen on it at once, as on the design's page. Elsewhere, only as far as it is knitted.
+            progress={shownPanel === "wool" ? (stitches[stitches.length - 1]?.id ?? 0) : project.progress}
+            fill
+          />
+        }
         tabsLabel="This jumper"
         panels={[
           { id: "progress", label: "Progress", content: progressPanel },

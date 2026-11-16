@@ -9,6 +9,11 @@
   box-shadow: 0 14px 40px rgb(0 0 0 / 0.18);
 }
 
+/* Focused as a whole when it opens, which needs no ring: see Dialog. */
+.dialog:focus {
+  outline: none;
+}
+
 .dialog::backdrop {
   background: rgb(31 29 27 / 0.45);
 }

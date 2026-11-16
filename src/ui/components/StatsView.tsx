@@ -74,7 +74,8 @@ const PaceLegend: React.FC<{ usual: number }> = ({ usual }) => (
       ))}
     </span>
     <span>Slower</span>
-    <span className="stats-legend-usual">than your usual {seconds(usual)} a stitch</span>
+    {/* Until there is knitting enough to say what is usual, the scale stands without it. */}
+    <span className="stats-legend-usual">{Number.isFinite(usual) ? `than your usual ${seconds(usual)} a stitch` : "than your usual, once there is more knitting to go by"}</span>
   </div>
 );
 
