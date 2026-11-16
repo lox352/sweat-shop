@@ -281,19 +281,23 @@ worked out again:
   the device and carried in backups, with the tension, the measurements and
   the round it was fitted from on the project (`fit`).
 
-**From the cast-on too.** A plan may start from nothing knitted, where a
-design says it can (`fitting.whole`): on a design's page a knitter gives
-their swatch's tension, sees what the pattern comes to as written, and has
-it worked out for their tension, shown beside the pattern as it is, before
-a stitch is cast on. The project then begins on knitting of its own.
-Hamefarin can; Each Year Once will when its layout is one planner.
+**From the cast-on too.** A plan may start from nothing knitted: on a
+design's page a knitter gives their swatch's tension, sees what the pattern
+comes to as written, and has it worked out for their tension, shown beside
+the pattern as it is, before a stitch is cast on. The project then begins on
+knitting of its own.
 
-Two designs can so far. **Each Year Once** plans on from the last round of
-a year on its yoke: the years not yet knitted, every one cut to the rounds
-there are, or fewer of them fuller. **Hamefarin** plans on from the last
-round of a band of its yoke: the bands still to come graded from the
-stitches on the needles, one left out where the yoke has no depth for it.
-The lined-up sampler, the feline jumpers and Paul Klee can't yet.
+Two designs can so far. **Each Year Once** plans from the cast-on, or on
+from the last round of a year on its yoke: the years not yet knitted shared
+between the pieces and each cut as its piece has room for, a pattern kept
+whole while it can be, every year or fewer of them fuller. One function
+lays out a published size, a sweater for a knitter's tension and the rest
+of one part knitted (`laidOut`, in the design's `refit.ts`), so a published
+size is that function at the pattern's tension, to the stitch. **Hamefarin**
+plans from the cast-on, or on from the last round of a band of its yoke:
+the bands still to come graded from the stitches on the needles, one left
+out where the yoke has no depth for it. The lined-up sampler, the feline
+jumpers and Paul Klee can't yet.
 
 **Colours follow the plan.** Some colourways step down the sweater: a year's
 yarns depend on where it sits, so that a body band and the sleeve band level
