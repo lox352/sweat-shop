@@ -1082,6 +1082,18 @@ test("backup restores copies and rename/delete require their dialogs", async ({ 
   await page.getByRole("link", { name: "Sweat Shop", exact: true }).click();
   await expect(page.locator(".project-card")).toHaveCount(2);
   await expect(page.getByText("Regression test jumper", { exact: true })).toBeVisible();
+  // And from its card on the home page, without opening it: renamed, and deleted only after asking.
+  await page.getByRole("button", { name: "Rename Regression test jumper", exact: true }).click();
+  await page.getByRole("textbox", { name: "Name this project" }).fill("Renamed from home");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByText("Renamed from home", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Delete Renamed from home", exact: true }).click();
+  await page.getByRole("dialog", { name: "Delete Renamed from home?" }).getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.locator(".project-card")).toHaveCount(2);
+  await page.getByRole("button", { name: "Delete Renamed from home", exact: true }).click();
+  await page.getByRole("dialog", { name: "Delete Renamed from home?" }).getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(page.locator(".project-card")).toHaveCount(1);
+  await expect(page.getByText("Renamed from home", { exact: true })).toHaveCount(0);
 });
 
 test("quota failures preserve progress and offer a recovery export", async ({ page }) => {
