@@ -444,6 +444,7 @@ const fitSleeve = (total: number, ends: Ends): Placed[] => {
   return place(sleeveLadders, at);
 };
 
+
 const toRow = (r: R): Row => ("plain" in r ? { year: r.year, plain: r.plain } : r);
 
 /*
@@ -510,6 +511,27 @@ export const ruled = (size: Measured, g?: Gauge, slacks: [number, number, number
   const sleeve = ruledPiece(years.slice(sp.k + sp.m), sp.sleeve, { top: true, bottom: true }, slacks[2]);
   const cuts = (placed: Placed[] | undefined) => (placed ?? []).map((p) => `${p.year} ${p.state.label} (${p.rounds.length})`);
   return { split: `${sp.k}/${sp.m}/${sp.n}`, rounds: [sp.yoke, sp.body, sp.sleeve], yoke: cuts(yoke?.placed), body: cuts(body?.placed), sleeve: cuts(sleeve?.placed) };
+};
+
+/** A size's plan by the one rule: as refit lays a size out, from the cuts the rule chooses. */
+export const ruledPlan = (size: Measured, g?: Gauge, slacks: [number, number, number] = [2, 0, 2]): Plan => {
+  const sp = splitOf(size, g);
+  const years = [2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
+  const piece = { top: true, bottom: false };
+  const whole = { top: true, bottom: true };
+  const yoke = ruledPiece(years.slice(0, sp.k), sp.yoke, piece, slacks[0]);
+  const body = ruledPiece(years.slice(sp.k, sp.k + sp.m), sp.body, whole, slacks[1]);
+  const sleeve = ruledPiece(years.slice(sp.k + sp.m), sp.sleeve, whole, slacks[2]);
+  if (!yoke || !body || !sleeve) throw new Error("the years will not fit");
+  const y = build(yoke.placed, sp.yoke, piece, yoke.mode);
+  const b = build(body.placed, sp.body, whole, body.mode);
+  const s = build(sleeve.placed, sp.sleeve, whole, sleeve.mode);
+  return {
+    strips: { yoke: y.strips, body: b.strips, sleeve: s.strips },
+    rows: { yoke: y.rows.map(toRow), body: b.rows.map(toRow), sleeve: s.rows.map(toRow) },
+    depth: { yoke: y.rows.length, body: b.rows.length, sleeve: s.rows.length },
+    frames: { yoke: y.frames, body: b.frames, sleeve: s.frames },
+  };
 };
 
 /** What the rules choose for a size, piece by piece: how the years are shared out, the rounds each piece has, and each year's cut with its rounds of pattern. */
