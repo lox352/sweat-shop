@@ -512,7 +512,6 @@ const ProjectView: React.FC<{
     setSpeedsOpen(false);
   };
 
-  const choicesRef = useRef<HTMLElement>(null);
   // The yoke's bands, for the strips that show the wool being chosen.
   const body = useMemo(() => ({ stitches, rounds: yoke }), [stitches, yoke]);
 
@@ -699,7 +698,7 @@ const ProjectView: React.FC<{
         </div>
       </div>
       <div className="peerie-rule" aria-hidden="true" />
-      <section className="section" ref={choicesRef}>
+      <section className="section">
         <h2>Your wool</h2>
         {/*
           The design's own colourways first, because they are where most
@@ -710,13 +709,11 @@ const ProjectView: React.FC<{
           colourways={sweater.colourways}
           colourway={colourway}
           overrides={project.shades ?? noShades}
-          palette={palette}
           body={body}
           onStartFrom={setColourway}
           trim={sweater.trim}
           trimChosen={project.trim}
           onTrim={setTrim}
-          until={choicesRef}
         />
         <WoolList
           colourway={colourway}

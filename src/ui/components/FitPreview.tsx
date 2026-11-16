@@ -1,4 +1,5 @@
-import React, { lazy, Suspense, useMemo, useState } from "react";
+import React, { lazy, Suspense, useContext, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import type { FitOption, Measurements, Placement, Shade, SizeAbout, Tension } from "../../pattern/design";
 import type { SweaterStitches } from "../../pattern/knitted";
 import { decodeEdition } from "../../library/editions/format";
@@ -7,6 +8,7 @@ import type { Palette } from "../../reading/palette";
 import { atTension } from "../../reading/tension";
 import PreviewBoundary from "./PreviewBoundary";
 import Button from "./ui/Button";
+import { StageSlot } from "./ui/stage-slot";
 
 /** The sweaters side by side: three.js, so fetched only where a preview is shown. */
 const SweaterComparison = lazy(() => import("../model/SweaterComparison"));
@@ -64,17 +66,22 @@ const FitPreview: React.FC<{
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [knittings, found, palette, coloursOn],
   );
+  // On a page with a stage, they are compared there, where the one sweater was.
+  const stage = useContext(StageSlot);
   if (!fitted) return null;
   const { added } = coloursOn(fitted.placement);
+  const compared = (
+    <PreviewBoundary>
+      <Suspense fallback={<p role="status">Drawing them side by side…</p>}>
+        <SweaterComparison candidates={candidates} chosen={fitted.option ?? "fitted"} fill={!!stage} />
+      </Suspense>
+    </PreviewBoundary>
+  );
   const nameOf = (round: number) => roundNames[round - 1] ?? `round ${round}`;
 
   return (
     <div role="status" className="refit-shown">
-      <PreviewBoundary>
-        <Suspense fallback={<p role="status">Drawing them side by side…</p>}>
-          <SweaterComparison candidates={candidates} chosen={fitted.option ?? "fitted"} />
-        </Suspense>
-      </PreviewBoundary>
+      {stage ? createPortal(compared, stage) : compared}
       {found.length + unfitted.length > 1 && (
         <fieldset className="refit-options">
           <legend>How the rest is laid out</legend>

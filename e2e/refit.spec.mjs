@@ -146,7 +146,7 @@ test("Hamefarin is worked out again from the end of a band: the bands still to c
 
 test("a tension given before starting: the pattern is worked out for it from the cast-on, shown beside the pattern as it is, and begun", async ({ page }) => {
   test.setTimeout(180_000);
-  await page.goto("#/sweater/hamefarin?size=m");
+  await page.goto("#/sweater/hamefarin?size=m&tab=tension");
   const section = page.getByRole("region", { name: "Your tension" });
   await expect(section).toContainText("written for 28 stitches and 32 rounds to 10cm", { timeout: 20_000 });
   // The pattern's own tension needs nothing worked out.
@@ -165,7 +165,8 @@ test("a tension given before starting: the pattern is worked out for it from the
   const shown = section.locator(".refit-shown");
   await expect(shown).toBeVisible({ timeout: 90_000 });
   await expect(shown).toContainText("From the cast-on.");
-  await expect(shown.locator(".sweater-comparison figcaption")).toHaveText(["As the pattern has it", "Worked out for you"]);
+  // They are compared on the stage, where the one jumper was.
+  await expect(page.locator(".stage .sweater-comparison figcaption")).toHaveText(["As the pattern has it", "Worked out for you"]);
   await expect(shown.getByRole("row", { name: /Chest/ })).toContainText("106.5cm");
   await shown.getByText("The pattern, written out").click();
   await expect(shown.locator(".refit-written")).toContainText("Cast on 112");
@@ -191,7 +192,7 @@ test("a tension given before starting: the pattern is worked out for it from the
 
 test("Each Year Once for a tension given before starting: every year or fewer, fuller, each from the cast-on", async ({ page }) => {
   test.setTimeout(240_000);
-  await page.goto(`#/sweater/${design}?size=l`);
+  await page.goto(`#/sweater/${design}?size=l&tab=tension`);
   const section = page.getByRole("region", { name: "Your tension" });
   await expect(section).toContainText("written for 32 stitches and 38 rounds to 10cm", { timeout: 20_000 });
   await section.getByLabel("Stitches counted").fill("23.3");

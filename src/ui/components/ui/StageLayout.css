@@ -1,0 +1,213 @@
+/*
+ * A page with the jumper kept on screen: see StageLayout. The page is as
+ * tall as the screen and does not scroll; the panel under the stage does.
+ */
+.page.stage-layout {
+  --foot: 0rem;
+  height: 100vh;
+  height: 100dvh;
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.stage-layout .title-block {
+  flex: none;
+  margin-bottom: 0;
+}
+
+/* The jumper, from edge to edge of a phone. */
+.stage {
+  position: relative;
+  flex: none;
+  /* Changed at once and never eased: every size on the way would be the jumper drawn again at that size. */
+  height: min(36vh, 22rem);
+  height: min(36dvh, 22rem);
+  margin: 0 calc(-1 * var(--gutter));
+  background: var(--paper-raised);
+  border-bottom: 1px solid var(--rule);
+}
+
+.is-reading .stage {
+  height: min(22vh, 14rem);
+  height: min(22dvh, 14rem);
+}
+
+.stage-own,
+.stage-over {
+  position: absolute;
+  inset: 0;
+}
+
+/* What a panel draws over the stage takes the jumper's place while it is there. */
+.stage-over:empty {
+  display: none;
+}
+
+.stage-over:not(:empty) + .stage-own {
+  visibility: hidden;
+}
+
+.stage .sweater-canvas {
+  height: 100%;
+}
+
+.stage .sweater-settling {
+  position: absolute;
+  inset: auto 0.75rem 0.5rem;
+  margin: 0;
+}
+
+.stage-side {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.stage-tabs {
+  flex: none;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  margin: 0 calc(-1 * var(--gutter));
+  border-bottom: 1px solid var(--rule);
+}
+
+.stage-tab {
+  min-height: 44px;
+  padding: 0.5rem 0.25rem 0.35rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: var(--display);
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.stage-tab[aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--crimson);
+}
+
+@media (hover: hover) {
+  .stage-tab:hover {
+    color: var(--crimson);
+  }
+}
+
+.stage-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem 0 0.5rem;
+}
+
+.stage-scroll .colophon {
+  margin-top: 2rem;
+}
+
+/* A panel begins at its top edge: what is in it brings no heading's margin with it. */
+.stage-panel > .section:first-child,
+.stage-panel > :first-child {
+  margin-top: 0;
+}
+
+/* The one way forward, and what it will do. */
+.stage-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 0.6rem var(--gutter) calc(0.6rem + env(safe-area-inset-bottom, 0px));
+  background: var(--paper-raised);
+  border-top: 2px solid var(--crimson);
+}
+
+.stage-bar-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.stage-bar-text > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage-bar-text .quiet {
+  font-size: 0.85rem;
+}
+
+.stage-bar .btn {
+  flex: none;
+}
+
+/* Room for both: the stage beside the panel. */
+@media (min-width: 60rem) {
+  .page.stage-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    column-gap: 2rem;
+  }
+
+  .stage-layout .title-block,
+  .stage-layout .storage-notice {
+    grid-column: 1 / -1;
+  }
+
+  .stage,
+  .is-reading .stage {
+    grid-row: 3;
+    height: auto;
+    margin: 1.5rem 0;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+  }
+
+  .stage-side {
+    grid-row: 3;
+    padding: 0.75rem 0 1.5rem;
+  }
+
+  .stage-tabs,
+  .stage-bar {
+    margin: 0;
+  }
+
+  .stage-bar {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--rule);
+    border-top: 2px solid var(--crimson);
+    border-radius: var(--radius);
+  }
+}
+
+/* On paper there is no screen to fit: the panels one after another. */
+@media print {
+  .page.stage-layout {
+    display: block;
+    height: auto;
+  }
+
+  .stage {
+    display: none;
+  }
+
+  .stage-scroll {
+    overflow: visible;
+  }
+
+  .stage-panel[hidden] {
+    display: block;
+  }
+}

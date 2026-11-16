@@ -1,15 +1,14 @@
 import React from "react";
-import { Link } from "react-router-dom";
 import "./PageLayout.css";
 import StorageNotice from "../StorageNotice";
-import Settings from "../Settings";
 import OfflineStatus from "../OfflineStatus";
+import TitleBlock from "./TitleBlock";
 
 interface PageLayoutProps {
   /** Rendered as the page's only h1, unless showTitle is false. */
   title: string;
   showTitle?: boolean;
-  /** The small line over the title: what the page is. On Home it stands alone; on every other page it follows the site's name. */
+  /** The small line over the title: see TitleBlock. */
   eyebrow?: React.ReactNode;
   /** Home: the title is the site's own name, and the colophon is given whole. */
   home?: boolean;
@@ -19,45 +18,13 @@ interface PageLayoutProps {
 }
 
 /**
- * The frame every page is laid out in: the title block, and a line at the
- * foot saying where your projects are kept.
- *
- * The title block is the same on every page: a small line, the title in
- * crimson under it, the gear at the right. On every page but Home the small
- * line begins with the site's name, and that is the way home: there are no
- * back arrows, because the browser has one, and it only works for a knitter
- * who came from inside the site.
+ * The frame a page that scrolls is laid out in: the title block, and a line
+ * at the foot saying where your projects are kept. A page with the jumper
+ * kept on screen is laid out by StageLayout instead.
  */
-const PageLayout: React.FC<PageLayoutProps> = ({
-  title,
-  showTitle = true,
-  eyebrow,
-  home = false,
-  lede,
-  children,
-  className,
-}) => (
+const PageLayout: React.FC<PageLayoutProps> = ({ title, showTitle = true, eyebrow, home = false, lede, children, className }) => (
   <div className={className ? `page ${className}` : "page"}>
-    <header className="title-block">
-      <div className="title-block-text">
-        <p className="eyebrow screen-only">
-          {home ? (
-            eyebrow
-          ) : (
-            <>
-              <Link to="/" className="title-block-home">
-                Sweat Shop
-              </Link>
-              {eyebrow && <> · {eyebrow}</>}
-            </>
-          )}
-        </p>
-        {showTitle && <h1 className="page-title">{title}</h1>}
-      </div>
-      <div className="title-block-actions screen-only">
-        <Settings />
-      </div>
-    </header>
+    <TitleBlock title={title} showTitle={showTitle} eyebrow={eyebrow} home={home} />
     <StorageNotice />
     {lede && <p className="lede screen-only">{lede}</p>}
     {children}

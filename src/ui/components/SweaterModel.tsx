@@ -23,6 +23,8 @@ export interface SweaterModelProps {
   progress: number;
   /** The edition of the knitting to show, for a project that knits one its size has moved on from: see library/editions. */
   edition?: string;
+  /** As tall as what it is put in, where that has a height of its own: a stage. */
+  fill?: boolean;
 }
 
 /**
@@ -36,6 +38,7 @@ const SweaterModel: React.FC<SweaterModelProps> = ({
   edition,
   palette,
   progress,
+  fill,
 }) => {
   // The size's knitting as the project knits it, which the page that shows this has to hand already; until it has, nothing is drawn.
   const knitting = knittingToHand(sweaterById(sweaterId)!, sizeId, edition);
@@ -52,7 +55,7 @@ const SweaterModel: React.FC<SweaterModelProps> = ({
     <>
       <div
         className="sweater-canvas"
-        style={{ height: sweaterCanvasHeight }}
+        style={fill ? undefined : { height: sweaterCanvasHeight }}
         role="img"
         aria-label="The sweater in three dimensions"
       >

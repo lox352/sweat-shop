@@ -22,3 +22,27 @@
 .sweater-compared.chosen figcaption {
   color: inherit;
 }
+
+/* On a stage: as tall as the stage, each sweater over its name. */
+.sweater-comparison.fills {
+  height: 100%;
+  margin: 0;
+  gap: 0;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+}
+
+.sweater-comparison.fills .sweater-compared {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-bottom: 0.35rem;
+}
+
+.sweater-comparison.fills .sweater-canvas {
+  flex: 1;
+  min-height: 0;
+}
+
+.sweater-comparison.fills .chosen {
+  box-shadow: inset 0 0 0 2px var(--crimson);
+}

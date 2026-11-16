@@ -1,4 +1,4 @@
-import React, { startTransition, useCallback, useMemo, useRef, useState } from "react";
+import React, { startTransition, useCallback, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { sweaterById } from "../../library/catalogue";
 import type { Placement, SlotId, SizeAbout, Tension } from "../../pattern/design";
@@ -8,16 +8,16 @@ import { useColourway } from "../useColourway";
 import { currentEdition } from "../../library/editions";
 import type { Fitted } from "../../library/fit";
 import { sameTension } from "../../reading/tension";
-import { ballsOf, paletteOf, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
+import { ballsOf, colourwayLabel, paletteOf, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
 import { totals } from "../../reading/progress";
 import { metresFor } from "../../reading/yardage";
 import { chartPath, keepKnitting, startProject } from "../../projects/projects";
 import PageLayout from "./ui/PageLayout";
+import StageLayout from "./ui/StageLayout";
 import Button from "./ui/Button";
 import SweaterModel from "./SweaterModel";
 import WoolList from "./WoolList";
 import { type Chosen } from "./YarnPicker";
-import NextStep from "./ui/NextStep";
 import ColourwayChoice from "./ColourwayChoice";
 import MyTension from "./MyTension";
 import StartFitted from "./StartFitted";
@@ -72,7 +72,9 @@ export const Measurements: React.FC<{ size: SizeAbout }> = ({ size }) => (
 );
 
 /**
- * One design: what it is, what it is made of, and a way to start knitting it.
+ * One design: the jumper itself, kept on screen, and under it what there is
+ * to choose - a size, its colours, a tension - with the one way to start
+ * knitting it. See StageLayout.
  *
  * Every size of a sweater is different knitting - its own cast-on, its own
  * increases, its own divide - so changing size rebuilds the knitting, where
@@ -93,15 +95,29 @@ const Sweater: React.FC = () => {
   return <SweaterPage key={sweater.id} sweaterId={sweater.id} />;
 };
 
+const tabs = ["size", "colours", "tension", "about"] as const;
+
 const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
   const sweater = sweaterById(sweaterId)!;
   const navigate = useNavigate();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const requested = params.get("size");
   const [sizeId, setSizeId] = useState(
     (requested && sweater.sizes.some((size) => size.id === requested) ? requested : undefined) ??
       defaultSize(sweater).id,
   );
+  // The panel shown is part of the address, so a reload keeps it; choosing another replaces it, so back leaves the design and does not walk the panels.
+  const shown = tabs.find((tab) => tab === params.get("tab")) ?? "size";
+  const show = (tab: string) =>
+    setParams(
+      (now) => {
+        const next = new URLSearchParams(now);
+        if (tab === "size") next.delete("tab");
+        else next.set("tab", tab);
+        return next;
+      },
+      { replace: true },
+    );
   const [colourwayId, setColourwayId] = useState(sweater.colourways[0].id);
   const [trim, setTrim] = useState<string>();
   /*
@@ -110,7 +126,6 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
    */
   const [own, setOwn] = useState<Overrides>({});
   const size = sweater.sizes.find((s) => s.id === sizeId) ?? sweater.sizes[0];
-  const choicesRef = useRef<HTMLElement>(null);
   const built = useSweater(sweater, size.id);
   const { stitches, rounds, index, yoke } = built;
   /** The knitter's own tension, where they have one before they begin: see StartFitted. */
@@ -130,7 +145,8 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
   );
   const metres = useMemo(() => metresFor(size, stitches, rounds), [size, stitches, rounds]);
   const counts = totals(index, 0);
-  const anyApproximate = ballsOf(colourway, metres, own).some((ball) => ball.yarn.approximate);
+  const balls = useMemo(() => ballsOf(colourway, metres, own).filter((ball) => ball.metres > 0), [colourway, metres, own]);
+  const anyApproximate = balls.some((ball) => ball.yarn.approximate);
 
   /*
    * A ball of wool does every yarn of the design it is put in, so choosing
@@ -173,129 +189,118 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
     navigate(chartPath(project.id, true));
   };
 
-  // The yoke's bands, for the strips that show the wool being chosen.
+  // The yoke's bands, for the strips that show each colourway.
   const body = useMemo(() => ({ stitches, rounds: yoke }), [stitches, yoke]);
+  const bought = balls.reduce((total, ball) => total + ball.balls, 0);
+
+  const sizePanel = (
+    <>
+      <div className="size-chooser">
+        {sweater.sizes.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            className={`size-option${option.id === size.id ? " is-chosen" : ""}`}
+            aria-pressed={option.id === size.id}
+            onClick={() => startTransition(() => setSizeId(option.id))}
+          >
+            <strong>{option.label}</strong>
+            <span className="quiet">{option.fits ?? `to fit ${option.toFitChestCm}cm`}</span>
+          </button>
+        ))}
+      </div>
+      <p className="quiet">
+        The finished chest has about {Math.round(size.finished.chestCm - size.toFitChestCm)}cm of ease. Each size is its own knitting - its own cast-on,
+        increases and divide - and the chart follows the size you choose.
+      </p>
+      <div className="size-figures">
+        <Schematic size={size} />
+        <Measurements size={size} />
+      </div>
+    </>
+  );
+
+  const coloursPanel = (
+    <>
+      <ColourwayChoice
+        colourways={sweater.colourways}
+        colourway={colourway}
+        overrides={own}
+        body={body}
+        onStartFrom={(id) => {
+          setColourwayId(id);
+          setTrim(undefined);
+          setOwn({});
+        }}
+        trim={sweater.trim}
+        trimChosen={trim}
+        onTrim={setTrim}
+      />
+      <h2>Your wool</h2>
+      <WoolList colourway={colourway} metres={metres} stated={size.yardage !== undefined} overrides={own} onChange={choose} body={body} palette={palette} />
+      <p className="quiet">
+        {colourway.brand} {colourway.yarn}
+        {colourway.ballMetres !== undefined && colourway.ballGrams !== undefined ? `, ${colourway.ballMetres}m per ${colourway.ballGrams}g ball` : ""} ·{" "}
+        <a href={colourway.url} target="_blank" rel="noreferrer">
+          {colourway.url.replace(/^https?:\/\//, "")}
+        </a>
+      </p>
+      <p className="quiet">
+        The colours come from the spinners' own photographs of the wool, so they are close rather than exact.
+        {anyApproximate ? " Some shades use approximate colours where an exact match is unavailable. These are marked in the wool list." : ""}
+      </p>
+    </>
+  );
+
+  const tensionPanel = (
+    <MyTension key={size.id} size={size} tension={tension} onChange={setTension}>
+      {tension && sweater.fitting && !sameTension(size, tension) && (
+        <StartFitted sweater={sweater} size={size} knitted={built} tension={tension} palette={palette} coloursOn={coloursOn} onStart={startFitted} />
+      )}
+    </MyTension>
+  );
+
+  const aboutPanel = (
+    <div className="sweater-about">
+      <p>{sweater.story}</p>
+      <p>By {sweater.designer}.</p>
+      <p className="quiet">{sweater.credit}</p>
+      <p className="quiet">
+        In size {size.label}: {counts.total.toLocaleString()} stitches over {rounds.length} rounds.
+      </p>
+    </div>
+  );
 
   return (
-    <PageLayout
+    <StageLayout
       title={sweater.name}
       eyebrow="a design"
-      lede={`By ${sweater.designer}`}
-    >
-      <div className="sweater-layout">
-        <div className="sweater-stage">
-          <SweaterModel
-            sweaterId={sweater.id}
-            sizeId={size.id}
-            palette={palette}
-            progress={stitches[stitches.length - 1]?.id ?? 0}
-          />
-          <p className="quiet stage-note">
-            Drag to turn it. {counts.total.toLocaleString()} stitches over {rounds.length} rounds.
-          </p>
-        </div>
-        <div className="sweater-about">
-          <p>{sweater.story}</p>
-          <p className="quiet">{sweater.credit}</p>
-        </div>
-      </div>
-      <div className="peerie-rule" aria-hidden="true" />
-
-      <section className="section" ref={choicesRef}>
-        <h2>Colourway</h2>
-        <ColourwayChoice
-          colourways={sweater.colourways}
-          colourway={colourway}
-          overrides={own}
-          palette={palette}
-          body={body}
-          onStartFrom={(id) => {
-            setColourwayId(id);
-            setTrim(undefined);
-            setOwn({});
-          }}
-          trim={sweater.trim}
-          trimChosen={trim}
-          onTrim={setTrim}
-          until={choicesRef}
-        />
-
-        <h3>Your wool</h3>
-        <WoolList
-          colourway={colourway}
-          metres={metres}
-          stated={size.yardage !== undefined}
-          overrides={own}
-          onChange={choose}
-          body={body}
-          palette={palette}
-        />
-
-        <p className="quiet">
-          {colourway.brand} {colourway.yarn}
-          {colourway.ballMetres !== undefined && colourway.ballGrams !== undefined
-            ? `, ${colourway.ballMetres}m per ${colourway.ballGrams}g ball`
-            : ""}{" "}
-          ·{" "}
-          <a href={colourway.url} target="_blank" rel="noreferrer">
-            {colourway.url.replace(/^https?:\/\//, "")}
-          </a>
-        </p>
-        <p className="quiet">
-          The colours come from the spinners' own photographs of the wool, so
-          they are close rather than exact.
-          {anyApproximate
-            ? " Some shades use approximate colours where an exact match is " +
-              "unavailable. These are marked in the wool list."
-            : ""}
-        </p>
-      </section>
-
-      <section className="section">
-        <h2>Size</h2>
-        <div className="chooser">
-          {sweater.sizes.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              className={`size-option${option.id === size.id ? " is-chosen" : ""}`}
-              aria-pressed={option.id === size.id}
-              onClick={() => startTransition(() => setSizeId(option.id))}
-            >
-              <strong>{option.label}</strong>
-              <span className="quiet">{option.fits ?? `to fit ${option.toFitChestCm}cm`}</span>
-            </button>
-          ))}
-        </div>
-        <div className="size-figures">
-          <Schematic size={size} />
-          <Measurements size={size} />
-        </div>
-        <MyTension key={size.id} size={size} tension={tension} onChange={setTension}>
-          {tension && sweater.fitting && !sameTension(size, tension) && (
-            <StartFitted sweater={sweater} size={size} knitted={built} tension={tension} palette={palette} coloursOn={coloursOn} onStart={startFitted} />
-          )}
-        </MyTension>
-        <p className="quiet">
-          Each size is its own knitting - its own cast-on, increases and
-          divide - and the chart follows the size you choose. The finished
-          chest has about {Math.round(size.finished.chestCm - size.toFitChestCm)}cm of ease.
-        </p>
-      </section>
-
-      <NextStep
-        title="Ready to cast on?"
-        detail={
-          `${colourway.name}, size ${size.label}: ` +
-          `${counts.total.toLocaleString()} stitches over ${rounds.length} rounds. ` +
-          "Your progress is saved in this browser as you go."
-        }
-      >
-        <Button variant="primary" size="lg" onClick={start}>
-          Start knitting
-        </Button>
-      </NextStep>
-    </PageLayout>
+      stage={<SweaterModel sweaterId={sweater.id} sizeId={size.id} palette={palette} progress={stitches[stitches.length - 1]?.id ?? 0} fill />}
+      tabsLabel="This design"
+      panels={[
+        { id: "size", label: "Size", content: sizePanel },
+        { id: "colours", label: "Colours", content: coloursPanel },
+        { id: "tension", label: "Tension", content: tensionPanel },
+        { id: "about", label: "About", content: aboutPanel },
+      ]}
+      shown={shown}
+      onShow={show}
+      bar={
+        <>
+          <div className="stage-bar-text">
+            <strong>
+              {size.label} · {colourwayLabel(colourway, own)}
+            </strong>
+            <span className="quiet">
+              {balls.length} {balls.length === 1 ? "shade" : "shades"} · {bought} {bought === 1 ? "ball" : "balls"}
+            </span>
+          </div>
+          <Button variant="primary" onClick={start}>
+            Start knitting
+          </Button>
+        </>
+      }
+    />
   );
 };
 
