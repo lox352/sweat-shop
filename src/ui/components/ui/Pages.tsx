@@ -1,55 +1,114 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { StageSlot } from "./stage-slot";
 import "./Pages.css";
 
 export interface Page {
   id: string;
-  /** What the page is: read out for a dot, and written on it where the pages are named. */
+  /** What the page is: its title over it, and what its dot is called. */
   label: string;
   content: React.ReactNode;
 }
 
-/**
- * What a panel holds, a page at a time: each page the size of the panel,
- * side by side, swiped between like the pages of a phone's home screen and
- * coming to rest on one, never between two.
- *
- * So that nothing a panel holds is found by scrolling down past the rest of
- * it, and the panel never needs more room than it has: a page too long for
- * it scrolls by itself, and the pages beside it stay where they are.
- *
- * Which page is shown is marked under the pages by dots, or over them by
- * their names where the names are what is being chosen between - a design's
- * groups of colourways. Either is tapped to go straight to a page.
- *
- * A page is drawn when it is first near: the one shown and the one either
- * side, so a swipe always has its next page ready, and a design with forty
- * colourways does not draw them all to show eight.
- */
-const Pages: React.FC<{
-  pages: Page[];
-  /** What the pages are of, for a screen reader: "Size". */
+/** A tab's pages: one or several, side by side. */
+export interface PageGroup {
+  id: string;
+  /** The tab's name. */
   label: string;
-  nav?: "dots" | "names";
-  /** The page it opens on, by its id: the first, unless told. */
-  first?: string;
-}> = ({ pages, label, nav = "dots", first }) => {
+  pages: Page[];
+  /** The way forward - the tab a knitter is on their way to - marked so among the tabs. */
+  forward?: boolean;
+}
+
+export interface PagesHandle {
+  /** Goes to a tab's first page. */
+  go: (group: string) => void;
+}
+
+/**
+ * Everything under a stage, a page at a time: each page the size of the room
+ * there, all of them side by side in one row, swiped between like the pages
+ * of a phone's home screen and coming to rest on one, never between two.
+ *
+ * The tabs over them are where in the row a kind of page begins - a size,
+ * its colours, a tension, starting - and a tab tapped goes to the first of
+ * its pages. Swiping on from a tab's last page comes to the next tab's
+ * first, so the whole of a design is one row to go along. Under the pages
+ * are dots for the pages of the tab shown.
+ *
+ * So nothing is found by scrolling down past something else, and the pages
+ * never need more room than there is: a page too long for it scrolls by
+ * itself.
+ *
+ * Which page is shown is this component's own to know, and changes at once:
+ * whoever shows it is told after (onShown), to keep the address in step, and
+ * is not drawn again for it. A page is drawn when it is first near - the one
+ * shown and the one either side - and each tab's first page while nothing
+ * else is being done, so that a tab tapped is there already.
+ */
+const Pages = forwardRef<
+  PagesHandle,
+  {
+    groups: PageGroup[];
+    /** What the tabs are of, for a screen reader: "This design". */
+    label: string;
+    /** The tab it opens on, by its id: the first, unless told. */
+    first?: string;
+    /** Told the tab shown, when it changes. */
+    onShown?: (group: string) => void;
+    /** Where the pages of the tab shown may draw over the stage: see stage-slot. */
+    slot?: HTMLElement | null;
+  }
+>(({ groups, label, first, onShown, slot = null }, ref) => {
   const track = useRef<HTMLDivElement>(null);
-  const names = useRef<HTMLDivElement>(null);
-  const [index, setIndex] = useState(() => Math.max(0, pages.findIndex((page) => page.id === first)));
-  const shown = Math.min(index, pages.length - 1);
+  // Every page in one row, each knowing its tab.
+  const flat = useMemo(() => groups.flatMap((group) => group.pages.map((page, within) => ({ group, page, within }))), [groups]);
+  const starts = useMemo(() => {
+    const out = new Map<string, number>();
+    flat.forEach((one, at) => {
+      if (!out.has(one.group.id)) out.set(one.group.id, at);
+    });
+    return out;
+  }, [flat]);
+
+  const [index, setIndex] = useState(() => starts.get(first ?? "") ?? 0);
+  const shown = Math.min(index, flat.length - 1);
   const at = useRef(shown);
   at.current = shown;
-  /** The page a tap on a dot or a name is on its way to: until it is there, the pages passed on the way are not the page shown. */
+  const current = flat[shown];
+  /** The page a tap is on its way to: until it is there, the pages passed on the way are not the page shown. */
   const going = useRef<number>();
-  const seen = useRef(new Set<number>());
-  for (const near of [shown - 1, shown, shown + 1]) seen.current.add(near);
 
-  // Put where the page shown is: as it opens, and whenever its width changes - a panel shown again, a phone turned.
+  // Drawn once near, and kept; each tab's first page in turn while idle.
+  const [seen, setSeen] = useState(() => new Set<string>());
+  const near = [flat[shown - 1], current, flat[shown + 1]].filter(Boolean).map((one) => one.page.id);
+  const drawn = (id: string) => seen.has(id) || near.includes(id);
+  useEffect(() => {
+    if (near.every((id) => seen.has(id))) return;
+    setSeen((was) => new Set([...was, ...near]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [near.join()]);
+  useEffect(() => {
+    const next = [...starts.values()].map((start) => flat[start].page.id).find((id) => !seen.has(id));
+    if (!next) return;
+    const idle = window.requestIdleCallback ?? ((run: () => void) => window.setTimeout(run, 200));
+    const cancel = window.cancelIdleCallback ?? window.clearTimeout;
+    const asked = idle(() => setSeen((was) => new Set([...was, next])), { timeout: 1500 });
+    return () => cancel(asked);
+  }, [seen, starts, flat]);
+
+  /*
+   * Put where the page shown is: as it opens, and whenever its width changes
+   * - a phone turned. Until it has been, how far along the row is says
+   * nothing of which page is shown: the pages are another width, and the
+   * same distance along is another page (see onScroll).
+   */
+  const placedAt = useRef(0);
   useLayoutEffect(() => {
     const box = track.current;
     if (!box) return;
     const place = () => {
       if (box.clientWidth > 0) box.scrollLeft = at.current * box.clientWidth;
+      placedAt.current = box.clientWidth;
     };
     place();
     if (typeof ResizeObserver === "undefined") return;
@@ -63,28 +122,34 @@ const Pages: React.FC<{
     return () => watch.disconnect();
   }, []);
 
-  // The name of the page shown is kept in view among the names.
-  useEffect(() => {
-    const row = names.current;
-    const name = row?.children[shown] as HTMLElement | undefined;
-    if (!row || !name) return;
-    // By where they are on screen: the row is nobody's offset parent.
-    const [inRow, at] = [row.getBoundingClientRect(), name.getBoundingClientRect()];
-    const left = row.scrollLeft + at.left - inRow.left - (inRow.width - at.width) / 2;
-    row.scrollTo?.({ left, behavior: reducedMotion() ? "auto" : "smooth" });
-  }, [shown]);
-
-  const go = useCallback((to: number) => {
+  const to = useCallback((page: number, smooth: boolean) => {
     const box = track.current;
-    going.current = to;
-    setIndex(to);
-    box?.scrollTo?.({ left: to * box.clientWidth, behavior: reducedMotion() ? "auto" : "smooth" });
+    going.current = page;
+    setIndex(page);
+    box?.scrollTo?.({ left: page * box.clientWidth, behavior: smooth && !reducedMotion() ? "smooth" : "instant" });
   }, []);
+  // A tab is gone to at once: gliding there would be a glide past every page between.
+  const go = useCallback((group: string) => to(starts.get(group) ?? 0, false), [starts, to]);
+  useImperativeHandle(ref, () => ({ go }), [go]);
 
+  /*
+   * Where the row has come to rest is the page shown, whatever it was on its
+   * way to: a glide to a page that something cut short - another scroll, a
+   * finger - would otherwise leave the tabs saying the page it never reached.
+   */
+  const resting = useRef<number>();
+  useEffect(() => () => window.clearTimeout(resting.current), []);
   const onScroll = () => {
     const box = track.current;
-    if (!box || box.clientWidth === 0) return;
+    if (!box || box.clientWidth === 0 || box.clientWidth !== placedAt.current) return;
     const now = Math.round(box.scrollLeft / box.clientWidth);
+    window.clearTimeout(resting.current);
+    resting.current = window.setTimeout(() => {
+      if (box.clientWidth === 0 || box.clientWidth !== placedAt.current) return;
+      going.current = undefined;
+      const rested = Math.round(box.scrollLeft / box.clientWidth);
+      if (rested !== at.current) setIndex(rested);
+    }, 160);
     if (going.current !== undefined) {
       if (now !== going.current) return;
       going.current = undefined;
@@ -92,29 +157,32 @@ const Pages: React.FC<{
     if (now !== at.current) setIndex(now);
   };
 
-  const tabs = pages.map((page, to) => (
-    <button
-      key={page.id}
-      type="button"
-      role="tab"
-      id={`${label}-page-tab-${page.id}`}
-      className={nav === "names" ? "pages-name" : "pages-dot"}
-      aria-selected={to === shown}
-      aria-label={nav === "names" ? undefined : page.label}
-      title={nav === "names" ? undefined : page.label}
-      onClick={() => go(to)}
-    >
-      {nav === "names" ? page.label : <span aria-hidden="true" />}
-    </button>
-  ));
+  const group = current?.group;
+  useEffect(() => {
+    if (group) onShown?.(group.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [group?.id]);
+
+  if (!current || !group) return null;
+  const start = starts.get(group.id) ?? 0;
 
   return (
-    <div className={`pages pages-by-${nav}`}>
-      {nav === "names" && pages.length > 1 && (
-        <div className="pages-names" role="tablist" aria-label={label} ref={names}>
-          {tabs}
-        </div>
-      )}
+    <div className="pages">
+      <div className="stage-tabs screen-only" role="tablist" aria-label={label}>
+        {groups.map((one) => (
+          <button
+            key={one.id}
+            type="button"
+            role="tab"
+            id={`stage-tab-${one.id}`}
+            className={one.forward ? "stage-tab is-forward" : "stage-tab"}
+            aria-selected={one.id === group.id}
+            onClick={() => go(one.id)}
+          >
+            {one.label}
+          </button>
+        ))}
+      </div>
       <div
         className="pages-track"
         ref={track}
@@ -122,29 +190,47 @@ const Pages: React.FC<{
         // A finger on the pages takes them over from wherever a tap was sending them.
         onPointerDown={() => (going.current = undefined)}
       >
-        {pages.map((page, to) => (
+        {flat.map((one, page) => (
           <div
-            key={page.id}
+            key={`${one.group.id} ${one.page.id}`}
             className="pages-page"
+            // A page of its tab, which the dots under it choose between: not a region of the document, which what is on it may be.
             role="tabpanel"
-            aria-label={page.label}
-            data-page={page.id}
-            data-current={to === shown ? "" : undefined}
+            aria-labelledby={`page-title-${one.group.id}-${one.page.id}`}
+            data-group={one.group.id}
+            data-page={one.page.id}
+            data-current={page === shown ? "" : undefined}
             // The pages either side are there to be swiped to, not to be tabbed into or read out.
-            {...(to === shown ? {} : { inert: "" })}
+            {...(page === shown ? {} : { inert: "" })}
           >
-            {seen.current.has(to) && page.content}
+            <h2 className="pages-title" id={`page-title-${one.group.id}-${one.page.id}`}>
+              {one.page.label}
+            </h2>
+            {drawn(one.page.id) && <StageSlot.Provider value={one.group.id === group.id ? slot : null}>{one.page.content}</StageSlot.Provider>}
           </div>
         ))}
       </div>
-      {nav === "dots" && pages.length > 1 && (
-        <div className="pages-dots" role="tablist" aria-label={label}>
-          {tabs}
-        </div>
-      )}
+      {/* Always there, so the pages are one height: a tab of one page has one dot. */}
+      <div className="pages-dots screen-only" role="tablist" aria-label={`${group.label}: its pages`}>
+        {group.pages.map((page, within) => (
+          <button
+            key={page.id}
+            type="button"
+            role="tab"
+            className="pages-dot"
+            aria-selected={within === current.within}
+            aria-label={page.label}
+            title={page.label}
+            onClick={() => to(start + within, true)}
+          >
+            <span aria-hidden="true" />
+          </button>
+        ))}
+      </div>
     </div>
   );
-};
+});
+Pages.displayName = "Pages";
 
 const reducedMotion = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 

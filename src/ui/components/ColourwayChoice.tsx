@@ -1,10 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import type { Colourway, Design } from "../../pattern/design";
-import { inkOn, ownBalls, paletteOf, trimIdOf, type Overrides } from "../../reading/palette";
+import { inkOn, paletteOf, trimIdOf, type Overrides, type Palette } from "../../reading/palette";
 import BodyStrip from "./BodyStrip";
 import type { Body } from "./ColourPreview";
-import Dialog from "./ui/Dialog";
-import Pages, { type Page } from "./ui/Pages";
+import { useColourwayChoice } from "../useColourwayChoice";
 import "./ColourwayChoice.css";
 
 const balls = (n: number) => `${n} ${n === 1 ? "yarn" : "yarns"}`;
@@ -14,16 +13,16 @@ const balls = (n: number) => `${n} ${n === 1 ? "yarn" : "yarns"}`;
  * marked, and any other of its palette. Part of the colourway rather than
  * wool of the knitter's own, so starting from another colourway resets it.
  */
-const TrimChoice: React.FC<{
+export const TrimChoice: React.FC<{
   trim: NonNullable<Design["trim"]>;
   colourway: Colourway;
   /** The colourway as the design gives it, before any trim is chosen. */
   given: Colourway;
   chosen?: string;
   onTrim: (trim: string | undefined) => void;
-  /** On a page of its own, named for it: the choice first, and what the trim is said after it. */
-  paged?: boolean;
-}> = ({ trim, colourway, given, chosen: choice, onTrim, paged }) => {
+  /** Under a heading of its own already - a sheet's: the choice first, and what the trim is said after it. */
+  bare?: boolean;
+}> = ({ trim, colourway, given, chosen: choice, onTrim, bare }) => {
   /*
    * The colourway's own: one yarn for the trim, or for a trim in parts (see
    * palette's trimmed) each part's own, which no one yarn stands for. Then
@@ -34,7 +33,7 @@ const TrimChoice: React.FC<{
   const current = inParts ? colourway.trims!.find((t) => trimIdOf(t) === choice) : colourway.shades.find((s) => s.slot === trim.slot);
   return (
     <div className="trim-choice" role="group" aria-label={trim.label}>
-      {!paged && (
+      {!bare && (
         <p className="colourway-starts-title">
           <strong>{trim.label}</strong>
           {trim.note ? ` · ${trim.note}` : ""}
@@ -72,32 +71,58 @@ const TrimChoice: React.FC<{
           );
         })}
       </div>
-      {paged && trim.note && <p className="colourway-starts-title">{trim.note}</p>}
+      {bare && trim.note && <p className="colourway-starts-title">{trim.note}</p>}
     </div>
   );
 };
 
-/** A design's colourways in its groups, in the order they first come; one group, unnamed, where it has none. */
-const groupsOf = (colourways: Colourway[]): [string | undefined, Colourway[]][] => {
-  const groups = new Map<string | undefined, Colourway[]>();
-  for (const c of colourways) groups.set(c.family, [...(groups.get(c.family) ?? []), c]);
-  return [...groups];
+/** Each colourway's yarns as the design gives it, worked out once: a sampler's has a thousand, and its tile is drawn from them again whenever they are another object. */
+const asGiven = new WeakMap<Colourway, Palette>();
+const paletteAsGiven = (colourway: Colourway): Palette => {
+  let palette = asGiven.get(colourway);
+  if (!palette) {
+    palette = paletteOf(colourway);
+    asGiven.set(colourway, palette);
+  }
+  return palette;
 };
 
+/** Colourways as tiles, in even columns: a strip of each on the yoke, and its name, the one in use marked. Drawn again only when what it shows changes. */
+export const ColourwayGrid = React.memo(function ColourwayGrid({
+  options,
+  chosen,
+  body,
+  onChoose,
+}: {
+  options: Colourway[];
+  /** The colourway in use, by its id. */
+  chosen: string;
+  body: Body;
+  onChoose: (option: Colourway) => void;
+}) {
+  return (
+    <div className="colourway-grid">
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          className={`colourway-option${option.id === chosen ? " is-chosen" : ""}`}
+          aria-pressed={option.id === chosen}
+          onClick={() => onChoose(option)}
+        >
+          <BodyStrip {...body} palette={paletteAsGiven(option)} className="colourway-motif" />
+          <strong>{option.name}</strong>
+        </button>
+      ))}
+    </div>
+  );
+});
+
 /**
- * The sweater's colours, chosen from the design's colourways: each a base to
- * start from. Choosing one sets every yarn to it, and the jumper on the stage
- * wears it at once. Where a design has many, they are shown a group at a
- * time, the group of the one in use first.
- *
- * Once a yarn is changed the sweater is the knitter's own, from that base;
- * starting again from another asks first, since it can't be undone.
- *
- * In a stage's panel it is laid out in pages (see Pages): a page a group,
- * named over them, then the trim, then whatever else the page that shows it
- * has to say of the colours. Which colourway is in use is then not said
- * here: the jumper wears it, its tile is marked, and the bar at the foot
- * names it.
+ * The sweater's colours on a jumper's own page, to start again from: the
+ * design's colourways, a group at a time where it has many, the group of the
+ * one in use first; and under them the trim. A design's page lays the same
+ * choice out in its own pages: see Sweater.
  */
 const ColourwayChoice: React.FC<{
   colourways: Colourway[];
@@ -112,73 +137,10 @@ const ColourwayChoice: React.FC<{
   onTrim?: (trim: string | undefined) => void;
   /** Whether it says which colourway is in use, over the choice of them: not where whatever shows it has said so already. */
   named?: boolean;
-  /** Laid out in pages, a group a page, with these pages after them: see Pages. */
-  paged?: boolean;
-  after?: Page[];
-}> = ({ colourways, colourway, overrides, body, onStartFrom, trim, trimChosen, onTrim, named = true, paged = false, after }) => {
-  const [asking, setAsking] = useState<Colourway>();
-  const groups = useMemo(() => groupsOf(colourways), [colourways]);
+}> = ({ colourways, colourway, overrides, body, onStartFrom, trim, trimChosen, onTrim, named = true }) => {
+  const { groups, own, choose, confirm } = useColourwayChoice({ colourways, colourway, overrides, onStartFrom });
   const [family, setFamily] = useState(colourway.family);
   const shown = groups.find(([name]) => name === family)?.[1] ?? groups[0][1];
-  const own = ownBalls(colourway, overrides);
-  const choose = (option: Colourway) => {
-    if (own > 0) setAsking(option);
-    else if (option.id !== colourway.id) onStartFrom(option.id);
-  };
-
-  const grid = (options: Colourway[]) => (
-    <div className="colourway-grid">
-      {options.map((option) => (
-        <button
-          key={option.id}
-          type="button"
-          className={`colourway-option${option.id === colourway.id ? " is-chosen" : ""}`}
-          aria-pressed={option.id === colourway.id}
-          onClick={() => choose(option)}
-        >
-          <BodyStrip {...body} palette={paletteOf(option)} className="colourway-motif" />
-          <strong>{option.name}</strong>
-        </button>
-      ))}
-    </div>
-  );
-  const trims = trim && onTrim && colourway.trims && colourway.trims.length > 1 && (
-    <TrimChoice
-      trim={trim}
-      colourway={colourway}
-      given={colourways.find((c) => c.id === colourway.id) ?? colourway}
-      chosen={trimChosen}
-      onTrim={onTrim}
-      paged={paged}
-    />
-  );
-  const confirm = (
-    <Dialog
-      open={asking !== undefined}
-      title={`Start again from ${asking?.name ?? ""}?`}
-      text={`Every yarn changes to ${asking?.name ?? ""}'s, including the ${own === 1 ? "one" : own} of your own.`}
-      confirmLabel="Start again"
-      onConfirm={() => {
-        if (asking) onStartFrom(asking.id);
-        setAsking(undefined);
-      }}
-      onCancel={() => setAsking(undefined)}
-    />
-  );
-
-  if (paged) {
-    const pages: Page[] = [
-      ...groups.map(([name, options]) => ({ id: `group-${name ?? ""}`, label: name ?? "Colourways", content: grid(options) })),
-      ...(trims && trim ? [{ id: "trim", label: trim.label, content: trims }] : []),
-      ...(after ?? []),
-    ];
-    return (
-      <>
-        <Pages pages={pages} label="Colours" nav="names" first={`group-${colourway.family ?? ""}`} />
-        {confirm}
-      </>
-    );
-  }
 
   return (
     <>
@@ -206,8 +168,10 @@ const ColourwayChoice: React.FC<{
         </div>
       )}
       {/* All of the group, always: choosing the one in use changes nothing. */}
-      {grid(shown)}
-      {trims}
+      <ColourwayGrid options={shown} chosen={colourway.id} body={body} onChoose={choose} />
+      {trim && onTrim && colourway.trims && colourway.trims.length > 1 && (
+        <TrimChoice trim={trim} colourway={colourway} given={colourways.find((c) => c.id === colourway.id) ?? colourway} chosen={trimChosen} onTrim={onTrim} />
+      )}
       {confirm}
     </>
   );

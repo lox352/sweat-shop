@@ -4,7 +4,6 @@ import { sweaterById } from "../../library/catalogue";
 import type { Placement, SlotId, Tension } from "../../pattern/design";
 import { useSweater } from "../useSweater";
 import { useColourway } from "../useColourway";
-import { useView } from "../useView";
 import { viewChart } from "../../reading/counted";
 import { currentEdition, editionOf, isSuperseded, errataOf } from "../../library/editions";
 import PatternUpdated from "./PatternUpdated";
@@ -16,7 +15,7 @@ import type { SweaterStitches } from "../../pattern/knitted";
 import { sameTension, yarnPerStitch } from "../../reading/tension";
 import { makeOnesAtMarkers } from "../../reading/marker-routes";
 import type { ChartView } from "../../reading/views";
-import { ballsOf, colourwayLabel, paletteOf, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
+import { ballsOf, colourwayLabel, lit, paletteOf, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
 import { totals, positionOf, currentRun, whereYouAre, roundNames, roundWhats } from "../../reading/progress";
 import { keyEntryAt } from "../../reading/stitch-key";
 import { faceAfter, holdsIn, needleChangesIn, turnsIn } from "../chart/chart-marks";
@@ -499,22 +498,33 @@ const ProjectView: React.FC<{
       </svg>
     </Link>
   );
-  // The jumper's page: which panel it shows, kept in the address; and what opens over it.
+  /*
+   * The jumper's page: which panel it shows, and what comes up over it. The
+   * panel is the page's own to know, so that it changes at once; the address
+   * is told after, so that a reload keeps it, and replaces what was there,
+   * so that back leaves the page.
+   */
   const navigate = useNavigate();
-  const shownPanel = panels.find((panel) => panel === params.get("tab")) ?? "progress";
+  const [shownPanel, setShownPanel] = useState(() => panels.find((panel) => panel === params.get("tab")) ?? "progress");
   const showPanel = (panel: string) => {
+    setShownPanel(panels.find((one) => one === panel) ?? "progress");
     const next = new URLSearchParams(params);
     if (panel === "progress") next.delete("tab");
     else next.set("tab", panel);
     setParams(next, { replace: true });
   };
-  const customise = useView("customise");
+  /** Whether the colourway's wools are being changed, in a card up from the foot: see Customise. */
+  const [customising, setCustomising] = useState(false);
+  const closeCustomise = useCallback(() => setCustomising(false), []);
   /** The ball Customise opens on, where a row of the wool list asked for it. */
   const [customiseOn, setCustomiseOn] = useState<SlotId[]>();
-  const customiseFrom = (slots: SlotId[] | undefined) => {
+  const customiseFrom = useCallback((slots: SlotId[] | undefined) => {
     setCustomiseOn(slots);
-    customise.show();
-  };
+    setCustomising(true);
+  }, []);
+  /** The yarns lit on the jumper while one of its wools is being changed. */
+  const [lighting, setLighting] = useState<SlotId[]>();
+  const onStage = useMemo(() => (lighting ? lit(palette, lighting) : palette), [palette, lighting]);
   const [bases, setBases] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -784,7 +794,7 @@ const ProjectView: React.FC<{
             sweaterId={sweater.id}
             sizeId={size.id}
             edition={edition}
-            palette={palette}
+            palette={onStage}
             // Over its wool the jumper is drawn whole in it, knitted or not: a colourway chosen there is seen on it at once, as on the design's page. Elsewhere, only as far as it is knitted.
             progress={shownPanel === "wool" ? (stitches[stitches.length - 1]?.id ?? 0) : project.progress}
             fill
@@ -809,22 +819,23 @@ const ProjectView: React.FC<{
             </Link>
           </>
         }
+        sheet={
+          customising && (
+            <Customise
+              sweater={sweater}
+              built={built}
+              colourway={colourway}
+              overrides={project.shades ?? noShades}
+              metres={metres}
+              onChange={setShade}
+              onReset={resetShades}
+              onDone={closeCustomise}
+              first={customiseOn}
+              onLight={setLighting}
+            />
+          )
+        }
       />
-      {customise.open && (
-        <Customise
-          sweater={sweater}
-          sizeId={size.id}
-          edition={edition}
-          built={built}
-          colourway={colourway}
-          overrides={project.shades ?? noShades}
-          metres={metres}
-          onChange={setShade}
-          onReset={resetShades}
-          onDone={customise.close}
-          first={customiseOn}
-        />
-      )}
       {renaming && (
         <NameDialog
           open

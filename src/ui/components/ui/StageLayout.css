@@ -47,6 +47,31 @@
   height: 100%;
 }
 
+/* What the jumper is, in its corner: its size and colourway, where no bar under it says so. Put away while something else is drawn over the stage. */
+.stage-badge {
+  position: absolute;
+  left: 0.6rem;
+  bottom: 0.5rem;
+  z-index: 2;
+  max-width: calc(100% - 1.2rem);
+  margin: 0;
+  padding: 0.2rem 0.6rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: rgb(243 241 239 / 0.92);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+.stage-over:not(:empty) ~ .stage-badge {
+  display: none;
+}
+
 .stage .sweater-settling {
   position: absolute;
   inset: auto 0.75rem 0.5rem;
@@ -54,6 +79,8 @@
 }
 
 .stage-side {
+  /* What a sheet comes up over: see Sheet. */
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -104,31 +131,6 @@
 
 .stage-scroll .colophon {
   margin-top: 2rem;
-}
-
-/* A panel laid out in pages is the pages' to fill: nothing of it scrolls but a page, and nothing comes after it. */
-.stage-scroll.is-paged {
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  /* The pages reach the screen's edges, past the page's gutters: they do their own cutting off. */
-  overflow: visible;
-}
-
-.stage-scroll.is-paged > .stage-panel:not([hidden]) {
-  flex: 1;
-  min-height: 0;
-}
-
-.stage-scroll.is-paged > .colophon {
-  display: none;
-}
-
-/* On a phone a design's panels are for the design: where projects are kept, and that the site is ready offline, are said on the way in, at the foot of the home page, and on a jumper's own. */
-@media (max-width: 59.99rem) {
-  .is-browsing .stage-scroll > .colophon {
-    display: none;
-  }
 }
 
 /* A panel begins at its top edge: what is in it brings no heading's margin with it. */

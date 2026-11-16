@@ -1,0 +1,110 @@
+/* A card from the foot, over what is under a stage: see Sheet. Placed by StageLayout's .stage-side, which it covers. */
+.sheet-scrim {
+  position: absolute;
+  inset: 0 calc(-1 * var(--gutter, 1rem));
+  z-index: 20;
+  background: rgb(31 29 27 / 0.3);
+  animation: sheet-dim 0.16s ease-out;
+}
+
+.sheet {
+  position: absolute;
+  inset: auto calc(-1 * var(--gutter, 1rem)) 0;
+  z-index: 21;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  background: var(--paper-raised);
+  border-top: 2px solid var(--crimson);
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  box-shadow: 0 -10px 30px rgb(0 0 0 / 0.22);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  animation: sheet-up 0.18s ease-out;
+}
+
+.sheet.is-full {
+  top: 0;
+}
+
+.sheet:focus {
+  outline: none;
+}
+
+.sheet-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.45rem 0.4rem 0.3rem 1rem;
+}
+
+.sheet-head-text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.sheet-head-text strong {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sheet-head .eyebrow {
+  margin: 0 0 0.1rem;
+  max-width: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sheet-head strong {
+  font-size: var(--text-l);
+}
+
+.sheet-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+/* What a short sheet holds, with the sheet's own margins. */
+.sheet-body {
+  padding: 0.2rem 1rem 1rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(24%);
+    opacity: 0.4;
+  }
+}
+
+@keyframes sheet-dim {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Beside the stage, the sheet is its column's own width. */
+@media (min-width: 60rem), (orientation: landscape) and (max-height: 32rem) {
+  .sheet-scrim,
+  .sheet {
+    inset-inline: 0;
+  }
+
+  .sheet {
+    border: 1px solid var(--rule);
+    border-top: 2px solid var(--crimson);
+  }
+}

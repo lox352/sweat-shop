@@ -159,7 +159,7 @@ test("a project on its size's knitting as it is now knits that from its frozen c
   expect(asked).toEqual([`hamefarin--m--${current}.json`]);
 
   await page.evaluate(() => localStorage.clear());
-  await page.goto("#/sweater/hamefarin");
+  await page.goto("#/sweater/hamefarin?tab=start");
   await page.getByRole("button", { name: "Start knitting", exact: true }).click();
   await expect(page.getByRole("button", { name: "End of round", exact: true })).toBeVisible();
   const started = await page.evaluate(() => JSON.parse(localStorage.getItem(Object.keys(localStorage).find((key) => key.startsWith("project-")))));
@@ -170,7 +170,7 @@ test("a project on its size's knitting as it is now knits that from its frozen c
 test("where a size's frozen copy cannot be fetched, the page says so, and tries again when asked", async ({ page }) => {
   let reachable = false;
   await page.route("**/editions/**", (route) => (reachable ? route.continue() : route.abort()));
-  await page.goto("#/sweater/hamefarin");
+  await page.goto("#/sweater/hamefarin?tab=start");
   await expect(page.getByRole("alert").filter({ hasText: "The pattern could not be fetched" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Start knitting", exact: true })).toHaveCount(0);
   reachable = true;
@@ -183,7 +183,7 @@ test("nothing the site loads can work a pattern out: no script of it holds a cha
   page.on("response", (response) => {
     if (response.url().endsWith(".js")) scripts.push(response);
   });
-  await page.goto("#/sweater/hamefarin");
+  await page.goto("#/sweater/hamefarin?tab=start");
   await page.getByRole("button", { name: "Start knitting", exact: true }).click();
   await expect(page.locator(".knitting-panel [role=status]")).toBeAttached();
   expect(scripts.length).toBeGreaterThan(0);

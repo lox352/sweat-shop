@@ -79,7 +79,7 @@ const FitPreview: React.FC<{
   const compared = (
     <PreviewBoundary>
       <Suspense fallback={<p role="status">Drawing them side by side…</p>}>
-        <SweaterComparison candidates={candidates} chosen={fitted.option ?? "fitted"} fill={!!stage} />
+        <SweaterComparison candidates={candidates} chosen={fitted.option ?? "fitted"} fill={stage !== undefined} />
       </Suspense>
     </PreviewBoundary>
   );
@@ -87,7 +87,8 @@ const FitPreview: React.FC<{
 
   return (
     <div role="status" className="refit-shown">
-      {stage ? createPortal(compared, stage) : compared}
+      {/* On the stage while its panel is the one shown; where there is no stage, here. */}
+      {stage === undefined ? compared : stage ? createPortal(compared, stage) : null}
       {found.length + unfitted.length > 1 && (
         <fieldset className="refit-options">
           <legend>How the rest is laid out</legend>
