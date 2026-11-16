@@ -372,7 +372,9 @@ const pathTarget = (hues) => (year, yi, l, role, k, dark) => {
  */
 const DEPTH = { 2014: 0.056, 2015: 0.166, 2016: 0.294, 2017: 0.421, 2018: 0.528, 2019: 0.64, 2020: 0.773, 2021: 0.921, 2022: 0.422, 2023: 0.538, 2024: 0.662, 2025: 0.794, 2026: 0.928 };
 // A journey round the colour circle by place down the jumper, from `start` through `span` degrees; middles lean a twelfth of the way on.
-const inStep = (start, span) => (year) => start + span * DEPTH[year];
+// Where a year sits, for the journeys in step: as published, or wherever a table of them by place is being worked out (see stepsOf).
+let placeOf = (year) => DEPTH[year];
+const inStep = (start, span) => (year) => start + span * placeOf(year);
 const lightJourney = (hueOf, lean) => (year, yi, l, role, k, dark) => {
   const h = hueOf(year) + (role === "middle" ? lean : 0);
   const C = role === "ground" ? (dark ? 14 : 6) : role === "middle" ? 34 : 28;
@@ -479,22 +481,22 @@ const manyPalettes = [
     }),
   },
   {
-    id: "journey-in-step", mode: "light", name: "Colour journey, in step", trim: 198,
+    id: "journey-in-step", stepped: true, mode: "light", name: "Colour journey, in step", trim: 198,
     note: "The colour journey's route, peat browns through gold, moss, sea, blue and heather to madder, each band's hue set by how far down the jumper it sits rather than by its year: the yoke takes the first part of the circle, then the body and sleeves walk the rest together from the underarm, so each body band and the sleeve band level with it share a hue.",
     maps: () => assign({ bands: lightBands(76), target: lightJourney(inStep(45, 312), 26) }),
   },
   {
-    id: "journey-gentle", mode: "light", name: "Colour journey, in step, gentler", trim: 198,
+    id: "journey-gentle", stepped: true, mode: "light", name: "Colour journey, in step, gentler", trim: 198,
     note: "In step, on half the circle: peat browns through gold and moss to sea green. Smaller steps between neighbouring bands, so the whole jumper reads as one gradual turn.",
     maps: () => assign({ bands: lightBands(76), target: lightJourney(inStep(45, 180), 15) }),
   },
   {
-    id: "night-in-step", mode: "dark", name: "Night journey, in step", trim: 999,
+    id: "night-in-step", stepped: true, mode: "dark", name: "Night journey, in step", trim: 999,
     note: "The night journey's route, midnight blue through violet, rose, madder, ochre and moss to sea green, in step down the jumper: each body band and the sleeve band level with it share a hue.",
     maps: () => assign({ bands: nightBands, target: nightJourney(inStep(230, 312), 26) }),
   },
   {
-    id: "night-gentle", mode: "dark", name: "Night journey, in step, gentler", trim: 999,
+    id: "night-gentle", stepped: true, mode: "dark", name: "Night journey, in step, gentler", trim: 999,
     note: "In step, on half the circle: midnight blue through violet and rose to madder, deep grounds and lit figures in smaller steps.",
     maps: () => assign({ bands: nightBands, target: nightJourney(inStep(230, 160), 13) }),
   },
@@ -587,6 +589,47 @@ const written = palettes.map((pal) => {
   };
 });
 
+/*
+ * A journey in step, by place: each year's yarns were it at each of these places down the jumper, for a sweater laid
+ * out otherwise than Each Year Once in M - worked out again for a knitter's tension, with its years on other pieces or
+ * some left out (see strips/fit's placement, and reading/palette's placed). A year's yarns depend on its own place
+ * alone, so every year is put at one place at a time.
+ */
+const PLACES = Array.from({ length: 41 }, (_, i) => i / 40);
+const stepsOf = (pal) => {
+  const published = placeOf;
+  const at = PLACES.map((place) => {
+    placeOf = () => place;
+    return pal.maps();
+  });
+  placeOf = published;
+  return {
+    at: PLACES,
+    years: Object.fromEntries(order.map((year) => [year, Object.fromEntries(Object.keys(at[0][year]).map((l) => [l, at.map((maps) => maps[year][l])]))])),
+  };
+};
+
+/*
+ * `--steps` adds the journeys' yarns by place to the file as it is, and changes nothing else in it: the colourways as
+ * published are what knitters have bought wool for, and are not worked out again for a table beside them.
+ */
+if (process.argv.includes("--steps")) {
+  const file = JSON.parse(fs.readFileSync(out, "utf8"));
+  for (const pal of manyPalettes.filter((one) => one.stepped)) {
+    const steps = stepsOf(pal);
+    for (const codes of Object.values(steps.years).flatMap((letters) => Object.values(letters))) {
+      for (const code of codes) {
+        const c = byCode(code);
+        file.yarns[c.code] ??= { name: c.name, code: c.code, hex: c.hex, wool: c.wool };
+      }
+    }
+    file.many.find((one) => one.id === pal.id).steps = steps;
+  }
+  fs.writeFileSync(out, JSON.stringify(file) + "\n");
+  console.log(`added the yarns by place of ${manyPalettes.filter((one) => one.stepped).map((one) => one.id).join(", ")} to ${path.relative(root, out)}`);
+  process.exit(0);
+}
+
 const writtenMany = manyPalettes.map((pal) => {
   const maps = pal.maps();
   const shading = pal.shaded ? shadingOf() : undefined;
@@ -597,7 +640,7 @@ const writtenMany = manyPalettes.map((pal) => {
   const mains = order.map((year) => maps[year][roles[year].ground[0]]);
   const darkest = [...codes].sort((a, b) => lightness(a) - lightness(b)).slice(0, 4);
   const trims = [...new Set([String(pal.trim), ...mains, ...darkest])].slice(0, 12).sort((a, b) => lightness(b) - lightness(a));
-  return { id: pal.id, family: "Many colours", name: pal.name, note: pal.note, mode: pal.mode, trims, maps, ...(shading ? { shading } : {}) };
+  return { id: pal.id, family: "Many colours", name: pal.name, note: pal.note, mode: pal.mode, trims, maps, ...(shading ? { shading } : {}), ...(pal.stepped ? { steps: stepsOf(pal) } : {}) };
 });
 
 fs.writeFileSync(out, JSON.stringify({ yarns, palettes: written, many: writtenMany }) + "\n");

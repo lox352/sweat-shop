@@ -1,4 +1,4 @@
-import type { Measurements, Tension } from "../pattern/design";
+import type { Measurements, Placement, Tension } from "../pattern/design";
 import type { SweaterStitches } from "../pattern/knitted";
 import { sweaterById } from "./designs";
 import type { Fitting, Size, SweaterPattern } from "./designs/types";
@@ -41,6 +41,8 @@ export interface Fit {
   notes: string[];
   /** The rest, written out as a pattern. */
   written: string;
+  /** Where the bands planned afresh sit, for a design whose colourways follow that. */
+  placement?: Placement;
 }
 
 const fittingOf = (design: string): { pattern: SweaterPattern; fitting: Fitting } | undefined => {
@@ -92,6 +94,7 @@ export const fit = (ask: FitAsk, done?: (fraction: number) => void): Fit => {
     tension: ask.tension,
     finished: planned.finished,
     notes: planned.notes,
+    ...(planned.placement ? { placement: planned.placement } : {}),
     written: writtenPattern(rest, fitted.id, knitted.checks),
   };
 };

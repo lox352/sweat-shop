@@ -1,4 +1,4 @@
-import { Colourway, Shade, SlotId } from "../pattern/design";
+import type { Colourway, Placement, Shade, SlotId, Steps } from "../pattern/design";
 import type { WoolId } from "../pattern/yarns";
 import { RGB } from "../pattern/RGB";
 import { ballsFor } from "./yardage";
@@ -100,6 +100,56 @@ export const trimmed = (colourway: Colourway, trim: string | undefined): Colourw
   const choice = trim === undefined ? undefined : colourway.trims?.find((t) => trimIdOf(t) === trim);
   if (!choice) return colourway;
   return { ...colourway, shades: colourway.shades.map((s) => (s.slot.split("/")[0] === choice.slot ? { ...choice, slot: s.slot } : s)) };
+};
+
+/** CIE L*, how light a colour looks. */
+const lightness = (hex: string): number => {
+  const [r, g, b] = rgbOf(hex).map((c) => ((c /= 255) <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  const y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return 116 * (y > 0.008856 ? Math.cbrt(y) : 7.787 * y + 16 / 116) - 16;
+};
+
+/**
+ * A stepped colourway as it is on a sweater laid out for one knitter: every
+ * band its planner placed afresh in the yarns the colourway has for that
+ * place (see Steps), so that bands level with each other go on sharing a
+ * step however the years were shared out. A band it did not place - one
+ * already knitted - keeps the yarns it has. And each part of the trim the
+ * planner names takes the darkest yarn of the bands it is now beside, as the
+ * colourway's own trims take the darkest of theirs.
+ *
+ * A reading of three things the page is given - the colourway, its steps and
+ * the placement the project owns - and of nothing else.
+ */
+export const placed = (colourway: Colourway, steps: Steps, placement: Placement): Colourway => {
+  const now = new Map<string, Omit<Shade, "slot">>();
+  for (const [band, place] of Object.entries(placement.places)) {
+    const stepped = steps.bands[band];
+    if (!stepped) continue;
+    // The place nearest of those the colourway was worked out at.
+    const at = steps.at.reduce((best, one, index) => (Math.abs(one - place) < Math.abs(steps.at[best] - place) ? index : best), 0);
+    stepped.slots.forEach((slots, yarn) => slots.forEach((slot) => now.set(slot, steps.wools[stepped.wools[yarn][at]])));
+  }
+  const shades = colourway.shades.map((shade) => (now.has(shade.slot) ? { ...now.get(shade.slot)!, slot: shade.slot } : shade));
+  const trims = new Map<string, Shade>();
+  for (const [slot, bands] of Object.entries(placement.trims ?? {})) {
+    const beside = new Set(bands.flatMap((band) => steps.bands[band]?.slots.flat() ?? []));
+    const darkest = shades.filter((shade) => beside.has(shade.slot)).reduce<Shade | undefined>((dark, shade) => (!dark || lightness(shade.hex) < lightness(dark.hex) ? shade : dark), undefined);
+    if (darkest) trims.set(slot, { ...darkest, slot });
+  }
+  return { ...colourway, shades: shades.map((shade) => trims.get(shade.slot) ?? shade) };
+};
+
+/** The wools one colourway knits that another does not: what placing a colourway on a sweater adds to the shopping. */
+export const woolsAdded = (from: Colourway, to: Colourway): Shade[] => {
+  const had = new Set(from.shades.map((shade) => shade.code ?? shade.name));
+  const seen = new Set<string>();
+  return to.shades.filter((shade) => {
+    const key = shade.code ?? shade.name;
+    if (had.has(key) || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 };
 
 const fallback: Yarn = { name: "unknown", hex: "#cccccc", approximate: true };

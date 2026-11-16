@@ -1,4 +1,4 @@
-import type { Colourway, Shade } from "../../types";
+import type { Colourway, Shade, Steps } from "../../types";
 import data from "./colourways.json";
 import roleData from "./roles.json";
 import { allSlots, allTrims, letterOf, trimSlot, yearOfSlot, yearsOfTrim } from "./slots";
@@ -54,6 +54,8 @@ interface Many {
   maps: Record<string, Record<string, string>>;
   /** For a palette that shades its bands, each year's yarns for each shade of its slots. */
   shading?: Record<string, { G: string[]; F: string[]; h: string[]; m: string[]; c: string }>;
+  /** For a journey in step: each year's yarns, a letter at a time, were the year at each of these places down the jumper. */
+  steps?: { at: number[]; years: Record<string, Record<string, string[]>> };
 }
 const yarns = data.yarns as Record<string, Yarn>;
 const palettes = data.palettes as Palette[];
@@ -132,6 +134,37 @@ export const colourways: Colourway[] = [
       ...spindrift,
       shades: [...allSlots.map((slot) => shadeOf(slot, codeFor(p.maps, slot, p.shading))), ...trimShades((slot) => codeFor(p.maps, slot, p.shading))],
       trims: p.trims.map((code) => shadeOf(trimSlot, code)),
+      ...(p.steps ? { stepped: true as const } : {}),
     }),
   ),
 ];
+
+/**
+ * The yarns by place of each colourway that steps (see Steps): a band is a
+ * year, called by it, and its slots those of each of the hat's letters,
+ * shaded or not, which a journey gives one yarn.
+ */
+export const steps: Record<string, Steps> = Object.fromEntries(
+  many.flatMap((p) => {
+    if (!p.steps) return [];
+    const wools: Steps["wools"] = [];
+    const numbers = new Map<string, number>();
+    const numberOf = (code: string) => {
+      if (!numbers.has(code)) {
+        const { wool, name, hex } = yarns[code];
+        numbers.set(code, wools.push({ wool, name, code, hex, source: "library" }) - 1);
+      }
+      return numbers.get(code)!;
+    };
+    const bands = Object.fromEntries(
+      Object.entries(p.steps.years).map(([year, letters]) => [
+        year,
+        {
+          slots: Object.keys(letters).map((letter) => allSlots.filter((slot) => yearOfSlot(slot) === Number(year) && letterOf(slot) === letter)),
+          wools: Object.values(letters).map((codes) => codes.map(numberOf)),
+        },
+      ]),
+    );
+    return [[`${p.id}-${p.mode}`, { at: p.steps.at, wools, bands }]];
+  }),
+);

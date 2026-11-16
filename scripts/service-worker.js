@@ -12,7 +12,7 @@ const stamp = urlFor("__installed__");
  * shown. So neither is prepared in advance, and both are kept from the first
  * time they are fetched, through every release after.
  */
-const keeps = url => url.startsWith(urlFor("editions/")) || url.startsWith(urlFor("shapes/"));
+const keeps = url => url.startsWith(urlFor("editions/")) || url.startsWith(urlFor("shapes/")) || url.startsWith(urlFor("colourways/"));
 
 /** Whether a release's page names only scripts and stylesheets that came with the release. */
 const whole = async cache => {

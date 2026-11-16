@@ -36,6 +36,10 @@ export const cataloguePath = "src/library/catalogue/catalogue.json";
 
 export const frozenPath = (design, size, edition) => `${frozenDir}/${design}--${size}--${edition}.json`;
 
+/** A stepped colourway's yarns by place, served as they are: see src/library/colourways. */
+export const stepsDir = "public/colourways";
+export const stepsPath = (colourway) => `${stepsDir}/${colourway}.json`;
+
 /** Each size's written pattern, as a printed pattern words it: see compiler/designs/written. For people to read, in review. */
 export const writtenDir = "docs/written";
 export const writtenPath = (design, size) => `${writtenDir}/${design}--${size}.txt`;
@@ -69,18 +73,30 @@ export const editionsNow = async (load) => {
 const main = async () => {
   const check = process.argv.includes("--check");
   const manifest = existsSync(manifestFile) ? JSON.parse(readFileSync(manifestFile, "utf8")) : {};
-  const { now, catalogue } = await withSite(async (load) => {
+  const { now, catalogue, steps } = await withSite(async (load) => {
     const { sweaters } = await load("/src/compiler/designs/index.ts");
     const { encodeCatalogue } = await load("/src/library/catalogue/format.ts");
     // After the editions: a sampler's yarns are those its sizes knit, known once they are knitted.
     const now = await editionsNow(load);
-    return { now, catalogue: `${JSON.stringify(encodeCatalogue(sweaters))}\n` };
+    // Each stepped colourway's yarns by place, a file a colourway: see src/library/colourways.
+    const steps = Object.assign({}, ...sweaters.map((sweater) => sweater.steps ?? {}));
+    return { now, catalogue: `${JSON.stringify(encodeCatalogue(sweaters))}\n`, steps };
   });
   const stale = [];
   let wrote = 0;
   if (!existsSync(cataloguePath) || readFileSync(cataloguePath, "utf8") !== catalogue) {
     stale.push("the catalogue of designs");
     if (!check) writeFileSync(cataloguePath, catalogue);
+  }
+  for (const [colourway, table] of Object.entries(steps)) {
+    const path = stepsPath(colourway);
+    const json = `${JSON.stringify(table)}\n`;
+    if (existsSync(path) && readFileSync(path, "utf8") === json) continue;
+    stale.push(`${colourway}: its yarns by place`);
+    if (!check) {
+      mkdirSync(stepsDir, { recursive: true });
+      writeFileSync(path, json);
+    }
   }
   // An edition whose shape is settled already - a recolouring of one that was - has it from the start: see shapes.mjs.
   const shapes = readShapes();

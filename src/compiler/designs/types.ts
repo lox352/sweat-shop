@@ -17,7 +17,7 @@
  * the grading worked out once and that the tests check every stitch of.
  */
 
-import type { Design, FitOption, Measurements, SizeAbout, SlotId, Tension } from "../../pattern/design";
+import type { Design, FitOption, Measurements, Placement, SizeAbout, SlotId, Steps, Tension } from "../../pattern/design";
 import type { SweaterStitches } from "../../pattern/knitted";
 
 export type * from "../../pattern/design";
@@ -300,6 +300,8 @@ export interface Fitted {
   finished: Measurements;
   /** What the knitter should know of it, a sentence each. */
   notes: string[];
+  /** Where the bands planned afresh sit, for a design whose colourways follow that: see Placement. */
+  placement?: Placement;
 }
 
 /**
@@ -345,6 +347,8 @@ export interface SweaterPattern extends Omit<Design, "sizes"> {
   slotsVaryBySize?: boolean;
   /** How the rest of a size is planned from one part knitted, where the design can: see Fitting. */
   fitting?: Fitting;
+  /** The yarns by place of its stepped colourways, by colourway: published beside the catalogue, a file each. See Steps. */
+  steps?: Record<string, Steps>;
 }
 
 /** Stitches a cell works on the needle. */

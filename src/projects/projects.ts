@@ -1,5 +1,5 @@
 import { Overrides } from "../reading/palette";
-import type { Measurements, Tension } from "../pattern/design";
+import type { Measurements, Placement, Tension } from "../pattern/design";
 import { deleteLog } from "./timing/log";
 import { currentEdition, editionKey } from "../library/editions";
 import { dropShapesBut } from "../library/settled/own";
@@ -72,9 +72,24 @@ export interface ProjectFit {
   from?: string;
   /** Which of the design's ways of laying the rest out. */
   option?: string;
+  /**
+   * Where the bands planned afresh sit: what a colourway that steps down the
+   * garment is placed by (see reading/palette's placed). The knitter buys
+   * wool by it, so it is theirs to keep, and not worked out again.
+   */
+  placement?: Placement;
 }
 
 const measures: (keyof Measurements)[] = ["chestCm", "neckCm", "yokeDepthCm", "bodyLengthCm", "upperArmCm", "sleeveLengthCm", "cuffCm"];
+
+/** Whether something read back is a placement: a place from 0 to 1 for each band, and bands for each trim. */
+const isPlacement = (value: unknown): value is Placement => {
+  const placement = value as Partial<Placement> | null;
+  return typeof placement === "object" && placement !== null && typeof placement.places === "object" && placement.places !== null &&
+    Object.values(placement.places).every((place) => typeof place === "number" && place >= 0 && place <= 1) &&
+    (placement.trims === undefined || (typeof placement.trims === "object" && placement.trims !== null &&
+      Object.values(placement.trims).every((bands) => Array.isArray(bands) && bands.every((band) => typeof band === "string"))));
+};
 
 /** Whether something read back is a fit. */
 export const isFit = (value: unknown): value is ProjectFit => {
@@ -83,7 +98,8 @@ export const isFit = (value: unknown): value is ProjectFit => {
     typeof fit.finished === "object" && fit.finished !== null && measures.every((key) => Number.isFinite(fit.finished?.[key])) &&
     Number.isSafeInteger(fit.round) && (fit.round ?? 0) > 0 &&
     (fit.from === undefined || (typeof fit.from === "string" && /^[0-9a-f]{1,64}$/.test(fit.from))) &&
-    (fit.option === undefined || (typeof fit.option === "string" && fit.option.length <= 40));
+    (fit.option === undefined || (typeof fit.option === "string" && fit.option.length <= 40)) &&
+    (fit.placement === undefined || isPlacement(fit.placement));
 };
 
 /** Whether something read back is a tension: two sensible numbers. */

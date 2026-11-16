@@ -288,6 +288,17 @@ round of a band of its yoke: the bands still to come graded from the
 stitches on the needles, one left out where the yoke has no depth for it.
 The lined-up sampler, the feline jumpers and Paul Klee can't yet.
 
+**Colours follow the plan.** Some colourways step down the sweater: a year's
+yarns depend on where it sits, so that a body band and the sleeve band level
+with it share a step. A planner that moves years about says where it put
+each one (the fit's `placement`, kept on the project because wool is bought
+by it); the colourway carries each year's yarns at forty places down the
+jumper (a file a colourway under `public/colourways/`, fetched when wanted);
+and `placed` in `src/reading/palette.ts` puts the one on the other. Years
+already knitted keep their yarns. The colourways as published are never
+worked out again: `node scripts/strip-colourways.mjs --steps` adds only the
+tables by place.
+
 `node scripts/fit.mjs <design> <size> <round> <sts> <rounds>` writes a fit out
 to read, every way the design offers, in `docs/written/refits/`.
 

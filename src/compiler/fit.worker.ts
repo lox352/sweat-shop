@@ -29,7 +29,7 @@ scope.onmessage = async ({ data: { design, sizeId, knitted, progress, tension } 
         if (overall - told >= 0.01) scope.postMessage({ progress: (told = overall) });
       });
       const file = await asEdition(fitted.knitted, design, sizeId);
-      scope.postMessage({ fitted: { file, round, tension, finished: fitted.finished, notes: fitted.notes, written: fitted.written, ...(option ? { option } : {}) } });
+      scope.postMessage({ fitted: { file, round, tension, finished: fitted.finished, notes: fitted.notes, written: fitted.written, ...(option ? { option } : {}), ...(fitted.placement ? { placement: fitted.placement } : {}) } });
       found++;
     } catch (error) {
       const why = `The rest could not be worked out: ${error instanceof Error ? error.message : String(error)}.`;

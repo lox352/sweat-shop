@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import type { Design, SizeAbout, Tension } from "../../pattern/design";
+import type { Design, Placement, Shade, SizeAbout, Tension } from "../../pattern/design";
 import type { SweaterStitches } from "../../pattern/knitted";
 import type { Fitted } from "../../library/fit";
 import type { ProjectFit } from "../../projects/projects";
@@ -29,6 +29,8 @@ const Refit: React.FC<{
   tension: Tension;
   fit: ProjectFit | undefined;
   palette: Palette;
+  /** The colourway as it would be on a sweater planned otherwise, and the wools that would add: see useColourway. */
+  coloursOn: (placement: Placement | undefined) => { palette: Palette; added: Shade[] };
   /** What the knitting calls each of its rounds, from 0: see progress.roundNames. */
   roundNames: string[];
   /** What it is called and why it is offered, where that is not the knitter's tension: an update that can't be joined to their knitting (see PatternUpdated). */
@@ -36,7 +38,7 @@ const Refit: React.FC<{
   lead?: string;
   onTake: (fitted: Fitted) => void;
   onGoBack: () => void;
-}> = ({ sweater, size, knitted, progress, tension, fit, palette, roundNames, title = "Fit the rest to your tension", lead, onTake, onGoBack }) => {
+}> = ({ sweater, size, knitted, progress, tension, fit, palette, coloursOn, roundNames, title = "Fit the rest to your tension", lead, onTake, onGoBack }) => {
   const { state, ask, reset } = useFit();
   // A tension changed is another question: what was worked out for the last is put away.
   const key = `${tension.stitchesPer10cm} ${tension.roundsPer10cm}`;
@@ -107,6 +109,7 @@ const Refit: React.FC<{
           options={sweater.fitting?.options ?? []}
           first={fit?.option}
           palette={palette}
+          coloursOn={coloursOn}
           roundNames={roundNames}
           take="Knit the rest this way"
           onTake={(fitted) => {
