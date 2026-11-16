@@ -294,7 +294,8 @@
   border-radius: 0;
 }
 
-.knit-screen .chart-page {
+.knit-screen .chart-page,
+.chart-fills .chart-page {
   flex: 1;
   min-height: 0;
   display: flex;
@@ -302,7 +303,8 @@
   margin: 0;
 }
 
-.knit-screen .chart-frame {
+.knit-screen .chart-frame,
+.chart-fills .chart-frame {
   flex: 1;
   min-height: 0;
   display: flex;
@@ -313,11 +315,13 @@
 }
 
 .knit-screen .chart-frame > :not(.chart-scroll, .chart-yarn-numbers),
+.chart-fills .chart-frame > :not(.chart-scroll, .chart-yarn-numbers),
 .knit-screen .chart-key {
   display: none;
 }
 
-.knit-screen .chart-scroll {
+.knit-screen .chart-scroll,
+.chart-fills .chart-scroll {
   flex: 1;
   height: auto;
   min-height: 0;

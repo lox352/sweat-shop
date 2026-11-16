@@ -5,6 +5,7 @@ import type { Placement, SlotId, SizeAbout, Tension } from "../../pattern/design
 import { defaultSize } from "../../reading/counted";
 import { useSweater } from "../useSweater";
 import { useColourway } from "../useColourway";
+import { useView } from "../useView";
 import { currentEdition } from "../../library/editions";
 import type { Fitted } from "../../library/fit";
 import { sameTension } from "../../reading/tension";
@@ -16,7 +17,7 @@ import PageLayout from "./ui/PageLayout";
 import StageLayout from "./ui/StageLayout";
 import Button from "./ui/Button";
 import SweaterModel from "./SweaterModel";
-import WoolList from "./WoolList";
+import Customise from "./Customise";
 import { type Chosen } from "./YarnPicker";
 import ColourwayChoice from "./ColourwayChoice";
 import MyTension from "./MyTension";
@@ -118,6 +119,8 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
       },
       { replace: true },
     );
+  // Making the colours your own is a view over this page: see Customise.
+  const customise = useView("customise");
   const [colourwayId, setColourwayId] = useState(sweater.colourways[0].id);
   const [trim, setTrim] = useState<string>();
   /*
@@ -150,7 +153,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
 
   /*
    * A ball of wool does every yarn of the design it is put in, so choosing
-   * one sets them together. See WoolList.
+   * one sets them together. See Customise.
    */
   const choose = useCallback(
     (slots: SlotId[], chosen: Chosen | undefined) =>
@@ -236,8 +239,9 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
         trimChosen={trim}
         onTrim={setTrim}
       />
-      <h2>Your wool</h2>
-      <WoolList colourway={colourway} metres={metres} stated={size.yardage !== undefined} overrides={own} onChange={choose} body={body} palette={palette} />
+      <p>
+        <Button onClick={customise.show}>Customise these colours</Button>
+      </p>
       <p className="quiet">
         {colourway.brand} {colourway.yarn}
         {colourway.ballMetres !== undefined && colourway.ballGrams !== undefined ? `, ${colourway.ballMetres}m per ${colourway.ballGrams}g ball` : ""} ·{" "}
@@ -247,7 +251,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
       </p>
       <p className="quiet">
         The colours come from the spinners' own photographs of the wool, so they are close rather than exact.
-        {anyApproximate ? " Some shades use approximate colours where an exact match is unavailable. These are marked in the wool list." : ""}
+        {anyApproximate ? " Some shades use approximate colours where an exact match is unavailable." : ""}
       </p>
     </>
   );
@@ -272,6 +276,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
   );
 
   return (
+    <>
     <StageLayout
       title={sweater.name}
       eyebrow="a design"
@@ -301,6 +306,20 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
         </>
       }
     />
+    {customise.open && (
+      <Customise
+        sweater={sweater}
+        sizeId={size.id}
+        built={built}
+        colourway={colourway}
+        overrides={own}
+        metres={metres}
+        onChange={choose}
+        onReset={() => setOwn({})}
+        onDone={customise.close}
+      />
+    )}
+    </>
   );
 };
 

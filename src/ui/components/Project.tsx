@@ -46,6 +46,7 @@ import { statsOverlay, type Layer } from "../chart/timing-overlay";
 import WoolList from "./WoolList";
 import { type Chosen } from "./YarnPicker";
 import NextStep from "./ui/NextStep";
+import ViewTabs from "../chart/ViewTabs";
 import ColourwayChoice from "./ColourwayChoice";
 import "./Project.css";
 
@@ -58,34 +59,6 @@ const percentKnitted = (worked: number, percent: number) =>
 
 /** No wool chosen of the knitter's own: one object, so what is drawn from it is not drawn again for nothing. */
 const noShades: Overrides = {};
-
-/**
- * The chart's views as tabs over it: from the neck, the body and each sleeve,
- * each its own chart, with the one the knitting is in marked. See
- * reading/views.
- */
-const ViewTabs: React.FC<{
-  views: ChartView[];
-  shown: string;
-  current?: string;
-  onShow: (view: string) => void;
-}> = ({ views, shown, current, onShow }) => (
-  <div className="view-tabs" role="tablist" aria-label="Views of the chart">
-    {views.map((view) => (
-      <button
-        key={view.id}
-        type="button"
-        role="tab"
-        aria-selected={view.id === shown}
-        className={`view-tab${view.id === shown ? " is-shown" : ""}`}
-        onClick={() => onShow(view.id)}
-      >
-        {view.label}
-        {view.id === current && <span className="quiet">knitting</span>}
-      </button>
-    ))}
-  </div>
-);
 
 /**
  * The end of the chart page while you are not knitting: how far you have

@@ -3,7 +3,7 @@ import { sweaterById } from "../compiler/designs";
 import { buildSweater } from "../compiler/engine/engine";
 import { cutAfter, fit } from "../compiler/fit";
 import type { Colourway } from "../pattern/design";
-import { placed, woolsAdded } from "./palette";
+import { lit, placed, woolsAdded } from "./palette";
 
 const once = "wool-week-strips-once-oldest";
 const pattern = sweaterById(once)!;
@@ -66,5 +66,14 @@ describe("a colourway that steps down the sweater, placed on one laid out for on
     const same = slots.filter((slot) => yarnOf(on, slot) === yarnOf(colourway, slot)).length;
     // The table is worked out at forty places, so a year between two of them may take its neighbour's yarn for one of its letters.
     expect(same / slots.length).toBeGreaterThan(0.9);
+  });
+});
+
+describe("a ball lit", () => {
+  it("leaves its own yarns as they are and draws every other most of the way back to the paper", () => {
+    const palette = { A: { name: "Black", hex: "#000000", approximate: false }, B: { name: "Red", hex: "#ff0000", approximate: false } };
+    const shown = lit(palette, ["A"]);
+    expect(shown.A).toBe(palette.A);
+    expect(shown.B).toEqual({ ...palette.B, hex: "#f0a6a4" });
   });
 });
