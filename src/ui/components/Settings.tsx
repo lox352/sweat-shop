@@ -184,7 +184,11 @@ const Settings: React.FC = () => {
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
-    if (open && !element.open) element.showModal();
+    if (open && !element.open) {
+      element.showModal();
+      // The sheet itself, not its first button, is what was opened: see Dialog.
+      element.focus();
+    }
     if (!open && element.open) element.close();
   }, [open]);
 
@@ -202,6 +206,7 @@ const Settings: React.FC = () => {
       <dialog
         ref={ref}
         className="dialog settings-sheet"
+        tabIndex={-1}
         aria-labelledby={titleId}
         onCancel={(event) => {
           event.preventDefault();

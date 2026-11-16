@@ -25,7 +25,9 @@ const StartFitted: React.FC<{
   palette: Palette;
   coloursOn: (placement: Placement | undefined) => { palette: Palette; added: Shade[] };
   onStart: (fitted: Fitted) => void;
-}> = ({ sweater, size, knitted, tension, palette, coloursOn, onStart }) => {
+  /** The pattern being shown, while one is: see FitPreview. */
+  onShown?: (fitted: Fitted | undefined) => void;
+}> = ({ sweater, size, knitted, tension, palette, coloursOn, onStart, onShown }) => {
   const { state, ask, reset } = useFit();
   // Another tension, or another size, is another question.
   const key = `${size.id} ${tension.stitchesPer10cm} ${tension.roundsPer10cm}`;
@@ -78,6 +80,7 @@ const StartFitted: React.FC<{
           take="Start knitting this"
           onTake={onStart}
           onLeave={reset}
+          onChosen={onShown}
         />
       )}
     </div>

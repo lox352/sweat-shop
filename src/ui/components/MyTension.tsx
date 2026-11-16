@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import type { Measurements, SizeAbout, Tension } from "../../pattern/design";
 import { asKnitted, sameTension } from "../../reading/tension";
 import TensionForm from "./TensionForm";
@@ -38,6 +38,21 @@ const MyTension: React.FC<{
   // A sweater fitted comes as near the size as what was knitted lets it: the table says how near.
   const table = tension && (fitted || !sameTension(written, tension));
 
+  /*
+   * A tension given is answered below the form, which on a phone is below
+   * the foot of the panel: the answer is brought up to where it is seen. Not
+   * as the page opens with a tension already given, only when one is.
+   */
+  const answer = useRef<HTMLDivElement>(null);
+  const given = useRef(tension);
+  useEffect(() => {
+    const was = given.current;
+    given.current = tension;
+    if (!tension || (was && was.stitchesPer10cm === tension.stitchesPer10cm && was.roundsPer10cm === tension.roundsPer10cm)) return;
+    const smooth = !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    answer.current?.scrollIntoView?.({ block: "start", behavior: smooth ? "smooth" : "auto" });
+  }, [tension]);
+
   return (
     <section className="section my-tension" aria-labelledby="my-tension-heading">
       <h2 id="my-tension-heading">Your tension</h2>
@@ -48,7 +63,7 @@ const MyTension: React.FC<{
       </p>
       <TensionForm tension={tension} first="Compare with the pattern" onChange={onChange} />
       {tension && knitted && (
-        <div role="status">
+        <div role="status" ref={answer} className="my-tension-answer">
           <p>
             <strong>
               {tension.stitchesPer10cm} stitches and {tension.roundsPer10cm} rounds to 10cm.

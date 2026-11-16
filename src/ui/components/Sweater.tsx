@@ -87,6 +87,8 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
   const { stitches, rounds, index, yoke } = built;
   /** The knitter's own tension, where they have one before they begin: see StartFitted. */
   const [tension, setTension] = useState<Tension>();
+  /** A pattern worked out for that tension, while it is being shown: the bar's way forward is then that one, not the pattern as written. */
+  const [shownFit, setShownFit] = useState<Fitted>();
 
   const published = useMemo(() => sweater.colourways.find((c) => c.id === colourwayId) ?? sweater.colourways[0], [sweater, colourwayId]);
   const { on: laidOn } = useColourway(published, undefined);
@@ -124,7 +126,8 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
 
   // A project is made only now, so browsing designs never leaves one behind.
   const start = () => {
-    const project = startProject(sweater.id, size.id, colourway.id, own, trim);
+    // A tension given here goes with it, as the knitter's own: the jumper's page compares it with the pattern, and offers to fit the rest to it.
+    const project = startProject(sweater.id, size.id, colourway.id, own, trim, tension ? { tension } : undefined);
     navigate(chartPath(project.id, true));
   };
   // And one begun on a pattern worked out for its knitter: the knitting its own from the cast-on, kept on the device first.
@@ -213,7 +216,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
   const tensionPanel = (
     <MyTension key={size.id} size={size} tension={tension} onChange={setTension}>
       {tension && sweater.fitting && !sameTension(size, tension) && (
-        <StartFitted sweater={sweater} size={size} knitted={built} tension={tension} palette={palette} coloursOn={coloursOn} onStart={startFitted} />
+        <StartFitted sweater={sweater} size={size} knitted={built} tension={tension} palette={palette} coloursOn={coloursOn} onStart={startFitted} onShown={setShownFit} />
       )}
     </MyTension>
   );
@@ -251,10 +254,13 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
               {size.label} · {colourwayLabel(colourway, own)}
             </strong>
             <span className="quiet">
-              {balls.length} {balls.length === 1 ? "shade" : "shades"} · {bought} {bought === 1 ? "ball" : "balls"}
+              {/* With a pattern for the knitter's tension on show, that is what starting starts: one way forward, and the bar says which. */}
+              {shownFit
+                ? "Worked out for your tension"
+                : `${balls.length} ${balls.length === 1 ? "shade" : "shades"} · ${bought} ${bought === 1 ? "ball" : "balls"}`}
             </span>
           </div>
-          <Button variant="primary" onClick={start}>
+          <Button variant="primary" onClick={shownFit ? () => startFitted(shownFit) : start}>
             Start knitting
           </Button>
         </>

@@ -147,6 +147,15 @@
   font-size: var(--text-s);
 }
 
+/* What the way forward is for, whole: a second line where one will not hold it, and cut short only after that. */
+.stage-bar-text > strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  text-wrap: balance;
+}
+
 .stage-bar .btn {
   flex: none;
 }

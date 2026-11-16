@@ -135,8 +135,8 @@
 .customise-sheet {
   display: flex;
   flex-direction: column;
-  height: 40vh;
-  height: 40dvh;
+  height: 44vh;
+  height: 44dvh;
   min-height: 0;
 }
 
@@ -185,8 +185,10 @@
   padding: 0.25rem 1rem 0.5rem;
 }
 
+/* One line where it can be, so the shades have the sheet. */
 .customise-sheet .yarn-picker-foot {
-  padding: 0.4rem 1rem;
+  gap: 0 1rem;
+  padding: 0.2rem 1rem;
 }
 
 /* Room for it: the jumper and the wools beside the chart. */

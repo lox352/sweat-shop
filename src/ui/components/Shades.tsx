@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Wool, WoolId, WoolRange } from "../../pattern/yarns";
 import Button from "./ui/Button";
 import "./Shades.css";
@@ -45,8 +45,10 @@ const Shades: React.FC<{
   current: { name: string; code?: string; hex: string; wool?: WoolId };
   /** Where to start looking: the yarn the colourway is written in. */
   suggest?: string;
+  /** Whether the ball is wool of the knitter's own: only then is there a pattern's wool to go back to. */
+  own?: boolean;
   onChoose: (chosen: Chosen | undefined) => void;
-}> = ({ current, suggest, onChoose }) => {
+}> = ({ current, suggest, own = true, onChoose }) => {
   const [library, setLibrary] = useState<Library>();
   const [query, setQuery] = useState("");
   const [within, setWithin] = useState<string>(suggest ?? "");
@@ -54,14 +56,39 @@ const Shades: React.FC<{
   // Fetched when shades are first shown, and only once.
   useEffect(() => {
     let live = true;
-    load().then((loaded) => live && setLibrary(loaded));
+    load().then((loaded) => {
+      if (!live) return;
+      // A ball already in wool of another yarn opens on that yarn's shades, where it is.
+      const home = current.wool && loaded.ranges.find((range) => range.wools.some((wool) => wool.id === current.wool));
+      if (home) setWithin(home.id);
+      setLibrary(loaded);
+    });
     return () => {
       live = false;
     };
+    // Once, as the shades are first shown: what the ball is then.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Another yarn's shades start from that yarn's own range again.
   useEffect(() => setWithin(suggest ?? ""), [suggest]);
+
+  /*
+   * The shades open on the one the ball is in now, not at the top of a list
+   * of two hundred: once, when they are first shown. A shade chosen after
+   * that is under the finger already, and the list stays where it is.
+   */
+  const list = useRef<HTMLDivElement>(null);
+  const opened = useRef(false);
+  useLayoutEffect(() => {
+    const box = list.current;
+    if (!library || opened.current || !box) return;
+    opened.current = true;
+    const chosen = box.querySelector<HTMLElement>(".yarn-option.is-chosen");
+    if (!chosen) return;
+    const [inBox, row] = [box.getBoundingClientRect(), chosen.getBoundingClientRect()];
+    box.scrollTop += row.top - inBox.top - (inBox.height - row.height) / 2;
+  }, [library]);
 
   const shown = useMemo(() => {
     if (!library) return [];
@@ -78,6 +105,8 @@ const Shades: React.FC<{
     const near = library.search(query, within || undefined);
     return (near.length > 0 ? near : library.search(query)).slice(0, 400);
   }, [library, query, within]);
+  // One yarn's shades, browsed: every row is that yarn's, which the menu over them says already.
+  const oneRange = !query.trim() && within !== "";
 
   return (
     <>
@@ -99,7 +128,7 @@ const Shades: React.FC<{
         </label>
       </div>
 
-      <div className="yarn-picker-list">
+      <div className="yarn-picker-list" ref={list}>
         {!library && <p className="quiet">Fetching the wool…</p>}
         {library && shown.length === 0 && (
           <p className="quiet">{query.trim() ? "No wool of that name or number." : "Search, or choose a yarn to see its shades."}</p>
@@ -117,10 +146,14 @@ const Shades: React.FC<{
                 <span className="yarn-option-name">
                   <strong>{wool.name}</strong>
                   {wool.code ? <span className="quiet"> {wool.code}</span> : null}
-                  <span className="quiet yarn-option-range">
-                    {wool.spinner} · {wool.range}
-                    {wool.soldOut ? " · not in stock" : ""}
-                  </span>
+                  {oneRange ? (
+                    wool.soldOut && <span className="quiet yarn-option-range">Not in stock</span>
+                  ) : (
+                    <span className="quiet yarn-option-range">
+                      {wool.spinner} · {wool.range}
+                      {wool.soldOut ? " · not in stock" : ""}
+                    </span>
+                  )}
                 </span>
               </button>
             </li>
@@ -133,9 +166,11 @@ const Shades: React.FC<{
           <span>Or a colour off the ball in your hands</span>
           <input type="color" value={current.hex} onChange={(event) => onChoose({ hex: event.target.value, name: "Your own", code: undefined })} />
         </label>
-        <Button variant="quiet" onClick={() => onChoose(undefined)}>
-          Back to the pattern's wool
-        </Button>
+        {own && (
+          <Button variant="quiet" onClick={() => onChoose(undefined)}>
+            Back to the pattern's wool
+          </Button>
+        )}
       </div>
     </>
   );

@@ -41,7 +41,11 @@ const Dialog: React.FC<DialogProps> = ({
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
-    if (open && !element.open) element.showModal();
+    if (open && !element.open) {
+      element.showModal();
+      // Opened, a dialog puts the focus on its first button, ringed as if it were chosen. What was opened is the dialog itself - or the field it asks for.
+      (element.querySelector<HTMLElement>("input:not([type=hidden])") ?? element).focus();
+    }
     if (!open && element.open) element.close();
   }, [open]);
 
@@ -58,7 +62,7 @@ const Dialog: React.FC<DialogProps> = ({
   }, [onCancel]);
 
   return (
-    <dialog className="dialog" ref={ref} aria-labelledby={titleId}>
+    <dialog className="dialog" ref={ref} tabIndex={-1} aria-labelledby={titleId}>
       <form
         method="dialog"
         onSubmit={(event) => {

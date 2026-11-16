@@ -2,6 +2,24 @@
   margin: 0.4rem 0;
 }
 
+/* What was counted, and over how far: the two rows in the same columns, so the fields stand under each other. */
+.my-tension-form p:not(.my-tension-actions) {
+  display: grid;
+  grid-template-columns: 5.5rem 6.1rem 5.5rem auto;
+  align-items: center;
+  column-gap: 0.5rem;
+}
+
+/* The ring inside the field: the panel it is in cuts off anything drawn past its edge. */
+.my-tension-form input:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Brought up under the panel's tabs when a tension is given, with a little air above it. */
+.my-tension-answer {
+  scroll-margin-top: 0.75rem;
+}
+
 .my-tension-form input {
   width: 5.5rem;
   font: inherit;

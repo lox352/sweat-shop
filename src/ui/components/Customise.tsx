@@ -57,6 +57,13 @@ const Customise: React.FC<{
   const balls = useMemo(() => ballsOf(colourway, metres, overrides).filter((ball) => ball.metres > 0), [colourway, metres, overrides]);
   /** The ball being chosen, by the yarns it does: those stay the ones changed, whatever other ball its wool comes to match. */
   const [picking, setPicking] = useState(first);
+  /*
+   * A wool chosen by name - from the strip, or a row of the wool list - is
+   * shown on the chart where it is first knitted, since the chart opens on
+   * the cast-on and most wools are nowhere near it. One chosen by a stitch
+   * tapped is under the finger already, and the chart stays where it is.
+   */
+  const [finding, setFinding] = useState(first);
   const chosen = picking && balls.find((ball) => ball.slots.includes(picking[0]));
   const shown = useMemo(() => (picking ? lit(palette, picking) : palette), [palette, picking]);
 
@@ -65,6 +72,12 @@ const Customise: React.FC<{
   const [viewId, setViewId] = useState(finished[0]?.id);
   const view = finished.find((one) => one.id === viewId) ?? finished[0];
   const chart = view ? viewChart(built, counted, view) : { layout: counted.layout, markers: counted.markers };
+  const cells = chart.layout?.cells;
+  const found = useMemo(() => {
+    if (!finding || !cells) return undefined;
+    const slots = new Set<string>(finding);
+    return stitches.find((stitch) => slots.has(stitch.slot) && cells.has(stitch.id))?.id;
+  }, [finding, cells, stitches]);
   const last = stitches[stitches.length - 1]?.id ?? 0;
   const own = ownBalls(colourway, overrides);
 
@@ -109,6 +122,9 @@ const Customise: React.FC<{
             // A chart draws what is knitted faded, as done with: here nothing is, so every stitch is in its wool; and it opens on the first of them, where the piece begins.
             progress={0}
             follow
+            showAt={found}
+            // Up the window a way, so the rounds either side of it are seen too.
+            followAt={0.4}
             onPick={pick}
             stitchNotes={sweater.stitchNotes}
             pieces={sweater.pieces}
@@ -138,7 +154,14 @@ const Customise: React.FC<{
               All wools
             </Button>
           </div>
-          <Shades current={chosen.yarn} suggest={colourway.wool} onChoose={(choice) => onChange(picking, choice)} />
+          {/* Each ball's shades are its own: the list opens on the shade it is in, and a search for one ball is not left for the next. */}
+          <Shades
+            key={picking.join()}
+            current={chosen.yarn}
+            suggest={colourway.wool}
+            own={picking.some((slot) => overrides[slot])}
+            onChoose={(choice) => onChange(picking, choice)}
+          />
         </section>
       ) : (
         <section className="customise-wools" aria-label="Your wools">
@@ -154,7 +177,10 @@ const Customise: React.FC<{
                 style={{ background: ball.yarn.hex }}
                 aria-label={`${ball.yarn.name}${ball.yarn.code ? ` (${ball.yarn.code})` : ""}`}
                 title={ball.yarn.name}
-                onClick={() => setPicking(ball.slots)}
+                onClick={() => {
+                  setPicking(ball.slots);
+                  setFinding(ball.slots);
+                }}
               />
             ))}
           </div>

@@ -213,6 +213,12 @@
   line-height: 1;
 }
 
+/* The line under the figure: whole, on a line of its own, where beside "Under 1%" it would break after a word or two. */
+.jumper-progress-counts {
+  display: block;
+  margin-top: 0.2rem;
+}
+
 .jumper-track {
   display: block;
   height: 6px;
@@ -228,7 +234,9 @@
   background: var(--crimson);
 }
 
+/* The time's figures side by side: two short ones are a line, not a column. */
 .jumper-time {
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
   margin-bottom: 1rem;
 }
 
@@ -267,8 +275,9 @@
 .is-looking .view-tabs {
   flex: none;
   flex-wrap: nowrap;
-  margin: 0;
-  padding: 0.5rem 3.75rem 0.4rem 0.5rem;
+  /* The row ends where the way out begins: a view scrolled to is never under it. */
+  margin: 0 3.75rem 0 0;
+  padding: 0.5rem 0.5rem 0.4rem;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -307,6 +316,7 @@
   gap: 0.9rem;
 }
 
+
 /* On the jumper's page: a window of the chart at the needle. */
 .chart-window {
   display: block;
@@ -340,4 +350,18 @@
 
 .chart-window-label .quiet {
   color: var(--crimson-dark);
+}
+
+/*
+ * The jumper's picture always fits what it is drawn in. When a stage changes
+ * height - a panel read down, shades opened - the picture is drawn again at
+ * the new size, but on a phone not until the scrolling under a finger has
+ * come to rest, a second or more later; until then the picture it has is
+ * fitted whole into the new space, where it would otherwise be cut off at
+ * the chest.
+ */
+.sweater-canvas canvas {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
 }
