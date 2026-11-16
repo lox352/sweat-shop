@@ -127,6 +127,15 @@
   font-size: var(--text-s);
 }
 
+.design-card-text .eyebrow > span {
+  white-space: nowrap;
+}
+
+/* The designer's line, even: not a word alone on its last line. */
+.design-card-text .quiet {
+  text-wrap: balance;
+}
+
 
 /* Project cards with the yoke's bands on top, like the design cards below them. */
 .project-list {

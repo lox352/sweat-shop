@@ -536,7 +536,7 @@ const ProjectView: React.FC<{
 
   if (exploring && detail && time) {
     return (
-      <PageLayout title={title} eyebrow={eyebrow} showTitle={false} className="knit-screen is-looking">
+      <PageLayout title={title} eyebrow={eyebrow} showTitle={false} className="knit-screen is-looking is-timing">
         <section className="section chart-page" data-view={shownView?.id}>
           {tabs}
           {close}
@@ -732,6 +732,8 @@ const ProjectView: React.FC<{
           trim={sweater.trim}
           trimChosen={project.trim}
           onTrim={setTrim}
+          // The line over the buttons has named it already.
+          named={false}
         />
       )}
       <WoolList

@@ -98,7 +98,9 @@ const ColourwayChoice: React.FC<{
   /** The trim chosen, if any, by its wool: see palette's trimIdOf. */
   trimChosen?: string;
   onTrim?: (trim: string | undefined) => void;
-}> = ({ colourways, colourway, overrides, body, onStartFrom, trim, trimChosen, onTrim }) => {
+  /** Whether it says which colourway is in use, over the choice of them: not where whatever shows it has said so already. */
+  named?: boolean;
+}> = ({ colourways, colourway, overrides, body, onStartFrom, trim, trimChosen, onTrim, named = true }) => {
   const [asking, setAsking] = useState<Colourway>();
   const groups = useMemo(() => groupsOf(colourways), [colourways]);
   const [family, setFamily] = useState(colourway.family);
@@ -111,7 +113,7 @@ const ColourwayChoice: React.FC<{
 
   return (
     <>
-      <p className="your-colourway">
+      {named && <p className="your-colourway">
         <strong>{colourway.name}</strong>{" "}
         <span className="quiet">
           {own > 0 ? (
@@ -124,7 +126,7 @@ const ColourwayChoice: React.FC<{
             </>
           )}
         </span>
-      </p>
+      </p>}
       {groups.length > 1 && (
         <div className="colourway-families" role="group" aria-label="Groups of colourways">
           {groups.map(([name]) => (
