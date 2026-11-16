@@ -6,7 +6,7 @@ import type { useSweater } from "../useSweater";
 import Chart from "../chart/Chart";
 import ViewTabs from "../chart/ViewTabs";
 import SweaterModel from "./SweaterModel";
-import { Shades, type Chosen } from "./YarnPicker";
+import Shades, { type Chosen } from "./Shades";
 import TitleBlock from "./ui/TitleBlock";
 import Button from "./ui/Button";
 import "./Customise.css";
@@ -39,7 +39,9 @@ const Customise: React.FC<{
   /** Every wool back to the base's. */
   onReset: () => void;
   onDone: () => void;
-}> = ({ sweater, sizeId, edition, built, colourway, overrides, metres, onChange, onReset, onDone }) => {
+  /** The ball it opens on, by the yarns it does, where one was chosen from a list of them. */
+  first?: SlotId[];
+}> = ({ sweater, sizeId, edition, built, colourway, overrides, metres, onChange, onReset, onDone, first }) => {
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const element = dialog.current;
@@ -54,7 +56,7 @@ const Customise: React.FC<{
   // Only the wool this size knits: a smaller size leaves the last bands' colours out.
   const balls = useMemo(() => ballsOf(colourway, metres, overrides).filter((ball) => ball.metres > 0), [colourway, metres, overrides]);
   /** The ball being chosen, by the yarns it does: those stay the ones changed, whatever other ball its wool comes to match. */
-  const [picking, setPicking] = useState<SlotId[]>();
+  const [picking, setPicking] = useState(first);
   const chosen = picking && balls.find((ball) => ball.slots.includes(picking[0]));
   const shown = useMemo(() => (picking ? lit(palette, picking) : palette), [palette, picking]);
 

@@ -393,3 +393,19 @@
 }
 .pattern-updated p { margin: 0; }
 .pattern-updated-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+
+/* The jumper's page: how far, in figures, beside its ring. */
+.jumper-progress {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+}
+
+.jumper-manage,
+.jumper-wool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+}

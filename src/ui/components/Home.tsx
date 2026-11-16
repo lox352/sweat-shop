@@ -1,15 +1,13 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { sweaters, sweaterById } from "../../library/catalogue";
 import {
   Project,
   bareIdFor,
-  deleteProject,
   chartPath,
   overviewPath,
   listProjects,
   projectsChanged,
-  renameProject,
 } from "../../projects/projects";
 import { countedAt, yokeRounds } from "../../reading/counted";
 import { useKnitting } from "../useSweater";
@@ -20,9 +18,6 @@ import { editionOf } from "../../library/editions";
 import { positionOf, totals } from "../../reading/progress";
 import { colourwayLabel, paletteOf, trimmed } from "../../reading/palette";
 import PageLayout from "./ui/PageLayout";
-import Button from "./ui/Button";
-import Dialog from "./ui/Dialog";
-import NameDialog from "./ui/NameDialog";
 import BodyStrip from "./BodyStrip";
 import { useKnittingTime } from "../useKnittingTime";
 import { timeLine } from "../../projects/timing/format";
@@ -47,7 +42,7 @@ const describe = (project: Project, sweater: Design, built: SweaterStitches) => 
   return { sweater, counts, position, colourway, size, stitches, yoke: yokeRounds(built) };
 };
 
-type CardProps = { project: Project; onRename: () => void; onDelete: () => void };
+type CardProps = { project: Project };
 
 /** A project's card, once its knitting is to hand: see useKnitting. A project of a design no longer known has none. */
 const ProjectCard: React.FC<CardProps> = (props) => {
@@ -61,8 +56,7 @@ const ProjectCard: React.FC<CardProps> = (props) => {
   ) : null;
 };
 
-const KnownProjectCard: React.FC<CardProps & { sweater: Design }> = ({ project, onRename, onDelete, sweater: design }) => {
-  const navigate = useNavigate();
+const KnownProjectCard: React.FC<CardProps & { sweater: Design }> = ({ project, sweater: design }) => {
   const sizeId = (design.sizes.find((s) => s.id === project.sizeId) ?? design.sizes[0]).id;
   // The edition the project knits: see library/editions.
   const built = useKnitting(design, sizeId, editionOf(project));
@@ -72,22 +66,6 @@ const KnownProjectCard: React.FC<CardProps & { sweater: Design }> = ({ project, 
   const id = bareIdFor(project.id);
   const palette = paletteOf(colourway, project.shades);
   const done = counts.percent >= 100;
-
-  const actions = (
-    <div className="project-card-actions">
-      <Button
-        variant="primary"
-        onClick={() => navigate(done ? overviewPath(id) : chartPath(id, true))}
-      >
-        {done ? "See it" : counts.worked > 0 ? "Keep knitting" : "Start knitting"}
-      </Button>
-      {!done && (
-        <Button variant="secondary" onClick={() => navigate(overviewPath(id))}>
-          Overview
-        </Button>
-      )}
-    </div>
-  );
   const status = done
     ? `Finished · ${counts.total.toLocaleString()} stitches`
     : `${position.piece ? `${position.piece.label}, round ${position.row} · ` : ""}` +
@@ -95,37 +73,22 @@ const KnownProjectCard: React.FC<CardProps & { sweater: Design }> = ({ project, 
 
   /*
    * The yoke in this project's own wool, with a line along its foot for how
-   * far through the whole sweater the knitting is. Only its buttons go
-   * anywhere: the card itself is for reading.
+   * far through the whole sweater the knitting is. The card opens the jumper,
+   * where it is looked after; its one button goes straight to the needles.
    */
   return (
     <li className="project-card">
-      <div className="project-card-body">
+      <Link to={overviewPath(id)} className="project-card-body">
         <span className="project-card-picture">
-          <BodyStrip
-            stitches={stitches}
-            rounds={yoke}
-            palette={palette}
-            className="design-card-body"
-          />
+          <BodyStrip stitches={stitches} rounds={yoke} palette={palette} className="design-card-body" />
           <span className="project-card-bar" aria-hidden="true">
             <span style={{ width: `${counts.percent}%` }} />
           </span>
         </span>
         <span className="project-card-text">
-          <span className="project-card-head">
-            <strong>{project.name ?? sweater.name}</strong>
-            {/* Looking after the project, out of the way at the top right. */}
-            <span className="project-card-manage">
-              <Button variant="quiet" onClick={onRename}>
-                Rename
-              </Button>
-              <Button variant="quiet" onClick={onDelete}>
-                Delete
-              </Button>
-            </span>
-          </span>
+          <strong>{project.name ?? sweater.name}</strong>
           <span className="quiet">
+            {project.name ? `${sweater.name} · ` : ""}
             {size.label} · {colourwayLabel(colourway, project.shades)}
           </span>
           <span className="quiet">
@@ -135,8 +98,14 @@ const KnownProjectCard: React.FC<CardProps & { sweater: Design }> = ({ project, 
           </span>
           {time && <span className="quiet">{timeLine(time, done)}</span>}
         </span>
-      </div>
-      {actions}
+      </Link>
+      {!done && (
+        <div className="project-card-actions">
+          <Link to={chartPath(id, true)} className="btn btn-primary">
+            {counts.worked > 0 ? "Keep knitting" : "Start knitting"}
+          </Link>
+        </div>
+      )}
     </li>
   );
 };
@@ -150,8 +119,6 @@ const DesignStrip: React.FC<{ sweater: Design }> = ({ sweater }) => {
 
 const Home: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [renaming, setRenaming] = useState<Project>();
-  const [deleting, setDeleting] = useState<Project>();
 
   const refresh = useCallback(() => setProjects(listProjects()), []);
 
@@ -182,12 +149,7 @@ const Home: React.FC = () => {
           <h2>On your needles</h2>
           <ul className="project-list">
             {projects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                onRename={() => setRenaming(project)}
-                onDelete={() => setDeleting(project)}
-              />
+              <ProjectCard key={project.id} project={project} />
             ))}
           </ul>
         </section>
@@ -219,38 +181,8 @@ const Home: React.FC = () => {
             );
           })}
         </ul>
-        <p className="quiet">
-          Choose a design to explore its sizes, wool and chart.
-        </p>
       </section>
 
-      {renaming && (
-        <NameDialog
-          open
-          title="Name this project"
-          text="Something to tell it apart from the others."
-          initialValue={renaming.name ?? ""}
-          onCancel={() => setRenaming(undefined)}
-          onConfirm={(name) => {
-            renameProject(renaming.id, name);
-            setRenaming(undefined);
-          }}
-        />
-      )}
-      {deleting && (
-        <Dialog
-          open
-          title="Delete this project?"
-          text="This only forgets how far you had got. The design itself is not going anywhere."
-          confirmLabel="Delete"
-          confirmVariant="danger"
-          onCancel={() => setDeleting(undefined)}
-          onConfirm={() => {
-            deleteProject(deleting.id);
-            setDeleting(undefined);
-          }}
-        />
-      )}
     </PageLayout>
   );
 };

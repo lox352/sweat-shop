@@ -1,20 +1,19 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import type { Wool, WoolId, WoolRange } from "../../pattern/yarns";
-import { inkOn } from "../../reading/palette";
 import Button from "./ui/Button";
-import "./YarnPicker.css";
+import "./Shades.css";
 
 /**
  * Choose the wool actually in your hands.
  *
- * Nine hundred and ninety-eight shades is too many to scroll, so it opens on
- * the yarn the pattern names and is searched rather than browsed: "293",
+ * Nine hundred and ninety-eight shades is too many to scroll, so they open
+ * on the yarn the pattern names and are searched rather than browsed: "293",
  * "port wine" and "jamieson wine" all find the same ball. The library is
- * fetched when the picker first opens and never on the way to a hat, because
- * it is a quarter of a megabyte and most visits never need it.
+ * fetched when shades are first shown and never on the way to a design,
+ * because it is a quarter of a megabyte and most visits never need it.
  *
  * A shade that is not in the library - or a ball whose band went in the bin -
- * is still knittable: there is a plain colour well at the bottom.
+ * is still knittable: there is a plain colour well at the foot.
  */
 
 export interface Chosen {
@@ -22,23 +21,6 @@ export interface Chosen {
   name?: string;
   code?: string;
   hex?: string;
-}
-
-interface YarnPickerProps {
-  open: boolean;
-  /** Which yarn of the pattern is being replaced: "Yarn C", or "Yarns A, C and G". */
-  label: string;
-  /** What it is now, whether from the pattern or already chosen. */
-  current: { name: string; code?: string; hex: string; wool?: WoolId };
-  /** Where to start looking: the yarn the colourway is written in. */
-  suggest?: string;
-  onChoose: (chosen: Chosen | undefined) => void;
-  onClose: () => void;
-  /**
-   * Something to show the choice by, above the wool. With one, choosing a
-   * shade tries it rather than closing, so several can be compared.
-   */
-  preview?: React.ReactNode;
 }
 
 type Library = {
@@ -57,12 +39,8 @@ const load = (): Promise<Library> => {
   return loading;
 };
 
-/**
- * The shades themselves: searched, or a yarn's own range; a plain colour for
- * the ball whose band went in the bin; and the way back to the pattern's
- * wool. In the picker's dialog, and in the sheet of the Customise screen.
- */
-export const Shades: React.FC<{
+/** The shades to change a ball to: searched, or a yarn's own range; a plain colour; and the way back to the pattern's wool. In the sheet of the Customise screen. */
+const Shades: React.FC<{
   /** What the ball is now, whether from the pattern or already chosen. */
   current: { name: string; code?: string; hex: string; wool?: WoolId };
   /** Where to start looking: the yarn the colourway is written in. */
@@ -163,66 +141,4 @@ export const Shades: React.FC<{
   );
 };
 
-const YarnPicker: React.FC<YarnPickerProps> = ({ open, label, current, suggest, onChoose, onClose, preview }) => {
-  const dialog = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const element = dialog.current;
-    if (!element) return;
-    if (open && !element.open) element.showModal();
-    if (!open && element.open) element.close();
-  }, [open]);
-
-  useEffect(() => {
-    const element = dialog.current;
-    if (!element) return;
-    const cancel = (event: Event) => {
-      event.preventDefault();
-      onClose();
-    };
-    element.addEventListener("cancel", cancel);
-    return () => element.removeEventListener("cancel", cancel);
-  }, [onClose]);
-
-  return (
-    <dialog className="yarn-picker" ref={dialog} aria-label={`Wool for ${label}`}>
-      <div className="yarn-picker-head">
-        <div>
-          <h2>
-            {label}
-            <span className="quiet">
-              {" "}
-              · now {current.name}
-              {current.code ? ` (${current.code})` : ""}
-            </span>
-          </h2>
-          <span className="shade-chip" style={{ background: current.hex, color: inkOn(current.hex) }}>
-            {current.hex}
-          </span>
-        </div>
-        <Button variant="quiet" onClick={onClose} aria-label="Close">
-          Done
-        </Button>
-      </div>
-      {preview && (
-        <div className="yarn-picker-preview">
-          {preview}
-          <p className="quiet">Tap a shade to try it; Done keeps it.</p>
-        </div>
-      )}
-      {open && (
-        <Shades
-          current={current}
-          suggest={suggest}
-          onChoose={(chosen) => {
-            onChoose(chosen);
-            // A wool chosen with nothing to try it on closes; a colour off the ball, or the pattern's own again, stays as it did.
-            if (chosen?.wool && !preview) onClose();
-          }}
-        />
-      )}
-    </dialog>
-  );
-};
-
-export default YarnPicker;
+export default Shades;
