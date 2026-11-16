@@ -66,6 +66,11 @@ interface ChartProps {
    * progress to move to, which is the stitch before the one tapped.
    */
   onJump?: (progress: number) => void;
+  /**
+   * A tap gives the stitch to whoever asks, and no bubble opens: choosing a
+   * stitch for its wool, where the chart is being coloured and not knitted.
+   */
+  onPick?: (id: number) => void;
   /** What the pattern says about its stitches, for the symbol key. */
   stitchNotes?: Design["stitchNotes"];
   /** How far up the window the followed stitch sits, as a share of it. */
@@ -117,6 +122,7 @@ const Chart: React.FC<ChartProps> = ({
   labels,
   stitchNotes,
   onJump,
+  onPick,
   overlay,
   pickerNote,
   followAt,
@@ -608,6 +614,10 @@ const Chart: React.FC<ChartProps> = ({
           style={{ marginLeft: leftMargin(cellSize) }}
           onClick={(event) => {
             const id = tilesRef.current?.stitchAt(event.clientX, event.clientY);
+            if (onPick) {
+              if (id !== undefined) onPick(id);
+              return;
+            }
             setPicked(id === picked ? undefined : id);
           }}
           role="img"

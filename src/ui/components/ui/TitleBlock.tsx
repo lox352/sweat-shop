@@ -18,11 +18,17 @@ const TitleBlock: React.FC<{
   eyebrow?: React.ReactNode;
   /** Home: the title is the site's own name. */
   home?: boolean;
-}> = ({ title, showTitle = true, eyebrow, home = false }) => (
+  /**
+   * A view opened over a page - a job, not a place: its small line stands
+   * alone, with no way home in it, and in the gear's corner is the way out,
+   * Done where something was changed and a cross where it was only looked at.
+   */
+  out?: React.ReactNode;
+}> = ({ title, showTitle = true, eyebrow, home = false, out }) => (
   <header className="title-block">
     <div className="title-block-text">
       <p className="eyebrow screen-only">
-        {home ? (
+        {home || out ? (
           eyebrow
         ) : (
           <>
@@ -35,9 +41,7 @@ const TitleBlock: React.FC<{
       </p>
       {showTitle && <h1 className="page-title">{title}</h1>}
     </div>
-    <div className="title-block-actions screen-only">
-      <Settings />
-    </div>
+    <div className="title-block-actions screen-only">{out ?? <Settings />}</div>
   </header>
 );
 

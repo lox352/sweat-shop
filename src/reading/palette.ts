@@ -152,6 +152,25 @@ export const woolsAdded = (from: Colourway, to: Colourway): Shade[] => {
   });
 };
 
+/** The paper a quietened yarn is drawn back towards: the site's own ground. */
+const paper = [234, 231, 228];
+
+/**
+ * A palette with every yarn but these gone quiet, drawn most of the way back
+ * to the paper: where a ball is knitted, on the chart and on the jumper,
+ * while it is being chosen.
+ */
+export const lit = (palette: Palette, slots: SlotId[]): Palette => {
+  const on = new Set<string>(slots);
+  return Object.fromEntries(
+    Object.entries(palette).map(([slot, yarn]) => {
+      if (on.has(slot)) return [slot, yarn];
+      const hex = rgbOf(yarn.hex).map((part, at) => Math.round(part * 0.28 + paper[at] * 0.72).toString(16).padStart(2, "0"));
+      return [slot, { ...yarn, hex: `#${hex.join("")}` }];
+    }),
+  );
+};
+
 const fallback: Yarn = { name: "unknown", hex: "#cccccc", approximate: true };
 
 export const yarnFor = (palette: Palette, slot: string): Yarn => palette[slot] ?? fallback;
