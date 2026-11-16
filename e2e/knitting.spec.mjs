@@ -516,7 +516,7 @@ test("Each Year Once knits every hat from 2014 to 2026 once, the yoke's first, t
   // Its colourways a group a page, the pages named over them, the one in use marked.
   await page.getByRole("tab", { name: "Colours", exact: true }).click();
   const groups = page.getByRole("tablist", { name: "Colours" });
-  const shownPage = page.locator(".pages-page[data-current]");
+  const shownPage = page.locator("#stage-panel-colours .pages-page[data-current]");
   await expect(groups.getByRole("tab", { selected: true })).toHaveText("Shetland and Fair Isle");
   await expect(shownPage.locator(".colourway-option")).toHaveCount(8);
   await expect(shownPage.locator(".is-chosen")).toContainText("Shetland naturals, all dark");
