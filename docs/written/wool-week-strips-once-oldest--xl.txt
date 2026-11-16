@@ -6,39 +6,42 @@ Yoke (yoke)
   Join to work in the round.
   9 rounds of k1, p1 in trim/14. Markers: after 0, place for the start of the round. [rib]
   Change to the main needles.
-  German short rows in 14A: 3 pairs, the first 24 sts past the beginning of the round, each 8 further.
-  Shaping round in 14A: [m1, k2] x 12, m1, k3, [m1, k2] x 11, m1, k3, [m1, k2] x 11, m1, k3, [m1, k2] x 11, m1, k3, [m1, k2] x 11, m1, k3, [m1, k2] x 11, m1, k3, to 225 sts.
-  Chart wool-week-strips-once-oldest-14C13t225-240w24b0, rows 1-1, 1 repeats a round.
+  German short rows in 14B: 3 pairs, the first 24 sts past the beginning of the round, each 8 further.
+  Shaping round in 14B: m1, k2, [m1, k3] x 50, to 203 sts.
+  Chart wool-week-strips-once-oldest-14A4t203-222w6b0, rows 1-1, 1 repeats a round.
+  Chart wool-week-strips-once-oldest-14A3-1w6b220, rows 1-3.
+  Shaping round in 14B: k7, m1, k13, m1, k14, m1, k13, m1, k15, m1, k14, m1, k13, m1, k15, [m1, k14, m1, k13] x 2, m1, k15, m1, k14, m1, k13, m1, k15, m1, k7, to 238 sts.
+  2 rounds of k1 in 14A.
+  Chart wool-week-strips-once-oldest-14C13t238-264w24b0, rows 1-1, 1 repeats a round.
   Chart wool-week-strips-once-oldest-14C12-4w24b012233c322, rows 1-9.
   Chart wool-week-strips-once-oldest-14C3w24d0-6.18b1, rows 1-1.
   Chart wool-week-strips-once-oldest-14C2-1w26x6.18b10, rows 1-2.
-  Shaping round in 14A: k1, m1, k14, m1, k13, m1, k16, m1, k15, m1, k13, m1, k15, m1, k16, m1, k13, m1, k15, m1, k14, m1, k13, m1, k16, m1, k15, m1, k13, m1, k15, m1, k16, m1, k13, m1, k14, to 278 sts.
-  1 round of k1 in 14C.
-  Chart wool-week-strips-once-oldest-14B13t278-308w28b0, rows 1-1, 1 repeats a round.
-  Chart wool-week-strips-once-oldest-14B12-4w28b012233c322, rows 1-9.
-  Chart wool-week-strips-once-oldest-14B3w28d0-8.20b1, rows 1-1.
-  Chart wool-week-strips-once-oldest-14B2-1w30x8.20b10, rows 1-2.
-  Shaping round in 14C: k1, [m1, k15] x 21, m1, k14, to 352 sts.
+  Shaping round in 14A: k7, [m1, k11, m1, k9] x 2, m1, k12, m1, k9, m1, k10, m1, k9, [m1, k11] x 2, [m1, k10] x 3, m1, k11, [m1, k10] x 2, [m1, k11, m1, k9] x 2, m1, k11, [m1, k10] x 2, m1, k11, [m1, k10] x 3, m1, k4, to 314 sts.
+  1 round of k1 in 14A.
+  1 round of k1 in 14B.
+  Chart wool-week-strips-once-oldest-14A4t314-330w6b0, rows 1-1, 1 repeats a round.
+  Chart wool-week-strips-once-oldest-14A3-1w6b220, rows 1-3.
+  Shaping round in 14B: k4, [m1, k16, m1, k17] x 9, m1, k16, m1, k13, to 350 sts.
   1 round of k1 in 15D/g0.
-  Chart wool-week-strips-once-oldest-15A24-24w4b0, rows 1-1.
+  Chart wool-week-strips-once-oldest-15A24-24w5x1b0, rows 1-1.
   1 round of k1 in 15D/g0.
-  Shaping round in 15D/g0: k2, [m1, k17, m1, k18] x 2, [m1, k18, m1, k17] x 2, [m1, k18] x 2, [m1, k17, m1, k18] x 2, [m1, k18, m1, k17] x 2, m1, k18, m1, k16, to 372 sts.
-  Chart wool-week-strips-once-oldest-15A21-21w4b0, rows 1-1.
+  Shaping round in 15D/g0: k13, [m1, k17, m1, k18] x 9, m1, k17, m1, k5, to 370 sts.
+  Chart wool-week-strips-once-oldest-15A21-21w5x3b0, rows 1-1.
   1 round of k1 in 15D/g0.
-  Chart wool-week-strips-once-oldest-15A19-19w3b0, rows 1-1.
-  Shaping round in 15D/g0: k14, m1, k24, m1, k22, m1, k23, [m1, k24] x 2, m1, k22, m1, k23, [m1, k24] x 2, m1, k22, m1, k23, [m1, k24] x 2, m1, k22, m1, k23, m1, k10, to 388 sts.
+  Chart wool-week-strips-once-oldest-15A19-19w5x1.2b0, rows 1-1.
+  Shaping round in 15D/g0: k17, m1, k22, m1, k23, m1, k22, [m1, k24] x 2, m1, k22, m1, k23, m1, k25, m1, k22, m1, k23, m1, k22, [m1, k24] x 2, m1, k22, m1, k23, m1, k8, to 386 sts.
   Chart wool-week-strips-once-oldest-15A17-17w2b0, rows 1-1.
   1 round of k1 in 15D/g0.
-  Chart wool-week-strips-once-oldest-15A15t388-420w30b0, rows 1-1, 1 repeats a round.
+  Chart wool-week-strips-once-oldest-15A15t386-420w30b0, rows 1-1, 1 repeats a round.
   Chart wool-week-strips-once-oldest-15A14-9w30b11233c2, rows 1-6.
   Chart wool-week-strips-once-oldest-15A8w30d0-0b1, rows 1-1.
   Chart wool-week-strips-once-oldest-15A7-6w31x0b10, rows 1-2.
-  Shaping round in 15A/g0: m1, k19, [m1, k20] x 2, m1, k19, [m1, k20] x 3, m1, k19, [m1, k20] x 3, m1, k19, [m1, k20] x 2, m1, k19, [m1, k20] x 3, m1, k19, [m1, k20] x 3, to 456 sts.
+  Shaping round in 15A/g0: k16, m1, k28, [m1, k26] x 2, m1, k28, [m1, k27] x 3, [m1, k28] x 2, [m1, k26] x 2, m1, k28, [m1, k27] x 3, m1, k12, to 450 sts.
   Chart wool-week-strips-once-oldest-15A4-4w2b0, rows 1-1.
   1 round of k1 in 15A/g0.
   Chart wool-week-strips-once-oldest-15A2-2w3b0, rows 1-1.
   1 round of k1 in 15A/g0.
-  Shaping round in 16E/g0: m1, k22, [m1, k23] x 4, m1, k22, [m1, k23] x 4, m1, k22, [m1, k23] x 4, m1, k22, [m1, k23] x 4, to 476 sts.
+  Shaping round in 16E/g0: [m1, k17] x 3, m1, k18, [m1, k17] x 2, m1, k18, [m1, k17] x 2, m1, k18, [m1, k17] x 2, m1, k18, [m1, k17] x 3, m1, k18, [m1, k17] x 2, m1, k18, [m1, k17] x 2, m1, k18, [m1, k17] x 2, m1, k18, to 476 sts.
   Chart wool-week-strips-once-oldest-16A38-34w14x3.11b0123c2, rows 1-5.
   Chart wool-week-strips-once-oldest-16A33w14d3.11-3.7.11b1, rows 1-1.
   Chart wool-week-strips-once-oldest-16A32-32w15x3.7.11b0, rows 1-1.
@@ -56,7 +59,7 @@ Yoke (yoke)
 Body (body)
   Divide, in 17A: k93, put 106 on hold for sleeve-right, cast on 16, k186, put 106 on hold for sleeve-left, cast on 16, k93. (404 sts)
   1 round of k1 in 17A.
-  Chart wool-week-strips-once-oldest-17A14-1w4b0123c2100123c210, rows 1-14.
+  Chart wool-week-strips-once-oldest-17A7-1w4b0123c210, rows 1-7.
   Chart wool-week-strips-once-oldest-17A14-1w4b0123c2100123c210, rows 1-14.
   Shaping round in 17A: k51, m1, [k101, m1] x 3, k50, to 408 sts.
   Chart wool-week-strips-once-oldest-18B24-4w12b001223c2210001223c22100, rows 1-21.
@@ -67,7 +70,7 @@ Body (body)
   1 round of k1 in 19G.
   Chart wool-week-strips-once-oldest-19C14-3w28b0112233c22110, rows 1-12.
   Shaping round in 19C: k12, [m1, k25, m1, k24] x 7, m1, k25, m1, k12, to 408 sts.
-  Chart wool-week-strips-once-oldest-20B35-6w24b001223c2210003000030001223c22100, rows 1-30.
+  Chart wool-week-strips-once-oldest-20B39-2w24b0030001223c2210003000030001223c221000300, rows 1-38.
   1 round of k1 in 21A.
   Chart wool-week-strips-once-oldest-21B33-3w24b0232000001122233c322211000002320, rows 1-31.
   Shaping round in 21A: k50, k2tog, [k100, k2tog] x 3, k50, to 404 sts.

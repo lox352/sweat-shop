@@ -61,7 +61,7 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
   const knitted = new Map<string, Knitted>();
   const knittedOf = (size: (typeof measured)[number]): Knitted => {
     let found = knitted.get(size.id);
-    if (!found) knitted.set(size.id, (found = knit(size.finished, planOf(size.finished, layout, size.id), `${id}-`)));
+    if (!found) knitted.set(size.id, (found = knit(size.finished, planOf(size.finished, layout), `${id}-`)));
     return found;
   };
   const sizes: Size[] = measured.map((size) => ({
@@ -80,7 +80,7 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
   const designers = [...new Set(years.map((y) => y.designer))];
   // The trims every size knits, which only the years at the neck, waist and wrists decide: the layout's, the same in every size.
   let trims: ReturnType<typeof trimsOf> | undefined;
-  const trimsNow = () => (trims ??= trimsOf(planOf(measured[0].finished, layout, measured[0].id).rows));
+  const trimsNow = () => (trims ??= trimsOf(planOf(measured[0].finished, layout).rows));
   // Each colourway with the trims this layout knits, of all those the colourways give.
   let own: Colourway[] | undefined;
   const colourwaysNow = () => {

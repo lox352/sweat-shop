@@ -341,5 +341,5 @@ export const splitOf = (size: Measured, g: Gauge = gauge) => {
 };
 
 /** A size's plan: what goes where, for its measurements at a tension - the samplers' own unless another is given. */
-export const planOf = (size: Measured, layout: Layout, sizeId: string, g: Gauge = gauge): Plan =>
-  layout.kind === "lined" ? lined(size, layout.newestFirst, g) : refit(size, sizeId, g);
+export const planOf = (size: Measured, layout: Layout, g: Gauge = gauge): Plan =>
+  layout.kind === "lined" ? lined(size, layout.newestFirst, g) : refit(size, g);
