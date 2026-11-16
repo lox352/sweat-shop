@@ -456,28 +456,36 @@ test("a bought design comes in every size it is written for, by its own wool, ev
   await expect(sizes.first()).toContainText("Kids 1");
   await expect(sizes.first()).toContainText("2–3 years");
   await expect(sizes.nth(4)).toContainText("to fit 71cm");
-  // The metres are the pattern's, and only for the colours a size knits: an L's eleven bands, a child's seven.
-  await panel("Colours").click();
-  await expect(page.getByText("The metres are the pattern's own", { exact: false })).toBeVisible();
-  const wool = page.locator(".wool-row");
-  await expect(wool).toHaveCount(23);
-  await panel("Size").click();
+  // Only the colours a size knits: an L's eleven bands, a child's seven. The bar at the foot says what Start would start.
+  const bar = page.locator(".stage-bar");
+  await expect(bar).toContainText("23 shades");
   await sizes.first().click();
+  await expect(bar).toContainText("Kids 1");
+  await expect(bar).toContainText("15 shades");
+  // Any of them can be changed, each on its own: the jumper, the chart and the wools on one screen.
   await panel("Colours").click();
-  await expect(wool).toHaveCount(15);
-  // The bar at the foot says what Start would start.
-  await expect(page.locator(".stage-bar")).toContainText("Kids 1");
-  await expect(page.locator(".stage-bar")).toContainText("15 shades");
-  // Any of them can be changed, each on its own.
-  const first = wool.filter({ has: page.locator(".shade-chip", { hasText: /^1A$/ }) });
-  await first.click();
-  const picker = page.getByRole("dialog", { name: "Wool for Yarn 1A" });
-  await picker.getByLabel("Search the wool").fill("Scarlet");
-  await picker.getByRole("button", { name: /^Scarlet .*Spindrift/ }).click();
-  await picker.getByRole("button", { name: "Close", exact: true }).click();
-  await expect(first).toContainText("Scarlet");
-  await expect(first).toContainText("yours");
-  await expect(wool.filter({ has: page.locator(".shade-chip", { hasText: /^1B$/ }) })).not.toContainText("yours");
+  await page.getByRole("button", { name: "Customise these colours", exact: true }).click();
+  const customise = page.getByRole("dialog", { name: "Customise the colours" });
+  await expect(customise.locator(".customise-wool")).toHaveCount(15);
+  // A stitch tapped on the chart chooses its wool, and its shades rise from the foot.
+  const chart = customise.locator(".chart-scroll");
+  await expect(customise.locator(".chart-sheets")).toBeVisible();
+  const box = await chart.boundingBox();
+  await chart.click({ position: { x: box.width / 2, y: box.height - 40 } });
+  const sheet = customise.getByRole("region", { name: /^Wool for / });
+  await expect(sheet).toBeVisible();
+  await sheet.getByLabel("Search the wool").fill("Scarlet");
+  await sheet.getByRole("button", { name: /^Scarlet .*Spindrift/ }).click();
+  await expect(customise.getByRole("region", { name: "Wool for Scarlet" })).toContainText("yours");
+  // Back at the strip, the wool is among the others; and Done goes back to the design, the colourway now the knitter's own.
+  await customise.getByRole("button", { name: "All wools", exact: true }).click();
+  await expect(customise.locator(".customise-wool")).toHaveCount(15);
+  await expect(customise.getByRole("button", { name: /^Scarlet/ })).toHaveCount(1);
+  await customise.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(customise).toHaveCount(0);
+  await expect(page).toHaveURL(/tab=colours$/);
+  await expect(bar).toContainText("Your own, from");
+  await expect(page.locator(".your-colourway")).toContainText("with 1 yarn of your own");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 });
 
