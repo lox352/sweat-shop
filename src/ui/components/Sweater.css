@@ -34,6 +34,55 @@
   white-space: nowrap;
 }
 
+/* On a page of its own, the ease and what a size is are said small, under the sizes. */
+.pages-page > .size-chooser + .quiet {
+  font-size: var(--text-s);
+  line-height: 1.45;
+}
+
+/* The schematic fills its page and no more: drawn to the page's height where that is the less. */
+.pages-page > .schematic {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.pages-page > .schematic svg {
+  flex: 1;
+  min-height: 0;
+  max-width: none;
+}
+
+.pages-page > .schematic figcaption {
+  flex: none;
+  text-align: center;
+}
+
+/* The measurements two abreast. */
+.pages-page > .measurements {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1rem;
+}
+
+.colours-own p {
+  margin-bottom: 0.65em;
+}
+
+.colours-own p:last-child {
+  margin-bottom: 0;
+}
+
+.colours-own .quiet {
+  font-size: var(--text-s);
+}
+
+.colours-own-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
 /* A size's schematic beside its measurements, or above them on a phone. */
 .size-figures {
   display: grid;

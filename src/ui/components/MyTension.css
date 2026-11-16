@@ -10,6 +10,12 @@
   column-gap: 0.5rem;
 }
 
+/* The pattern's own tension, in an empty field: an example, plainly not something typed. */
+.my-tension-form input::placeholder {
+  color: var(--ink-faint);
+  opacity: 0.55;
+}
+
 /* The ring inside the field: the panel it is in cuts off anything drawn past its edge. */
 .my-tension-form input:focus-visible {
   outline-offset: -2px;

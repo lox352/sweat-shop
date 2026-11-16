@@ -20,17 +20,12 @@
 .stage {
   position: relative;
   flex: none;
-  /* Changed at once and never eased: every size on the way would be the jumper drawn again at that size. */
-  height: min(36vh, 22rem);
-  height: min(36dvh, 22rem);
+  /* One size, whatever is under it: a jumper that changed size as a panel was read was a jumper drawn again each time. */
+  height: min(30vh, 19rem);
+  height: min(30dvh, 19rem);
   margin: 0 calc(-1 * var(--gutter));
   background: var(--paper-raised);
   border-bottom: 1px solid var(--rule);
-}
-
-.is-reading .stage {
-  height: min(22vh, 14rem);
-  height: min(22dvh, 14rem);
 }
 
 .stage-own,
@@ -111,6 +106,31 @@
   margin-top: 2rem;
 }
 
+/* A panel laid out in pages is the pages' to fill: nothing of it scrolls but a page, and nothing comes after it. */
+.stage-scroll.is-paged {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  /* The pages reach the screen's edges, past the page's gutters: they do their own cutting off. */
+  overflow: visible;
+}
+
+.stage-scroll.is-paged > .stage-panel:not([hidden]) {
+  flex: 1;
+  min-height: 0;
+}
+
+.stage-scroll.is-paged > .colophon {
+  display: none;
+}
+
+/* On a phone a design's panels are for the design: where projects are kept, and that the site is ready offline, are said on the way in, at the foot of the home page, and on a jumper's own. */
+@media (max-width: 59.99rem) {
+  .is-browsing .stage-scroll > .colophon {
+    display: none;
+  }
+}
+
 /* A panel begins at its top edge: what is in it brings no heading's margin with it. */
 .stage-panel > .section:first-child,
 .stage-panel > :first-child {
@@ -174,8 +194,7 @@
     grid-column: 1 / -1;
   }
 
-  .stage,
-  .is-reading .stage {
+  .stage {
     grid-row: 3;
     height: auto;
     margin: 1.5rem 0;

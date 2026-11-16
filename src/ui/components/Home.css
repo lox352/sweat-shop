@@ -66,6 +66,13 @@
   padding: 0 1rem 1rem;
 }
 
+/* Looking after a project, quietly, at the far end of its buttons. */
+.project-card-manage {
+  display: flex;
+  gap: 1rem;
+  margin-left: auto;
+}
+
 /* The card itself opens the jumper. */
 .project-card-body {
   display: block;
