@@ -61,7 +61,7 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
   await expect(shown).toContainText("The body has 2016 to 2020");
   expect(scripts.filter((url) => url.includes("fit.worker")).length).toBe(1);
   await shown.getByText("The rest, written out").click();
-  await expect(shown.locator(".refit-written")).toContainText("Divide, in 16E");
+  await expect(shown.locator(".refit-written")).toContainText("Divide, in 16D");
 
   await shown.getByRole("button", { name: "Knit the rest this way", exact: true }).click();
   await expect(section).toContainText("The rest of your pattern is worked out for this tension", { timeout: 20_000 });
@@ -187,6 +187,37 @@ test("a tension given before starting: the pattern is worked out for it from the
   await own.getByRole("button", { name: "Go back to the pattern as written", exact: true }).click();
   await expect(own.getByRole("heading", { name: "Fit the rest to your tension" })).toBeVisible();
   expect((await page.evaluate((id) => JSON.parse(localStorage.getItem(id)), started.id)).edition).toBe(current);
+});
+
+test("Each Year Once for a tension given before starting: every year or fewer, fuller, each from the cast-on", async ({ page }) => {
+  test.setTimeout(240_000);
+  await page.goto(`#/sweater/${design}?size=l`);
+  const section = page.getByRole("region", { name: "Your tension" });
+  await expect(section).toContainText("written for 32 stitches and 38 rounds to 10cm", { timeout: 20_000 });
+  await section.getByLabel("Stitches counted").fill("23.3");
+  await section.getByLabel("Rounds counted").fill("25");
+  await section.getByRole("button", { name: "Compare with the pattern", exact: true }).click();
+  await section.getByRole("button", { name: "Work the pattern out", exact: true }).click();
+  const shown = section.locator(".refit-shown");
+  await expect(shown).toBeVisible({ timeout: 150_000 });
+  await expect(shown).toContainText("From the cast-on.");
+  // All thirteen years, from 2014 round the yoke.
+  await expect(shown).toContainText(/The yoke has \d+ rounds, 2014 to 20\d\d, and grows from \d+ stitches to \d+\./);
+  await expect(shown).not.toContainText("Left out");
+  // Or fewer, each fuller: worked out with the first, and the last years said to be left out.
+  await shown.getByRole("radio", { name: /Fewer years, fuller/ }).check();
+  await expect(shown).toContainText(/Left out: 20\d\d to 2026\./);
+  await shown.getByText("The pattern, written out").click();
+  await expect(shown.locator(".refit-written")).toContainText(/Cast on \d+/);
+
+  await shown.getByRole("button", { name: "Start knitting this", exact: true }).click();
+  await expect(page.locator(".knitting-panel")).toContainText(/of \d+ stitches/, { timeout: 30_000 });
+  const started = await page.evaluate(() => JSON.parse(localStorage.getItem(Object.keys(localStorage).find((key) => key.startsWith("project-")))));
+  expect(started).toMatchObject({ sizeId: "l", progress: 0, tension: { stitchesPer10cm: 23.3, roundsPer10cm: 25 }, upTo: edition, fit: { from: edition, option: "fewer" } });
+  expect(started.fit.round).toBeUndefined();
+  // Every year it has is placed, from the neck down, for a colourway that steps down the sweater.
+  expect(Object.keys(started.fit.placement.places)[0]).toBe("2014");
+  expect(Object.keys(started.fit.placement.places).length).toBeLessThan(13);
 });
 
 test("a design that can't be worked out again does not offer to be", async ({ page }) => {

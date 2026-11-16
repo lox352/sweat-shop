@@ -1,5 +1,5 @@
 import { type Part, type Round, cutsOf, edgeOf as edge, groundOf, isPlain, lettersOfRound, measured, seamsOf, topDown } from "./cuts";
-import { type Frame, type Gauge, type Measured, type Plan, type Row, type Strip, splitOf } from "./plan";
+import { type Frame, type Gauge, type Measured, type Plan, type Row, type Strip, budgets, gauge } from "./plan";
 import { background } from "./quanta";
 
 /**
@@ -41,8 +41,8 @@ import { background } from "./quanta";
  *    each of its years at the top, takes their steps in rank order until it
  *    fits, and takes back any that a later, bigger step made room for again.
  *
- * The depths of the yoke, body and sleeves, and how many years each has, are
- * the even-strips plan's (see plan's splitOf).
+ * How many years each piece has, and where the yoke divides, is whatever
+ * keeps a year most nearly the same height on all three (see laidOut).
  */
 
 interface State {
@@ -421,40 +421,84 @@ const fit = (years: number[], total: number, ends: Ends, slack: number): { place
 const SLACK = { yoke: 2, body: 0, sleeve: 2 };
 const YEARS = Object.keys(ladders).map(Number);
 
-/** A size's pieces: the years each has, the rounds it has for them, and the cut of each that the rule chooses. */
-const piecesOf = (size: Measured, g?: Gauge) => {
-  const sp = splitOf(size, g);
-  const piece = (years: number[], total: number, name: keyof typeof SLACK) => {
-    const ends = { top: true, bottom: name !== "yoke" };
-    const fitted = fit(years, total, ends, SLACK[name]);
-    if (!fitted) throw new Error(`${years.join(", ")} will not go in ${total} rounds`);
-    return { ...fitted, total, ends };
-  };
-  return {
-    sp,
-    yoke: piece(YEARS.slice(0, sp.k), sp.yoke, "yoke"),
-    body: piece(YEARS.slice(sp.k, sp.k + sp.m), sp.body, "body"),
-    sleeve: piece(YEARS.slice(sp.k + sp.m), sp.sleeve, "sleeve"),
-  };
+const toRow = (r: R): Row => ("plain" in r ? { year: r.year, plain: r.plain } : r);
+
+/** A piece laid out: its years, the rounds it was given for them, the cut of each, and its rounds - a round fewer where an odd one was left out (rule 5). */
+interface Piece {
+  years: number[];
+  total: number;
+  placed: Placed[];
+  rows: Row[];
+  strips: Strip[];
+  frames: Frame[];
+}
+
+const pieceOf = (name: keyof typeof SLACK, years: number[], total: number): Piece | undefined => {
+  if (years.length === 0) return { years, total: 0, placed: [], rows: [], strips: [], frames: [] };
+  const ends = { top: true, bottom: name !== "yoke" };
+  const fitted = fit(years, total, ends, SLACK[name]);
+  if (!fitted) return undefined;
+  const built = build(fitted.placed, total, ends, fitted.mode);
+  return { years, total, placed: fitted.placed, rows: built.rows.map(toRow), strips: built.strips, frames: built.frames };
 };
+
+/**
+ * These years, in order, over the rounds there are for them on the yoke, the
+ * body and a sleeve - a whole sweater's, or what is left of one part knitted:
+ * so many to each piece that a year is most nearly the same height on all
+ * three, and each piece cut by rule 6. The divide may move as many as `reach`
+ * rounds, the body taking them, so that it falls between two years. A yoke
+ * with too little left for a year has none, and the body is as much longer,
+ * or shorter, as the yoke is not. None where the years will not go at all.
+ */
+export const laidOut = (years: number[], left: { yoke: number; body: number; sleeve: number }, reach: number): { yoke: Piece; body: Piece; sleeve: Piece } | undefined => {
+  const mean = (Math.max(0, left.yoke) + left.body + left.sleeve) / years.length;
+  const room = left.yoke >= 0.6 * mean;
+  const tries: { k: number; m: number; dy: number; dev: number }[] = [];
+  for (let k = 0; k <= years.length - 2; k++) {
+    if (k > 0 && !room) break;
+    for (let m = 1; m <= years.length - k - 1; m++) {
+      const n = years.length - k - m;
+      for (let dy = k > 0 ? -reach : 0; dy <= (k > 0 ? reach : 0); dy++) {
+        const yoke = k > 0 ? left.yoke + dy : 0;
+        const heights = [...(k > 0 ? [yoke / k] : []), (left.body + left.yoke - yoke) / m, left.sleeve / n];
+        // A yoke with room for a year has one, if the years will go that way at all: its depth is the size's.
+        tries.push({ k, m, dy, dev: Math.max(...heights.map((h) => Math.abs(h / mean - 1))) + (room && k === 0 ? 10 : 0) });
+      }
+    }
+  }
+  // The most even first; of two as even, the one with fewer years on the yoke, then on the body, then the shallower yoke.
+  for (const { k, m, dy } of tries.sort((a, b) => (Math.abs(a.dev - b.dev) < 1e-9 ? 0 : a.dev - b.dev)).slice(0, 24)) {
+    const yoke = pieceOf("yoke", years.slice(0, k), k > 0 ? left.yoke + dy : 0);
+    // A yoke may come out a round short of what it was given: the body has that too.
+    const body = yoke && pieceOf("body", years.slice(k, k + m), left.body + left.yoke - yoke.rows.length);
+    const sleeve = body && pieceOf("sleeve", years.slice(k + m), left.sleeve);
+    if (yoke && body && sleeve) return { yoke, body, sleeve };
+  }
+  return undefined;
+};
+
+/** How far the divide may move from the yoke's own depth, in rounds at a tension: about two centimetres. */
+export const reachAt = (g: Gauge = gauge) => Math.round(2.1 * g.rounds);
 
 /** What the rule chooses for a size, piece by piece: how the years are shared out, the rounds each piece has, and each year's cut with its rounds of pattern. */
 export const chosen = (size: Measured, g?: Gauge) => {
-  const { sp, yoke, body, sleeve } = piecesOf(size, g);
-  const cuts = (piece: { placed: Placed[] }) => piece.placed.map((p) => `${p.year} ${p.state.label} (${p.rounds.length})`);
-  return { split: `${sp.k}/${sp.m}/${sp.n}`, rounds: [sp.yoke, sp.body, sp.sleeve], yoke: cuts(yoke), body: cuts(body), sleeve: cuts(sleeve) };
+  const laid = laidOut(YEARS, budgets(size, g), reachAt(g));
+  if (!laid) throw new Error("the years will not go in this size");
+  const pieces = [laid.yoke, laid.body, laid.sleeve];
+  const cuts = (piece: Piece) => piece.placed.map((p) => `${p.year} ${p.state.label} (${p.rounds.length})`);
+  return { split: pieces.map((piece) => piece.years.length).join("/"), rounds: pieces.map((piece) => piece.total), yoke: cuts(laid.yoke), body: cuts(laid.body), sleeve: cuts(laid.sleeve) };
 };
 
-const toRow = (r: R): Row => ("plain" in r ? { year: r.year, plain: r.plain } : r);
-
+/** A whole size: every year, over all its rounds. */
 export const refit = (size: Measured, g?: Gauge): Plan => {
-  const { yoke, body, sleeve } = piecesOf(size, g);
-  const [y, b, s] = [yoke, body, sleeve].map((piece) => build(piece.placed, piece.total, piece.ends, piece.mode));
+  const laid = laidOut(YEARS, budgets(size, g), reachAt(g));
+  if (!laid) throw new Error("the years will not go in this size");
+  const { yoke, body, sleeve } = laid;
   return {
-    strips: { yoke: y.strips, body: b.strips, sleeve: s.strips },
-    rows: { yoke: y.rows.map(toRow), body: b.rows.map(toRow), sleeve: s.rows.map(toRow) },
-    // A piece a round shorter where an odd round was left out (rule 5).
-    depth: { yoke: y.rows.length, body: b.rows.length, sleeve: s.rows.length },
-    frames: { yoke: y.frames, body: b.frames, sleeve: s.frames },
+    strips: { yoke: yoke.strips, body: body.strips, sleeve: sleeve.strips },
+    rows: { yoke: yoke.rows, body: body.rows, sleeve: sleeve.rows },
+    depth: { yoke: yoke.rows.length, body: body.rows.length, sleeve: sleeve.rows.length },
+    frames: { yoke: yoke.frames, body: body.frames, sleeve: sleeve.frames },
   };
 };

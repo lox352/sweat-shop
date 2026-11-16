@@ -336,7 +336,6 @@ const written = (on: GradedOn, count: number, finished: Measurements, before: Se
  * loose tension is left out rather than the pattern refused.
  */
 const fitting: Fitting = {
-  whole: true,
   cutAfter: (knitted, from) => {
     for (let round = Math.max(1, from); round <= knitted.rounds.length; round++) {
       if (knitted.roundPieces[round - 1] !== "yoke") return undefined;

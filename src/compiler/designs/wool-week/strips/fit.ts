@@ -1,29 +1,32 @@
-import type { Fitted, Fitting, FitRequest, Measurements, RoundSpec, Section } from "../../types";
+import type { Fitted, Fitting, FitRequest, Measurements, RoundSpec, Section, Start } from "../../types";
 import type { SweaterStitches } from "../../../../pattern/knitted";
 import { yearOf } from "../years";
-import { banded, below, grown, nearest, Writer } from "./knit";
-import { type Gauge, budgets, gauge, ribsAt, settle, type Row } from "./plan";
+import { banded, below, grown, knit, nearest, trimsOf, Writer } from "./knit";
+import { type Gauge, budgets, gauge, ribsAt, type Row } from "./plan";
+import { laidOut, reachAt } from "./refit";
 import { baseSlot, trimSlot, yearOfSlot } from "./slots";
 
 /**
- * Each Year Once, from part of its yoke knitted: the rest planned for what is
- * on the needles, at the knitter's own tension (see Fitting).
+ * Each Year Once for one knitter: a whole sweater from the cast-on, or the
+ * rest of one from part of its yoke knitted, planned for what is on the
+ * needles at the knitter's own tension (see Fitting). A published size is
+ * the first of those at the pattern's tension.
  *
- * - **Where.** After the last round of a year on the yoke. Every year begins
- *   with a round of one yarn, where shaping goes, so what follows can be laid
- *   out afresh.
+ * - **Where.** From nothing; or after the last round of a year on the yoke.
+ *   Every year begins with a round of one yarn, where shaping goes, so what
+ *   follows can be laid out afresh.
  * - **The yoke.** As many rounds as its depth still wants at the tension.
- *   Where that is most of a strip, years go on round it, growing to the count
- *   the divide wants; where it is not, the yoke is done, and the body takes
- *   the difference.
- * - **The divide.** Stitches the yoke has that the tension does not need, or
- *   lacks, are shared between the body and the sleeves and said, never
- *   decreased away: the knitter chose a size, and is told what it comes to.
- * - **The body and sleeves.** The years not yet knitted, in order, each piece
- *   to its length at the tension, every strip framed alike (see plan's
- *   settle). Two ways: every year still to come, each cut to the rounds there
- *   are; or as many of the next as fit at about the height the pattern gives
- *   a year, the last left out.
+ *   Where that is most of a year's height, years go on round it, growing to
+ *   the count the divide wants; where it is not, the yoke is done, and the
+ *   body takes the difference.
+ * - **The divide.** Stitches a yoke already knitted has that the tension does
+ *   not need, or lacks, are shared between the body and the sleeves and said,
+ *   never decreased away: the knitter chose a size, and is told what it
+ *   comes to.
+ * - **The years.** Those not yet knitted, in order, shared between the pieces
+ *   and each cut as its piece has room for (see refit's laidOut). Two ways:
+ *   every year still to come; or as many of the next as fit at about the
+ *   height the pattern gives a year, the last left out.
  */
 
 const all = Array.from({ length: 13 }, (_, i) => 2014 + i);
@@ -58,51 +61,19 @@ interface Pieces {
   years: { yoke: number[]; body: number[]; sleeve: number[] };
 }
 
-/**
- * The years laid out over what is left of the yoke, the body and a sleeve:
- * the split that keeps a year's height most nearly the same on every piece,
- * of those whose strips can all be framed alike. The divide may move a few
- * rounds, the body taking them, so that it falls between two years.
- */
-const laidOut = (years: number[], left: { yoke: number; body: number; sleeve: number }): Pieces | undefined => {
-  const mean = (Math.max(0, left.yoke) + left.body + left.sleeve) / years.length;
-  // A yoke with too little left for a year has none: the body is as much longer, or shorter, as the yoke is not.
-  const room = left.yoke >= 0.6 * mean;
-  const tries: { k: number; m: number; dy: number; dev: number }[] = [];
-  for (let k = 0; k <= years.length - 2; k++) {
-    if (k > 0 && !room) break;
-    for (let m = 1; m <= years.length - k - 1; m++) {
-      const n = years.length - k - m;
-      for (const dy of k > 0 ? [0, -1, 1, -2, 2, -3, 3] : [0]) {
-        const yoke = k > 0 ? left.yoke + dy : 0;
-        const heights = [...(k > 0 ? [yoke / k] : []), (left.body + left.yoke - yoke) / m, left.sleeve / n];
-        // A yoke with room for a year has one, if any split with one can be framed: its depth is the size's.
-        tries.push({ k, m, dy, dev: Math.max(...heights.map((h) => Math.abs(h / mean - 1))) + 0.01 * Math.abs(dy) + (room && k === 0 ? 10 : 0) });
-      }
-    }
-  }
-  for (const { k, m, dy } of tries.sort((a, b) => a.dev - b.dev).slice(0, 24)) {
-    const yokeRounds = k > 0 ? left.yoke + dy : 0;
-    const [yokeYears, bodyYears, sleeveYears] = [years.slice(0, k), years.slice(k, k + m), years.slice(k + m)];
-    const yoke = k > 0 ? settle(yokeYears, yokeRounds) : { framed: [] };
-    if (!yoke) continue;
-    // A yoke's strips may come out a round or two short of what they were given: the body has those too.
-    const yokeRows = yoke.framed.flatMap((f) => f.rows);
-    const body = settle(bodyYears, left.body + left.yoke - yokeRows.length);
-    const sleeve = body && settle(sleeveYears, left.sleeve);
-    if (!body || !sleeve) continue;
-    return {
-      yoke: yokeRows,
-      body: body.framed.flatMap((f) => f.rows),
-      sleeve: sleeve.framed.flatMap((f) => f.rows),
-      years: { yoke: yokeYears, body: bodyYears, sleeve: sleeveYears },
-    };
-  }
-  return undefined;
-};
+/** What is to be knitted, and the counts it is said by: the neck's stitches, those the years begin on, and those the yoke divides on - with how many that is over what the tension wants, where they are shared out. */
+interface Made {
+  sections: Section[];
+  charts: Fitted["charts"];
+  checks: Record<string, number>;
+  neck: number;
+  count: number;
+  yokeEnd: number;
+  over?: number;
+}
 
 export const options: NonNullable<Fitting["options"]> = [
-  { id: "every", label: "Every year still to come", detail: "Each hat not yet knitted, cut to the rounds there are for it." },
+  { id: "every", label: "Every year still to come", detail: "Each hat not yet knitted, cut as its piece has room for." },
   { id: "fewer", label: "Fewer years, fuller", detail: "As many of the next hats as fit at about the height the pattern gives them. The last years are left out." },
 ];
 
@@ -111,37 +82,21 @@ export const options: NonNullable<Fitting["options"]> = [
  * with, `lowTrim` the slot its waist and wrists are ribbed in.
  */
 export const fitting = (prefix: string, lowTrim: () => string): Fitting => {
-  const plan = ({ finished, tension, from, option = "every" }: FitRequest): Fitted => {
-    if (!from) throw new Error("this design can't yet be planned from the cast-on");
-    const { knitted, round } = from;
-    if (cutAfter(knitted, round) !== round) throw new Error(`the rest can't be planned from round ${round}: it is not the last round of a year on the yoke`);
-    const g: Gauge = { stitches: tension.stitchesPer10cm / 10, rounds: tension.roundsPer10cm / 10 };
-    const ribs = ribsAt(g);
+  /** A whole sweater from the cast-on, as a published size is knitted (see knit): the ribs in the design's own trims. */
+  const whole = (pieces: Pieces, finished: Measurements, g: Gauge): Made => {
+    if (pieces.yoke.length === 0) throw new Error("the yoke has no room for a year at this tension");
+    const knitted = knit(finished, { rows: pieces }, prefix, g, lowTrim());
+    return { ...knitted, neck: knitted.checks.neck, count: knitted.checks.neck, yokeEnd: knitted.checks.yoke };
+  };
 
-    /* What is knitted. */
+  /** The rest of a sweater, from a round of its yoke. */
+  const onFrom = ({ knitted, round }: Start, pieces: Pieces, finished: Measurements, g: Gauge): Made => {
     const count = knitted.rounds[round - 1].length;
-    const worked = knitted.roundKinds.slice(0, round).filter((kind) => kind === "round").length;
-    const done = Math.max(...Array.from({ length: round }, (_, i) => yearAt(knitted, i + 1) ?? 0));
-    const coming = all.filter((year) => year > done);
-    if (coming.length < 2) throw new Error("there are too few years left to plan a body and sleeves from");
-
-    /* What it is to be. */
-    const want = budgets(finished, g);
     const chest = nearest(finished.chestCm * g.stitches, 4);
     const underarm = Math.min(24, Math.max(8, nearest(chest * 0.04, 2)));
     const upperArm = nearest(finished.upperArmCm * g.stitches, 2);
     const cuff = nearest(finished.cuffCm * g.stitches, 4);
     const yokeTotal = chest - 2 * underarm + 2 * (upperArm - underarm);
-    // The yoke's depth is every round from the cast-on to the divide, the dividing round with them.
-    const left = { yoke: Math.round(finished.yokeDepthCm * g.rounds) - 1 - worked, body: want.body, sleeve: want.sleeve };
-
-    /* Which years, and where. */
-    const total = Math.max(0, left.yoke) + left.body + left.sleeve;
-    const written = budgets(finished, gauge);
-    const fuller = Math.min(coming.length, Math.max(2, Math.round((total * 13) / (written.yoke + written.body + written.sleeve))));
-    const years = option === "fewer" ? coming.slice(0, fuller) : coming;
-    const pieces = laidOut(years, left);
-    if (!pieces) throw new Error(`${named(years)} can't all be framed alike in the ${rounds(total)} left`);
 
     /* The rest of the yoke. */
     const sections: Section[] = [];
@@ -163,29 +118,72 @@ export const fitting = (prefix: string, lowTrim: () => string): Fitting => {
     const body = shared ? nearest((chest * yokeEnd) / yokeTotal, 4) : chest;
     const held = (yokeEnd - (body - 2 * underarm)) / 2;
     if (held < 2) throw new Error("the yoke has too few stitches for sleeves");
-    const low = below({ body: banded(pieces.body), sleeve: banded(pieces.sleeve) }, { body, underarm, held, cuff }, lowTrim(), prefix, ribs);
+    const low = below({ body: banded(pieces.body), sleeve: banded(pieces.sleeve) }, { body, underarm, held, cuff }, lowTrim(), prefix, ribsAt(g));
     sections.push({ label: "Body", piece: "body", rounds: low.body }, ...low.sleeves);
+    return {
+      sections,
+      charts: [...yoke.charts.values(), ...low.charts],
+      checks: { ...(pieces.yoke.length > 0 ? { yoke: yokeEnd } : {}), ...low.checks },
+      neck: knitted.rounds[0].length,
+      count,
+      yokeEnd,
+      ...(shared ? { over } : {}),
+    };
+  };
+
+  const plan = ({ finished, tension, from, option = "every" }: FitRequest): Fitted => {
+    if (from && cutAfter(from.knitted, from.round) !== from.round) {
+      throw new Error(`the rest can't be planned from round ${from.round}: it is not the last round of a year on the yoke`);
+    }
+    const g: Gauge = { stitches: tension.stitchesPer10cm / 10, rounds: tension.roundsPer10cm / 10 };
+    const ribs = ribsAt(g);
+
+    /* What is knitted: nothing, for a sweater from the cast-on. */
+    const kinds = from ? from.knitted.roundKinds.slice(0, from.round) : [];
+    // The rounds of the yoke's depth that are not for the years to come: those knitted, or the neck's ribbing.
+    const worked = from ? kinds.filter((kind) => kind === "round").length : ribs.neck;
+    const done = from ? Math.max(...kinds.map((_, i) => yearAt(from.knitted, i + 1) ?? 0)) : 0;
+    const coming = all.filter((year) => year > done);
+    if (coming.length < 2) throw new Error("there are too few years left to plan a body and sleeves from");
+
+    /* What it is to be. */
+    const want = budgets(finished, g);
+    // The yoke's depth is every round from the cast-on to the divide, the dividing round with them.
+    const left = { yoke: Math.round(finished.yokeDepthCm * g.rounds) - 1 - worked, body: want.body, sleeve: want.sleeve };
+
+    /* Which years, and where. */
+    const total = Math.max(0, left.yoke) + left.body + left.sleeve;
+    const written = budgets(finished, gauge);
+    const fuller = Math.min(coming.length, Math.max(2, Math.round((total * 13) / (written.yoke + written.body + written.sleeve))));
+    const years = option === "fewer" ? coming.slice(0, fuller) : coming;
+    const laid = laidOut(years, left, reachAt(g));
+    if (!laid) throw new Error(`${named(years)} will not go in the ${rounds(total)} ${from ? "left" : "there are"}`);
+    const pieces = { yoke: laid.yoke.rows, body: laid.body.rows, sleeve: laid.sleeve.rows, years: { yoke: laid.yoke.years, body: laid.body.years, sleeve: laid.sleeve.years } };
+
+    const made = from ? onFrom(from, pieces, finished, g) : whole(pieces, finished, g);
+    const { sections, charts, checks, count, yokeEnd } = made;
 
     /* What it comes to. */
     const yokeRounds = worked + pieces.yoke.length + 1;
     const fits: Measurements = {
-      chestCm: half(body / g.stitches),
-      neckCm: half(knitted.rounds[0].length / g.stitches),
+      chestCm: half(checks.body / g.stitches),
+      neckCm: half(made.neck / g.stitches),
       yokeDepthCm: half(yokeRounds / g.rounds),
       bodyLengthCm: half((pieces.body.length + ribs.hem + 2) / g.rounds),
-      upperArmCm: half((held + underarm) / g.stitches),
+      upperArmCm: half(checks["sleeve-left:top"] / g.stitches),
       sleeveLengthCm: half((pieces.sleeve.length + ribs.cuff + 2) / g.rounds),
-      cuffCm: half(cuff / g.stitches),
+      cuffCm: half(checks["sleeve-left:cuff"] / g.stitches),
     };
     const notes: string[] = [];
     notes.push(
       pieces.yoke.length > 0
-        ? `The yoke has ${rounds(pieces.yoke.length)} more, ${named(pieces.years.yoke)}, and grows from ${count} stitches to ${yokeEnd}.`
+        ? `The yoke has ${rounds(pieces.yoke.length)}${from ? " more" : ""}, ${named(pieces.years.yoke)}, and grows from ${count} stitches to ${yokeEnd}.`
         : left.yoke > 0
           ? `The yoke is within ${rounds(left.yoke)} of its depth at this tension, too few for another year: it divides for the body and sleeves on the next round, and the body is as much longer.`
           : `The yoke is as deep as it is to be at this tension${left.yoke < 0 ? `, and ${rounds(-left.yoke)} over, which the body is shorter by` : ""}: it divides for the body and sleeves on the next round.`,
     );
-    if (shared) {
+    if (made.over) {
+      const over = made.over;
       notes.push(
         `There are ${yokeEnd} stitches round the yoke, ${Math.abs(over)} ${over > 0 ? "more" : "fewer"} than this tension wants for the size. ` +
           `They are shared between the body and the sleeves, not ${over > 0 ? "decreased away" : "made up"}: ` +
@@ -202,8 +200,8 @@ export const fitting = (prefix: string, lowTrim: () => string): Fitting => {
      * sleeves each the rest from the underarm, so a body band and the sleeve
      * band level with it share a place. Each year at the middle of its rounds.
      */
-    const first = Array.from({ length: round }, (_, i) => i + 1).find((one) => yearAt(knitted, one) !== undefined) ?? round;
-    const yokeDone = knitted.roundKinds.slice(first - 1, round).filter((kind) => kind === "round").length;
+    const first = kinds.findIndex((_, i) => from && yearAt(from.knitted, i + 1) !== undefined);
+    const yokeDone = first < 0 ? 0 : kinds.slice(first).filter((kind) => kind === "round").length;
     const yokeAll = yokeDone + pieces.yoke.length;
     const armpit = yokeAll / (yokeAll + pieces.body.length);
     const middles = (rows: Row[]): [number, number][] =>
@@ -217,12 +215,12 @@ export const fitting = (prefix: string, lowTrim: () => string): Fitting => {
 
     return {
       sections,
-      charts: [...yoke.charts.values(), ...low.charts],
-      checks: { ...(pieces.yoke.length > 0 ? { yoke: yokeEnd } : {}), ...low.checks },
+      charts,
+      checks,
       finished: fits,
       notes,
-      // The waist and wrists are ribbed beside the last years of the body and the sleeves, whichever those now are.
-      placement: { places, trims: { [lowTrim()]: [last(pieces.body), last(pieces.sleeve)] } },
+      // The waist and wrists are ribbed beside the last years of the body and the sleeves, whichever those now are; and a neck not yet knitted beside the first.
+      placement: { places, trims: { ...(from ? {} : { [trimsOf(pieces).neck]: [String(pieces.yoke[0].year)] }), [lowTrim()]: [last(pieces.body), last(pieces.sleeve)] } },
     };
   };
   return { options, cutAfter, plan };

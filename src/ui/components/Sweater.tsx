@@ -277,7 +277,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
           <Measurements size={size} />
         </div>
         <MyTension key={size.id} size={size} tension={tension} onChange={setTension}>
-          {tension && sweater.fitting?.whole && !sameTension(size, tension) && (
+          {tension && sweater.fitting && !sameTension(size, tension) && (
             <StartFitted sweater={sweater} size={size} knitted={built} tension={tension} palette={palette} coloursOn={coloursOn} onStart={startFitted} />
           )}
         </MyTension>

@@ -593,7 +593,8 @@ export const below = (plan: { body: Row[]; sleeve: Row[] }, { body, underarm, he
   };
 };
 
-export const knit = (size: Measured, given: Plan, prefix: string, g: Gauge = gauge): Knitted => {
+/** A size knitted whole from its plan's rows, at a tension: its waist and wrists ribbed in the trim given, or else the one its last years give. */
+export const knit = (size: Measured, given: Pick<Plan, "rows">, prefix: string, g: Gauge = gauge, lowTrimGiven?: string): Knitted => {
   const plan = { ...given, rows: { yoke: banded(given.rows.yoke), body: banded(given.rows.body), sleeve: banded(given.rows.sleeve) } };
   const ribs = ribsAt(g);
   const neck = nearest(size.neckCm * g.stitches, 4);
@@ -603,7 +604,7 @@ export const knit = (size: Measured, given: Plan, prefix: string, g: Gauge = gau
   const cuff = nearest(size.cuffCm * g.stitches, 4);
   const yokeTotal = body - 2 * underarm + 2 * (upperArm - underarm);
   // The ribs in the trim (see colours): the neck's beside the yoke's first year, the waist's and the wrists' beside the last of the body and the sleeves.
-  const { neck: neckTrim, low: lowTrim } = trimsOf(plan.rows);
+  const { neck: neckTrim, low: lowTrim } = { ...trimsOf(plan.rows), ...(lowTrimGiven ? { low: lowTrimGiven } : {}) };
   // And the back neck's short rows in the first band's background, into which they run on.
   const shortRowSlot = firstGround(plan.rows.yoke);
 
