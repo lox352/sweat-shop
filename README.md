@@ -239,7 +239,7 @@ Three places, and one chart.
 | `/` | Your jumpers, then the designs. |
 | `/sweater/:design` | A design: choose a size, colours and a tension, and start. |
 | `/project/:id` | Your jumper: how far along, its wool, its fit. |
-| `/project/:id/chart` | The chart, full screen. With `?knitting=1` the knitting panel is open; without it you are looking around, and the panel is folded to a bar. |
+| `/project/:id/chart` | The chart, full screen. With `?knitting=1` the knitting panel is open; without it you are looking around, and the panel is folded to a bar; `?stats=1` lays your time over it. These replace one another as tabs do, so back leaves the chart. |
 
 The rules every screen keeps, so that none has to be learnt twice:
 
