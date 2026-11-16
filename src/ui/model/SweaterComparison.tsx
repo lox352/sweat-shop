@@ -13,8 +13,8 @@ export interface Candidate {
   knitting: SweaterStitches;
 }
 
-/** How tall each is drawn. */
-const height = 300;
+/** How tall each is drawn, where there is room for them all and where there is not. */
+const heights = { wide: 300, tight: 210 };
 /** Narrower than this, there is room for two side by side and no more. */
 const narrow = "(max-width: 640px)";
 
@@ -36,7 +36,6 @@ export default function SweaterComparison({ candidates, chosen, palette }: { can
     query?.addEventListener("change", changed);
     return () => query?.removeEventListener("change", changed);
   }, []);
-  const reducedMotion = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   const posed = useMemo(
     () =>
       candidates.map(({ knitting }) => {
@@ -53,7 +52,7 @@ export default function SweaterComparison({ candidates, chosen, palette }: { can
     <div className="sweater-comparison">
       {shown.map((one) => (
         <figure key={one.id} className={one.id === chosen ? "sweater-compared chosen" : "sweater-compared"}>
-          <div className="sweater-canvas" style={{ height }} role="img" aria-label={`${one.label}, in three dimensions`}>
+          <div className="sweater-canvas" style={{ height: tight ? heights.tight : heights.wide }} role="img" aria-label={`${one.label}, in three dimensions`}>
             <SweaterStage
               knitting={one.knitting}
               posed={one.positions}
@@ -61,7 +60,8 @@ export default function SweaterComparison({ candidates, chosen, palette }: { can
               together={together}
               palette={palette}
               progress={Infinity}
-              reducedMotion={reducedMotion}
+              // Turned, each stops where it is let go: a glide on one would be a glide drawn on all of them.
+              reducedMotion
             />
           </div>
           <figcaption>{one.label}</figcaption>

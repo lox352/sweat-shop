@@ -28,10 +28,17 @@ export interface SweaterStageProps {
   together?: TurnedTogether;
 }
 
-/** Stages that turn as one: each, turned, tells the others where it is looked at from. */
+/** Stages that turn as one: the one being turned tells the others where it is looked at from, and they follow. */
 export interface TurnedTogether {
   stages: Set<(from: object, position: THREE.Vector3, target: THREE.Vector3) => void>;
+  /** The stage last taken hold of: the only one that tells the others, so that their following is never told back. */
+  turning?: object;
 }
+
+type Listening = OrbitLike & {
+  addEventListener?: (type: string, listener: () => void) => void;
+  removeEventListener?: (type: string, listener: () => void) => void;
+};
 
 /** Turns this stage with the others it is shown with, and them with it. */
 const Together: React.FC<{ together: TurnedTogether; controls: React.MutableRefObject<OrbitLike | null> }> = ({ together, controls }) => {
@@ -39,44 +46,35 @@ const Together: React.FC<{ together: TurnedTogether; controls: React.MutableRefO
   const invalidate = useThree((state) => state.invalidate);
   useEffect(() => {
     const self = {};
-    let following = false;
     const follow = (from: object, position: THREE.Vector3, target: THREE.Vector3) => {
       const orbit = controls.current;
       if (from === self || !orbit) return;
-      following = true;
       camera.position.copy(position);
       orbit.target.copy(target);
       orbit.update();
-      following = false;
       invalidate();
     };
     together.stages.add(follow);
-    const orbit = controls.current as (OrbitLike & { addEventListener?: (type: string, listener: () => void) => void; removeEventListener?: (type: string, listener: () => void) => void }) | null;
+    const orbit: Listening | null = controls.current;
+    const held = () => {
+      together.turning = self;
+    };
+    // As it is turned, and as it glides to a stop after: but only the one taken hold of.
     const turned = () => {
-      if (following || !controls.current) return;
+      if (together.turning !== self || !controls.current) return;
       for (const stage of together.stages) stage(self, camera.position, controls.current.target);
     };
+    orbit?.addEventListener?.("start", held);
     orbit?.addEventListener?.("change", turned);
     return () => {
       together.stages.delete(follow);
+      orbit?.removeEventListener?.("start", held);
       orbit?.removeEventListener?.("change", turned);
     };
   }, [together, controls, camera, invalidate]);
   return null;
 };
 
-/**
- * The sweater in three dimensions: three.js, and nothing else.
- *
- * Loaded on demand, behind its own boundary, so nothing of it is fetched by a
- * page that never shows it, and a phone without WebGL still has every
- * instruction on the page.
- *
- * It draws the knitting it is given, where it is given that it came to rest:
- * it looks nothing up, and nothing here imports the solver that settles one.
- * A knitting with no settled positions is drawn blocked, as physics/pose.ts
- * lays it out, which is where the settling starts from.
- */
 export default function SweaterStage({ knitting: built, palette, progress, reducedMotion, settled, posed, frame, together }: SweaterStageProps) {
   const controls = useRef<OrbitLike | null>(null);
   // Settled positions only fit the knitting if it is still the shape that was settled.

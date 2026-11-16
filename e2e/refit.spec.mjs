@@ -47,11 +47,17 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
   // Nothing is changed by looking.
   expect((await page.evaluate((id) => JSON.parse(localStorage.getItem(id)), id)).edition).toBe(edition);
 
-  // The other way of laying the rest out, worked out when it is asked for.
+  // The pattern as it is and each way of laying the rest out, side by side: all of them where there is room, and on a phone the first beside the one chosen.
+  const wide = page.viewportSize().width > 640;
+  const compared = shown.locator(".sweater-comparison figcaption");
+  await expect(compared).toHaveText(wide ? ["As the pattern has it", "Every year still to come", "Fewer years, fuller"] : ["As the pattern has it", "Every year still to come"]);
+  // The other way was worked out with the first: choosing it is at once, and asks for nothing more.
   await shown.getByRole("radio", { name: /Fewer years, fuller/ }).check();
-  await expect(shown).toContainText("Left out: 2023 to 2026", { timeout: 90_000 });
+  await expect(shown).toContainText("Left out: 2023 to 2026");
+  if (!wide) await expect(compared).toHaveText(["As the pattern has it", "Fewer years, fuller"]);
   await shown.getByRole("radio", { name: /Every year still to come/ }).check();
-  await expect(shown).toContainText("The body has 2016 to 2020", { timeout: 90_000 });
+  await expect(shown).toContainText("The body has 2016 to 2020");
+  expect(scripts.filter((url) => url.includes("fit.worker")).length).toBe(1);
   await shown.getByText("The rest, written out").click();
   await expect(shown.locator(".refit-written")).toContainText("Divide, in 16E");
 
