@@ -112,7 +112,7 @@
 }
 
 /* Beside the stage on a wide screen, the pages are the panel's own width. */
-@media (min-width: 60rem) {
+@media (min-width: 60rem), (orientation: landscape) and (max-height: 32rem) {
   .pages-track,
   .pages-names {
     margin: 0 -0.25rem;
