@@ -1,6 +1,6 @@
 import { type Part, type Round, cutsOf, edgeOf as edge, groundOf, isPlain, lettersOfRound, measured, seamsOf, topDown } from "./cuts";
 import { type Frame, type Gauge, type Measured, type Plan, type Row, type Strip, splitOf } from "./plan";
-import { background, quantumOf } from "./quanta";
+import { background } from "./quanta";
 
 /**
  * Each Year Once, refitted: 2014 to 2016 round the yoke, 2017 to 2021 down
@@ -16,8 +16,7 @@ import { background, quantumOf } from "./quanta";
  * 2. A pattern's own plain first or last row is its increase round: no round
  *    goes beside it. Where neither neighbour has one, one plain round goes
  *    between them; each piece begins with one, and the body and sleeves end
- *    with one - save a yoke whose first cut says it opens the yoke itself,
- *    its first row taking the neck's increases (see shaping).
+ *    with one.
  * 3. A cut's plain edge rows are kept or dropped in pairs, so a band is
  *    framed alike top and bottom.
  * 4. Where two of the hat's quanta meet that don't go together - a peerie
@@ -37,141 +36,102 @@ import { background, quantumOf } from "./quanta";
  * 8. Each of those plain rounds is in the background of the quantum's edge it
  *    is beside (rule 1): 2026's lattice, a ground round above and below;
  *    2015's sheep, sky above.
- * 6. Each year's cuts are a ladder from fullest down; a piece starts each
- *    year at the top of its ladder and steps down the trims in a set order
- *    until it fits. The sleeves start in the middle and spend spare rounds
- *    upwards.
+ * 6. Each year's cuts are a ladder from fullest down, and each step down a
+ *    ladder has a rank, how readily it is taken (see ladders). A piece starts
+ *    each of its years at the top, takes their steps in rank order until it
+ *    fits, and takes back any that a later, bigger step made room for again.
  *
- * The depths of the yoke, body and sleeves are the even-strips plan's (see
- * plan's splitOf), and the cuts each size starts from, 2014's and 2017's and
- * 2018's, the ones it chose.
+ * The depths of the yoke, body and sleeves, and how many years each has, are
+ * the even-strips plan's (see plan's splitOf).
  */
 
 interface State {
   label: string;
   parts: Part[];
-  /** First in its piece, it begins the piece itself, with no plain round above: rule 2. */
-  opens?: boolean;
 }
-interface Ladder {
-  year: number;
-  states: State[];
-}
-const st = (label: string, parts: Part[], opens = false): State => ({ label, parts, opens });
+const st = (label: string, parts: Part[]): State => ({ label, parts });
 
-/* The years' ladders: the fullest first, then each trim in the order it is taken. */
-
-const y2014 = (cut: "C21" | "B26" | "P30"): Ladder => ({
-  year: 2014,
-  states:
-    cut === "C21"
-      ? [st("Chart C between peeries", [["A", 1, 4], ["C", 1, 13], ["A", 1, 4]])]
-      : cut === "B26"
-        ? [
-            st("Both stars, a round between", [["B", 1, 13], ["C", 1, 13]]),
-            // A round fewer: the first star's tips are the yoke's first round.
-            st("Both stars, a round between, opening the yoke", [["B", 1, 13], ["C", 1, 13]], true),
-          ]
-        : [
-            st("Both stars, peerie between", [["B", 1, 13], ["A", 1, 4], ["C", 1, 13]]),
-            st("Both stars, peerie between, outer rows off", [["B", 2, 13], ["A", 1, 4], ["C", 1, 12]]),
-          ],
-});
-// The sheep's sky (rows 16-25) and field (1-5), taken off two rows to one.
-const y2015: Ladder = {
-  year: 2015,
-  states: [[0, 1, 25], [3, 2, 23], [6, 3, 21], [9, 4, 19], [12, 5, 17]].map(([off, a, b]) =>
+/**
+ * Rule 6: each year's ladder, the fullest cut first, each with its rank - how
+ * readily a piece steps down to it, the least missed first. The order is its
+ * knitter's, who looks for these in a cut:
+ * - **A pattern is not cut into.** A step that takes rows off a pattern -
+ *   "a row off each side" - is ranked after every step that keeps the
+ *   patterns whole (CUT), so it is taken only when those have all been.
+ *   (Rows of sky over the sheep are not the sheep; a plain edge is no
+ *   pattern; the lattice is cropped where its frames end.)
+ * - **Twice is company, four times is dull.** 2017's band is one motif,
+ *   turned about row by row: three of it before four, the first step taken.
+ * - **A core wants its trimmings.** 2014's one star between two peeries
+ *   before its two stars side by side; and 2020's two stars each framed
+ *   either side (as the hat) kept longest of the steps that cut nothing.
+ * - **A piece is balanced.** Otherwise a year gives up a trimming before its
+ *   neighbour gives up two: the sheep's sky two rows at a time, the sleeves'
+ *   years turn about.
+ */
+const CUT = 30;
+type Rung = [rank: number, state: State];
+const ladders: Record<number, Rung[]> = {
+  2014: [
+    [0, st("Both stars, peerie between", [["B", 1, 13], ["A", 1, 4], ["C", 1, 13]])],
+    [1, st("Chart C between peeries", [["A", 1, 4], ["C", 1, 13], ["A", 1, 4]])],
+  ],
+  // The sheep's sky (rows 16-25) and field (1-5), taken off two rows to one.
+  2015: [[0, 0, 1, 25], [3, 3, 2, 23], [4, 6, 3, 21], [6, 9, 4, 19], [7, 12, 5, 17]].map(([rank, off, a, b]) => [
+    rank,
     st(off ? `Sheep, ${(off * 2) / 3} sky and ${off / 3} field rows off` : "As the hat, all the sky", [["A", a, b]]),
-  ),
-};
-const y2016 = (seed: boolean): Ladder => ({
-  year: 2016,
-  states: [...(seed ? [st("Three strips with seed borders", [["A", 9, 41]])] : []), st("Three strips", [["A", 11, 39]])],
-});
-const y2017 = (four: boolean): Ladder => ({
-  year: 2017,
-  states: [0, 1, 2].map((t) =>
-    st(
-      `${four ? "Four" : "Three"} bands${t ? `, ${t} row${t > 1 ? "s" : ""} off each side` : ""}`,
-      four ? [["A", 1 + t, 14], ["A", 1, 14 - t]] : [["A", 1 + t, 14], ["A", 1, 7 - t]],
-    ),
-  ),
-});
-const y2018 = (three: boolean): Ladder => {
-  const top = three ? 34 : 24;
-  const name = three ? "Dancers, plusses, dancers" : "Dancers and plusses";
-  return {
-    year: 2018,
-    states: [st(name, [["B", 4, top]]), st(`${name}, plain edges off`, [["B", 5, top - 1]]), st(`${name}, a row off each side`, [["B", 6, top - 2]])],
-  };
-};
-const y2019: Ladder = { year: 2019, states: [st("Sheep and boat, a round between", [["C", 3, 14], ["E", 1, 12]])] };
-const y2020: Ladder = { year: 2020, states: [st("As the hat", [["B", 2, 39]]), st("Both star bands", [["B", 6, 35]])] };
-const y2021: Ladder = { year: 2021, states: [st("With its borders", [["B", 3, 33]])] };
-const sleeveLadders: (Ladder & { start: number })[] = [
-  {
-    year: 2022,
-    start: 1,
-    states: [
-      st("Anchors, waves and ropes", [["B", 1, 14], ["C", 1, 13], ["D", 1, 14]]),
-      st("Anchors and waves", [["B", 8, 14], ["C", 1, 13], ["D", 1, 7]]),
-      st("Anchors", [["C", 1, 13]]),
-    ],
-  },
-  {
-    year: 2023,
-    start: 1,
-    states: [
-      st("Flowers between peeries", [["B", 1, 4], ["C", 1, 25], ["D", 1, 4]]),
-      st("Flowers", [["C", 1, 25]]),
-      st("Flowers, cropped to 21", [["C", 3, 23]]),
-      st("Flowers, cropped to 15", [["C", 6, 20]]),
-    ],
-  },
-  {
-    year: 2024,
-    start: 1,
-    states: [
-      st("As the hat", [["B", 1, 11], ["C", 1, 15], ["D", 1, 12]]),
-      st("Rams between zigzags", [["B", 5, 11], ["C", 1, 15], ["D", 1, 7]]),
-      st("Rams", [["C", 1, 15]]),
-    ],
-  },
-  {
-    year: 2025,
-    start: 1,
-    states: [
-      st("As the hat", [["A", 1, 16], ["A", 1, 16], ["A", 1, 13]]),
-      st("Twice, dotted strip between", [["A", 1, 16], ["A", 1, 13]]),
-      st("With the dotted strip", [["A", 1, 16]]),
-    ],
-  },
-  {
-    year: 2026,
-    start: 2,
-    states: [
-      st("Cropped to 36", [["Body", 3, 38]]),
-      st("Cropped to 32", [["Body", 5, 36]]),
-      st("Cropped to 28", [["Body", 7, 34]]),
-      st("Cropped to 24", [["Body", 9, 32]]),
-    ],
-  },
-];
-// Spare rounds on a sleeve go up these ladders, a step at a time: 2023, 2026 twice, 2024, 2022, 2025.
-const sleeveSpend = [1, 4, 4, 2, 0, 3];
-// And a sleeve too long comes down them: 2026 twice, 2025, 2023 twice, 2024, 2022.
-const sleeveTrims = [4, 4, 3, 1, 1, 2, 0];
-
-/** The cuts each size starts from, as the even-strips plan chose them. */
-const starts: Record<string, { c2014: "C21" | "B26" | "P30"; four2017: boolean; three2018: boolean }> = {
-  xs: { c2014: "C21", four2017: false, three2018: false },
-  s: { c2014: "C21", four2017: false, three2018: false },
-  m: { c2014: "C21", four2017: false, three2018: false },
-  l: { c2014: "B26", four2017: false, three2018: false },
-  xl: { c2014: "B26", four2017: true, three2018: false },
-  "2xl": { c2014: "B26", four2017: true, three2018: true },
-  "3xl": { c2014: "B26", four2017: true, three2018: true },
-  "4xl": { c2014: "P30", four2017: true, three2018: true },
+  ]),
+  2016: [
+    [0, st("Three strips with seed borders", [["A", 9, 41]])],
+    [2, st("Three strips", [["A", 11, 39]])],
+  ],
+  2017: [
+    [0, st("Four bands", [["A", 1, 14], ["A", 1, 14]])],
+    [1, st("Three bands", [["A", 1, 14], ["A", 1, 7]])],
+    [CUT + 9, st("Three bands, 1 row off each side", [["A", 2, 14], ["A", 1, 6]])],
+    [CUT + 11, st("Three bands, 2 rows off each side", [["A", 3, 14], ["A", 1, 5]])],
+  ],
+  // Its three bands with a row off each side stand taller than its two whole: a ladder only goes down, so there is no such rung.
+  2018: [
+    [0, st("Dancers, plusses, dancers", [["B", 4, 34]])],
+    [2, st("Dancers, plusses, dancers, plain edges off", [["B", 5, 33]])],
+    [6, st("Dancers and plusses", [["B", 4, 24]])],
+    [8, st("Dancers and plusses, plain edges off", [["B", 5, 23]])],
+    [CUT + 10, st("Dancers and plusses, a row off each side", [["B", 6, 22]])],
+  ],
+  2019: [[0, st("Sheep and boat, a round between", [["C", 3, 14], ["E", 1, 12]])]],
+  2020: [
+    [0, st("As the hat", [["B", 2, 39]])],
+    [20, st("Both star bands", [["B", 6, 35]])],
+  ],
+  2021: [[0, st("With its borders", [["B", 3, 33]])]],
+  2022: [
+    [0, st("Anchors, waves and ropes", [["B", 1, 14], ["C", 1, 13], ["D", 1, 14]])],
+    [2, st("Anchors and waves", [["B", 8, 14], ["C", 1, 13], ["D", 1, 7]])],
+    [12, st("Anchors", [["C", 1, 13]])],
+  ],
+  2023: [
+    [0, st("Flowers between peeries", [["B", 1, 4], ["C", 1, 25], ["D", 1, 4]])],
+    [6, st("Flowers", [["C", 1, 25]])],
+    [CUT + 9, st("Flowers, cropped to 21", [["C", 3, 23]])],
+    [CUT + 10, st("Flowers, cropped to 15", [["C", 6, 20]])],
+  ],
+  2024: [
+    [0, st("As the hat", [["B", 1, 11], ["C", 1, 15], ["D", 1, 12]])],
+    [3, st("Rams between zigzags", [["B", 5, 11], ["C", 1, 15], ["D", 1, 7]])],
+    [11, st("Rams", [["C", 1, 15]])],
+  ],
+  2025: [
+    [0, st("As the hat", [["A", 1, 16], ["A", 1, 16], ["A", 1, 13]])],
+    [1, st("Twice, dotted strip between", [["A", 1, 16], ["A", 1, 13]])],
+    [8, st("With the dotted strip", [["A", 1, 16]])],
+  ],
+  2026: [
+    [0, st("Cropped to 36", [["Body", 3, 38]])],
+    [4, st("Cropped to 32", [["Body", 5, 36]])],
+    [5, st("Cropped to 28", [["Body", 7, 34]])],
+    [7, st("Cropped to 24", [["Body", 9, 32]])],
+  ],
 };
 
 /* A round while it's being laid out: a chart row, or plain in a year's yarn. */
@@ -280,7 +240,7 @@ const layout = (strips: Placed[], total: number, ends: Ends, mode: Mode = STRICT
     return lower.share > upper.share ? b : a;
   };
   // Between each spot and the next: the owner of the round there, if there is one.
-  const gaps: (Spot | null | undefined)[] = [ends.top && !strips[0].state.opens ? owner(null, spots[0], false) : undefined];
+  const gaps: (Spot | null | undefined)[] = [ends.top ? owner(null, spots[0], false) : undefined];
   for (let k = 1; k < spots.length; k++) gaps.push(owner(spots[k - 1], spots[k], spots[k].i === spots[k - 1].i));
   gaps.push(ends.bottom ? owner(spots[spots.length - 1], null, false) : undefined);
   // Rule 7: each quantum's plain rounds above and below it, and the rounds that even them up.
@@ -388,135 +348,24 @@ const build = (strips: Placed[], total: number, ends: Ends, mode: Mode = STRICT)
   return { rows, strips: placed, frames };
 };
 
-const place = (ladders: Ladder[], at: number[]): Placed[] =>
-  ladders.map((l, i) => {
-    const blocks = blocksOfState(l.year, l.states[at[i]]);
-    return { year: l.year, state: l.states[at[i]], blocks, rounds: blocks.flat() };
-  });
-
-/**
- * Each year at the top of its ladder, then down the trims in order (indices
- * into `ladders`), until the piece fits; then back up any a later, bigger trim
- * has made room for again.
- */
-const fit = (ladders: Ladder[], total: number, ends: Ends, trims: number[]): { placed: Placed[]; at: number[]; mode: Mode } | null =>
-  fitting(ladders, total, ends, trims, STRICT) ??
-  fitting(ladders, total, ends, trims, { mirror: true, share: true }) ??
-  fitting(ladders, total, ends, trims, { mirror: false, share: true });
-
-const fitting = (ladders: Ladder[], total: number, ends: Ends, trims: number[], mode: Mode): { placed: Placed[]; at: number[]; mode: Mode } | null => {
-  const at = ladders.map(() => 0);
-  const taken: number[] = [];
-  // A cut that opens the piece itself is passed over: every piece begins with a plain round, where its first shaping or its divide goes.
-  const next = (i: number) => {
-    let a = at[i] + 1;
-    while (a < ladders[i].states.length && ladders[i].states[a].opens) a++;
-    return a;
-  };
-  while (layout(place(ladders, at), total, ends, mode).spare < 0) {
-    const k = trims.find((i) => next(i) < ladders[i].states.length);
-    if (k === undefined) {
-      return null;
-    }
-    at[k] = next(k);
-    taken.push(k);
-  }
-  for (const k of taken.slice(0, -1)) {
-    const was = at[k];
-    do at[k]--; while (at[k] > 0 && ladders[k].states[at[k]].opens);
-    if (ladders[k].states[at[k]].opens || layout(place(ladders, at), total, ends, mode).spare < 0) at[k] = was;
-  }
-  return { placed: place(ladders, at), at, mode };
-};
-
-/** A sleeve: each year where it starts, down if too long, then up while a round or two of padding is left. */
-const fitSleeve = (total: number, ends: Ends): Placed[] => {
-  const at = sleeveLadders.map((l) => l.start);
-  for (const i of sleeveTrims) {
-    if (layout(place(sleeveLadders, at), total, ends).spare >= 0) break;
-    if (at[i] < sleeveLadders[i].states.length - 1) at[i]++;
-  }
-  for (const i of sleeveSpend) {
-    if (at[i] === 0) continue;
-    at[i]--;
-    if (layout(place(sleeveLadders, at), total, ends).spare < 2) at[i]++;
-  }
-  return place(sleeveLadders, at);
-};
-
-
-const toRow = (r: R): Row => ("plain" in r ? { year: r.year, plain: r.plain } : r);
-
-/*
- * One rule for every piece (in the making: see ruled). Each year has one
- * ladder, every cut it has, fullest first; and each step down it has a rank,
- * how readily it is taken, the least missed first. A piece starts every year
- * at the top, takes the steps of its years in rank order until it fits, and
- * then takes back any an earlier step of another year made room for.
- */
-const rungs: Record<number, [rank: number, state: State][]> = {
-  2014: [[0, y2014("P30").states[0]], [1, y2014("B26").states[0]], [5, y2014("C21").states[0]]],
-  2015: y2015.states.map((state, at) => [[0, 3, 4, 6, 7][at], state]),
-  2016: [[0, y2016(true).states[0]], [2, y2016(true).states[1]]],
-  2017: [[0, y2017(true).states[0]], ...y2017(false).states.map((state, at): [number, State] => [[7, 9, 11][at], state])],
-  2018: [...y2018(true).states.map((state, at): [number, State] => [[0, 2, 4][at], state]), ...y2018(false).states.map((state, at): [number, State] => [[6, 8, 10][at], state])],
-  2019: [[0, y2019.states[0]]],
-  2020: y2020.states.map((state, at) => [[0, 1][at], state]),
-  2021: [[0, y2021.states[0]]],
-  2022: sleeveLadders[0].states.map((state, at) => [[0, 2, 12][at], state]),
-  2023: sleeveLadders[1].states.map((state, at) => [[0, 6, 9, 10][at], state]),
-  2024: sleeveLadders[2].states.map((state, at) => [[0, 3, 11][at], state]),
-  2025: sleeveLadders[3].states.map((state, at) => [[0, 1, 8][at], state]),
-  2026: sleeveLadders[4].states.map((state, at) => [[0, 4, 5, 7][at], state]),
-};
-
-/*
- * The same ladders, reordered where the order set by hand went against what
- * its knitter looks for in a cut:
- * - **A pattern is not cut into.** A step that takes rows off a pattern -
- *   "a row off each side" - is almost never to be taken: only when every
- *   step that keeps the patterns whole has been, the years' whole cuts
- *   narrowed first. (Rows of sky over the sheep are not the sheep; a plain
- *   edge is no pattern; the lattice is cropped where its frames end.)
- * - **Twice is company, four times is dull.** 2017's band is one motif,
- *   turned about row by row: three of it before four, the first step taken.
- * - **A core wants its trimmings.** 2014's one star between two peeries
- *   before its two stars side by side; and 2020's two stars each framed
- *   either side (as the hat) kept longest of the steps that cut nothing.
- */
-const CUTS_INTO = 30;
-const symmetric: Record<number, [rank: number, state: State][]> = {
-  ...rungs,
-  2014: [[0, y2014("P30").states[0]], [1, y2014("C21").states[0]]],
-  2017: [[0, y2017(true).states[0]], ...y2017(false).states.map((state, at): [number, State] => [[0.5, CUTS_INTO + 9, CUTS_INTO + 11][at], state])],
-  // Its three bands with a row off each side stand taller than its two whole: a ladder only goes down, so that cut is left out.
-  2018: [
-    ...y2018(true).states.slice(0, 2).map((state, at): [number, State] => [[0, 2][at], state]),
-    ...y2018(false).states.map((state, at): [number, State] => [[6, 8, CUTS_INTO + 10][at], state]),
-  ],
-  2020: y2020.states.map((state, at) => [[0, 20][at], state]),
-  2023: sleeveLadders[1].states.map((state, at) => [[0, 6, CUTS_INTO + 9, CUTS_INTO + 10][at], state]),
-};
-let rungsNow = rungs;
-/** For measuring: the rungs to plan by. */
-export const planBy = (which: "hand" | "symmetric") => {
-  rungsNow = which === "hand" ? rungs : symmetric;
-  wholeLadder.clear();
+const place = (year: number, state: State): Placed => {
+  const blocks = blocksOfState(year, state);
+  return { year, state, blocks, rounds: blocks.flat() };
 };
 
 /**
  * A year's whole ladder: its rungs, and below them every other cut the year
  * has that is shorter than the last (see cuts' cutsOf), tallest first, so
- * that a piece with too few rounds for the cuts chosen for the pattern's own
- * tension - a knitter's bigger stitches, or more years to a piece - still
- * has one that fits. Those are stepped down to after every rung, the year
- * that has lost the least of its height first.
+ * that a piece with too few rounds for the rungs - a knitter's bigger
+ * stitches, or more years to a piece - still has a cut that fits. Those are
+ * stepped down to after every rung, the year that has lost the least of its
+ * height first.
  */
-const wholeLadder = new Map<number, [rank: number, state: State][]>();
-const ladderOf = (year: number): [rank: number, state: State][] => {
-  let ladder = wholeLadder.get(year);
+const whole = new Map<number, Rung[]>();
+const wholeOf = (year: number): Rung[] => {
+  let ladder = whole.get(year);
   if (!ladder) {
-    const own = rungsNow[year];
+    const own = ladders[year];
     const height = (state: State) => topDown(year, state.parts).length;
     const top = height(own[0][1]);
     const least = Math.min(...own.map(([, state]) => height(state)));
@@ -524,224 +373,83 @@ const ladderOf = (year: number): [rank: number, state: State][] => {
       .filter((cut) => cut.height < least)
       .sort((a, b) => b.height - a.height)
       .filter((cut, at, all) => at === 0 || cut.height < all[at - 1].height)
-      .map((cut): [number, State] => [100 + 100 * (1 - cut.height / top), st(cut.label, cut.parts)]);
-    wholeLadder.set(year, (ladder = [...own, ...below]));
+      .map((cut): Rung => [100 + 100 * (1 - cut.height / top), st(cut.label, cut.parts)]);
+    whole.set(year, (ladder = [...own, ...below]));
   }
   return ladder;
 };
 
-const ruledPiece = (years: number[], total: number, ends: Ends, slack: number) => {
-  // By the rungs alone, however the piece has to be framed to take them; and only where they will not go at all, by the cuts below them.
-  for (const whole of [false, true]) {
-    const rankOf = (year: number, at: number) => (whole ? ladderOf(year) : rungsNow[year])[at]?.[0];
-    const ladders: Ladder[] = years.map((year) => ({ year, states: (whole ? ladderOf(year) : rungsNow[year]).map(([, state]) => state) }));
+/**
+ * Rule 6: these years, in order, cut to go in so many rounds. Each starts at
+ * the top of its ladder; the step least missed is taken until the piece
+ * fits; and then any step taken before the last, of another year, is taken
+ * back where that leaves `slack` rounds spare. By the rungs alone, however
+ * the piece has to be framed to take them; and only where they will not go
+ * at all, by the cuts below them. None where the years will not go at all.
+ */
+const fit = (years: number[], total: number, ends: Ends, slack: number): { placed: Placed[]; mode: Mode } | null => {
+  for (const all of [ladders, Object.fromEntries(years.map((year) => [year, wholeOf(year)]))]) {
+    const own = years.map((year) => all[year]);
     for (const mode of [STRICT, { mirror: true, share: true }, { mirror: false, share: true }]) {
       const at = years.map(() => 0);
-      const spare = () => layout(place(ladders, at), total, ends, mode).spare;
+      const placed = () => own.map((ladder, i) => place(years[i], ladder[at[i]][1]));
+      const spare = () => layout(placed(), total, ends, mode).spare;
       const taken: number[] = [];
-      let stuck = false;
       while (spare() < 0) {
-        // The step least missed, of those still to take.
-        const next = years
-          .map((year, i) => ({ i, rank: rankOf(year, at[i] + 1) }))
+        const next = own
+          .map((ladder, i) => ({ i, rank: ladder[at[i] + 1]?.[0] }))
           .filter((one) => one.rank !== undefined)
           .sort((a, b) => a.rank! - b.rank!)[0];
-        if (!next) {
-          stuck = true;
-          break;
-        }
+        if (!next) break;
         at[next.i]++;
         taken.push(next.i);
       }
-      if (stuck) continue;
+      if (spare() < 0) continue;
       const last = taken[taken.length - 1];
-      for (const k of taken.slice(0, -1)) {
-        if (k === last || at[k] === 0) continue;
-        at[k]--;
-        if (spare() < slack) at[k]++;
+      for (const i of taken.slice(0, -1)) {
+        if (i === last || at[i] === 0) continue;
+        at[i]--;
+        if (spare() < slack) at[i]++;
       }
-      return { placed: place(ladders, at), mode };
+      return { placed: placed(), mode };
     }
   }
   return null;
 };
-
-/** What the one rule chooses for a size, as `chosen` says what the rules as they are choose. */
-export const ruled = (size: Measured, g?: Gauge, slacks: [number, number, number] = [0, 0, 2]) => {
-  const sp = splitOf(size, g);
-  const years = [2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
-  const yoke = ruledPiece(years.slice(0, sp.k), sp.yoke, { top: true, bottom: false }, slacks[0]);
-  const body = ruledPiece(years.slice(sp.k, sp.k + sp.m), sp.body, { top: true, bottom: true }, slacks[1]);
-  const sleeve = ruledPiece(years.slice(sp.k + sp.m), sp.sleeve, { top: true, bottom: true }, slacks[2]);
-  const cuts = (placed: Placed[] | undefined) => (placed ?? []).map((p) => `${p.year} ${p.state.label} (${p.rounds.length})`);
-  return { split: `${sp.k}/${sp.m}/${sp.n}`, rounds: [sp.yoke, sp.body, sp.sleeve], yoke: cuts(yoke?.placed), body: cuts(body?.placed), sleeve: cuts(sleeve?.placed) };
-};
-
-/**
- * What a cut is worth, beyond its rounds of pattern: how nearly it mirrors
- * about its centre line, row for row, from 0 to 1; and how fully its cores
- * are framed, a core with a frame either side 1 and one with none 0, over
- * all its cores - nothing for a cut with no core.
- */
-const worth = new Map<State, { rounds: number; mirrored: number; framed: number }>();
-const worthOf = (year: number, state: State) => {
-  let w = worth.get(state);
-  if (!w) {
-    const rows = blocksOfState(year, state).flat();
-    const letters = rows.map((r) => lettersOfRound(r).join(""));
-    const mirrored = letters.filter((row, at) => row === letters[letters.length - 1 - at]).length / letters.length;
-    // Its quanta in order, the rows between them that belong to none left out.
-    const made: { kind: string; key: string }[] = [];
-    for (const r of rows) {
-      const q = "plain" in r ? undefined : quantumOf(r.year, r.chart, r.row);
-      if (!q) continue;
-      const key = `${q.chart}${q.from}`;
-      if (made[made.length - 1]?.key !== key) made.push({ kind: q.kind, key });
-    }
-    const cores = made.map((one, at) => ({ one, at })).filter(({ one }) => one.kind === "core");
-    const sides = cores.reduce((n, { at }) => n + (made[at - 1]?.kind === "frame" ? 1 : 0) + (made[at + 1]?.kind === "frame" ? 1 : 0), 0);
-    worth.set(state, (w = { rounds: rows.length, mirrored, framed: cores.length ? sides / (2 * cores.length) : 0 }));
-  }
-  return w;
-};
-
-/**
- * A piece by worth (in the making, beside ruledPiece): of every way of
- * cutting its years that fits, the one worth most - its rounds of pattern,
- * and so many rounds' worth for a cut that mirrors about its centre line and
- * for cores framed either side.
- */
-const worthiestPiece = (years: number[], total: number, ends: Ends, weights: { mirrored: number; framed: number }) => {
-  const ladders: Ladder[] = years.map((year) => ({ year, states: rungs[year].map(([, state]) => state) }));
-  for (const mode of [STRICT, { mirror: true, share: true }, { mirror: false, share: true }]) {
-    let best: { at: number[]; value: number; spare: number } | undefined;
-    const at = years.map(() => 0);
-    const visit = (i: number, value: number) => {
-      if (i === years.length) {
-        const spare = layout(place(ladders, at), total, ends, mode).spare;
-        // The most worth; of two worth the same, the one that leaves fewer rounds to pad.
-        if (spare >= 0 && (!best || value > best.value + 1e-9 || (Math.abs(value - best.value) < 1e-9 && spare < best.spare))) best = { at: [...at], value, spare };
-        return;
-      }
-      ladders[i].states.forEach((state, k) => {
-        if (state.opens) return;
-        const w = worthOf(years[i], state);
-        at[i] = k;
-        visit(i + 1, value + w.rounds + weights.mirrored * w.mirrored + weights.framed * w.framed);
-      });
-    };
-    visit(0, 0);
-    if (best) return { placed: place(ladders, (best as { at: number[] }).at), mode };
-  }
-  return null;
-};
-
-/** What choosing by worth chooses for a size, as `chosen` says what the rules as they are choose. */
-export const worthiest = (size: Measured, weights: { mirrored: number; framed: number }, g?: Gauge) => {
-  const sp = splitOf(size, g);
-  const years = [2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
-  const yoke = worthiestPiece(years.slice(0, sp.k), sp.yoke, { top: true, bottom: false }, weights);
-  const body = worthiestPiece(years.slice(sp.k, sp.k + sp.m), sp.body, { top: true, bottom: true }, weights);
-  const sleeve = worthiestPiece(years.slice(sp.k + sp.m), sp.sleeve, { top: true, bottom: true }, weights);
-  const cuts = (placed: Placed[] | undefined) => (placed ?? []).map((p) => `${p.year} ${p.state.label} (${p.rounds.length})`);
-  return { split: `${sp.k}/${sp.m}/${sp.n}`, rounds: [sp.yoke, sp.body, sp.sleeve], yoke: cuts(yoke?.placed), body: cuts(body?.placed), sleeve: cuts(sleeve?.placed) };
-};
-
-/** For measuring: every rung of every year, with what it is made of - its rounds, its quanta's lengths, and how nearly it mirrors about its middle. */
-export const rungsMeasured = () =>
-  Object.entries(rungs).flatMap(([year, own]) =>
-    own.map(([rank, state]) => {
-      const blocks = blocksOfState(Number(year), state);
-      const rows = blocks.flat().map((r) => lettersOfRound(r).join(""));
-      const mirrored = rows.filter((row, at) => row === rows[rows.length - 1 - at]).length / rows.length;
-      // Its make-up, quantum by quantum: each a core, a frame or free, with its rows; "-" a row that belongs to none.
-      const made: string[] = [];
-      let last = "";
-      for (const r of blocks.flat()) {
-        const q = "plain" in r ? undefined : quantumOf(r.year, r.chart, r.row);
-        const key = q ? `${q.kind}:${q.chart}${q.from}` : "-";
-        if (key === last) made[made.length - 1] = made[made.length - 1].replace(/\d+$/, (n) => String(Number(n) + 1));
-        else made.push(`${q ? q.kind : "-"} ${1}`);
-        last = key;
-      }
-      return { year: Number(year), rank, label: state.label, rounds: rows.length, blocks: blocks.map((block) => block.length), mirrored: Math.round(mirrored * 100), made };
-    }),
-  );
 
 /** How many spare rounds a piece keeps when a step is taken back: the yoke and the sleeves, where every band is shaped, a round or two; the body none. */
 const SLACK = { yoke: 2, body: 0, sleeve: 2 };
+const YEARS = Object.keys(ladders).map(Number);
 
-/**
- * A piece by the one rule: these years, in order, in so many rounds - its
- * rows, laid out by the rules every piece keeps. None where the years will
- * not go in the rounds however they are cut.
- */
-export const pieceOf = (years: number[], total: number, piece: "yoke" | "body" | "sleeve"): Row[] | null => {
-  const ends = { top: true, bottom: piece !== "yoke" };
-  const fitted = ruledPiece(years, total, ends, SLACK[piece]);
-  return fitted && build(fitted.placed, total, ends, fitted.mode).rows.map(toRow);
-};
-
-/** A size's plan by the one rule: as refit lays a size out, from the cuts the rule chooses. */
-export const ruledPlan = (size: Measured, g?: Gauge, slacks: [number, number, number] = [2, 0, 2]): Plan => {
+/** A size's pieces: the years each has, the rounds it has for them, and the cut of each that the rule chooses. */
+const piecesOf = (size: Measured, g?: Gauge) => {
   const sp = splitOf(size, g);
-  const years = [2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
-  const piece = { top: true, bottom: false };
-  const whole = { top: true, bottom: true };
-  const yoke = ruledPiece(years.slice(0, sp.k), sp.yoke, piece, slacks[0]);
-  const body = ruledPiece(years.slice(sp.k, sp.k + sp.m), sp.body, whole, slacks[1]);
-  const sleeve = ruledPiece(years.slice(sp.k + sp.m), sp.sleeve, whole, slacks[2]);
-  if (!yoke || !body || !sleeve) throw new Error("the years will not fit");
-  const y = build(yoke.placed, sp.yoke, piece, yoke.mode);
-  const b = build(body.placed, sp.body, whole, body.mode);
-  const s = build(sleeve.placed, sp.sleeve, whole, sleeve.mode);
+  const piece = (years: number[], total: number, name: keyof typeof SLACK) => {
+    const ends = { top: true, bottom: name !== "yoke" };
+    const fitted = fit(years, total, ends, SLACK[name]);
+    if (!fitted) throw new Error(`${years.join(", ")} will not go in ${total} rounds`);
+    return { ...fitted, total, ends };
+  };
   return {
-    strips: { yoke: y.strips, body: b.strips, sleeve: s.strips },
-    rows: { yoke: y.rows.map(toRow), body: b.rows.map(toRow), sleeve: s.rows.map(toRow) },
-    depth: { yoke: y.rows.length, body: b.rows.length, sleeve: s.rows.length },
-    frames: { yoke: y.frames, body: b.frames, sleeve: s.frames },
+    sp,
+    yoke: piece(YEARS.slice(0, sp.k), sp.yoke, "yoke"),
+    body: piece(YEARS.slice(sp.k, sp.k + sp.m), sp.body, "body"),
+    sleeve: piece(YEARS.slice(sp.k + sp.m), sp.sleeve, "sleeve"),
   };
 };
 
-/** What the rules choose for a size, piece by piece: how the years are shared out, the rounds each piece has, and each year's cut with its rounds of pattern. */
-export const chosen = (size: Measured, sizeId: string, g?: Gauge) => {
-  const start = starts[sizeId];
-  const sp = splitOf(size, g);
-  const piece = { top: true, bottom: false };
-  const whole = { top: true, bottom: true };
-  const yokeWith = (seed: boolean) => fit([y2014(start.c2014), y2015, y2016(seed)], sp.yoke, piece, [2, 0, 1, 1, 1, 1]);
-  let yoke = yokeWith(true);
-  if (!yoke || yoke.at.some((a) => a !== 0)) yoke = yokeWith(false);
-  const body = fit([y2017(start.four2017), y2018(start.three2018), y2019, y2020, y2021], sp.body, whole, [3, 1, 0, 1, 0]);
-  const sleeve = fitSleeve(sp.sleeve, whole);
-  const cuts = (placed: Placed[]) => placed.map((p) => `${p.year} ${p.state.label} (${p.rounds.length})`);
-  return {
-    split: `${sp.k}/${sp.m}/${sp.n}`,
-    rounds: [sp.yoke, sp.body, sp.sleeve],
-    yoke: yoke ? cuts(yoke.placed) : [],
-    body: body ? cuts(body.placed) : [],
-    sleeve: cuts(sleeve),
-  };
+/** What the rule chooses for a size, piece by piece: how the years are shared out, the rounds each piece has, and each year's cut with its rounds of pattern. */
+export const chosen = (size: Measured, g?: Gauge) => {
+  const { sp, yoke, body, sleeve } = piecesOf(size, g);
+  const cuts = (piece: { placed: Placed[] }) => piece.placed.map((p) => `${p.year} ${p.state.label} (${p.rounds.length})`);
+  return { split: `${sp.k}/${sp.m}/${sp.n}`, rounds: [sp.yoke, sp.body, sp.sleeve], yoke: cuts(yoke), body: cuts(body), sleeve: cuts(sleeve) };
 };
 
-export const refit = (size: Measured, sizeId: string, g?: Gauge): Plan => {
-  const start = starts[sizeId];
-  if (!start) throw new Error(`no refit for size ${sizeId}`);
-  const sp = splitOf(size, g);
-  const piece = { top: true, bottom: false };
-  const whole = { top: true, bottom: true };
-  // The yoke: the houses' seed borders only if everything else fits whole; trims 2016's borders, 2014's outer rows, then the sheep in threes.
-  const yokeWith = (seed: boolean) => fit([y2014(start.c2014), y2015, y2016(seed)], sp.yoke, piece, [2, 0, 1, 1, 1, 1]);
-  let yoke = yokeWith(true);
-  if (!yoke || yoke.at.some((a) => a !== 0)) yoke = yokeWith(false);
-  // The body: trims 2020's outer peeries, 2018's plain edges, a row off each side of 2017, then of 2018, then 2017 again.
-  const body = fit([y2017(start.four2017), y2018(start.three2018), y2019, y2020, y2021], sp.body, whole, [3, 1, 0, 1, 0]);
-  if (!yoke || !body) throw new Error(`size ${sizeId} will not fit`);
-  const y = build(yoke.placed, sp.yoke, piece, yoke.mode);
-  const b = build(body.placed, sp.body, whole, body.mode);
-  const sleeve = fitSleeve(sp.sleeve, whole);
-  const modes: Mode[] = [STRICT, { mirror: true, share: true }, { mirror: false, share: true }];
-  const s = build(sleeve, sp.sleeve, whole, modes.find((m) => layout(sleeve, sp.sleeve, whole, m).spare >= 0) ?? modes[2]);
+const toRow = (r: R): Row => ("plain" in r ? { year: r.year, plain: r.plain } : r);
+
+export const refit = (size: Measured, g?: Gauge): Plan => {
+  const { yoke, body, sleeve } = piecesOf(size, g);
+  const [y, b, s] = [yoke, body, sleeve].map((piece) => build(piece.placed, piece.total, piece.ends, piece.mode));
   return {
     strips: { yoke: y.strips, body: b.strips, sleeve: s.strips },
     rows: { yoke: y.rows.map(toRow), body: b.rows.map(toRow), sleeve: s.rows.map(toRow) },

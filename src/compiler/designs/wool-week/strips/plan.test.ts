@@ -8,8 +8,8 @@ const years = Array.from({ length: 13 }, (_, i) => 2014 + i);
 const lettersOfRow = (r: Row) => ("plain" in r ? [r.plain] : lettersOf(r.year, r.chart)[r.row - 1]);
 
 describe("the lined-up plan, oldest at the neck", () => {
-  it.each(measured)("puts every year in once, each strip about the same height, in $label", ({ id, finished }) => {
-    const plan = planOf(finished, { kind: "lined", newestFirst: false }, id);
+  it.each(measured)("puts every year in once, each strip about the same height, in $label", ({ finished }) => {
+    const plan = planOf(finished, { kind: "lined", newestFirst: false });
     const { yoke, body } = plan.strips;
     const thirteen = [...yoke, ...body];
     expect(thirteen.map((s) => s.year)).toEqual(years);
@@ -35,8 +35,8 @@ describe("the lined-up plan, oldest at the neck", () => {
 });
 
 describe("Each Year Once, refitted", () => {
-  it.each(measured)("puts the years in date order, each piece as deep as its depth, in $label", ({ id, finished }) => {
-    const plan = planOf(finished, { kind: "refit" }, id);
+  it.each(measured)("puts the years in date order, each piece as deep as its depth, in $label", ({ finished }) => {
+    const plan = planOf(finished, { kind: "refit" });
     expect(plan.strips.yoke.map((s) => s.year)).toEqual([2014, 2015, 2016]);
     expect(plan.strips.body.map((s) => s.year)).toEqual([2017, 2018, 2019, 2020, 2021]);
     expect(plan.strips.sleeve.map((s) => s.year)).toEqual([2022, 2023, 2024, 2025, 2026]);
@@ -48,8 +48,8 @@ describe("Each Year Once, refitted", () => {
     }
   });
 
-  it.each(measured)("frames every quantum alike, as many plain rounds above it as below, each in the background beside it, in $label", ({ id, finished }) => {
-    const plan = planOf(finished, { kind: "refit" }, id);
+  it.each(measured)("frames every quantum alike, as many plain rounds above it as below, each in the background beside it, in $label", ({ finished }) => {
+    const plan = planOf(finished, { kind: "refit" });
     for (const piece of ["yoke", "body", "sleeve"] as const) {
       for (const f of plan.frames![piece]) expect(f.above, `${piece}, ${f.year}`).toBe(f.below);
       // Every plain round's yarn is knitted in the three pattern rows of its own year nearest it, on one side or the other: the background beside it.
@@ -68,26 +68,26 @@ describe("Each Year Once, refitted", () => {
   });
 
   it("frames the peeries either side of 2014's star alike, in M", () => {
-    const plan = planOf(measured.find((m) => m.id === "m")!.finished, { kind: "refit" }, "m");
+    const plan = planOf(measured.find((m) => m.id === "m")!.finished, { kind: "refit" });
     const rows = plan.rows.yoke.filter((r) => r.year === 2014).map((r) => ("plain" in r ? r.plain : `${r.chart}${r.row}`));
     // A round of the peerie's background above and below each peerie, and two of the star's either side of the star.
     expect(rows).toEqual(["B", "A4", "A3", "A2", "A1", "B", "A", "A", ...Array.from({ length: 13 }, (_, i) => `C${13 - i}`), "A", "A", "B", "A4", "A3", "A2", "A1", "B"]);
   });
 
-  it("gives the houses a plain row at both ends, and 2014's two stars whole with a round between, in L", () => {
-    const plan = planOf(measured.find((m) => m.id === "l")!.finished, { kind: "refit" }, "l");
+  it("gives the houses a plain row at both ends, and the sheep all but two rows of sky and one of field, in L", () => {
+    const plan = planOf(measured.find((m) => m.id === "l")!.finished, { kind: "refit" });
     const houses = plan.rows.yoke.filter((r) => r.year === 2016 && !("plain" in r)) as Exclude<Row, { plain: string }>[];
     expect([houses[0].row, houses[houses.length - 1].row]).toEqual([39, 11]);
-    // Every row of both stars, each framed alike above and below; the sheep giving up rows of sky and field for it.
-    const stars = plan.rows.yoke.filter((r) => r.year === 2014).map((r) => ("plain" in r ? "plain" : `${r.chart}${r.row}`));
-    expect(stars).toEqual(["plain", ...Array.from({ length: 13 }, (_, i) => `C${13 - i}`), "plain", "plain", ...Array.from({ length: 13 }, (_, i) => `B${13 - i}`), "plain"]);
-    // Each star framed in its own background: 2014's yarn A round the first, C round the second; and the sky's yarn above the sheep.
-    const plains = plan.rows.yoke.filter((r) => r.year === 2014 && "plain" in r).map((r) => ("plain" in r ? r.plain : ""));
-    expect(plains).toEqual(["A", "A", "C", "C"]);
-    const sky = plan.rows.yoke.find((r) => r.year === 2015);
-    expect(sky).toEqual({ year: 2015, plain: "D" });
     const sheep = plan.rows.yoke.filter((r) => r.year === 2015 && !("plain" in r)) as Exclude<Row, { plain: string }>[];
-    expect(sheep.map((r) => r.row)).toEqual(Array.from({ length: 19 }, (_, i) => 21 - i));
+    expect(sheep.map((r) => r.row)).toEqual(Array.from({ length: 22 }, (_, i) => 23 - i));
+  });
+
+  it("keeps 2014's two stars whole with the peerie between them, each framed in its own background, in 4XL", () => {
+    const plan = planOf(measured.find((m) => m.id === "4xl")!.finished, { kind: "refit" });
+    const rows = plan.rows.yoke.filter((r) => r.year === 2014).map((r) => ("plain" in r ? `plain ${r.plain}` : `${r.chart}${r.row}`));
+    const down = (chart: string, from: number) => Array.from({ length: from }, (_, i) => `${chart}${from - i}`);
+    // 2014's yarn A round the first star, B round the peerie, C round the second.
+    expect(rows).toEqual(["plain A", ...down("C", 13), "plain A", "plain B", ...down("A", 4), "plain B", "plain C", ...down("B", 13), "plain C"]);
   });
 });
 
@@ -95,8 +95,8 @@ describe("both layouts", () => {
   const layouts = [{ kind: "lined", newestFirst: false }, { kind: "refit" }] as const;
   const cases = layouts.flatMap((layout) => measured.map((m) => ({ ...m, layout, kind: layout.kind })));
 
-  it.each(cases)("colour every plain round from the pattern beside it: $kind, $label", ({ id, finished, layout }) => {
-    const plan = planOf(finished, layout, id);
+  it.each(cases)("colour every plain round from the pattern beside it: $kind, $label", ({ finished, layout }) => {
+    const plan = planOf(finished, layout);
     for (const piece of ["yoke", "body", "sleeve"] as const) {
       const rows = plan.rows[piece];
       rows.forEach((r, i) => {
@@ -111,8 +111,8 @@ describe("both layouts", () => {
   });
 
   // Each Year Once frames each quantum alike rather than each year (see above).
-  it.each(cases.filter((c) => c.kind === "lined"))("frame every year alike, as many plain rounds above it as below: $kind, $label", ({ id, finished, layout }) => {
-    const plan = planOf(finished, layout, id);
+  it.each(cases.filter((c) => c.kind === "lined"))("frame every year alike, as many plain rounds above it as below: $kind, $label", ({ finished, layout }) => {
+    const plan = planOf(finished, layout);
     for (const piece of ["yoke", "body", "sleeve"] as const) {
       const rows = plan.rows[piece];
       for (const year of new Set(rows.map((r) => r.year))) {
@@ -130,8 +130,8 @@ describe("a plain round between quanta that don't go together", () => {
   const layouts = [{ kind: "lined", newestFirst: false }, { kind: "refit" }] as const;
   it.each(layouts.flatMap((layout) => measured.map((m) => ({ ...m, layout, kind: layout.kind }))))(
     "never knits two such rows one after the other: $kind, $label",
-    ({ id, finished, layout }) => {
-      const plan = planOf(finished, layout, id);
+    ({ finished, layout }) => {
+      const plan = planOf(finished, layout);
       for (const piece of ["yoke", "body", "sleeve"] as const) {
         plan.rows[piece].forEach((r, i) => {
           const above = plan.rows[piece][i - 1];
@@ -143,7 +143,7 @@ describe("a plain round between quanta that don't go together", () => {
   );
 
   it("parts the peeries from 2014's stars, in M", () => {
-    const plan = planOf(measured.find((m) => m.id === "m")!.finished, { kind: "refit" }, "m");
+    const plan = planOf(measured.find((m) => m.id === "m")!.finished, { kind: "refit" });
     const rows = plan.rows.yoke.filter((r) => r.year === 2014).map((r) => ("plain" in r ? "plain" : `${r.chart}${r.row}`));
     const at = (row: string) => rows.indexOf(row);
     expect(rows[at("A1") + 1]).toBe("plain");

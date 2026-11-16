@@ -7,8 +7,8 @@ import eachYearOnce from "../../wool-week-strips-once-oldest";
 const nearest = (v: number, m: number) => Math.max(m, Math.round(v / m) * m);
 
 /** A size's yoke as knit shapes it: its rounds, their target, and the steps the search takes. */
-const yokeOf = (finished: (typeof measured)[number]["finished"], layout: Layout, id: string) => {
-  const plan = planOf(finished, layout, id);
+const yokeOf = (finished: (typeof measured)[number]["finished"], layout: Layout) => {
+  const plan = planOf(finished, layout);
   const rows = plan.rows.yoke;
   const neck = nearest(finished.neckCm * gauge.stitches, 4);
   const body = nearest(finished.chestCm * gauge.stitches, 4);
@@ -33,8 +33,8 @@ const cases = (["refit", "lined"] as const).flatMap((kind) =>
 );
 
 describe("a yoke grown by its quanta", () => {
-  it.each(cases)("never doubles a column with foreground below it in its quantum: $kind, $label", ({ id, finished, layout }) => {
-    const { rows, steps } = yokeOf(finished, layout, id);
+  it.each(cases)("never doubles a column with foreground below it in its quantum: $kind, $label", ({ finished, layout }) => {
+    const { rows, steps } = yokeOf(finished, layout);
     for (const u of unitsOf(rows)) {
       if (u.solid) continue;
       u.rows.forEach((i, p) => {
@@ -49,8 +49,8 @@ describe("a yoke grown by its quanta", () => {
     }
   });
 
-  it.each(cases)("doubles a mirror image's columns in mirror pairs, every repeat alike: $kind, $label", ({ id, finished, layout }) => {
-    const { rows, steps } = yokeOf(finished, layout, id);
+  it.each(cases)("doubles a mirror image's columns in mirror pairs, every repeat alike: $kind, $label", ({ finished, layout }) => {
+    const { rows, steps } = yokeOf(finished, layout);
     for (const u of unitsOf(rows)) {
       if (u.solid) continue;
       const pairOf = new Map(u.slots.flatMap((s) => s.map((x) => [x, s] as const)));
@@ -64,8 +64,8 @@ describe("a yoke grown by its quanta", () => {
     }
   });
 
-  it.each(cases)("keeps near its target, and never shrinks: $kind, $label", ({ id, finished, layout }) => {
-    const { neck, end, want, steps } = yokeOf(finished, layout, id);
+  it.each(cases)("keeps near its target, and never shrinks: $kind, $label", ({ finished, layout }) => {
+    const { neck, end, want, steps } = yokeOf(finished, layout);
     let count = neck;
     let lag = 0;
     steps.forEach((s, i) => {
@@ -79,8 +79,8 @@ describe("a yoke grown by its quanta", () => {
     expect(lag).toBeLessThan(0.15);
   });
 
-  it.each(cases)("keeps its increase rounds apart: $kind, $label", ({ id, finished, layout }) => {
-    const { neck, steps } = yokeOf(finished, layout, id);
+  it.each(cases)("keeps its increase rounds apart: $kind, $label", ({ finished, layout }) => {
+    const { neck, steps } = yokeOf(finished, layout);
     const at = steps.map((s, i) => (s.count > (i ? steps[i - 1].count : neck) ? i : -1)).filter((i) => i >= 0);
     // No doubling round straight after another increase.
     at.forEach((i, k) => k && steps[i].kind === "double" && expect(i - at[k - 1], `round ${i + 1}`).toBeGreaterThan(2));
@@ -88,8 +88,8 @@ describe("a yoke grown by its quanta", () => {
 });
 
 /** A size's sleeve as knit shapes it: its rounds, its straight taper, and the steps the search takes. */
-const sleeveOf = (finished: (typeof measured)[number]["finished"], layout: Layout, id: string) => {
-  const rows = planOf(finished, layout, id).rows.sleeve;
+const sleeveOf = (finished: (typeof measured)[number]["finished"], layout: Layout) => {
+  const rows = planOf(finished, layout).rows.sleeve;
   const top = nearest(finished.upperArmCm * gauge.stitches, 2);
   const cuff = nearest(finished.cuffCm * gauge.stitches, 4);
   const L = rows.length;
@@ -99,8 +99,8 @@ const sleeveOf = (finished: (typeof measured)[number]["finished"], layout: Layou
 };
 
 describe("a sleeve narrowed by its quanta, seamless where it can be", () => {
-  it.each(cases)("keeps every round within 10% of its taper, never widens, and ends on its cuff: $kind, $label", ({ id, finished, layout }) => {
-    const { top, cuff, want, steps } = sleeveOf(finished, layout, id);
+  it.each(cases)("keeps every round within 10% of its taper, never widens, and ends on its cuff: $kind, $label", ({ finished, layout }) => {
+    const { top, cuff, want, steps } = sleeveOf(finished, layout);
     let count = top;
     steps.forEach((s, i) => {
       expect(s.count, `round ${i + 1}`).toBeLessThanOrEqual(count);
@@ -110,8 +110,8 @@ describe("a sleeve narrowed by its quanta, seamless where it can be", () => {
     expect(count).toBe(cuff);
   });
 
-  it.each(cases)("knits each band all seamless or all seamed, a seamless one on whole repeats: $kind, $label", ({ id, finished, layout }) => {
-    const { rows, steps } = sleeveOf(finished, layout, id);
+  it.each(cases)("knits each band all seamless or all seamed, a seamless one on whole repeats: $kind, $label", ({ finished, layout }) => {
+    const { rows, steps } = sleeveOf(finished, layout);
     for (const u of unitsOf(rows)) {
       if (u.solid) continue;
       expect(new Set(u.rows.map((i) => !!steps[i].seam)).size, `the band at round ${u.rows[0] + 1}`).toBe(1);
@@ -127,8 +127,8 @@ describe("a sleeve narrowed by its quanta, seamless where it can be", () => {
     }
   });
 
-  it.each(cases)("steps a padded band down part-way only by k2togs of two background copies: $kind, $label", ({ id, finished, layout }) => {
-    const { rows, steps } = sleeveOf(finished, layout, id);
+  it.each(cases)("steps a padded band down part-way only by k2togs of two background copies: $kind, $label", ({ finished, layout }) => {
+    const { rows, steps } = sleeveOf(finished, layout);
     for (const u of unitsOf(rows)) {
       u.rows.forEach((i, p) => {
         const s = steps[i];
@@ -150,8 +150,8 @@ describe("a sleeve narrowed by its quanta, seamless where it can be", () => {
     }
   });
 
-  it.each(cases)("ends a doubled column only where everything above it in its band is background: $kind, $label", ({ id, finished, layout }) => {
-    const { rows, steps } = sleeveOf(finished, layout, id);
+  it.each(cases)("ends a doubled column only where everything above it in its band is background: $kind, $label", ({ finished, layout }) => {
+    const { rows, steps } = sleeveOf(finished, layout);
     for (const u of unitsOf(rows)) {
       // A narrowed or padded band's copies are its own (see regions.ts), not doubled columns.
       if (u.solid || steps[u.rows[0]].seam || steps[u.rows[0]].resized) continue;

@@ -34,29 +34,29 @@ const published: Record<string, { split: string; rounds: [number, number, number
   l: {
     split: "3/5/5",
     rounds: [80, 141, 159],
-    yoke: ["2014 Both stars, a round between (26)", "2015 Sheep, 4 sky and 2 field rows off (19)", "2016 Three strips (29)"],
+    yoke: ["2014 Chart C between peeries (21)", "2015 Sheep, 2 sky and 1 field rows off (22)", "2016 Three strips (29)"],
     body: ["2017 Three bands (21)", "2018 Dancers and plusses (21)", "2019 Sheep and boat, a round between (24)", "2020 As the hat (38)", "2021 With its borders (31)"],
     sleeve: ["2022 Anchors and waves (27)", "2023 Flowers between peeries (33)", "2024 Rams between zigzags (29)", "2025 Twice, dotted strip between (29)", "2026 Cropped to 28 (28)"],
   },
   xl: {
     split: "3/5/5",
     rounds: [84, 145, 163],
-    yoke: ["2014 Both stars, a round between (26)", "2015 As the hat, all the sky (25)", "2016 Three strips (29)"],
-    body: ["2017 Four bands (28)", "2018 Dancers and plusses (21)", "2019 Sheep and boat, a round between (24)", "2020 Both star bands (30)", "2021 With its borders (31)"],
+    yoke: ["2014 Chart C between peeries (21)", "2015 As the hat, all the sky (25)", "2016 Three strips (29)"],
+    body: ["2017 Three bands (21)", "2018 Dancers and plusses (21)", "2019 Sheep and boat, a round between (24)", "2020 As the hat (38)", "2021 With its borders (31)"],
     sleeve: ["2022 Anchors and waves (27)", "2023 Flowers between peeries (33)", "2024 Rams between zigzags (29)", "2025 Twice, dotted strip between (29)", "2026 Cropped to 32 (32)"],
   },
   "2xl": {
     split: "3/5/5",
     rounds: [87, 149, 163],
-    yoke: ["2014 Both stars, a round between (26)", "2015 As the hat, all the sky (25)", "2016 Three strips with seed borders (33)"],
-    body: ["2017 Four bands (28)", "2018 Dancers, plusses, dancers, a row off each side (27)", "2019 Sheep and boat, a round between (24)", "2020 Both star bands (30)", "2021 With its borders (31)"],
+    yoke: ["2014 Chart C between peeries (21)", "2015 As the hat, all the sky (25)", "2016 Three strips with seed borders (33)"],
+    body: ["2017 Four bands (28)", "2018 Dancers and plusses (21)", "2019 Sheep and boat, a round between (24)", "2020 As the hat (38)", "2021 With its borders (31)"],
     sleeve: ["2022 Anchors and waves (27)", "2023 Flowers between peeries (33)", "2024 Rams between zigzags (29)", "2025 Twice, dotted strip between (29)", "2026 Cropped to 32 (32)"],
   },
   "3xl": {
     split: "3/5/5",
     rounds: [90, 154, 166],
-    yoke: ["2014 Both stars, a round between (26)", "2015 As the hat, all the sky (25)", "2016 Three strips with seed borders (33)"],
-    body: ["2017 Four bands (28)", "2018 Dancers, plusses, dancers (31)", "2019 Sheep and boat, a round between (24)", "2020 Both star bands (30)", "2021 With its borders (31)"],
+    yoke: ["2014 Chart C between peeries (21)", "2015 As the hat, all the sky (25)", "2016 Three strips with seed borders (33)"],
+    body: ["2017 Three bands (21)", "2018 Dancers, plusses, dancers (31)", "2019 Sheep and boat, a round between (24)", "2020 As the hat (38)", "2021 With its borders (31)"],
     sleeve: ["2022 Anchors and waves (27)", "2023 Flowers between peeries (33)", "2024 Rams between zigzags (29)", "2025 Twice, dotted strip between (29)", "2026 Cropped to 36 (36)"],
   },
   "4xl": {
@@ -71,7 +71,7 @@ const published: Record<string, { split: string; rounds: [number, number, number
 describe("what Each Year Once's layout chooses", () => {
   for (const size of measured) {
     it(`for ${size.id}`, () => {
-      expect(chosen(size.finished, size.id)).toEqual(published[size.id]);
+      expect(chosen(size.finished)).toEqual(published[size.id]);
     });
   }
 });
