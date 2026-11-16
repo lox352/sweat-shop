@@ -20,9 +20,9 @@
 .stage {
   position: relative;
   flex: none;
+  /* Changed at once and never eased: every size on the way would be the jumper drawn again at that size. */
   height: min(36vh, 22rem);
   height: min(36dvh, 22rem);
-  transition: height 0.2s ease;
   margin: 0 calc(-1 * var(--gutter));
   background: var(--paper-raised);
   border-bottom: 1px solid var(--rule);
