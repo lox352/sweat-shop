@@ -50,13 +50,13 @@
 
 .stitch-key p {
   margin: 0.15rem 0 0;
-  font-size: 0.9rem;
+  font-size: var(--text-s);
   color: var(--ink-soft);
   max-width: 60ch;
 }
 
 .stitch-abbr {
-  font-size: 0.85rem;
+  font-size: var(--text-s);
   color: var(--ink-faint);
 }
 
@@ -96,7 +96,7 @@
 .stitch-steps {
   margin: 0.35rem 0 0;
   padding-left: 1.3rem;
-  font-size: 0.88rem;
+  font-size: var(--text-s);
   color: var(--ink-soft);
   max-width: 60ch;
 }
@@ -208,7 +208,7 @@
 .chart-picked {
   position: absolute;
   border: 2px dashed var(--crimson);
-  border-radius: 2px;
+  border-radius: var(--radius-small);
   pointer-events: none;
 }
 
@@ -231,7 +231,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  font-size: 0.9rem;
+  font-size: var(--text-s);
   font-weight: 600;
 }
 
@@ -241,7 +241,7 @@
   margin: -6px -6px -6px 0;
   border: none;
   background: none;
-  font-size: 1.3rem;
+  font-size: var(--text-xl);
   line-height: 1;
   color: var(--ink-soft);
   cursor: pointer;
@@ -249,7 +249,7 @@
 
 .stitch-picker-note {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--text-s);
   color: var(--ink-soft);
 }
 
@@ -327,33 +327,9 @@
 
 .chart-caption {
   margin: 0.75rem 0 0;
-  font-size: 0.9rem;
+  font-size: var(--text-s);
   color: var(--ink-soft);
   max-width: none;
-}
-
-.chart-key {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem 1rem;
-  margin: 0.9rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.chart-key li {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.9rem;
-}
-
-.chart-key .swatch {
-  width: 1.05rem;
-  height: 1.05rem;
-  border: 1px solid rgb(0 0 0 / 0.35);
-  border-radius: 2px;
-  flex: none;
 }
 
 .stitch-picker-what {
@@ -361,7 +337,7 @@
   grid-template-columns: auto 1fr;
   gap: 0.55rem;
   align-items: start;
-  font-size: 0.88rem;
+  font-size: var(--text-s);
 }
 
 .stitch-picker-what > div:only-child {
@@ -378,13 +354,13 @@
 .stitch-picker-needles {
   display: block;
   color: var(--ink-soft);
-  font-size: 0.84rem;
+  font-size: var(--text-xs);
 }
 
 .stitch-picker-where {
   display: block;
   font-weight: 400;
-  font-size: 0.82rem;
+  font-size: var(--text-xs);
   color: var(--ink-soft);
 }
 

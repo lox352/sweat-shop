@@ -42,11 +42,11 @@
 }
 
 .project-card-text strong {
-  font-size: 1.1rem;
+  font-size: var(--text-l);
 }
 
 .project-card-text .quiet {
-  font-size: 0.87rem;
+  font-size: var(--text-s);
 }
 
 
@@ -54,7 +54,7 @@
   width: 14px;
   height: 22px;
   border: 1px solid rgb(0 0 0 / 0.28);
-  border-radius: 1px;
+  border-radius: var(--radius-small);
   display: inline-block;
 }
 
@@ -118,13 +118,13 @@
 .design-card-text strong {
   font-family: var(--display);
   text-transform: uppercase;
-  font-size: 1.15rem;
+  font-size: var(--text-l);
   line-height: 1.05;
   letter-spacing: 0.01em;
 }
 
 .design-card-text .quiet {
-  font-size: 0.85rem;
+  font-size: var(--text-s);
 }
 
 

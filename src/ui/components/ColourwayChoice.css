@@ -4,7 +4,7 @@
 }
 
 .your-colourway .quiet {
-  font-size: 0.9rem;
+  font-size: var(--text-s);
 }
 
 /* A design's colourways in groups, each a tradition: one group shown at a time. */
@@ -26,7 +26,7 @@
   min-height: 44px;
   padding: 0.3rem 0.8rem;
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--text-s);
   color: var(--ink);
   background: var(--paper-raised);
   border: 1px solid var(--rule);
@@ -61,13 +61,13 @@
 }
 
 .colourway-grid strong {
-  font-size: 0.9rem;
+  font-size: var(--text-s);
   line-height: 1.15;
 }
 
 .colourway-starts-title {
   margin: 1.1rem 0 0;
-  font-size: 0.9rem;
+  font-size: var(--text-s);
   color: var(--ink-soft);
 }
 
@@ -86,7 +86,7 @@
   min-height: 44px;
   padding: 0.3rem 0.7rem 0.3rem 0.5rem;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--text-s);
   color: var(--ink);
   background: var(--paper-raised);
   border: 1px solid var(--rule);
@@ -104,8 +104,8 @@
   place-items: center;
   width: 1.4rem;
   height: 1.4rem;
-  font-size: 0.8rem;
-  border-radius: 2px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-small);
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.2);
 }
 

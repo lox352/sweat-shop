@@ -20,7 +20,7 @@
 }
 
 .size-chooser .size-option .quiet {
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
   line-height: 1.25;
 }
 
@@ -50,7 +50,7 @@
 
 .sweater-settling {
   margin: 0.5rem 0 0;
-  font-size: 0.85rem;
+  font-size: var(--text-s);
   color: var(--ink-faint);
   display: grid;
   gap: 0.35rem;

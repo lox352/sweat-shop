@@ -24,7 +24,23 @@
   --body: "Source Sans 3", "Source Sans Pro", system-ui, -apple-system, sans-serif;
 
   --measure: 62ch;
+
+  /*
+   * One scale of type, and nothing set between its steps: labels and
+   * captions, what is said aside, the body, what leads, a heading inside a
+   * panel, and a figure to be read at a glance. Titles are the headings below.
+   */
+  --text-xs: 0.8rem;
+  --text-s: 0.9rem;
+  --text-m: 1rem;
+  --text-l: 1.15rem;
+  --text-xl: 1.45rem;
+  --text-display: 2.1rem;
+
+  /* One corner for anything with an edge, a small one for a swatch, and a sheet's top. */
   --radius: 4px;
+  --radius-small: 2px;
+  --radius-sheet: 12px;
 
   color-scheme: light;
   color: var(--ink);
@@ -72,7 +88,7 @@ h2 {
 }
 
 h3 {
-  font-size: 1.05rem;
+  font-size: var(--text-m);
   letter-spacing: 0.06em;
   color: var(--ink-soft);
 }
@@ -101,7 +117,7 @@ hr {
 }
 
 .lede {
-  font-size: 1.15rem;
+  font-size: var(--text-l);
   color: var(--ink-soft);
 }
 
@@ -113,7 +129,7 @@ hr {
   font-family: var(--display);
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  font-size: 0.82rem;
+  font-size: var(--text-xs);
   color: var(--ink-faint);
 }
 

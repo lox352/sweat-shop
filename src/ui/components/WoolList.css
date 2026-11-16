@@ -46,18 +46,18 @@
 .wool-row-what {
   flex: 1 1 auto;
   min-width: 0;
-  font-size: 0.92rem;
+  font-size: var(--text-s);
   line-height: 1.3;
 }
 
 .wool-row-count {
   display: block;
-  font-size: 0.82rem;
+  font-size: var(--text-xs);
 }
 
 .wool-row-change {
   flex: none;
-  font-size: 0.85rem;
+  font-size: var(--text-s);
   color: var(--crimson);
   text-decoration: underline;
 }

@@ -230,6 +230,45 @@ worked out.
 A change to what rounds are called in the chart's margin, or to how wide a
 stitch is drawn, is not a change to the knitting and makes no new edition.
 
+## How the site is laid out
+
+Three places, and one chart.
+
+| Address | What it is |
+|---|---|
+| `/` | Your jumpers, then the designs. |
+| `/sweater/:design` | A design: choose a size, colours and a tension, and start. |
+| `/project/:id` | Your jumper: how far along, its wool, its fit. |
+| `/project/:id/chart` | The chart, full screen. With `?knitting=1` the knitting panel is open; without it you are looking around, and the panel is folded to a bar. |
+
+The rules every screen keeps, so that none has to be learnt twice:
+
+- **One title block** (`ui/TitleBlock.tsx`). A small spaced line over the
+  title in crimson, and the settings at the right. On an inner page the small
+  line begins with "Sweat Shop", which goes home. There are no back arrows:
+  the browser's own goes back, and every place and every view has an address
+  for it to go back to.
+- **The jumper on a stage** (`ui/StageLayout.tsx`). A design and a jumper are
+  the same screen: the sweater in three dimensions, tabs under it, a panel
+  that scrolls, and a bar at the foot holding the one way forward. The
+  sweater stays in view while what it depends on is changed; reading down a
+  panel makes it smaller, never gone. A tab is in the address (`?tab=`) and
+  replaces rather than adds to the history, so back leaves the page.
+- **A view over a page is closed from the top right** (`useView.ts`): *Done*
+  where something was changed (Customise), a cross where it was only looked
+  at (the chart). Opening one adds to the history, so back closes it too.
+- **What comes up from the foot is a sheet**: the key, the shades for a wool,
+  and on a phone every dialog. One look: a crimson rule along the top, the
+  top corners rounded, closed at its top right.
+- **Colours are chosen where they can be seen** (`Customise.tsx`): the
+  jumper, the chart and the wools on one screen. Tap a wool, or a stitch of
+  the chart, and that wool is lit on both while its shades are open below.
+- **One scale of type and one corner**, named in `src/index.css`
+  (`--text-xs` to `--text-display`, `--radius`). A size or a radius that is
+  not one of them is a mistake.
+- **A thumb, not a pointer.** Anything tapped is at least 44px on a touch
+  screen, and the one way forward is always in the bar at the foot.
+
 ## How the code is laid out
 
 One rule: **the compiler writes files, and the site reads them.** Nothing a
