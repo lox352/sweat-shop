@@ -20,6 +20,9 @@ const shapeOf = (sweaterId: string, sizeId: string, edition?: string): string | 
 /** The shape an edition of a size has, if it has been settled, without fetching it: the size's edition now, for none given. */
 export const settledShape = shapeOf;
 
+/** Whether a shape of this name is published: one some edition of some size has. */
+export const isPublished = (shape: string): boolean => Object.values(shapes as Record<string, string>).includes(shape);
+
 /** Where a shape's fabric came to rest, stitch by stitch in id order: see format's allPositions for every stitch. */
 export const loadSettled = async (shape: string): Promise<Float32Array | undefined> => {
   try {

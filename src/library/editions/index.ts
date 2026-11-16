@@ -38,7 +38,9 @@ type Manifest = Record<string, Record<string, { current: string; errata?: string
 const manifest: Manifest =
   Object.values(import.meta.glob<{ default: Manifest }>("./manifest.json", { eager: true }))[0]?.default ?? {};
 
-const keyOf = (design: string, size: string, edition: string) => `${design}--${size}--${edition}`;
+/** What an edition of a size is filed under, wherever it is filed. */
+export const editionKey = (design: string, size: string, edition: string) => `${design}--${size}--${edition}`;
+const keyOf = editionKey;
 
 /** Where a frozen copy is served from. */
 export const editionUrl = (design: string, size: string, edition: string) =>

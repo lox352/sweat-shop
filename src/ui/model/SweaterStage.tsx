@@ -76,7 +76,8 @@ export default function SweaterStage({ knitting: built, palette, progress, reduc
       gl={{ alpha: true, antialias: true }}
       dpr={[1, 2]}
     >
-      <FrameModel subject={built} extremes={extremes} controls={controls} />
+      {/* Framed for the shape it is drawn in: once laid out, and once more when it comes to rest. */}
+      <FrameModel subject={positions} extremes={extremes} controls={controls} />
       <OrbitControls
         ref={controls as never}
         enableDamping={!reducedMotion}

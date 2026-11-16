@@ -34,6 +34,15 @@ export const ownEdition = (design: string, size: string, edition: string): Editi
   }
 };
 
+/** Whether an edition is one kept on the device: a project's own. */
+export const isOwn = (design: string, size: string, edition: string): boolean => {
+  try {
+    return localStorage.getItem(keyFor(design, size, edition)) !== null;
+  } catch {
+    return false;
+  }
+};
+
 /** Keep an edition on the device. False where the device would not: it is full, or storing is off. */
 export const keepEdition = (file: EditionFile): boolean => {
   try {

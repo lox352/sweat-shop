@@ -86,7 +86,7 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
 });
 
 test("Hamefarin is worked out again from the end of a band: the bands still to come, on the stitches there are", async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(420_000);
   const current = editions.hamefarin.m.current;
   const published = JSON.parse(readFileSync(`public/editions/hamefarin--m--${current}.json`, "utf8"));
   // The last round of the Border, the second band of the yoke.
@@ -113,6 +113,22 @@ test("Hamefarin is worked out again from the end of a band: the bands still to c
   await expect(section).toContainText("The rest of your pattern is worked out for this tension");
   const project = await page.evaluate((id) => JSON.parse(localStorage.getItem(id)), id);
   expect(project).toMatchObject({ progress, fit: { round: 40, from: current }, upTo: current });
+
+  // Its own knitting has no published shape: it is drawn laid out, settled here with a bar for how far that has got, and the shape kept.
+  const settling = page.locator(".sweater-settling");
+  await expect(settling).toContainText("Settling your sweater into its shape");
+  await expect(settling.getByRole("progressbar")).toBeVisible();
+  await expect(settling).toHaveCount(0, { timeout: 300_000 });
+  const kept = await page.evaluate(async () => (await (await caches.open("sweat-shop-shapes")).keys()).map((request) => request.url));
+  expect(kept).toEqual([expect.stringContaining(`own-shapes/hamefarin--m--${project.edition}.json`)]);
+  // Opened again, it is there already: nothing is settled twice.
+  let workers = 0;
+  page.on("worker", (worker) => { if (worker.url().includes("settle.worker")) workers++; });
+  await page.reload();
+  await expect(page.getByRole("region", { name: "Your tension" })).toContainText("The rest of your pattern is worked out for this tension", { timeout: 20_000 });
+  await page.waitForTimeout(1500);
+  await expect(settling).toHaveCount(0);
+  expect(workers).toBe(0);
 });
 
 test("a design that can't be worked out again does not offer to be", async ({ page }) => {
