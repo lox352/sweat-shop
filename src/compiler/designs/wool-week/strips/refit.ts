@@ -1,4 +1,4 @@
-import { type Part, type Round, edgeOf as edge, groundOf, isPlain, lettersOfRound, measured, seamsOf, topDown } from "./cuts";
+import { type Part, type Round, cutsOf, edgeOf as edge, groundOf, isPlain, lettersOfRound, measured, seamsOf, topDown } from "./cuts";
 import { type Frame, type Gauge, type Measured, type Plan, type Row, type Strip, splitOf } from "./plan";
 import { background } from "./quanta";
 
@@ -470,8 +470,34 @@ const rungs: Record<number, [rank: number, state: State][]> = {
   2026: sleeveLadders[4].states.map((state, at) => [[0, 4, 5, 7][at], state]),
 };
 
+/**
+ * A year's whole ladder: its rungs, and below them every other cut the year
+ * has that is shorter than the last (see cuts' cutsOf), tallest first, so
+ * that a piece with too few rounds for the cuts chosen for the pattern's own
+ * tension - a knitter's bigger stitches, or more years to a piece - still
+ * has one that fits. Those are stepped down to after every rung, the year
+ * that has lost the least of its height first.
+ */
+const wholeLadder = new Map<number, [rank: number, state: State][]>();
+const ladderOf = (year: number): [rank: number, state: State][] => {
+  let ladder = wholeLadder.get(year);
+  if (!ladder) {
+    const own = rungs[year];
+    const height = (state: State) => topDown(year, state.parts).length;
+    const top = height(own[0][1]);
+    const least = Math.min(...own.map(([, state]) => height(state)));
+    const below = cutsOf(year)
+      .filter((cut) => cut.height < least)
+      .sort((a, b) => b.height - a.height)
+      .filter((cut, at, all) => at === 0 || cut.height < all[at - 1].height)
+      .map((cut): [number, State] => [100 + 100 * (1 - cut.height / top), st(cut.label, cut.parts)]);
+    wholeLadder.set(year, (ladder = [...own, ...below]));
+  }
+  return ladder;
+};
+
 const ruledPiece = (years: number[], total: number, ends: Ends, slack: number) => {
-  const ladders: Ladder[] = years.map((year) => ({ year, states: rungs[year].map(([, state]) => state) }));
+  const ladders: Ladder[] = years.map((year) => ({ year, states: ladderOf(year).map(([, state]) => state) }));
   for (const mode of [STRICT, { mirror: true, share: true }, { mirror: false, share: true }]) {
     const at = years.map(() => 0);
     const spare = () => layout(place(ladders, at), total, ends, mode).spare;
@@ -480,7 +506,7 @@ const ruledPiece = (years: number[], total: number, ends: Ends, slack: number) =
     while (spare() < 0) {
       // The step least missed, of those still to take.
       const next = years
-        .map((year, i) => ({ i, rank: rungs[year][at[i] + 1]?.[0] }))
+        .map((year, i) => ({ i, rank: ladderOf(year)[at[i] + 1]?.[0] }))
         .filter((one) => one.rank !== undefined)
         .sort((a, b) => a.rank! - b.rank!)[0];
       if (!next) {
@@ -511,6 +537,20 @@ export const ruled = (size: Measured, g?: Gauge, slacks: [number, number, number
   const sleeve = ruledPiece(years.slice(sp.k + sp.m), sp.sleeve, { top: true, bottom: true }, slacks[2]);
   const cuts = (placed: Placed[] | undefined) => (placed ?? []).map((p) => `${p.year} ${p.state.label} (${p.rounds.length})`);
   return { split: `${sp.k}/${sp.m}/${sp.n}`, rounds: [sp.yoke, sp.body, sp.sleeve], yoke: cuts(yoke?.placed), body: cuts(body?.placed), sleeve: cuts(sleeve?.placed) };
+};
+
+/** How many spare rounds a piece keeps when a step is taken back: the yoke and the sleeves, where every band is shaped, a round or two; the body none. */
+const SLACK = { yoke: 2, body: 0, sleeve: 2 };
+
+/**
+ * A piece by the one rule: these years, in order, in so many rounds - its
+ * rows, laid out by the rules every piece keeps. None where the years will
+ * not go in the rounds however they are cut.
+ */
+export const pieceOf = (years: number[], total: number, piece: "yoke" | "body" | "sleeve"): Row[] | null => {
+  const ends = { top: true, bottom: piece !== "yoke" };
+  const fitted = ruledPiece(years, total, ends, SLACK[piece]);
+  return fitted && build(fitted.placed, total, ends, fitted.mode).rows.map(toRow);
 };
 
 /** A size's plan by the one rule: as refit lays a size out, from the cuts the rule chooses. */
