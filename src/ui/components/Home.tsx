@@ -171,7 +171,8 @@ const Home: React.FC = () => {
                   </KnittingBoundary>
                   <span className="design-card-text">
                     <span className="eyebrow">
-                      {sweater.sizes.length} sizes · {sweater.colourways.length} colourways
+                      {/* Two halves, each whole: on a narrow card the line breaks between them, not after a number. */}
+                      <span>{sweater.sizes.length} sizes ·</span> <span>{sweater.colourways.length} colourways</span>
                     </span>
                     <strong>{sweater.name}</strong>
                     <span className="quiet">{sweater.designer}</span>

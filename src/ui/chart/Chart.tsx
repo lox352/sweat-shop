@@ -664,6 +664,13 @@ const Chart: React.FC<ChartProps> = ({
                 place={(id) => tilesRef.current?.placeAfloat(id)}
                 chartWidth={sheetRef.current?.offsetWidth ?? 0}
                 along={tilesRef.current?.afloatShift().x ?? 0}
+                box={() => {
+                  const scroller = scrollRef.current?.getBoundingClientRect();
+                  const sheet = sheetRef.current?.getBoundingClientRect();
+                  const shift = tilesRef.current?.afloatShift();
+                  if (!scroller || !sheet || !shift) return undefined;
+                  return { left: scroller.left - sheet.left - shift.x, right: scroller.right - sheet.left - shift.x, top: scroller.top - sheet.top - shift.y };
+                }}
                 note={pickerNote?.(picked)}
                 entry={keyEntryAt(stitches, picked, stitchNotes, face)}
                 labels={labels}
