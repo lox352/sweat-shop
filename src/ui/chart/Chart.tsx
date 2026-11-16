@@ -570,8 +570,6 @@ const Chart: React.FC<ChartProps> = ({
   }, []);
 
   const focusRound = at?.round;
-  // Being knitted on, and not only looked at with the needle marked: then the round read out is the round in hand.
-  const worked = follow && onJump !== undefined;
 
   if (layout.rows === 0) return <p>This pattern has no stitches to chart.</p>;
 
@@ -690,10 +688,10 @@ const Chart: React.FC<ChartProps> = ({
       <StitchLegend stitches={stitches} notes={stitchNotes} needles={needles} holds={holds} turns={turns} face={face} />
       {writtenRounds && <details className="chart-help" onToggle={e => setShowText(e.currentTarget.open)}>
         <summary>Text round instructions</summary>
-        <label>Read round <select value={worked && focusRound ? focusRound : textRound} disabled={worked && !!focusRound} onChange={e => setTextRound(Number(e.target.value))}>
+        <label>Read round <select value={follow && focusRound ? focusRound : textRound} disabled={follow && !!focusRound} onChange={e => setTextRound(Number(e.target.value))}>
           {rounds.map((_, i) => <option key={i} value={i + 1}>{[names?.[i] ?? `Round ${i + 1}`, labels?.[i]].filter(Boolean).join(" · ")}</option>)}
         </select></label>
-        {showText && <TextRound stitches={stitches} rounds={rounds} round={worked && focusRound ? focusRound : textRound} labels={labels} names={names} palette={palette} pieces={pieces} />}
+        {showText && <TextRound stitches={stitches} rounds={rounds} round={follow && focusRound ? focusRound : textRound} labels={labels} names={names} palette={palette} pieces={pieces} />}
       </details>}
       <details className="chart-help">
         <summary>How to read this chart</summary>

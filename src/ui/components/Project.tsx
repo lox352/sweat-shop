@@ -587,8 +587,7 @@ const ProjectView: React.FC<{
             markers={chart.markers}
             palette={palette}
             progress={project.progress}
-            // Knitting, the chart follows the needle; looking around, it opens there and is the knitter's to pan.
-            follow
+            follow={knitting}
             onJump={knitting ? setProgress : undefined}
             labels={whats}
             names={names}

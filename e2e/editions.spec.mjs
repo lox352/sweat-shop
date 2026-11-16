@@ -55,6 +55,7 @@ test("a project started before its pattern was updated knits what it was started
   await expect(page.locator(".knitting-panel [role=status]")).toBeAttached();
   await expect(note(page)).toHaveCount(0);
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  await page.getByRole("link", { name: "Close the chart", exact: true }).click();
   await expect(note(page)).toBeVisible();
 
   // Taken, the project is on its size's knitting as it is now, its place where it was.
@@ -114,7 +115,7 @@ test("an update all behind the knitter is said once, and changes nothing", async
   // The edition it stays on is kept with it, so it need not stay published.
   expect(await page.evaluate((key) => localStorage.getItem(key) !== null, `edition-hamefarin--m--${older}`)).toBe(true);
   await page.reload();
-  await expect(page.locator(".measurements").first()).toBeVisible();
+  await expect(page.locator(".jumper-progress")).toBeVisible();
   await expect(note(page)).toHaveCount(0);
 });
 
@@ -151,7 +152,7 @@ test("a project on its size's knitting as it is now knits that from its frozen c
   await projectOn(page, undefined, 400);
   asked.length = 0;
   await page.goto("#/project/1760000000000");
-  await expect(page.locator(".measurements").first()).toBeVisible();
+  await expect(page.locator(".jumper-progress")).toBeVisible();
   await expect(note(page)).toHaveCount(0);
   expect((await saved(page)).edition).toBeUndefined();
   // The pattern is fetched, not worked out here: the size's edition now, and no other.
