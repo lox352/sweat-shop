@@ -21,13 +21,13 @@
   font-family: var(--display);
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  font-size: 1.3rem;
+  font-size: var(--text-xl);
   margin: 0 0 8px;
 }
 
 .dialog-text {
   color: var(--ink-soft);
-  font-size: 0.95rem;
+  font-size: var(--text-m);
   margin: 0 0 14px;
 }
 
@@ -47,4 +47,26 @@
   padding: 14px 22px 18px;
   border-top: 1px solid var(--rule);
   background: var(--paper-sunk);
+}
+
+/*
+ * On a phone a dialog is a sheet from the foot of the screen, where a thumb
+ * is: the same place the key and the shades come up from. See the README's
+ * "How the site is laid out".
+ */
+@media (max-width: 620px) {
+  dialog.dialog {
+    margin: auto 0 0;
+    width: 100%;
+    max-width: none;
+    max-height: 88dvh;
+    border-width: 2px 0 0;
+    border-top-color: var(--crimson);
+    border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .dialog-actions .btn {
+    flex: 1 1 0;
+  }
 }

@@ -59,5 +59,5 @@
 
 .schematic figcaption {
   margin-top: 0.4rem;
-  font-size: 0.85rem;
+  font-size: var(--text-s);
 }

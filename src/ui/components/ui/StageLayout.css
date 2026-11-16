@@ -81,7 +81,7 @@
   border: none;
   border-bottom: 2px solid transparent;
   font-family: var(--display);
-  font-size: 0.9rem;
+  font-size: var(--text-s);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -144,7 +144,7 @@
 }
 
 .stage-bar-text .quiet {
-  font-size: 0.85rem;
+  font-size: var(--text-s);
 }
 
 .stage-bar .btn {

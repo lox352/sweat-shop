@@ -4,7 +4,7 @@
   justify-content: center;
   gap: 8px;
   font-family: var(--body);
-  font-size: 0.95rem;
+  font-size: var(--text-m);
   font-weight: 600;
   line-height: 1.2;
   padding: 9px 18px;
@@ -37,7 +37,7 @@
 }
 
 .btn-lg {
-  font-size: 1.05rem;
+  font-size: var(--text-m);
   padding: 12px 26px;
   min-height: 48px;
 }
@@ -87,7 +87,7 @@
 .btn-quiet {
   background: none;
   border: none;
-  border-radius: 3px;
+  border-radius: var(--radius-small);
   padding: 0;
   min-height: 0;
   color: var(--crimson-dark);

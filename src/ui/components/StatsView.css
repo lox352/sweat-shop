@@ -19,13 +19,13 @@
 .stats-figures em {
   font-family: var(--display);
   font-style: normal;
-  font-size: 1.45rem;
+  font-size: var(--text-xl);
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
 .stats-figures .quiet {
-  font-size: 0.85rem;
+  font-size: var(--text-s);
 }
 
 .stats-layers {
@@ -64,14 +64,14 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.2rem 0.5rem;
-  font-size: 0.85rem;
+  font-size: var(--text-s);
   color: var(--ink-soft);
 }
 
 .stats-legend-scale {
   display: inline-flex;
   border: 1px solid rgb(0 0 0 / 0.15);
-  border-radius: 3px;
+  border-radius: var(--radius-small);
   overflow: hidden;
 }
 
@@ -82,12 +82,12 @@
 
 .stats-legend-usual {
   flex-basis: 100%;
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
 }
 
 .stats-hint {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--text-s);
 }
 
 .stats-actions {
@@ -98,7 +98,7 @@
 
 .stats-note {
   margin: 0.4rem 0 0;
-  font-size: 0.88rem;
+  font-size: var(--text-s);
   color: var(--ink-soft);
 }
 
@@ -112,13 +112,13 @@
   height: 0.8rem;
   margin-right: 0.35rem;
   border: 1px solid rgb(0 0 0 / 0.2);
-  border-radius: 2px;
+  border-radius: var(--radius-small);
   vertical-align: -0.08rem;
 }
 
 .stats-summary {
   margin: 0 0 0.4rem;
-  font-size: 1.05rem;
+  font-size: var(--text-m);
 }
 
 .stats-speed-list {
@@ -164,5 +164,5 @@
 
 .stats-swatch-text {
   font-family: var(--display);
-  font-size: 0.95rem;
+  font-size: var(--text-m);
 }

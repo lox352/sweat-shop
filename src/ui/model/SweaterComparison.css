@@ -14,7 +14,7 @@
   font-family: var(--display);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   color: var(--ink-faint);
   text-align: center;
 }
