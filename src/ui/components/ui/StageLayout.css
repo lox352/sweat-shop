@@ -20,17 +20,12 @@
 .stage {
   position: relative;
   flex: none;
-  /* Changed at once and never eased: every size on the way would be the jumper drawn again at that size. */
-  height: min(36vh, 22rem);
-  height: min(36dvh, 22rem);
+  /* One size, whatever is under it: a jumper that changed size as a panel was read was a jumper drawn again each time. */
+  height: min(30vh, 19rem);
+  height: min(30dvh, 19rem);
   margin: 0 calc(-1 * var(--gutter));
   background: var(--paper-raised);
   border-bottom: 1px solid var(--rule);
-}
-
-.is-reading .stage {
-  height: min(22vh, 14rem);
-  height: min(22dvh, 14rem);
 }
 
 .stage-own,
@@ -111,6 +106,31 @@
   margin-top: 2rem;
 }
 
+/* A panel laid out in pages is the pages' to fill: nothing of it scrolls but a page, and nothing comes after it. */
+.stage-scroll.is-paged {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  /* The pages reach the screen's edges, past the page's gutters: they do their own cutting off. */
+  overflow: visible;
+}
+
+.stage-scroll.is-paged > .stage-panel:not([hidden]) {
+  flex: 1;
+  min-height: 0;
+}
+
+.stage-scroll.is-paged > .colophon {
+  display: none;
+}
+
+/* On a phone a design's panels are for the design: where projects are kept, and that the site is ready offline, are said on the way in, at the foot of the home page, and on a jumper's own. */
+@media (max-width: 59.99rem) {
+  .is-browsing .stage-scroll > .colophon {
+    display: none;
+  }
+}
+
 /* A panel begins at its top edge: what is in it brings no heading's margin with it. */
 .stage-panel > .section:first-child,
 .stage-panel > :first-child {
@@ -160,8 +180,8 @@
   flex: none;
 }
 
-/* Room for both: the stage beside the panel. */
-@media (min-width: 60rem) {
+/* Room for both: the stage beside the panel. So too on a phone on its side, which is wide and very short, and had no room under the stage for a panel at all. */
+@media (min-width: 60rem), (orientation: landscape) and (max-height: 32rem) {
   .page.stage-layout {
     display: grid;
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
@@ -174,8 +194,7 @@
     grid-column: 1 / -1;
   }
 
-  .stage,
-  .is-reading .stage {
+  .stage {
     grid-row: 3;
     height: auto;
     margin: 1.5rem 0;
@@ -198,6 +217,34 @@
     border: 1px solid var(--rule);
     border-top: 2px solid var(--crimson);
     border-radius: var(--radius);
+  }
+}
+
+/* A phone on its side: the same, with less air round it, and the title small enough to leave the height to the jumper and the panel. */
+@media (orientation: landscape) and (max-height: 32rem) {
+  .page.stage-layout {
+    padding-top: 0.4rem;
+    column-gap: 1rem;
+  }
+
+  .stage-layout .title-block {
+    padding-bottom: 0.3rem;
+  }
+
+  .stage-layout .page-title {
+    font-size: var(--text-xl);
+  }
+
+  .stage {
+    margin: 0.5rem 0;
+  }
+
+  .stage-side {
+    padding: 0.1rem 0 0.5rem;
+  }
+
+  .stage-bar {
+    padding: 0.4rem 0.75rem;
   }
 }
 

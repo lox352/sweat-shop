@@ -66,6 +66,13 @@
   padding: 0 1rem 1rem;
 }
 
+/* Looking after a project, quietly, at the far end of its buttons. */
+.project-card-manage {
+  display: flex;
+  gap: 1rem;
+  margin-left: auto;
+}
+
 /* The card itself opens the jumper. */
 .project-card-body {
   display: block;
@@ -125,6 +132,15 @@
 
 .design-card-text .quiet {
   font-size: var(--text-s);
+}
+
+.design-card-text .eyebrow > span {
+  white-space: nowrap;
+}
+
+/* The designer's line, even: not a word alone on its last line. */
+.design-card-text .quiet {
+  text-wrap: balance;
 }
 
 

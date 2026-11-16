@@ -9,12 +9,13 @@ import { useView } from "../useView";
 import { currentEdition } from "../../library/editions";
 import type { Fitted } from "../../library/fit";
 import { sameTension } from "../../reading/tension";
-import { ballsOf, colourwayLabel, paletteOf, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
+import { ballsOf, colourwayLabel, ownBalls, paletteOf, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
 import { totals } from "../../reading/progress";
 import { metresFor } from "../../reading/yardage";
 import { chartPath, keepKnitting, startProject } from "../../projects/projects";
 import PageLayout from "./ui/PageLayout";
 import StageLayout from "./ui/StageLayout";
+import Pages from "./ui/Pages";
 import Button from "./ui/Button";
 import SweaterModel from "./SweaterModel";
 import Customise from "./Customise";
@@ -153,7 +154,11 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
   const body = useMemo(() => ({ stitches, rounds: yoke }), [stitches, yoke]);
   const bought = balls.reduce((total, ball) => total + ball.balls, 0);
 
-  const sizePanel = (
+  /*
+   * Three things, each a page the panel's own size: which size, what that
+   * size is laid flat, and its measurements.
+   */
+  const choosing = (
     <>
       <div className="size-chooser">
         {sweater.sizes.map((option) => (
@@ -170,34 +175,41 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
         ))}
       </div>
       <p className="quiet">
-        The finished chest has about {Math.round(size.finished.chestCm - size.toFitChestCm)}cm of ease. Each size is its own knitting - its own cast-on,
-        increases and divide - and the chart follows the size you choose.
+        About {Math.round(size.finished.chestCm - size.toFitChestCm)}cm of ease at the chest. Each size is its own knitting, and the chart follows the one you choose.
       </p>
-      <div className="size-figures">
-        <Schematic size={size} />
-        <Measurements size={size} />
-      </div>
     </>
   );
+  const sizePanel = (
+    <Pages
+      label="Size"
+      pages={[
+        { id: "choose", label: "Choose a size", content: choosing },
+        { id: "flat", label: `Size ${size.label} laid flat`, content: <Schematic size={size} /> },
+        { id: "measurements", label: `Size ${size.label}'s measurements`, content: <Measurements size={size} /> },
+      ]}
+    />
+  );
 
-  const coloursPanel = (
-    <>
-      <ColourwayChoice
-        colourways={sweater.colourways}
-        colourway={colourway}
-        overrides={own}
-        body={body}
-        onStartFrom={(id) => {
-          setColourwayId(id);
-          setTrim(undefined);
-          setOwn({});
-        }}
-        trim={sweater.trim}
-        trimChosen={trim}
-        onTrim={setTrim}
-      />
-      <p>
-        <Button onClick={customise.show}>Customise these colours</Button>
+  // The last page of the colours: any of them changed for wool of the knitter's own, and what the wool is.
+  const changed = ownBalls(colourway, own);
+  const ownWool = (
+    <div className="colours-own">
+      {changed > 0 ? (
+        <p className="your-colourway">
+          <strong>{colourway.name}</strong> with {changed} {changed === 1 ? "yarn" : "yarns"} of your own.
+        </p>
+      ) : (
+        <p>
+          Change any wool of <strong>{colourway.name}</strong> for another shade, or a colour of your own.
+        </p>
+      )}
+      <p className="colours-own-actions">
+        <Button onClick={customise.show}>{changed > 0 ? "Change more" : "Customise these colours"}</Button>
+        {changed > 0 && (
+          <Button variant="quiet" onClick={() => setOwn({})}>
+            Back to {colourway.name}
+          </Button>
+        )}
       </p>
       <p className="quiet">
         {colourway.brand} {colourway.yarn}
@@ -210,7 +222,25 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
         The colours come from the spinners' own photographs of the wool, so they are close rather than exact.
         {anyApproximate ? " Some shades use approximate colours where an exact match is unavailable." : ""}
       </p>
-    </>
+    </div>
+  );
+  const coloursPanel = (
+    <ColourwayChoice
+      colourways={sweater.colourways}
+      colourway={colourway}
+      overrides={own}
+      body={body}
+      onStartFrom={(id) => {
+        setColourwayId(id);
+        setTrim(undefined);
+        setOwn({});
+      }}
+      trim={sweater.trim}
+      trimChosen={trim}
+      onTrim={setTrim}
+      paged
+      after={[{ id: "own", label: "Your own wool", content: ownWool }]}
+    />
   );
 
   const tensionPanel = (
@@ -239,9 +269,10 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
       eyebrow="a design"
       stage={<SweaterModel sweaterId={sweater.id} sizeId={size.id} palette={palette} progress={stitches[stitches.length - 1]?.id ?? 0} fill />}
       tabsLabel="This design"
+      browsing
       panels={[
-        { id: "size", label: "Size", content: sizePanel },
-        { id: "colours", label: "Colours", content: coloursPanel },
+        { id: "size", label: "Size", content: sizePanel, paged: true },
+        { id: "colours", label: "Colours", content: coloursPanel, paged: true },
         { id: "tension", label: "Tension", content: tensionPanel },
         { id: "about", label: "About", content: aboutPanel },
       ]}

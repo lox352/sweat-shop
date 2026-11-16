@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Stitch } from "../../pattern/Stitch";
 import { ChartLayout } from "../../reading/layout";
 import { progressBefore } from "../../reading/jump";
@@ -7,9 +7,11 @@ import { KeyEntry } from "../../reading/stitch-key";
 import { HatchSwatch, OnHoldSwatch, Swatch, hatchSaying } from "./ChartHelp";
 
 /** How wide the bubble is, so it can be kept on the chart. */
-const bubbleWidth = 208;
+const bubbleWidth = 236;
 /** Wider when it also explains the stitch. */
 const explainingWidth = 272;
+/** Room enough over a stitch for the bubble, in the part of the chart on screen: plain, explaining its stitch, and saying what its hatching or hold is. */
+const roomAbove = { plain: 230, explaining: 300, saying: 390 };
 
 /**
  * The bubble over a stitch tapped on the chart, offering to carry on from it.
@@ -54,7 +56,15 @@ const StitchPicker: React.FC<{
   /** And how wide the chart's sheet is then, and how far along it what floats over the tiles is put. */
   chartWidth: number;
   along: number;
-}> = ({ id, stitches, rounds, layout, cell, progress, onJump, onClose, entry, yarn, labels, names, otherFace, onHold, note, place, chartWidth, along }) => {
+  /** The part of the chart on screen, as the stitch is picked, in what the stitch is placed on. */
+  box?: () => { left: number; right: number; top: number } | undefined;
+}> = ({ id, stitches, rounds, layout, cell, progress, onJump, onClose, entry, yarn, labels, names, otherFace, onHold, note, place, chartWidth, along, box }) => {
+  /*
+   * A stitch picked near the edge of the screen has its bubble moved in, to
+   * be whole on screen: by so much, found once as it is picked and kept, so
+   * that it stays beside its stitch as the chart slides under a finger.
+   */
+  const moved = useRef<{ id: number; across: number; below: boolean }>();
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -75,13 +85,20 @@ const StitchPicker: React.FC<{
   const needles = stitches[id]?.needles;
   const joinsAfter = stitches[id + 1]?.type === "join";
   const bubble = explains || otherFace || onHold ? explainingWidth : bubbleWidth;
+  const middle = x + cell / 2 - bubble / 2;
+  if (moved.current?.id !== id) {
+    const seen = box?.();
+    const inBox = seen ? Math.min(Math.max(middle, seen.left + 4), Math.max(seen.right - bubble - 4, seen.left + 4)) : middle;
+    const room = otherFace || onHold ? roomAbove.saying : explains ? roomAbove.explaining : roomAbove.plain;
+    moved.current = { id, across: inBox - middle, below: !!seen && y - seen.top < room };
+  }
   // Kept on the sheet, which is `along` before what the stitch is placed on.
   const left = Math.min(
-    Math.max(x + cell / 2 - bubble / 2, 4 - along),
+    Math.max(middle + moved.current.across, 4 - along),
     Math.max(width - bubble - 4, 4) - along,
   );
-  // Above the stitch, unless that would run off the top of the chart.
-  const below = y < 96;
+  // Above the stitch, unless that would run off the top of the chart, or of what is on screen of it.
+  const below = y < 96 || moved.current.below;
   const here = target === progress;
 
   return (

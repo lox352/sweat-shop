@@ -69,6 +69,19 @@
   line-height: 1.15;
 }
 
+/* On a page of its own, the last row needs no room under it, and the trim none over it. */
+.pages-page > .colourway-grid {
+  margin-bottom: 0;
+}
+
+.pages-page > .trim-choice > .trim-options {
+  margin-top: 0;
+}
+
+.pages-page > .trim-choice > .colourway-starts-title {
+  margin: 0.8rem 0 0;
+}
+
 .colourway-starts-title {
   margin: 1.1rem 0 0;
   font-size: var(--text-s);

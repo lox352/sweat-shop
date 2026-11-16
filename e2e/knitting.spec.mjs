@@ -481,6 +481,8 @@ test("a bought design comes in every size it is written for, by its own wool, ev
   await expect(bar).toContainText("15 shades");
   // Any of them can be changed, each on its own: the jumper, the chart and the wools on one screen.
   await panel("Colours").click();
+  // The colours are a page a group, named over them; the last is for wool of the knitter's own.
+  await page.getByRole("tablist", { name: "Colours" }).getByRole("tab", { name: "Your own wool", exact: true }).click();
   await page.getByRole("button", { name: "Customise these colours", exact: true }).click();
   const customise = page.getByRole("dialog", { name: "Customise the colours" });
   await expect(customise.locator(".customise-wool")).toHaveCount(15);
@@ -511,13 +513,17 @@ test("Each Year Once knits every hat from 2014 to 2026 once, the yoke's first, t
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Each Year Once, oldest at the neck");
   await expect(page.getByText("Hazel Tindall", { exact: false }).first()).toBeVisible();
   await expect(page.locator(".size-option")).toHaveCount(8);
-  // Its colourways a group at a time, the one in use marked.
+  // Its colourways a group a page, the pages named over them, the one in use marked.
   await page.getByRole("tab", { name: "Colours", exact: true }).click();
-  await expect(page.locator(".colourway-grid .colourway-option")).toHaveCount(8);
-  await expect(page.locator(".colourway-grid .is-chosen")).toContainText("Shetland naturals, all dark");
-  await page.getByRole("group", { name: "Groups of colourways" }).getByRole("button", { name: "Many colours" }).click();
-  await expect(page.locator(".colourway-grid .colourway-option")).toHaveCount(13);
-  // The trim chosen apart from the rest: the darkest yarn of the hats beside each part to begin with, or any yarn of the palette.
+  const groups = page.getByRole("tablist", { name: "Colours" });
+  const shownPage = page.locator("#stage-panel-colours .pages-page[data-current]");
+  await expect(groups.getByRole("tab", { selected: true })).toHaveText("Shetland and Fair Isle");
+  await expect(shownPage.locator(".colourway-option")).toHaveCount(8);
+  await expect(shownPage.locator(".is-chosen")).toContainText("Shetland naturals, all dark");
+  await groups.getByRole("tab", { name: "Many colours", exact: true }).click();
+  await expect(shownPage.locator(".colourway-option")).toHaveCount(13);
+  // The trim chosen apart from the rest, on a page of its own: the darkest yarn of the hats beside each part to begin with, or any yarn of the palette.
+  await groups.getByRole("tab", { name: "Trim", exact: true }).click();
   const trim = page.getByRole("group", { name: "Trim" });
   await expect(trim.getByRole("button", { pressed: true })).toHaveAccessibleName("Darkest beside each");
   await trim.getByRole("button", { name: "Moorit" }).click();
@@ -1076,6 +1082,18 @@ test("backup restores copies and rename/delete require their dialogs", async ({ 
   await page.getByRole("link", { name: "Sweat Shop", exact: true }).click();
   await expect(page.locator(".project-card")).toHaveCount(2);
   await expect(page.getByText("Regression test jumper", { exact: true })).toBeVisible();
+  // And from its card on the home page, without opening it: renamed, and deleted only after asking.
+  await page.getByRole("button", { name: "Rename Regression test jumper", exact: true }).click();
+  await page.getByRole("textbox", { name: "Name this project" }).fill("Renamed from home");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByText("Renamed from home", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Delete Renamed from home", exact: true }).click();
+  await page.getByRole("dialog", { name: "Delete Renamed from home?" }).getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.locator(".project-card")).toHaveCount(2);
+  await page.getByRole("button", { name: "Delete Renamed from home", exact: true }).click();
+  await page.getByRole("dialog", { name: "Delete Renamed from home?" }).getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(page.locator(".project-card")).toHaveCount(1);
+  await expect(page.getByText("Renamed from home", { exact: true })).toHaveCount(0);
 });
 
 test("quota failures preserve progress and offer a recovery export", async ({ page }) => {

@@ -229,7 +229,7 @@ export const SpeedsSheet: React.FC<{
           </p>
         )}
         <p className="quiet stats-hint">
-          Each on average, worked out from {time.seen.tap.toLocaleString()} taps over {time.sittings.length}{" "}
+          Each on average, worked out from {time.seen.tap.toLocaleString()} {time.seen.tap === 1 ? "tap" : "taps"} over {time.sittings.length}{" "}
           {time.sittings.length === 1 ? "sitting" : "sittings"}. The more you knit, the surer these get.
         </p>
         <ul className="stats-speed-list">

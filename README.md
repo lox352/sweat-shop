@@ -249,11 +249,18 @@ The rules every screen keeps, so that none has to be learnt twice:
   the browser's own goes back, and every place and every view has an address
   for it to go back to.
 - **The jumper on a stage** (`ui/StageLayout.tsx`). A design and a jumper are
-  the same screen: the sweater in three dimensions, tabs under it, a panel
-  that scrolls, and a bar at the foot holding the one way forward. The
-  sweater stays in view while what it depends on is changed; reading down a
-  panel makes it smaller, never gone. A tab is in the address (`?tab=`) and
-  replaces rather than adds to the history, so back leaves the page.
+  the same screen: the sweater in three dimensions, tabs under it, a panel,
+  and a bar at the foot holding the one way forward. The sweater is one size
+  and stays where it is while what it depends on is changed. A tab is in the
+  address (`?tab=`) and replaces rather than adds to the history, so back
+  leaves the page.
+- **A panel in pages** (`ui/Pages.tsx`). What a design's panel holds is laid
+  out a page at a time, each the panel's own size, side by side: swiped
+  between, coming to rest on one, with dots under them - a size's three, to
+  choose it, see it laid flat, and read its measurements - or their names
+  over them where the names are the choice, a design's groups of colourways.
+  Nothing is found by scrolling down past the rest. Which size and colourway
+  are chosen is said once, in the bar at the foot, and worn by the jumper.
 - **A view over a page is closed from the top right** (`useView.ts`): *Done*
   where something was changed (Customise), a cross where it was only looked
   at (the chart). Opening one adds to the history, so back closes it too.

@@ -61,7 +61,7 @@ const MyTension: React.FC<{
         {written.roundsPer10cm} rounds to 10cm. Lay your knitting flat and
         count what you have over a measured length, the longer the better.
       </p>
-      <TensionForm tension={tension} first="Compare with the pattern" onChange={onChange} />
+      <TensionForm tension={tension} first="Compare with the pattern" example={written} onChange={onChange} />
       {tension && knitted && (
         <div role="status" ref={answer} className="my-tension-answer">
           <p>

@@ -127,6 +127,22 @@
   display: none;
 }
 
+/* Over a chart that fills the screen: clear of the way out in the corner, and no taller than a few lines, scrolling where a design has many yarns. */
+.knit-screen .chart-yarn-numbers,
+.chart-fills .chart-yarn-numbers {
+  flex: none;
+  max-height: 5.6rem;
+  margin: 0;
+  padding: 0.5rem 4rem 0.4rem 0.75rem;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Looking around, the way out is beside the views above it. */
+.is-looking .chart-yarn-numbers {
+  padding-right: 0.75rem;
+}
+
 .knit-screen .chart-scroll,
 .chart-fills .chart-scroll {
   flex: 1;
@@ -240,6 +256,16 @@
   margin-bottom: 1rem;
 }
 
+/* The design's colourways open under their button: it shows that they are. */
+.jumper-wool-actions .btn[aria-expanded="true"] {
+  border-color: var(--ink-soft);
+  background: var(--paper-sunk);
+}
+
+.jumper-wool-actions {
+  margin-bottom: 0.9rem;
+}
+
 .jumper-manage,
 .jumper-wool-actions {
   display: flex;
@@ -311,6 +337,11 @@
   display: none;
 }
 
+/* Looking back at the time it took, the panel under the chart is about that, and the chart has what room is left: how to read it is put away. */
+.is-timing .chart-frame > .chart-help {
+  display: none;
+}
+
 .look-bar {
   margin: 0;
   gap: 0.9rem;
@@ -364,4 +395,53 @@
   width: 100% !important;
   height: 100% !important;
   object-fit: contain;
+}
+
+/*
+ * A phone on its side is wide and very short: with the panel under it, the
+ * chart was a strip two rounds deep. There the panel stands beside the chart
+ * instead, the width of a phone held upright, and scrolls where it is taller
+ * than the screen; the phone-width layout of its buttons goes with it.
+ */
+@media (orientation: landscape) and (max-height: 32rem) {
+  .page.knit-screen:has(> .knitting-panel) {
+    flex-direction: row;
+  }
+
+  .knit-screen:has(> .knitting-panel) > .chart-page {
+    min-width: 0;
+  }
+
+  .knit-screen > .knitting-panel {
+    flex: none;
+    width: min(23.5rem, 52%);
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-shadow: -8px 0 24px rgb(0 0 0 / 0.1);
+  }
+
+  /* The buttons stay at the panel's foot, under a thumb, while what is said above them scrolls. */
+  .knit-screen > .knitting-panel .knitting-actions {
+    position: sticky;
+    bottom: -1.1rem;
+    grid-template-columns: auto 1fr auto auto;
+    grid-template-areas:
+      "undo . key round"
+      "go go go go";
+    gap: 0.5rem 0.6rem;
+    margin: 0.6rem -1rem -1.1rem;
+    padding: 0.5rem 1rem 0.7rem;
+    background: var(--paper-raised);
+    box-shadow: 0 -6px 10px -6px rgb(0 0 0 / 0.12);
+  }
+
+  .knit-screen > .knitting-panel .knitting-go {
+    justify-self: stretch;
+    min-width: 0;
+  }
+
+  .knit-screen > .knitting-panel .knitting-figure em {
+    font-size: var(--text-xl);
+  }
 }

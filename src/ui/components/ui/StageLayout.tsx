@@ -10,6 +10,8 @@ export interface StagePanel {
   id: string;
   label: string;
   content: React.ReactNode;
+  /** What it holds is laid out a page at a time (see Pages), each page the panel's own size: the panel itself then does not scroll. */
+  paged?: boolean;
 }
 
 /**
@@ -17,10 +19,11 @@ export interface StagePanel {
  * stage, and under it one panel at a time, chosen by tabs, with a bar at the
  * foot for the one way forward.
  *
- * The page itself does not scroll. What is long - a list of wool, a table of
- * measurements - scrolls inside its panel, and the jumper stays where it is,
- * so a size or a colour chosen is seen on it at once. On a wide screen the
- * stage stands beside the panel.
+ * The page itself does not scroll, and the jumper is one size and stays
+ * where it is, so a size or a colour chosen is seen on it at once. What a
+ * panel holds is laid out for the room under it: a page at a time, side by
+ * side, where it divides into pages (see Pages), and otherwise scrolling
+ * inside the panel. On a wide screen the stage stands beside the panel.
  *
  * Every panel stays mounted while another is shown, so a pattern worked out
  * in one is still there after a look at another.
@@ -36,17 +39,18 @@ const StageLayout: React.FC<{
   /** What the tabs are of, for a screen reader: "This design". */
   tabsLabel: string;
   bar: React.ReactNode;
-}> = ({ title, eyebrow, stage, panels, shown, onShow, tabsLabel, bar }) => {
+  /** A page looked at before anything is kept: on a phone, its panels do not end by saying where projects are kept and that the site is ready offline. */
+  browsing?: boolean;
+}> = ({ title, eyebrow, stage, panels, shown, onShow, tabsLabel, bar, browsing }) => {
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   // Another panel begins at its top.
   const scroll = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (scroll.current) scroll.current.scrollTop = 0;
   }, [shown]);
-  // Read down a panel and the stage gives it room; back at its top, the stage has its own again.
-  const [reading, setReading] = useState(false);
+  const paged = panels.find((panel) => panel.id === shown)?.paged;
   return (
-    <div className={reading ? "page stage-layout is-reading" : "page stage-layout"}>
+    <div className={browsing ? "page stage-layout is-browsing" : "page stage-layout"}>
       <TitleBlock title={title} eyebrow={eyebrow} />
       <StorageNotice />
       <div className="stage">
@@ -70,7 +74,7 @@ const StageLayout: React.FC<{
             </button>
           ))}
         </div>
-        <div className="stage-scroll" ref={scroll} onScroll={(event) => setReading(event.currentTarget.scrollTop > 24)}>
+        <div className={paged ? "stage-scroll is-paged" : "stage-scroll"} ref={scroll}>
           {panels.map((panel) => (
             <div
               key={panel.id}

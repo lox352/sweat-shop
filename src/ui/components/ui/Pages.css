@@ -1,0 +1,143 @@
+/*
+ * What a panel holds, a page at a time: see Pages. The pages fill whatever
+ * they are put in, which has a height of its own: a stage's panel.
+ */
+.pages {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* The pages side by side, from edge to edge of a phone, coming to rest on one. */
+.pages-track {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  margin: 0 calc(-1 * var(--gutter, 1rem));
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.pages-track::-webkit-scrollbar {
+  display: none;
+}
+
+/* A page too long for the panel scrolls by itself. */
+.pages-page {
+  flex: 0 0 100%;
+  min-width: 0;
+  padding: 0.9rem var(--gutter, 1rem) 0.5rem;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.pages-page > :first-child {
+  margin-top: 0;
+}
+
+.pages-page > :last-child {
+  margin-bottom: 0;
+}
+
+/* Which page, as dots under them: the one shown in crimson. Each has a thumb's room round it. */
+.pages-dots {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  padding: 0 0 0.15rem;
+}
+
+.pages-dot {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.pages-dot span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--rule);
+  transition: background-color 0.15s, transform 0.15s;
+}
+
+.pages-dot[aria-selected="true"] span {
+  background: var(--crimson);
+  transform: scale(1.25);
+}
+
+/* Or as their names over them, in a row that scrolls sideways. */
+.pages-names {
+  flex: none;
+  display: flex;
+  gap: 0.4rem;
+  margin: 0 calc(-1 * var(--gutter, 1rem));
+  padding: 0.75rem var(--gutter, 1rem) 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pages-names::-webkit-scrollbar {
+  display: none;
+}
+
+.pages-name {
+  flex: none;
+  min-height: 40px;
+  padding: 0.3rem 0.85rem;
+  font: inherit;
+  font-size: var(--text-s);
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.pages-name[aria-selected="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+/* Beside the stage on a wide screen, the pages are the panel's own width. */
+@media (min-width: 60rem), (orientation: landscape) and (max-height: 32rem) {
+  .pages-track,
+  .pages-names {
+    margin: 0 -0.25rem;
+  }
+
+  .pages-page {
+    padding-inline: 0.25rem;
+  }
+
+  .pages-names {
+    padding-inline: 0.25rem;
+  }
+}
+
+/* On paper, the pages one after another. */
+@media print {
+  .pages,
+  .pages-track {
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
+
+  .pages-dots,
+  .pages-names {
+    display: none;
+  }
+}
