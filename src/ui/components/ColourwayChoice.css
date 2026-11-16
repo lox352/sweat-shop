@@ -69,16 +69,12 @@
   line-height: 1.15;
 }
 
-/* On a page of its own, the last row needs no room under it, and the trim none over it. */
-.pages-page > .colourway-grid {
-  margin-bottom: 0;
-}
-
-.pages-page > .trim-choice > .trim-options {
+/* In a sheet named for it, the choice first and what the trim is after. */
+.sheet-body > .trim-choice > .trim-options {
   margin-top: 0;
 }
 
-.pages-page > .trim-choice > .colourway-starts-title {
+.sheet-body > .trim-choice > .colourway-starts-title {
   margin: 0.8rem 0 0;
 }
 

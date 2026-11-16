@@ -249,27 +249,35 @@ The rules every screen keeps, so that none has to be learnt twice:
   the browser's own goes back, and every place and every view has an address
   for it to go back to.
 - **The jumper on a stage** (`ui/StageLayout.tsx`). A design and a jumper are
-  the same screen: the sweater in three dimensions, tabs under it, a panel,
-  and a bar at the foot holding the one way forward. The sweater is one size
-  and stays where it is while what it depends on is changed. A tab is in the
-  address (`?tab=`) and replaces rather than adds to the history, so back
-  leaves the page.
-- **A panel in pages** (`ui/Pages.tsx`). What a design's panel holds is laid
-  out a page at a time, each the panel's own size, side by side: swiped
-  between, coming to rest on one, with dots under them - a size's three, to
-  choose it, see it laid flat, and read its measurements - or their names
-  over them where the names are the choice, a design's groups of colourways.
-  Nothing is found by scrolling down past the rest. Which size and colourway
-  are chosen is said once, in the bar at the foot, and worn by the jumper.
-- **A view over a page is closed from the top right** (`useView.ts`): *Done*
-  where something was changed (Customise), a cross where it was only looked
-  at (the chart). Opening one adds to the history, so back closes it too.
-- **What comes up from the foot is a sheet**: the key, the shades for a wool,
-  and on a phone every dialog. One look: a crimson rule along the top, the
-  top corners rounded, closed at its top right.
-- **Colours are chosen where they can be seen** (`Customise.tsx`): the
-  jumper, the chart and the wools on one screen. Tap a wool, or a stitch of
-  the chart, and that wool is lit on both while its shades are open below.
+  the same screen: the sweater in three dimensions, tabs under it, and what
+  the tab shows. The sweater is one size and stays where it is while what it
+  depends on is changed; a badge in its corner says which size and colourway
+  it is. A tab is in the address (`?tab=`) and replaces rather than adds to
+  the history, so back leaves the page - and it is written there after the
+  tab has changed, never before, so a tab tapped is there at once.
+- **A design is one row of pages** (`ui/Pages.tsx`). Each page is the size of
+  the room under the stage, all of them side by side, swiped along and coming
+  to rest on one: a size's three (choose it, see it laid flat, read its
+  measurements), a page for each group of colourways, the tension, and at
+  the end *Start*, which says what was chosen and begins the knitting, with
+  the design's own story after it. The tabs mark where each kind begins, and
+  a tab tapped goes to its first page; each page has its title over it and
+  dots under it for the pages of its tab. Nothing is found by scrolling down
+  past the rest, and there is no bar at the foot: the way forward is the last
+  tab. A jumper's own page keeps its panels that scroll and its bar.
+- **A view over a page is closed from the top right**: the chart, by its
+  cross, which has an address of its own and so is closed by back too.
+- **What comes up from the foot is a card** (`ui/Sheet.tsx`): a crimson rule
+  along the top, the top corners rounded, closed by a cross at its top right.
+  The key; a colourway's trim; a colourway's wools to change; and on a phone
+  every dialog. Over a stage's pages a card leaves the jumper where it is,
+  adds nothing to the history, and opens at once.
+- **Colours are chosen where they can be seen** (`Customise.tsx`): a card
+  with the chart from the neck and the wools under it, the jumper on its
+  stage above. Tap a wool, or a stitch of the chart, and that wool is lit on
+  both while its shades take the card. A colourway's trim and its wools are
+  reached from a row under every page of colourways, since they are the
+  chosen colourway's.
 - **One scale of type and one corner**, named in `src/index.css`
   (`--text-xs` to `--text-display`, `--radius`). A size or a radius that is
   not one of them is a mistake.

@@ -175,6 +175,11 @@ test("a tension given before starting: the pattern is worked out for it from the
   await expect(shown.locator(".refit-written")).toContainText("Cast on 112");
   // Nothing is begun by looking.
   expect(await page.evaluate(() => Object.keys(localStorage).filter((key) => key.startsWith("project-")))).toEqual([]);
+  // With it on show, the last tab says that starting starts this one; and back at the tension it is still there.
+  await page.getByRole("tab", { name: "Start", exact: true }).click();
+  await expect(page.locator(".ready-choices")).toContainText("Worked out for yours");
+  await page.getByRole("tab", { name: "Tension", exact: true }).click();
+  await expect(shown).toBeVisible();
 
   await shown.getByRole("button", { name: "Start knitting this", exact: true }).click();
   await expect(page.locator(".knitting-panel")).toContainText("of 112 stitches", { timeout: 30_000 });

@@ -1,62 +1,7 @@
 /*
- * Customise fills the screen, over the page it was opened from: the jumper,
- * the chart, and the wools or the shades at the foot. See Customise.
+ * Customise is a card up from the foot, over what is under the stage: the
+ * chart, and the wools or the shades at its foot. See Customise and Sheet.
  */
-.customise {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  max-width: none;
-  height: 100vh;
-  height: 100dvh;
-  max-height: none;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: var(--paper);
-  color: var(--ink);
-  flex-direction: column;
-}
-
-.customise[open] {
-  display: flex;
-}
-
-.customise:focus {
-  outline: none;
-}
-
-.customise .title-block {
-  flex: none;
-  margin: 0;
-  padding: 0.75rem 1rem 0.6rem;
-}
-
-.customise-stage {
-  position: relative;
-  flex: none;
-  height: min(24vh, 14rem);
-  height: min(24dvh, 14rem);
-  background: var(--paper-raised);
-  border-bottom: 1px solid var(--rule);
-}
-
-/* With shades open the jumper gives the chart some of its height. */
-.is-choosing .customise-stage {
-  height: min(18vh, 11rem);
-  height: min(18dvh, 11rem);
-}
-
-.customise-stage .sweater-canvas {
-  height: 100%;
-}
-
-.customise-stage .sweater-settling {
-  position: absolute;
-  inset: auto 0.75rem 0.5rem;
-  margin: 0;
-}
-
 /* The chart takes what the rest leaves. */
 .customise-chart {
   flex: 1;
@@ -70,34 +15,22 @@
   display: none;
 }
 
-.customise-chart .view-tabs {
-  flex: none;
-  flex-wrap: nowrap;
-  margin: 0;
-  padding: 0.4rem 0.5rem 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.customise-chart .view-tab {
-  flex: none;
-  min-height: 44px;
-  justify-content: center;
-}
-
 /* The wools at rest: a strip that scrolls sideways. */
 .customise-wools,
 .customise-sheet {
   flex: none;
   background: var(--paper-raised);
-  border-top: 2px solid var(--crimson);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  border-top: 1px solid var(--rule);
+}
+
+.customise-chart {
+  border-top: 1px solid var(--rule);
 }
 
 .customise-wools {
   display: grid;
   gap: 0.45rem;
-  padding: 0.65rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  padding: 0.6rem 1rem 0.75rem;
 }
 
 .customise-wools p {
@@ -117,8 +50,7 @@
   scrollbar-width: none;
 }
 
-.customise-strip::-webkit-scrollbar,
-.customise-chart .view-tabs::-webkit-scrollbar {
+.customise-strip::-webkit-scrollbar {
   display: none;
 }
 
@@ -131,39 +63,29 @@
   cursor: pointer;
 }
 
-/* A wool chosen: its shades, in a sheet that takes the lower part of the screen. */
+/* A wool chosen: its shades take the card, but for a strip of the chart to see the wool lit on. */
 .customise-sheet {
   display: flex;
   flex-direction: column;
-  height: 44vh;
-  height: 44dvh;
+  flex: 1 1 0;
   min-height: 0;
 }
 
-.customise-sheet-head {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.55rem 1rem 0.45rem;
+.is-choosing .customise-chart {
+  flex: 0 0 4.75rem;
 }
 
-.customise-sheet-head .shade-chip {
+/* The wool chosen, at the card's top. */
+.customise-chip {
+  flex: none;
+  min-width: 0;
   width: 2.2rem;
   height: 2.2rem;
+  padding: 0;
 }
 
-.customise-sheet-name {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  line-height: 1.25;
-}
-
-.customise-sheet-name .quiet {
-  font-size: var(--text-s);
-  font-weight: 400;
+.customise .sheet-head .eyebrow {
+  letter-spacing: 0.06em;
 }
 
 .customise-sheet .yarn-picker-controls {
@@ -191,39 +113,3 @@
   padding: 0.2rem 1rem;
 }
 
-/* Room for it: the jumper and the wools beside the chart. */
-@media (min-width: 60rem) {
-  .customise[open] {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(22rem, 28rem);
-    grid-template-rows: auto minmax(0, 1fr) auto;
-  }
-
-  .customise .title-block {
-    grid-column: 1 / -1;
-  }
-
-  .customise-chart {
-    grid-column: 1;
-    grid-row: 2 / 4;
-  }
-
-  .customise-stage,
-  .is-choosing .customise-stage {
-    grid-column: 2;
-    grid-row: 2;
-    height: auto;
-    border-left: 1px solid var(--rule);
-  }
-
-  .customise-wools,
-  .customise-sheet {
-    grid-column: 2;
-    grid-row: 3;
-    border-left: 1px solid var(--rule);
-  }
-
-  .customise-sheet {
-    height: 52vh;
-  }
-}
