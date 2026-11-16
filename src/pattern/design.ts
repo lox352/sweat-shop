@@ -216,13 +216,12 @@ export interface Design {
   /** Anything the design says about its stitches. See StitchNote. */
   stitchNotes?: Partial<Record<StitchKeyId, StitchNote>>;
   /**
-   * Whether the rest of a size can be planned afresh from one part knitted,
-   * for a knitter whose tension is not the pattern's, and the ways it can be
-   * laid out where the knitter has a choice; and whether a whole sweater can
-   * be, from the cast-on, for a tension given before it is begun. See
+   * Whether a size can be planned afresh for a knitter whose tension is not
+   * the pattern's - whole, from the cast-on, or the rest of one part knitted -
+   * and the ways it can be laid out where the knitter has a choice. See
    * library/fit.
    */
-  fitting?: { options?: FitOption[]; whole?: true };
+  fitting?: { options?: FitOption[] };
   sizes: SizeAbout[];
 }
 

@@ -305,17 +305,16 @@ export interface Fitted {
 }
 
 /**
- * A design that can plan the rest of a sweater from one part knitted: for a
- * knitter whose tension is not the pattern's, or whose pattern has changed
- * under them. What is knitted is a fact, kept as it is; the rest is planned
- * for what is on the needles, to come out at the measurements asked for at
- * the tension given. See compiler/fit.
+ * A design that can plan a sweater for one knitter: whole, from the cast-on,
+ * or the rest of one part knitted - for a knitter whose tension is not the
+ * pattern's, or whose pattern has changed under them. What is knitted is a
+ * fact, kept as it is; the rest is planned for what is on the needles, to
+ * come out at the measurements asked for at the tension given. See
+ * compiler/fit.
  */
 export interface Fitting {
   /** The ways the rest can be laid out, where the knitter has a choice. */
   options?: FitOption[];
-  /** Whether it plans a whole sweater too, from nothing knitted: a pattern for a knitter's tension, before it is begun. */
-  whole?: true;
   /** The first round, at or after `round`, after which the rest can be planned afresh; none once it no longer can. */
   cutAfter(knitted: SweaterStitches, round: number): number | undefined;
   plan(ask: FitRequest): Fitted;

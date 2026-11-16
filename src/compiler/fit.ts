@@ -69,7 +69,6 @@ export const fit = (ask: FitAsk, done?: (fraction: number) => void): Fit => {
    */
   // The counts a pattern names are of the pattern that names them: the fitted sweater's are the rest's.
   const from = ask.knitted && ask.round !== undefined ? { knitted: { ...atTension(ask.knitted, ask.tension), checks: {} }, round: ask.round } : undefined;
-  if (!from && !fitting.whole) throw new Error(`${ask.design} can't be planned from the cast-on`);
   const planned = fitting.plan({ finished: ask.finished ?? size.finished, tension: ask.tension, from, option: ask.option });
   // The size as it now is: its own name and needles, the rest as its knitting. Named a field at a time, as a size may work its knitting out only when asked.
   const fitted: Size = {

@@ -321,25 +321,6 @@ const onwardOf = (last: Framed, length: number): { rows: Row[]; pattern: number;
 
 /* --------------------------------------------------------- each year once */
 
-/** How many years on each piece, and the yoke's depth, for the most even lengths. */
-export const splitOf = (size: Measured, g: Gauge = gauge) => {
-  const b = budgets(size, g);
-  const T = (b.yoke + b.body + b.sleeve) / 13;
-  let best: { k: number; m: number; n: number; yoke: number; body: number; sleeve: number; T: number; dev: number } | undefined;
-  for (let k = 2; k <= 5; k++) {
-    for (let m = 3; m <= 7; m++) {
-      const n = 13 - k - m;
-      if (n < 3) continue;
-      for (let dy = -8; dy <= 8; dy++) {
-        const h = [(b.yoke + dy) / k, (b.body - dy) / m, b.sleeve / n];
-        const dev = Math.max(...h.map((x) => Math.abs(x / T - 1)));
-        if (!best || dev < best.dev - 1e-9) best = { k, m, n, yoke: b.yoke + dy, body: b.body - dy, sleeve: b.sleeve, T, dev };
-      }
-    }
-  }
-  return best!;
-};
-
 /** A size's plan: what goes where, for its measurements at a tension - the samplers' own unless another is given. */
 export const planOf = (size: Measured, layout: Layout, g: Gauge = gauge): Plan =>
   layout.kind === "lined" ? lined(size, layout.newestFirst, g) : refit(size, g);
