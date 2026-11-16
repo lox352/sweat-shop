@@ -16,7 +16,7 @@ test("a measured tension shows what the pattern knits up to as written, and is k
       version: 1, id, sweaterId: "wool-week-strips-once-oldest", sizeId: "l", colourwayId: "night-gentle-dark", progress: 400, startedAt: now, updatedAt: now,
     }));
   }, id);
-  await page.goto("#/project/1760000000000");
+  await page.goto("#/project/1760000000000?tab=fit");
   const section = page.getByRole("region", { name: "Your tension" });
   // The largest of patterns to open: its page takes a moment.
   await expect(section).toContainText("written for 32 stitches and 38 rounds to 10cm", { timeout: 20_000 });
@@ -51,7 +51,7 @@ test("the pattern's own tension comes out as designed", async ({ page }) => {
       version: 1, id, sweaterId: "hamefarin", sizeId: "m", colourwayId: "simmer-dim", progress: 0, tension: { stitchesPer10cm: 28, roundsPer10cm: 32 }, startedAt: now, updatedAt: now,
     }));
   }, id);
-  await page.goto("#/project/1760000000000");
+  await page.goto("#/project/1760000000000?tab=fit");
   const section = page.getByRole("region", { name: "Your tension" });
   await expect(section.getByRole("status")).toContainText("comes out as designed");
   await expect(section.getByRole("table")).toHaveCount(0);

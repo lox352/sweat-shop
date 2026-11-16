@@ -30,7 +30,7 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
       tension: { stitchesPer10cm: 23.3, roundsPer10cm: 25 }, startedAt: now, updatedAt: now,
     }));
   }, { id, design, edition, progress: endOf(68) });
-  await page.goto("#/project/1760000000000");
+  await page.goto("#/project/1760000000000?tab=fit");
   const section = page.getByRole("region", { name: "Your tension" });
   await expect(section.getByRole("heading", { name: "Fit the rest to your tension" })).toBeVisible({ timeout: 20_000 });
   // Nothing that can work a pattern out is fetched until it is asked for.
@@ -51,7 +51,8 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
 
   // The pattern as it is and each way of laying the rest out, side by side: all of them where there is room, and on a phone the first beside the one chosen.
   const wide = page.viewportSize().width > 640;
-  const compared = shown.locator(".sweater-comparison figcaption");
+  // On the stage, where the one jumper was.
+  const compared = page.locator(".stage .sweater-comparison figcaption");
   await expect(compared).toHaveText(wide ? ["As the pattern has it", "Every year still to come", "Fewer years, fuller"] : ["As the pattern has it", "Every year still to come"]);
   // The other way was worked out with the first: choosing it is at once, and asks for nothing more.
   await shown.getByRole("radio", { name: /Fewer years, fuller/ }).check();
@@ -73,7 +74,9 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
   expect(Object.keys(project.fit.placement.places)).toEqual(["2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"]);
   expect(project.fit.placement.trims).toEqual({ "trim/21+26": ["2020", "2026"] });
   // The wool list is the colourway as placed: the yarns it adds are on it.
+  await page.getByRole("tab", { name: "Wool", exact: true }).click();
   await expect(page.locator(".wool-list")).toContainText("Bramble");
+  await page.getByRole("tab", { name: "Fit", exact: true }).click();
   const own = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), `edition-${design}--l--${project.edition}`);
   // Every round knitted is as it was, and the next divides the yoke.
   expect(own.rounds.slice(0, 68)).toEqual(file.rounds.slice(0, 68));
@@ -89,7 +92,7 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
   await page.unroute("**/editions/**");
 
   // And until the knitting passes the round it was fitted from, the pattern as written can be gone back to.
-  await page.goto("#/project/1760000000000");
+  await page.goto("#/project/1760000000000?tab=fit");
   await page.getByRole("region", { name: "Your tension" }).getByRole("button", { name: "Go back to the pattern as written", exact: true }).click();
   await expect(page.getByRole("region", { name: "Your tension" }).getByRole("heading", { name: "Fit the rest to your tension" })).toBeVisible();
   const back = await page.evaluate((id) => JSON.parse(localStorage.getItem(id)), id);
@@ -113,7 +116,7 @@ test("Hamefarin is worked out again from the end of a band: the bands still to c
       tension: { stitchesPer10cm: 24, roundsPer10cm: 28 }, startedAt: now, updatedAt: now,
     }));
   }, { id, current, progress });
-  await page.goto("#/project/1760000000000");
+  await page.goto("#/project/1760000000000?tab=fit");
   const section = page.getByRole("region", { name: "Your tension" });
   await section.getByRole("button", { name: "Work out the rest", exact: true }).click();
   const shown = section.locator(".refit-shown");
@@ -183,6 +186,7 @@ test("a tension given before starting: the pattern is worked out for it from the
   // Its project's page says so, and until a stitch is worked the pattern as written can be gone back to.
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
   await page.getByRole("link", { name: "Overview", exact: true }).click();
+  await page.getByRole("tab", { name: "Fit", exact: true }).click();
   const own = page.getByRole("region", { name: "Your tension" });
   await expect(own).toContainText("Your pattern is worked out for this tension, from the cast-on.", { timeout: 20_000 });
   await own.getByRole("button", { name: "Go back to the pattern as written", exact: true }).click();
@@ -229,7 +233,7 @@ test("a design that can't be worked out again does not offer to be", async ({ pa
       version: 1, id, sweaterId: "paul-klee", sizeId: "m1", colourwayId: "klee", progress: 0, tension: { stitchesPer10cm: 24, roundsPer10cm: 30 }, startedAt: now, updatedAt: now,
     }));
   }, id);
-  await page.goto("#/project/1760000000000");
+  await page.goto("#/project/1760000000000?tab=fit");
   const section = page.getByRole("region", { name: "Your tension" });
   await expect(section.getByRole("table")).toBeVisible();
   await expect(section.getByRole("heading", { name: "Fit the rest to your tension" })).toHaveCount(0);

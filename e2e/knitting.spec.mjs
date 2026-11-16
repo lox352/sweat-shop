@@ -171,8 +171,17 @@ test("the chart is its own page, and closing the knitting keeps you on it", asyn
   await bar.getByRole("link", { name: "Overview", exact: true }).click();
   await expect(page).toHaveURL(/\/project\/[^/?]+$/);
   await expect(page.locator(".chart-sheets")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Your wool" })).toBeVisible();
-  await page.locator(".next-step").getByRole("link", { name: "Keep knitting", exact: true }).click();
+  // The jumper's page: the jumper on its stage, its panels under it, and the way back to the needles in the bar.
+  await expect(page.getByRole("tab", { name: "Progress", exact: true })).toHaveAttribute("aria-selected", "true");
+  // A row of its wool list opens that wool to be changed, the jumper and the chart both in view; Done comes back to the list.
+  await page.getByRole("tab", { name: "Wool", exact: true }).click();
+  await page.locator(".wool-row").first().click();
+  const customise = page.getByRole("dialog", { name: "Customise the colours" });
+  await expect(customise.getByRole("region", { name: /^Wool for / })).toBeVisible();
+  await customise.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(customise).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "Wool", exact: true })).toHaveAttribute("aria-selected", "true");
+  await page.locator(".stage-bar").getByRole("link", { name: "Keep knitting", exact: true }).click();
   await expect(position(page)).toContainText("Yoke, round 2, stitch 1.");
 
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
@@ -1040,14 +1049,18 @@ test("backup restores copies and rename/delete require their dialogs", async ({ 
   await (await openSettings(page)).getByLabel("Import project backup").setInputFiles({ name: "backup.json", mimeType: "application/json", buffer });
   await page.getByRole("button", { name: "Restore copies", exact: true }).click();
   await page.getByRole("button", { name: "Done", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Rename", exact: true })).toHaveCount(2);
-  await page.getByRole("button", { name: "Rename", exact: true }).first().click();
+  // Each has a card, which opens its jumper: where it is renamed, and deleted only after asking.
+  await expect(page.locator(".project-card")).toHaveCount(2);
+  await page.locator(".project-card-body").first().click();
+  await page.getByRole("button", { name: "Rename", exact: true }).click();
   await page.getByRole("textbox", { name: "Name this project" }).fill("Regression test jumper");
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(page.getByText("Regression test jumper", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Delete", exact: true }).first().click();
+  await expect(page.getByRole("heading", { name: "Regression test jumper", level: 1 })).toBeVisible();
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Rename", exact: true })).toHaveCount(2);
+  await page.getByRole("link", { name: "Sweat Shop", exact: true }).click();
+  await expect(page.locator(".project-card")).toHaveCount(2);
+  await expect(page.getByText("Regression test jumper", { exact: true })).toBeVisible();
 });
 
 test("quota failures preserve progress and offer a recovery export", async ({ page }) => {
