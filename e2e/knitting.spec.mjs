@@ -115,7 +115,7 @@ test("the design and its projects work without WebGL, and nothing fetches the so
 
 test("the 3D stage shrinks back when a phone turns from landscape to portrait", async ({ page }) => {
   await page.goto(design);
-  const stage = page.locator(".sweater-stage");
+  const stage = page.locator(".stage");
   await expect(stage).toBeVisible();
   const size = page.viewportSize();
   const before = await stage.evaluate(node => node.getBoundingClientRect().width);
@@ -445,21 +445,29 @@ test("a sleeve begins from its held stitches, picked up round from its underarm"
 });
 
 test("a bought design comes in every size it is written for, by its own wool, every colour of it yours to change", async ({ page }) => {
-  await page.goto("#/sweater/paul-klee");
+  await page.goto("#/sweater/paul-klee?tab=about");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Paul Klee Sweater");
   await expect(page.getByText("© Midori Hirose 2022", { exact: false })).toBeVisible();
-  // Four sizes for children, by age, and twelve for adults, by the bust they fit.
+  // The jumper stays on screen, and under it one panel at a time. Four sizes for children, by age, and twelve for adults, by the bust they fit.
+  const panel = (name) => page.getByRole("tab", { name, exact: true });
+  await panel("Size").click();
   const sizes = page.locator(".size-option");
   await expect(sizes).toHaveCount(16);
   await expect(sizes.first()).toContainText("Kids 1");
   await expect(sizes.first()).toContainText("2–3 years");
   await expect(sizes.nth(4)).toContainText("to fit 71cm");
   // The metres are the pattern's, and only for the colours a size knits: an L's eleven bands, a child's seven.
+  await panel("Colours").click();
   await expect(page.getByText("The metres are the pattern's own", { exact: false })).toBeVisible();
   const wool = page.locator(".wool-row");
   await expect(wool).toHaveCount(23);
+  await panel("Size").click();
   await sizes.first().click();
+  await panel("Colours").click();
   await expect(wool).toHaveCount(15);
+  // The bar at the foot says what Start would start.
+  await expect(page.locator(".stage-bar")).toContainText("Kids 1");
+  await expect(page.locator(".stage-bar")).toContainText("15 shades");
   // Any of them can be changed, each on its own.
   const first = wool.filter({ has: page.locator(".shade-chip", { hasText: /^1A$/ }) });
   await first.click();
@@ -474,10 +482,16 @@ test("a bought design comes in every size it is written for, by its own wool, ev
 });
 
 test("Each Year Once knits every hat from 2014 to 2026 once, the yoke's first, the sleeves' last", async ({ page }) => {
-  await page.goto("#/sweater/wool-week-strips-once-oldest");
+  await page.goto("#/sweater/wool-week-strips-once-oldest?tab=about");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Each Year Once, oldest at the neck");
   await expect(page.getByText("Hazel Tindall", { exact: false }).first()).toBeVisible();
   await expect(page.locator(".size-option")).toHaveCount(8);
+  // Its colourways a group at a time, the one in use marked.
+  await page.getByRole("tab", { name: "Colours", exact: true }).click();
+  await expect(page.locator(".colourway-grid .colourway-option")).toHaveCount(8);
+  await expect(page.locator(".colourway-grid .is-chosen")).toContainText("Shetland naturals, all dark");
+  await page.getByRole("group", { name: "Groups of colourways" }).getByRole("button", { name: "Many colours" }).click();
+  await expect(page.locator(".colourway-grid .colourway-option")).toHaveCount(13);
   // The trim chosen apart from the rest: the darkest yarn of the hats beside each part to begin with, or any yarn of the palette.
   const trim = page.getByRole("group", { name: "Trim" });
   await expect(trim.getByRole("button", { pressed: true })).toHaveAccessibleName("Darkest beside each");
