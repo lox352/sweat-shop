@@ -112,3 +112,42 @@ describe("Hamefarin fitted part way through its yoke", () => {
     expect(said.length, said.join("\n")).toBeLessThan(20);
   }, 600000);
 });
+
+describe("Hamefarin worked out for a tension from the cast-on", () => {
+  const pattern = sweaterById("hamefarin")!;
+
+  it("at the pattern's own tension is the size as published, near enough: the same neck, body and sleeves, the yoke within a few rounds", () => {
+    const published = buildSweater(pattern, "m");
+    const fitted = fit({ design: "hamefarin", sizeId: "m", tension: { stitchesPer10cm: 28, roundsPer10cm: 32 } });
+    expect(fitted.round).toBeUndefined();
+    expect(fitted.knitted.checks).toMatchObject({ neck: published.checks.neck, lozenges: published.checks.lozenges, body: published.checks.body, "sleeve-left:cuff": published.checks["sleeve-left:cuff"] });
+    expect(Math.abs(fitted.knitted.rounds.length - published.rounds.length)).toBeLessThan(4);
+    expect(fitted.finished).toMatchObject({ chestCm: 105.5, bodyLengthCm: 37, sleeveLengthCm: 45 });
+    expect(fitted.written).toMatch(/^Neck \(yoke\)\n {2}Cast on 128/m);
+  });
+
+  it("at a knitter's own, every size is cast on for it and knitted to the end of its right sleeve, or says why not", () => {
+    const said: string[] = [];
+    let planned = 0;
+    for (const size of pattern.sizes) {
+      for (const tension of [{ stitchesPer10cm: 22, roundsPer10cm: 26 }, { stitchesPer10cm: 24, roundsPer10cm: 30 }, { stitchesPer10cm: 32, roundsPer10cm: 38 }]) {
+        try {
+          const fitted = fit({ design: "hamefarin", sizeId: size.id, tension });
+          expect(fitted.knitted.roundPieces.at(-1)).toBe("sleeve-right");
+          // Cast on for the tension: the neck measures what the size's does, within a couple of centimetres.
+          expect(Math.abs(fitted.finished.neckCm - size.finished.neckCm)).toBeLessThan(2.5);
+          expect(Math.abs(fitted.finished.chestCm - size.finished.chestCm)).toBeLessThan(4);
+          planned++;
+        } catch (error) {
+          said.push(`${size.id} ${tension.stitchesPer10cm}: ${(error as Error).message}`);
+        }
+      }
+    }
+    expect(said.every((one) => /fitted: /.test(one)), said.join("\n")).toBe(true);
+    expect(planned, said.join("\n")).toBeGreaterThan(20);
+  }, 600000);
+
+  it("a design that can't be planned whole says so", () => {
+    expect(() => fit({ design: once, sizeId: "l", tension: { stitchesPer10cm: 28, roundsPer10cm: 32 } })).toThrow(/from the cast-on/);
+  });
+});

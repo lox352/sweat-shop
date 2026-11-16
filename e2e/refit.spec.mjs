@@ -144,6 +144,51 @@ test("Hamefarin is worked out again from the end of a band: the bands still to c
   expect(workers).toBe(0);
 });
 
+test("a tension given before starting: the pattern is worked out for it from the cast-on, shown beside the pattern as it is, and begun", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.goto("#/sweater/hamefarin?size=m");
+  const section = page.getByRole("region", { name: "Your tension" });
+  await expect(section).toContainText("written for 28 stitches and 32 rounds to 10cm", { timeout: 20_000 });
+  // The pattern's own tension needs nothing worked out.
+  await section.getByLabel("Stitches counted").fill("28");
+  await section.getByLabel("Rounds counted").fill("32");
+  await section.getByRole("button", { name: "Compare with the pattern", exact: true }).click();
+  await expect(section.getByRole("status")).toContainText("comes out as designed");
+  await expect(section.getByRole("heading", { name: "A pattern for your tension" })).toHaveCount(0);
+
+  // A looser one: as written it comes out bigger, and the pattern can be worked out for it.
+  await section.getByLabel("Stitches counted").fill("24");
+  await section.getByLabel("Rounds counted").fill("28");
+  await section.getByRole("button", { name: "Update", exact: true }).click();
+  await expect(section.getByRole("row", { name: /Chest/ }).first()).toContainText("123.5cm");
+  await section.getByRole("button", { name: "Work the pattern out", exact: true }).click();
+  const shown = section.locator(".refit-shown");
+  await expect(shown).toBeVisible({ timeout: 90_000 });
+  await expect(shown).toContainText("From the cast-on.");
+  await expect(shown.locator(".sweater-comparison figcaption")).toHaveText(["As the pattern has it", "Worked out for you"]);
+  await expect(shown.getByRole("row", { name: /Chest/ })).toContainText("106.5cm");
+  await shown.getByText("The pattern, written out").click();
+  await expect(shown.locator(".refit-written")).toContainText("Cast on 112");
+  // Nothing is begun by looking.
+  expect(await page.evaluate(() => Object.keys(localStorage).filter((key) => key.startsWith("project-")))).toEqual([]);
+
+  await shown.getByRole("button", { name: "Start knitting this", exact: true }).click();
+  await expect(page.locator(".knitting-panel")).toContainText("of 112 stitches", { timeout: 30_000 });
+  const started = await page.evaluate(() => JSON.parse(localStorage.getItem(Object.keys(localStorage).find((key) => key.startsWith("project-")))));
+  const current = editions.hamefarin.m.current;
+  expect(started).toMatchObject({ sizeId: "m", progress: 0, tension: { stitchesPer10cm: 24, roundsPer10cm: 28 }, upTo: current, fit: { from: current } });
+  expect(started.fit.round).toBeUndefined();
+  expect(started.edition).not.toBe(current);
+  // Its project's page says so, and until a stitch is worked the pattern as written can be gone back to.
+  await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  await page.getByRole("link", { name: "Overview", exact: true }).click();
+  const own = page.getByRole("region", { name: "Your tension" });
+  await expect(own).toContainText("Your pattern is worked out for this tension, from the cast-on.", { timeout: 20_000 });
+  await own.getByRole("button", { name: "Go back to the pattern as written", exact: true }).click();
+  await expect(own.getByRole("heading", { name: "Fit the rest to your tension" })).toBeVisible();
+  expect((await page.evaluate((id) => JSON.parse(localStorage.getItem(id)), started.id)).edition).toBe(current);
+});
+
 test("a design that can't be worked out again does not offer to be", async ({ page }) => {
   await page.goto("");
   await page.evaluate((id) => {

@@ -42,11 +42,15 @@ const kb = 1024;
  * and round-yoke knitting that lays them in - bring it to 242KB: 250KB.
  * Then the designs' own files and the engine go from the site altogether: a
  * page reads the designs from a catalogue and their knitting from frozen
- * copies, and is 198KB: 210KB.
+ * copies, and is 198KB: 210KB. A sweater worked out for its knitter is
+ * worked out in workers the page does not carry, but what the page does
+ * with one is its own - a tension asked for and compared, the preview of a
+ * fit, knitting and shapes kept on the device, an update joined part way,
+ * a colourway placed on it - and brings it to 210KB: 220KB.
  */
 // A frozen edition of the largest size is 19KB.
 // The fitting worker is 78KB: every design's planner and charts, and the engine.
-const budgets = { page: 210 * kb, stage: 260 * kb, settled: 300 * kb, edition: 40 * kb, fitting: 100 * kb, settling: 20 * kb };
+const budgets = { page: 220 * kb, stage: 260 * kb, settled: 300 * kb, edition: 40 * kb, fitting: 100 * kb, settling: 20 * kb };
 
 const files = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>

@@ -112,6 +112,7 @@ export const options: NonNullable<Fitting["options"]> = [
  */
 export const fitting = (prefix: string, lowTrim: () => string): Fitting => {
   const plan = ({ finished, tension, from, option = "every" }: FitRequest): Fitted => {
+    if (!from) throw new Error("this design can't yet be planned from the cast-on");
     const { knitted, round } = from;
     if (cutAfter(knitted, round) !== round) throw new Error(`the rest can't be planned from round ${round}: it is not the last round of a year on the yoke`);
     const g: Gauge = { stitches: tension.stitchesPer10cm / 10, rounds: tension.roundsPer10cm / 10 };

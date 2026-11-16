@@ -281,6 +281,13 @@ worked out again:
   the device and carried in backups, with the tension, the measurements and
   the round it was fitted from on the project (`fit`).
 
+**From the cast-on too.** A plan may start from nothing knitted, where a
+design says it can (`fitting.whole`): on a design's page a knitter gives
+their swatch's tension, sees what the pattern comes to as written, and has
+it worked out for their tension, shown beside the pattern as it is, before
+a stitch is cast on. The project then begins on knitting of its own.
+Hamefarin can; Each Year Once will when its layout is one planner.
+
 Two designs can so far. **Each Year Once** plans on from the last round of
 a year on its yoke: the years not yet knitted, every one cut to the rounds
 there are, or fewer of them fuller. **Hamefarin** plans on from the last
