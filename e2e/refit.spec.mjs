@@ -29,7 +29,7 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
       version: 1, id, sweaterId: design, sizeId: "l", colourwayId: "night-gentle-dark", edition, progress,
       tension: { stitchesPer10cm: 23.3, roundsPer10cm: 25 }, startedAt: now, updatedAt: now,
     }));
-  }, { id, design, edition, progress: endOf(67) });
+  }, { id, design, edition, progress: endOf(68) });
   await page.goto("#/project/1760000000000");
   const section = page.getByRole("region", { name: "Your tension" });
   await expect(section.getByRole("heading", { name: "Fit the rest to your tension" })).toBeVisible({ timeout: 20_000 });
@@ -43,9 +43,9 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
   expect(scripts.filter((url) => url.includes("fit.worker")).length).toBe(1);
   // The colourway steps down the sweater: each way is drawn in the yarns for where its years would sit, and says what that adds to the wool.
   await expect(shown).toContainText("This colourway steps down the sweater, so the years still to come take the yarns for where they now sit. That adds 2 yarns to what the pattern listed: Cloud (764), Bramble (155).");
-  await expect(shown).toContainText("416 stitches round the yoke, 20 more than this tension wants");
+  await expect(shown).toContainText("420 stitches round the yoke, 24 more than this tension wants");
   await expect(shown).toContainText("The body has 2016 to 2020");
-  await expect(shown.getByRole("row", { name: /Chest/ })).toContainText("122cm");
+  await expect(shown.getByRole("row", { name: /Chest/ })).toContainText("123.5cm");
   // Nothing is changed by looking.
   expect((await page.evaluate((id) => JSON.parse(localStorage.getItem(id)), id)).edition).toBe(edition);
 
@@ -66,9 +66,9 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
   await shown.getByRole("button", { name: "Knit the rest this way", exact: true }).click();
   await expect(section).toContainText("The rest of your pattern is worked out for this tension", { timeout: 20_000 });
   const project = await page.evaluate((id) => JSON.parse(localStorage.getItem(id)), id);
-  expect(project.progress).toBe(endOf(67));
+  expect(project.progress).toBe(endOf(68));
   expect(project.edition).not.toBe(edition);
-  expect(project.fit).toMatchObject({ round: 67, from: edition, tension: { stitchesPer10cm: 23.3, roundsPer10cm: 25 } });
+  expect(project.fit).toMatchObject({ round: 68, from: edition, tension: { stitchesPer10cm: 23.3, roundsPer10cm: 25 } });
   // Where the planner put each year it planned afresh is the project's to keep, and the ribbing is beside the last of them.
   expect(Object.keys(project.fit.placement.places)).toEqual(["2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"]);
   expect(project.fit.placement.trims).toEqual({ "trim/21+26": ["2020", "2026"] });
@@ -76,16 +76,16 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
   await expect(page.locator(".wool-list")).toContainText("Bramble");
   const own = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), `edition-${design}--l--${project.edition}`);
   // Every round knitted is as it was, and the next divides the yoke.
-  expect(own.rounds.slice(0, 67)).toEqual(file.rounds.slice(0, 67));
+  expect(own.rounds.slice(0, 68)).toEqual(file.rounds.slice(0, 68));
   expect(own.rounds.length).toBeLessThan(file.rounds.length);
-  await expect(section.getByRole("row", { name: /Chest/ })).toContainText("122cm");
+  await expect(section.getByRole("row", { name: /Chest/ })).toContainText("123.5cm");
 
   // Its own knitting opens again with no network for it, and the chart carries on from the same stitch.
   await page.route("**/editions/**", (route) => route.abort());
   await page.goto("#/project/1760000000000/chart?knitting=1");
   await expect(page.locator(".chart-next")).toBeAttached({ timeout: 20_000 });
-  // The dividing round, on the 284 stitches the body now has.
-  await expect(page.locator(".knitting-panel")).toContainText("of 284 stitches");
+  // The dividing round, on the 288 stitches the body now has.
+  await expect(page.locator(".knitting-panel")).toContainText("of 288 stitches");
   await page.unroute("**/editions/**");
 
   // And until the knitting passes the round it was fitted from, the pattern as written can be gone back to.
