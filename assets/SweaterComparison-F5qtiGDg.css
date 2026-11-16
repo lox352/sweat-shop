@@ -1,0 +1,1 @@
+.sweater-comparison{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:.75rem;margin:0 0 1rem}.sweater-compared{margin:0;min-width:0}.sweater-compared figcaption{font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:.72rem;color:var(--ink-faint);text-align:center}.sweater-compared.chosen figcaption{color:inherit}
