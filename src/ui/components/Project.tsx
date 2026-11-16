@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { sweaterById } from "../../library/catalogue";
 import type { Placement, SlotId, Tension } from "../../pattern/design";
 import { useSweater } from "../useSweater";
 import { useColourway } from "../useColourway";
+import { useView } from "../useView";
 import { viewChart } from "../../reading/counted";
 import { currentEdition, editionOf, isSuperseded, errataOf } from "../../library/editions";
 import PatternUpdated from "./PatternUpdated";
@@ -15,7 +16,7 @@ import type { SweaterStitches } from "../../pattern/knitted";
 import { sameTension, yarnPerStitch } from "../../reading/tension";
 import { makeOnesAtMarkers } from "../../reading/marker-routes";
 import type { ChartView } from "../../reading/views";
-import { keyOf, paletteOf, slotNames, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
+import { ballsOf, colourwayLabel, keyOf, paletteOf, slotNames, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
 import { totals, positionOf, currentRun, whereYouAre, roundNames, roundWhats } from "../../reading/progress";
 import { keyEntryAt } from "../../reading/stitch-key";
 import { faceAfter, holdsIn, needleChangesIn, turnsIn } from "../chart/chart-marks";
@@ -28,10 +29,15 @@ import {
   readProject,
   projectsChanged,
   writeProject,
+  renameProject,
+  deleteProject,
   keepKnitting,
   dropUnknitted,
 } from "../../projects/projects";
 import PageLayout from "./ui/PageLayout";
+import StageLayout from "./ui/StageLayout";
+import Dialog from "./ui/Dialog";
+import NameDialog from "./ui/NameDialog";
 import Button from "./ui/Button";
 import ProgressRing from "./ProgressRing";
 import SweaterModel from "./SweaterModel";
@@ -44,10 +50,12 @@ import { TimeFigures, TimeLine } from "./KnittingTime";
 import { SpeedsSheet, StatsPanel, StitchTime } from "./StatsView";
 import { statsOverlay, type Layer } from "../chart/timing-overlay";
 import WoolList from "./WoolList";
-import { type Chosen } from "./YarnPicker";
-import NextStep from "./ui/NextStep";
+import { type Chosen } from "./Shades";
 import ViewTabs from "../chart/ViewTabs";
 import ColourwayChoice from "./ColourwayChoice";
+import Customise from "./Customise";
+import { Schematic } from "./Schematic";
+import { Measurements } from "./Measurements";
 import "./Project.css";
 
 /** Marks a chart page's address as open on Explore statistics. */
@@ -124,6 +132,9 @@ const ChartPageFoot: React.FC<{
  */
 /** How many changes Undo can step back through. */
 const undoLimit = 100;
+
+/** The panels of a jumper's page, under its stage. */
+const panels = ["progress", "wool", "fit"] as const;
 
 const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
   const { projectId } = useParams();
@@ -282,6 +293,11 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
     });
   }, [change]);
 
+  // Every wool back to the colourway's own; the trim, which is the colourway's, stays as chosen.
+  const resetShades = useCallback(() => {
+    change((current) => ({ ...current, shades: undefined }));
+  }, [change]);
+
   /*
    * Opening or closing the knitting rearranges everything around the chart:
    * knitting fills the screen, without the header and title above it. Hold
@@ -339,6 +355,7 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
       setColourway={setColourway}
       setTrim={setTrim}
       setShade={setShade}
+      resetShades={resetShades}
       setTension={setTension}
       takeUpdate={takeUpdate}
       seeUpdate={seeUpdate}
@@ -361,6 +378,7 @@ const ProjectView: React.FC<{
   setColourway: (id: string) => void;
   setTrim: (trim: string | undefined) => void;
   setShade: (slots: SlotId[], chosen: Chosen | undefined) => void;
+  resetShades: () => void;
   setTension: (tension: Tension | undefined) => void;
   takeUpdate: () => void;
   seeUpdate: () => void;
@@ -379,6 +397,7 @@ const ProjectView: React.FC<{
   setColourway,
   setTrim,
   setShade,
+  resetShades,
   setTension,
   takeUpdate,
   seeUpdate,
@@ -494,6 +513,27 @@ const ProjectView: React.FC<{
   useEffect(() => {
     if (!knitting) setKeyOpen(false);
   }, [knitting]);
+  // The jumper's page: which panel it shows, kept in the address; and what opens over it.
+  const navigate = useNavigate();
+  const shownPanel = panels.find((panel) => panel === params.get("tab")) ?? "progress";
+  const showPanel = (panel: string) => {
+    const next = new URLSearchParams(params);
+    if (panel === "progress") next.delete("tab");
+    else next.set("tab", panel);
+    setParams(next, { replace: true });
+  };
+  const customise = useView("customise");
+  /** The ball Customise opens on, where a row of the wool list asked for it. */
+  const [customiseOn, setCustomiseOn] = useState<SlotId[]>();
+  const customiseFrom = (slots: SlotId[] | undefined) => {
+    setCustomiseOn(slots);
+    customise.show();
+  };
+  const [bases, setBases] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  // Only the wool this size knits: a smaller size leaves the last bands' colours out.
+  const balls = useMemo(() => ballsOf(colourway, metres, project.shades).filter((ball) => ball.metres > 0), [colourway, metres, project.shades]);
   const run = currentRun(stitches, project.progress, index);
   // Which side is towards you, for the key to read the chart's symbols from: see Chart.
   const turnIds = useMemo(
@@ -632,52 +672,65 @@ const ProjectView: React.FC<{
     );
   }
 
-  return (
-    <PageLayout
-      title={title}
-      eyebrow={eyebrow}
-    >
+  const bought = balls.reduce((total, ball) => total + ball.balls, 0);
+  // What the sweater measures: the size's own, or what the rest was fitted to.
+  const worn = fitted ? { ...size, ...fitted } : size;
+
+  const progressPanel = (
+    <>
       {updated}
-      <div className="project-layout">
-        <div className="project-stage">
-          <SweaterModel
-            sweaterId={sweater.id}
-            sizeId={size.id}
-            edition={edition}
-            palette={palette}
-            progress={project.progress}
-          />
-          <p className="quiet stage-note">The wool fills in as you knit. Drag to turn it.</p>
-        </div>
-        <div className="project-figures">
-          <ProgressRing percent={counts.percent} />
-          <dl className="measurements">
-            <div>
-              <dt>Knitted</dt>
-              <dd>
-                {counts.worked.toLocaleString()} of {counts.total.toLocaleString()} stitches
-              </dd>
-            </div>
-            <div>
-              <dt>Where</dt>
-              <dd>{position.finished ? "Finished" : whereYouAre(position)}</dd>
-            </div>
-            <div>
-              <dt>Left to go</dt>
-              <dd>{counts.remaining.toLocaleString()} stitches</dd>
-            </div>
-            {time && <TimeFigures time={time} finished={position.finished} />}
-          </dl>
-        </div>
+      <div className="jumper-progress">
+        <ProgressRing percent={counts.percent} />
+        <dl className="measurements">
+          <div>
+            <dt>Knitted</dt>
+            <dd>
+              {counts.worked.toLocaleString()} of {counts.total.toLocaleString()} stitches
+            </dd>
+          </div>
+          <div>
+            <dt>Where</dt>
+            <dd>{position.finished ? "Finished" : whereYouAre(position)}</dd>
+          </div>
+          <div>
+            <dt>Left to go</dt>
+            <dd>{counts.remaining.toLocaleString()} stitches</dd>
+          </div>
+          {time && <TimeFigures time={time} finished={position.finished} />}
+        </dl>
       </div>
-      <div className="peerie-rule" aria-hidden="true" />
-      <section className="section">
-        <h2>Your wool</h2>
-        {/*
-          The design's own colourways first, because they are where most
-          people start, then the wool itself. Choosing one sets every yarn
-          at once; a row below changes any of them afterwards.
-        */}
+      <p>
+        <Link to={chartPath(project.id)} className="btn btn-secondary">
+          Look at the chart
+        </Link>
+      </p>
+      <p className="jumper-manage">
+        <Button variant="quiet" onClick={() => setRenaming(true)}>
+          Rename
+        </Button>
+        <Button variant="quiet" onClick={() => setDeleting(true)}>
+          Delete
+        </Button>
+      </p>
+    </>
+  );
+
+  const woolPanel = (
+    <>
+      <p className="your-colourway">
+        <strong>{colourwayLabel(colourway, project.shades)}</strong>{" "}
+        <span className="quiet">
+          · {balls.length} {balls.length === 1 ? "shade" : "shades"} · {bought} {bought === 1 ? "ball" : "balls"}
+        </span>
+      </p>
+      <p className="jumper-wool-actions">
+        <Button onClick={() => customiseFrom(undefined)}>Customise</Button>
+        <Button aria-expanded={bases} onClick={() => setBases((open) => !open)}>
+          Another colourway
+        </Button>
+      </p>
+      {/* The design's colourways, to start again from, and the trim: out of the way until asked for. */}
+      {bases && (
         <ColourwayChoice
           colourways={sweater.colourways}
           colourway={colourway}
@@ -688,17 +741,19 @@ const ProjectView: React.FC<{
           trimChosen={project.trim}
           onTrim={setTrim}
         />
-        <WoolList
-          colourway={colourway}
-          metres={metres}
-          stated={size.yardage !== undefined && !fitted}
-          overrides={project.shades ?? noShades}
-          onChange={setShade}
-          body={body}
-          palette={palette}
-        />
-      </section>
+      )}
+      <WoolList
+        colourway={colourway}
+        metres={metres}
+        stated={size.yardage !== undefined && !fitted}
+        overrides={project.shades ?? noShades}
+        onPick={customiseFrom}
+      />
+    </>
+  );
 
+  const fitPanel = (
+    <>
       <MyTension key={project.id} size={size} fitted={fitted} tension={project.tension} onChange={setTension}>
         {/* Where the rest is worked out for this tension already, it says so; where it could be, it offers to. */}
         {project.tension && (sameTension(fitted ?? size, project.tension) ? !!fitted : mayFit(sweater, built, project.progress)) && (
@@ -717,33 +772,83 @@ const ProjectView: React.FC<{
           />
         )}
       </MyTension>
+      <h2>Size {size.label}</h2>
+      <div className="size-figures">
+        <Schematic size={worn} />
+        <Measurements size={worn} />
+      </div>
+    </>
+  );
 
-      <NextStep
-        title={position.finished ? "All knitted" : counts.worked > 0 ? "Carry on" : "Ready to cast on?"}
-        detail={
-          position.finished
-            ? "Every stitch is done. The chart is still there to look back over."
-            : counts.worked > 0
-              ? `You are on the ${whereYouAre(position).toLowerCase()}. The chart opens where you left off.`
-              : `${counts.total.toLocaleString()} stitches over ${position.totalRounds} rounds, from the neck down. The chart follows you round by round.`
-        }
-      >
-        {position.finished ? (
-          <Link to={chartPath(project.id)} className="btn btn-primary btn-lg">
-            Open the chart
-          </Link>
-        ) : (
+  return (
+    <>
+      <StageLayout
+        title={title}
+        eyebrow={eyebrow}
+        stage={<SweaterModel sweaterId={sweater.id} sizeId={size.id} edition={edition} palette={palette} progress={project.progress} fill />}
+        tabsLabel="This jumper"
+        panels={[
+          { id: "progress", label: "Progress", content: progressPanel },
+          { id: "wool", label: "Wool", content: woolPanel },
+          { id: "fit", label: "Fit", content: fitPanel },
+        ]}
+        shown={shownPanel}
+        onShow={showPanel}
+        bar={
           <>
-            <Link to={chartPath(project.id)} className="btn btn-secondary">
-              View the chart
-            </Link>
-            <Link to={chartPath(project.id, true)} className="btn btn-primary btn-lg">
-              {knitLabel}
+            <div className="stage-bar-text">
+              <strong>{position.finished ? "Finished" : whereYouAre(position)}</strong>
+              <span className="quiet">{position.finished ? `${counts.total.toLocaleString()} stitches` : `${percentKnitted(counts.worked, counts.percent)} knitted`}</span>
+            </div>
+            <Link to={chartPath(project.id, !position.finished)} className="btn btn-primary">
+              {position.finished ? "Open the chart" : knitLabel}
             </Link>
           </>
-        )}
-      </NextStep>
-    </PageLayout>
+        }
+      />
+      {customise.open && (
+        <Customise
+          sweater={sweater}
+          sizeId={size.id}
+          edition={edition}
+          built={built}
+          colourway={colourway}
+          overrides={project.shades ?? noShades}
+          metres={metres}
+          onChange={setShade}
+          onReset={resetShades}
+          onDone={customise.close}
+          first={customiseOn}
+        />
+      )}
+      {renaming && (
+        <NameDialog
+          open
+          title="Name this project"
+          text="Something to tell it apart from the others."
+          initialValue={project.name ?? ""}
+          onCancel={() => setRenaming(false)}
+          onConfirm={(name) => {
+            renameProject(project.id, name);
+            setRenaming(false);
+          }}
+        />
+      )}
+      {deleting && (
+        <Dialog
+          open
+          title="Delete this project?"
+          text="This only forgets how far you had got. The design itself is not going anywhere."
+          confirmLabel="Delete"
+          confirmVariant="danger"
+          onCancel={() => setDeleting(false)}
+          onConfirm={() => {
+            deleteProject(project.id);
+            navigate("/");
+          }}
+        />
+      )}
+    </>
   );
 };
 

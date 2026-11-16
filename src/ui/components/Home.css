@@ -11,9 +11,17 @@
   gap: 1rem;
 }
 
+/* The designs two to a row on a phone, so the first screen shows them all. */
 .design-list {
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+@media (min-width: 40rem) {
+  .design-list {
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 1.25rem;
+  }
 }
 
 .project-card {
@@ -58,19 +66,11 @@
   padding: 0 1rem 1rem;
 }
 
-/* The project's name on the left; renaming and deleting it on the right. */
-.project-card-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem 1rem;
-}
-
-.project-card-manage {
-  display: flex;
-  flex-shrink: 0;
-  gap: 0.75rem;
-  font-size: 0.9rem;
+/* The card itself opens the jumper. */
+.project-card-body {
+  display: block;
+  color: inherit;
+  text-decoration: none;
 }
 
 .design-card {
@@ -94,21 +94,31 @@
 
 /* The yoke's bands, in the first colourway, as the card's picture. */
 .design-card-body {
-  height: 160px;
+  height: 96px;
   border-bottom: 1px solid var(--rule);
+}
+
+.project-card .design-card-body {
+  height: 140px;
+}
+
+@media (min-width: 40rem) {
+  .design-card-body {
+    height: 160px;
+  }
 }
 
 .design-card-text {
   display: flex;
   flex-direction: column;
   gap: 0.12rem;
-  padding: 0.85rem 1rem 1rem;
+  padding: 0.6rem 0.7rem 0.75rem;
 }
 
 .design-card-text strong {
   font-family: var(--display);
   text-transform: uppercase;
-  font-size: 1.32rem;
+  font-size: 1.15rem;
   line-height: 1.05;
   letter-spacing: 0.01em;
 }
