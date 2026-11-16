@@ -43,7 +43,7 @@ const narrow = "(max-width: 640px)";
  * Where there is room for only two, the first - the one the others are
  * compared with - and the one chosen.
  */
-export default function SweaterComparison({ candidates, chosen }: { candidates: Candidate[]; chosen: string }) {
+export default function SweaterComparison({ candidates, chosen, fill }: { candidates: Candidate[]; chosen: string; /** As tall as what it is put in: a stage. */ fill?: boolean }) {
   const [tight, setTight] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.(narrow).matches);
   useEffect(() => {
     const query = window.matchMedia?.(narrow);
@@ -60,10 +60,10 @@ export default function SweaterComparison({ candidates, chosen }: { candidates: 
   const shown = candidates.map((one, at) => ({ ...one, ...posed[at] })).filter((one, at) => !tight || at === 0 || one.id === chosen);
 
   return (
-    <div className="sweater-comparison">
+    <div className={fill ? "sweater-comparison fills" : "sweater-comparison"}>
       {shown.map((one) => (
         <figure key={one.id} className={one.id === chosen ? "sweater-compared chosen" : "sweater-compared"}>
-          <div className="sweater-canvas" style={{ height: tight ? heights.tight : heights.wide }} role="img" aria-label={`${one.label}, in three dimensions`}>
+          <div className="sweater-canvas" style={fill ? undefined : { height: tight ? heights.tight : heights.wide }} role="img" aria-label={`${one.label}, in three dimensions`}>
             <SweaterStage
               knitting={one.knitting}
               posed={one.positions}

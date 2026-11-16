@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, expect, it, vi } from "vitest";
 import { sweaterById } from "../../compiler/designs";
 import { buildSweater } from "../../compiler/engine/engine";
-import { colourwayLabel, paletteOf, type Overrides } from "../../reading/palette";
+import { colourwayLabel, type Overrides } from "../../reading/palette";
 import ColourwayChoice from "./ColourwayChoice";
 
 const sweater = sweaterById("hamefarin")!;
@@ -23,17 +23,17 @@ const show = async (overrides: Overrides) => {
   document.body.append(host);
   await act(async () => createRoot(host).render(
     <ColourwayChoice colourways={sweater.colourways} colourway={vintage} overrides={overrides}
-      palette={paletteOf(vintage, overrides)} body={{ stitches, rounds }} onStartFrom={onStartFrom} />,
+      body={{ stitches, rounds }} onStartFrom={onStartFrom} />,
   ));
-  const tile = (name: string) => [...host.querySelectorAll(".colourway-starts button")].find(b => b.querySelector("strong")?.textContent === name) as HTMLButtonElement;
+  const tile = (name: string) => [...host.querySelectorAll(".colourway-grid button")].find(b => b.querySelector("strong")?.textContent === name) as HTMLButtonElement;
   return { host, onStartFrom, tile };
 };
 
 it("starts straight from another colourway while none of the wool is your own", async () => {
   const { host, onStartFrom, tile } = await show({});
-  expect(host.querySelector(".your-colourway")?.textContent).toContain(`${vintage.name}, as the design gives it`);
-  // None of the pattern's is marked as chosen: they are starting points.
-  expect(host.querySelectorAll(".colourway-starts .is-chosen")).toHaveLength(0);
+  expect(host.querySelector(".your-colourway")?.textContent).toContain(`${vintage.name} as the design gives it`);
+  // The base in use is the one marked.
+  expect([...host.querySelectorAll(".colourway-grid .is-chosen strong")].map((one) => one.textContent)).toEqual([vintage.name]);
   // The one you're on stays offered, and choosing it again changes nothing.
   await act(async () => tile(vintage.name).click());
   expect(onStartFrom).not.toHaveBeenCalled();
@@ -43,7 +43,7 @@ it("starts straight from another colourway while none of the wool is your own", 
 
 it("asks before starting again over wool of your own", async () => {
   const { host, onStartFrom, tile } = await show({ D: { name: "Poppy", hex: "#c8323a" } });
-  expect(host.querySelector(".your-colourway")?.textContent).toContain(`Started from ${vintage.name}, with 1 yarn of your own`);
+  expect(host.querySelector(".your-colourway")?.textContent).toContain(`${vintage.name} with 1 yarn of your own`);
   await act(async () => tile(kaleyard.name).click());
   expect(onStartFrom).not.toHaveBeenCalled();
   const dialog = host.querySelector("dialog")!;
