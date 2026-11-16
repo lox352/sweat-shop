@@ -58,7 +58,7 @@ it("saves once per action under StrictMode and undoes more than one step", async
   } finally { await act(async () => root.unmount()); host.remove(); }
 });
 
-it("opens Explore statistics from the progress card once there is time to explore", async () => {
+it("opens the time spent over the chart, from the bar under it, once there is time to show", async () => {
   const project = startProject("hamefarin", "xs", "simmer-dim");
   // Two evenings of a run of eight every 25 seconds.
   const rows: number[][] = [[1_790_000_000, 0, 10]];
@@ -73,7 +73,7 @@ it("opens Explore statistics from the progress card once there is time to explor
   try {
     await act(async () => root.render(<App />));
     expect(host.textContent).toContain("knitted");
-    await act(async () => button("Statistics")!.click());
+    await act(async () => button("Time")!.click());
     expect(window.location.hash).toContain("stats=1");
     const panel = host.querySelector(".stats-panel")!;
     expect(panel.textContent).toMatch(/2\s*sittings/);
@@ -100,6 +100,6 @@ it("offers no statistics while nothing has been timed", async () => {
   try {
     await act(async () => root.render(<App />));
     expect(host.querySelector(".stats-panel")).toBeNull();
-    expect([...host.querySelectorAll("button")].some(b => b.textContent?.trim() === "Statistics")).toBe(false);
+    expect([...host.querySelectorAll("button")].some(b => b.textContent?.trim() === "Time")).toBe(false);
   } finally { await act(async () => root.unmount()); host.remove(); }
 });

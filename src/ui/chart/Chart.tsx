@@ -693,7 +693,9 @@ const Chart: React.FC<ChartProps> = ({
         </select></label>
         {showText && <TextRound stitches={stitches} rounds={rounds} round={follow && focusRound ? focusRound : textRound} labels={labels} names={names} palette={palette} pieces={pieces} />}
       </details>}
-      <p className="chart-caption">
+      <details className="chart-help">
+        <summary>How to read this chart</summary>
+        <p className="chart-caption">
         {layout.columns} columns across and {layout.rows} rows. The stitches cast on at
         an underarm are the bottom of two pieces, the body and a sleeve, so the
         sweater has more than one chart, chosen by the tabs above it: from the neck,
@@ -713,7 +715,8 @@ const Chart: React.FC<ChartProps> = ({
         {turns.length > 0 &&
           " The chart shows the side you are working on, every stitch as it looks from there, and turns over" +
             " with the work at a short row."}
-      </p>
+        </p>
+      </details>
     </div>
   );
 };

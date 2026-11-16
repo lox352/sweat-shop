@@ -108,7 +108,7 @@ test("the design and its projects work without WebGL, and nothing fetches the so
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await knittedTo(page, yokeDone);
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
-  await page.getByRole("link", { name: "Overview", exact: true }).click();
+  await page.getByRole("link", { name: "Close the chart", exact: true }).click();
   await expect(page.getByText("The 3D preview is unavailable.", { exact: false })).toBeVisible();
   expect(physics).toEqual([]);
 });
@@ -135,10 +135,13 @@ test("accessible chart controls and text instructions", async ({ page }) => {
   const unzoomed = await sheetHeight();
   await page.getByRole("region", { name: /Scrollable knitting chart/ }).press("+");
   await expect.poll(sheetHeight).toBeGreaterThan(unzoomed);
+  // The chart fills the screen; Settings is on the jumper's page, a cross away, and the chart is a tap back.
+  await page.getByRole("link", { name: "Close the chart", exact: true }).click();
   const settings = await openSettings(page);
   await settings.getByRole("switch", { name: "High contrast chart" }).check();
   await settings.getByRole("switch", { name: "Written round instructions" }).check();
   await page.getByRole("button", { name: "Done", exact: true }).click();
+  await page.getByRole("link", { name: "Look around the chart", exact: true }).click();
   await expect(page.locator(".chart-yarn-numbers li")).not.toHaveCount(0);
   await page.getByText("Text round instructions", { exact: true }).click();
   await expect(page.getByText(/Cast on 128 in/)).toBeVisible();
@@ -148,7 +151,7 @@ test("accessible chart controls and text instructions", async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 });
 
-test("the chart is its own page, and closing the knitting keeps you on it", async ({ page }) => {
+test("the chart is a view over the jumper: folding the knitting away leaves you looking around it, and its cross goes back", async ({ page }) => {
   await page.goto(design);
   // The design page shows the sweater and its wool, and ends with the way to start.
   await expect(page.locator(".chart-sheets")).toHaveCount(0);
@@ -160,7 +163,7 @@ test("the chart is its own page, and closing the knitting keeps you on it", asyn
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
   await expect(page).toHaveURL(/\/project\/[^/]+\/chart$/);
   await expect(page.locator(".chart-sheets")).toBeVisible();
-  // Not knitting, the page ends with your progress and the ways on.
+  // Not knitting, a bar under the chart says how far you have got, with the way back to the needles.
   const bar = page.getByRole("region", { name: "Your progress" });
   await expect(bar).toContainText("knitted");
   await expect(bar).toContainText("Yoke, round 2 of");
@@ -168,9 +171,10 @@ test("the chart is its own page, and closing the knitting keeps you on it", asyn
   await expect(position(page)).toContainText("Yoke, round 2, stitch 1.");
 
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
-  await bar.getByRole("link", { name: "Overview", exact: true }).click();
+  await page.getByRole("link", { name: "Close the chart", exact: true }).click();
   await expect(page).toHaveURL(/\/project\/[^/?]+$/);
-  await expect(page.locator(".chart-sheets")).toHaveCount(0);
+  // Its Progress shows a window of the chart at the needle, which opens the chart to look around.
+  await expect(page.getByRole("link", { name: "Look around the chart", exact: true })).toBeVisible();
   // The jumper's page: the jumper on its stage, its panels under it, and the way back to the needles in the bar.
   await expect(page.getByRole("tab", { name: "Progress", exact: true })).toHaveAttribute("aria-selected", "true");
   // A row of its wool list opens that wool to be changed, the jumper and the chart both in view; Done comes back to the list.
@@ -185,7 +189,8 @@ test("the chart is its own page, and closing the knitting keeps you on it", asyn
   await expect(position(page)).toContainText("Yoke, round 2, stitch 1.");
 
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
-  await bar.getByRole("link", { name: "Home", exact: true }).click();
+  await page.getByRole("link", { name: "Close the chart", exact: true }).click();
+  await page.getByRole("link", { name: "Sweat Shop", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Sweat Shop", level: 1, exact: true })).toBeVisible();
 });
 
@@ -410,6 +415,12 @@ test("the dividing round puts each sleeve on hold, casts on its underarm, and go
   // Written out, the round is whole: its holds in their places.
   await key.getByRole("button", { name: "Close the key" }).click();
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  // Settings is on the jumper's page; the chart is a tap back from it.
+  await page.getByRole("link", { name: "Close the chart", exact: true }).click();
+  const settings = await openSettings(page);
+  await settings.getByRole("switch", { name: "Written round instructions" }).check();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await page.getByRole("link", { name: "Look around the chart", exact: true }).click();
   // Four views of the chart, the body's the one being knitted: its underarms, without the sleeves: a round of its 296 stitches wide.
   const tabs = page.getByRole("tab");
   await expect(tabs).toHaveText(["From the neck", "Bodyknitting", "Right sleeve", "Left sleeve"]);
@@ -419,9 +430,6 @@ test("the dividing round puts each sleeve on hold, casts on its underarm, and go
   await page.getByRole("tab", { name: "From the neck" }).click();
   await expect(page.getByRole("img", { name: /^The chart: 436 columns and 219 rows\./ })).toBeVisible();
   await page.getByRole("tab", { name: "Body" }).click();
-  const settings = await openSettings(page);
-  await settings.getByRole("switch", { name: "Written round instructions" }).check();
-  await page.getByRole("button", { name: "Done", exact: true }).click();
   await page.getByText("Text round instructions", { exact: true }).click();
   await page.getByLabel("Read round").selectOption({ label: "Body, round 76 · dividing round" });
   await expect(page.getByText("Put the next 80 stitches on hold for the right sleeve.")).toBeVisible();
@@ -921,6 +929,10 @@ test("closed up, zooming keeps the stitch under the point zoomed about", async (
   await start(page);
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
   await page.waitForTimeout(400);
+  // Away from the chart's right-hand edge, where it opens: columns that close to the right of a stitch as fewer
+  // rows show can only be made up by scrolling that way, and at the edge there is nowhere to scroll to.
+  await page.locator(".chart-scroll").evaluate((scroller) => scroller.scrollBy(-600, 0));
+  await page.waitForTimeout(400);
   // A stitch of the rib, near the middle of the box: tapped for leftwards from the middle, past any columns between.
   const box = await page.locator(".chart-scroll").boundingBox();
   const picker = page.getByRole("dialog", { name: /, stitch \d+$/ });
@@ -942,6 +954,8 @@ test("closed up, zooming keeps the stitch under the point zoomed about", async (
 test("zoomed out as far as it goes, the chart's whole width fits the box, and it zooms back in as it went", async ({ page }) => {
   await knittedTo(page, 0, { sweaterId: "wool-week-strips-once-oldest", sizeId: "m", colourwayId: "early-light" });
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  // The chart fills the screen: a screen tall enough that, zoomed right out, every row is in view, and so no column closed for want of one.
+  await page.setViewportSize({ width: page.viewportSize().width, height: 2400 });
   const chart = page.getByRole("region", { name: /Scrollable knitting chart/ });
   await chart.focus();
   const scroller = page.locator(".chart-scroll");
@@ -963,9 +977,9 @@ test("zoomed out as far as it goes, the chart's whole width fits the box, and it
   // Every column showing, with all the rows in view.
   const tiles = page.locator(".chart-tiles");
   expect(await tiles.getAttribute("data-columns-showing")).toBe(await tiles.getAttribute("data-columns"));
-  // And back in by the same steps, to the size it began at: the room left of the chart for a join's arrow is half a stitch.
+  // And back in by no more steps, to the size it began at: the room left of the chart for a join's arrow is half a stitch.
   const room = () => page.locator(".chart-sheets").evaluate((sheet) => sheet.style.marginLeft);
-  for (let press = 0; press < smaller; press++) await chart.press("+");
+  for (let press = 0; press < smaller && (await room()) !== "8px"; press++) await chart.press("+");
   await expect.poll(room).toBe("8px");
   expect(await wide()).toBeGreaterThan(0);
 });
@@ -1036,8 +1050,9 @@ test("closed up, a row with no stitch in the columns on screen takes no height, 
 
 test("backup restores copies and rename/delete require their dialogs", async ({ page }) => {
   await start(page);
-  // Knitting fills the screen; Settings is in the header, once you stop.
+  // The chart fills the screen; Settings is on the jumper's page, a cross away.
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  await page.getByRole("link", { name: "Close the chart", exact: true }).click();
   const downloadPromise = page.waitForEvent("download");
   await (await openSettings(page)).getByRole("button", { name: "Save", exact: true }).click();
   const download = await downloadPromise;
@@ -1080,10 +1095,11 @@ test("quota failures preserve progress and offer a recovery export", async ({ pa
 test("a prepared project reloads and saves progress offline", async ({ page, context }) => {
   await start(page);
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  await page.getByRole("link", { name: "Close the chart", exact: true }).click();
   await expect(page.getByText(/Ready for offline knitting/)).toBeVisible({ timeout: 45_000 });
   await context.setOffline(true);
   await page.reload();
-  await page.getByRole("button", { name: "Start knitting", exact: true }).click();
+  await page.locator(".stage-bar").getByRole("link", { name: "Start knitting", exact: true }).click();
   await page.getByRole("button", { name: "End of round", exact: true }).click();
   const progress = await position(page).textContent();
   await page.reload();

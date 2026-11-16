@@ -454,7 +454,8 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
           title="Stop knitting"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
-            <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            {/* Folded down, not closed: the chart stays, to look around. The cross is the chart's own, in its corner. */}
+            <path d="M4.5 7.5l5.5 5.5 5.5-5.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
         <p className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
@@ -563,7 +564,7 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
         title="Stop knitting"
       >
         <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
-          <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M4.5 7.5l5.5 5.5 5.5-5.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
       <p className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">

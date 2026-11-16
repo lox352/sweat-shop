@@ -185,7 +185,7 @@ test("a tension given before starting: the pattern is worked out for it from the
   expect(started.edition).not.toBe(current);
   // Its project's page says so, and until a stitch is worked the pattern as written can be gone back to.
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
-  await page.getByRole("link", { name: "Overview", exact: true }).click();
+  await page.getByRole("link", { name: "Close the chart", exact: true }).click();
   await page.getByRole("tab", { name: "Fit", exact: true }).click();
   const own = page.getByRole("region", { name: "Your tension" });
   await expect(own).toContainText("Your pattern is worked out for this tension, from the cast-on.", { timeout: 20_000 });

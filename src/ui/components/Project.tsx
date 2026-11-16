@@ -16,7 +16,7 @@ import type { SweaterStitches } from "../../pattern/knitted";
 import { sameTension, yarnPerStitch } from "../../reading/tension";
 import { makeOnesAtMarkers } from "../../reading/marker-routes";
 import type { ChartView } from "../../reading/views";
-import { ballsOf, colourwayLabel, keyOf, paletteOf, slotNames, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
+import { ballsOf, colourwayLabel, paletteOf, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
 import { totals, positionOf, currentRun, whereYouAre, roundNames, roundWhats } from "../../reading/progress";
 import { keyEntryAt } from "../../reading/stitch-key";
 import { faceAfter, holdsIn, needleChangesIn, turnsIn } from "../chart/chart-marks";
@@ -39,14 +39,13 @@ import StageLayout from "./ui/StageLayout";
 import Dialog from "./ui/Dialog";
 import NameDialog from "./ui/NameDialog";
 import Button from "./ui/Button";
-import ProgressRing from "./ProgressRing";
 import SweaterModel from "./SweaterModel";
 import Chart from "../chart/Chart";
 import KnittingPanel from "./KnittingPanel";
 import { KeySheet } from "./KnitKey";
 import { recordProgress } from "../../projects/timing/log";
 import { useKnittingTime, useTimeDetail, useTimeRecording } from "../useKnittingTime";
-import { TimeFigures, TimeLine } from "./KnittingTime";
+import { TimeFigures } from "./KnittingTime";
 import { SpeedsSheet, StatsPanel, StitchTime } from "./StatsView";
 import { statsOverlay, type Layer } from "../chart/timing-overlay";
 import WoolList from "./WoolList";
@@ -69,55 +68,35 @@ const percentKnitted = (worked: number, percent: number) =>
 const noShades: Overrides = {};
 
 /**
- * The end of the chart page while you are not knitting: how far you have
- * got, and the ways on from here.
+ * Under the chart while you look around it and are not knitting: where the
+ * knitting is, the key and the time spent, and the way back to the needles.
  */
-const ChartPageFoot: React.FC<{
+const LookBar: React.FC<{
   percent: number;
   worked: number;
-  total: number;
   where: string;
   finished: boolean;
-  overview: string;
   onKnit: () => void;
-  time?: React.ReactNode;
-  /** Opens Explore statistics; absent while there is no time to explore. */
+  onKey: () => void;
+  /** Opens the time spent, over the chart; absent while there is none to show. */
   onStats?: () => void;
-}> = ({ percent, worked, total, where, finished, overview, onKnit, time, onStats }) => (
-  <section className="section chart-foot" aria-label="Your progress">
-    <div className="chart-foot-head">
-      <div className="chart-foot-figure">
-        <em>{finished ? "100%" : percentKnitted(worked, percent)}</em>
-        <span className="quiet">knitted</span>
-      </div>
-      <Link to="/" className="btn btn-quiet">
-        Home
-      </Link>
+}> = ({ percent, worked, where, finished, onKnit, onKey, onStats }) => (
+  <section className="stage-bar look-bar" aria-label="Your progress">
+    <div className="stage-bar-text">
+      <strong>{finished ? "Finished" : where}</strong>
+      <span className="quiet">{finished ? "100%" : percentKnitted(worked, percent)} knitted</span>
     </div>
-    <div className="chart-foot-track">
-      <span className="project-card-bar" aria-hidden="true">
-        <span style={{ width: `${percent}%` }} />
-      </span>
-    </div>
-    <p className="quiet">
-      {finished
-        ? `Finished · ${total.toLocaleString()} stitches`
-        : `${where} · ${worked.toLocaleString()} of ${total.toLocaleString()} stitches`}
-    </p>
-    {time}
-    <div className="chart-foot-actions">
-      <Link to={overview} className="btn btn-secondary">
-        Overview
-      </Link>
-      {onStats && (
-        <Button variant="secondary" onClick={onStats}>
-          Statistics
-        </Button>
-      )}
-      <Button variant="primary" size="lg" className="chart-foot-knit" onClick={onKnit}>
-        {finished ? "See the last stitch" : worked > 0 ? "Keep knitting" : "Start knitting"}
+    <Button variant="quiet" onClick={onKey}>
+      Key
+    </Button>
+    {onStats && (
+      <Button variant="quiet" onClick={onStats}>
+        Time
       </Button>
-    </div>
+    )}
+    <Button variant="primary" onClick={onKnit}>
+      {finished ? "See the last stitch" : worked > 0 ? "Keep knitting" : "Start knitting"}
+    </Button>
   </section>
 );
 
@@ -510,9 +489,13 @@ const ProjectView: React.FC<{
   // The full key, over the lower part of the screen while knitting.
   const [keyOpen, setKeyOpen] = useState(false);
   const closeKey = useCallback(() => setKeyOpen(false), []);
-  useEffect(() => {
-    if (!knitting) setKeyOpen(false);
-  }, [knitting]);
+  useEffect(() => setKeyOpen(false), [knitting]);
+  // The chart is a view over the jumper's page: the way out of it, in the corner every view's is in.
+  const close = (
+    <Link to={overviewPath(project.id)} className="chart-close" aria-label="Close the chart">
+      ✕
+    </Link>
+  );
   // The jumper's page: which panel it shows, kept in the address; and what opens over it.
   const navigate = useNavigate();
   const shownPanel = panels.find((panel) => panel === params.get("tab")) ?? "progress";
@@ -550,9 +533,10 @@ const ProjectView: React.FC<{
 
   if (exploring && detail && time) {
     return (
-      <PageLayout title={title} eyebrow={eyebrow} showTitle={false} className="knit-screen">
+      <PageLayout title={title} eyebrow={eyebrow} showTitle={false} className="knit-screen is-looking">
         <section className="section chart-page" data-view={shownView?.id}>
-          {!knitting && tabs}
+          {tabs}
+          {close}
           <Chart
             key={shownView?.id}
             stitches={stitches}
@@ -591,15 +575,10 @@ const ProjectView: React.FC<{
 
   if (view === "chart") {
     return (
-      <PageLayout
-        title={title}
-        eyebrow={eyebrow}
-        showTitle={!knitting}
-        className={knitting ? "knit-screen" : undefined}
-      >
+      <PageLayout title={title} eyebrow={eyebrow} showTitle={false} className={knitting ? "knit-screen" : "knit-screen is-looking"}>
         <section className="section chart-page" data-view={shownView?.id}>
-          {!knitting && updated}
           {!knitting && tabs}
+          {close}
           <Chart
             key={shownView?.id}
             stitches={stitches}
@@ -618,14 +597,6 @@ const ProjectView: React.FC<{
             roundPieces={counted.pieces}
             holdRegions={holdRegions}
           />
-          <ul className="chart-key">
-            {keyOf(sweater.slots, palette).map(({ slots, yarn }) => (
-              <li key={slots[0]}>
-                <span className="swatch" style={{ background: yarn.hex }} />
-                {slotNames(slots)} · {yarn.name}
-              </li>
-            ))}
-          </ul>
         </section>
 
         {knitting ? (
@@ -643,19 +614,17 @@ const ProjectView: React.FC<{
             makeOnesAtMarkers={makeOnes}
           />
         ) : (
-          <ChartPageFoot
+          <LookBar
             percent={counts.percent}
             worked={counts.worked}
-            total={counts.total}
             where={whereYouAre(position)}
             finished={position.finished}
-            overview={overviewPath(project.id)}
             onKnit={() => setKnitting(true)}
-            time={time && <TimeLine time={time} finished={position.finished} className="chart-foot-time" />}
+            onKey={() => setKeyOpen(true)}
             onStats={time && (() => setExploring(true))}
           />
         )}
-        {knitting && keyOpen && (
+        {keyOpen && (
           <KeySheet
             stitches={stitches}
             palette={palette}
@@ -679,31 +648,51 @@ const ProjectView: React.FC<{
   const progressPanel = (
     <>
       {updated}
-      <div className="jumper-progress">
-        <ProgressRing percent={counts.percent} />
-        <dl className="measurements">
-          <div>
-            <dt>Knitted</dt>
-            <dd>
-              {counts.worked.toLocaleString()} of {counts.total.toLocaleString()} stitches
-            </dd>
-          </div>
-          <div>
-            <dt>Where</dt>
-            <dd>{position.finished ? "Finished" : whereYouAre(position)}</dd>
-          </div>
-          <div>
-            <dt>Left to go</dt>
-            <dd>{counts.remaining.toLocaleString()} stitches</dd>
-          </div>
-          {time && <TimeFigures time={time} finished={position.finished} />}
-        </dl>
-      </div>
-      <p>
-        <Link to={chartPath(project.id)} className="btn btn-secondary">
-          Look at the chart
-        </Link>
+      <p className="jumper-progress">
+        <em>{position.finished ? "100%" : percentKnitted(counts.worked, counts.percent)}</em>{" "}
+        <span className="quiet">
+          {counts.worked.toLocaleString()} of {counts.total.toLocaleString()} stitches
+          {position.finished ? "" : ` · ${counts.remaining.toLocaleString()} to go`}
+        </span>
+        <span className="jumper-track" aria-hidden="true">
+          <span style={{ width: `${counts.percent}%` }} />
+        </span>
       </p>
+      {/* The chart where the knitting is, to say where that is in the pattern; the whole of it is a tap away. */}
+      <Link to={chartPath(project.id)} className="chart-window" aria-label="Look around the chart">
+        <div className="chart-fills" {...{ inert: "" }}>
+          <section className="chart-page">
+            <Chart
+              stitches={stitches}
+              rounds={counted.rounds}
+              layout={counted.layout}
+              markers={counted.markers}
+              palette={palette}
+              progress={project.progress}
+              follow
+              stitchNotes={sweater.stitchNotes}
+              pieces={sweater.pieces}
+              kinds={counted.kinds}
+              roundPieces={counted.pieces}
+              holdRegions={holdRegions}
+            />
+          </section>
+        </div>
+        <span className="chart-window-label">
+          <strong>{position.finished ? "Finished" : whereYouAre(position)}</strong>
+          <span className="quiet">Look around</span>
+        </span>
+      </Link>
+      {time && (
+        <>
+          <dl className="measurements jumper-time">
+            <TimeFigures time={time} finished={position.finished} />
+          </dl>
+          <p>
+            <Link to={`${chartPath(project.id)}?${statsParam}=1`}>See your time on the chart</Link>
+          </p>
+        </>
+      )}
       <p className="jumper-manage">
         <Button variant="quiet" onClick={() => setRenaming(true)}>
           Rename
