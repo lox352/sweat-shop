@@ -159,7 +159,7 @@ test("a project on its size's knitting as it is now knits that from its frozen c
 
   await page.evaluate(() => localStorage.clear());
   await page.goto("#/sweater/hamefarin");
-  await page.getByRole("button", { name: "Start knitting this", exact: true }).click();
+  await page.getByRole("button", { name: "Start knitting", exact: true }).click();
   await expect(page.getByRole("button", { name: "End of round", exact: true })).toBeVisible();
   const started = await page.evaluate(() => JSON.parse(localStorage.getItem(Object.keys(localStorage).find((key) => key.startsWith("project-")))));
   // Whatever size the design page starts in, its edition now.
@@ -171,10 +171,10 @@ test("where a size's frozen copy cannot be fetched, the page says so, and tries 
   await page.route("**/editions/**", (route) => (reachable ? route.continue() : route.abort()));
   await page.goto("#/sweater/hamefarin");
   await expect(page.getByRole("alert").filter({ hasText: "The pattern could not be fetched" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Start knitting this", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Start knitting", exact: true })).toHaveCount(0);
   reachable = true;
   await page.getByRole("button", { name: "Try again", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Start knitting this", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start knitting", exact: true })).toBeVisible();
 });
 
 test("nothing the site loads can work a pattern out: no script of it holds a chart or the engine", async ({ page }) => {
@@ -183,7 +183,7 @@ test("nothing the site loads can work a pattern out: no script of it holds a cha
     if (response.url().endsWith(".js")) scripts.push(response);
   });
   await page.goto("#/sweater/hamefarin");
-  await page.getByRole("button", { name: "Start knitting this", exact: true }).click();
+  await page.getByRole("button", { name: "Start knitting", exact: true }).click();
   await expect(page.locator(".knitting-panel [role=status]")).toBeAttached();
   expect(scripts.length).toBeGreaterThan(0);
   // What the engine says of a design with no tension for a fabric: in no script the page fetched.

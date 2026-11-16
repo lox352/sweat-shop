@@ -15,7 +15,7 @@ import type { SweaterStitches } from "../../pattern/knitted";
 import { sameTension, yarnPerStitch } from "../../reading/tension";
 import { makeOnesAtMarkers } from "../../reading/marker-routes";
 import type { ChartView } from "../../reading/views";
-import { colourwayLabel, keyOf, paletteOf, slotNames, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
+import { keyOf, paletteOf, slotNames, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
 import { totals, positionOf, currentRun, whereYouAre, roundNames, roundWhats } from "../../reading/progress";
 import { keyEntryAt } from "../../reading/stitch-key";
 import { faceAfter, holdsIn, needleChangesIn, turnsIn } from "../chart/chart-marks";
@@ -134,7 +134,7 @@ const ChartPageFoot: React.FC<{
         </Button>
       )}
       <Button variant="primary" size="lg" className="chart-foot-knit" onClick={onKnit}>
-        {finished ? "See the last stitch" : worked > 0 ? "Resume knitting" : "Start knitting"}
+        {finished ? "See the last stitch" : worked > 0 ? "Keep knitting" : "Start knitting"}
       </Button>
     </div>
   </section>
@@ -532,7 +532,8 @@ const ProjectView: React.FC<{
   const currentStitch = run ? keyEntryAt(stitches, run.startId, sweater.stitchNotes)?.id : undefined;
 
   const title = project.name ?? sweater.name;
-  const eyebrow = `${sweater.name} · ${size.label} · ${colourwayLabel(colourway, project.shades)}`;
+  // A jumper with a name of its own says which design it is in the small line; one without is that design, yours.
+  const eyebrow = `${project.name ? sweater.name : "your jumper"} · ${size.label}`;
   const knitLabel = counts.worked > 0 ? "Keep knitting" : "Start knitting";
 
   if (exploring && detail && time) {
@@ -663,11 +664,6 @@ const ProjectView: React.FC<{
     <PageLayout
       title={title}
       eyebrow={eyebrow}
-      aside={
-        <Link to={chartPath(project.id, !position.finished)} className="btn btn-primary">
-          {position.finished ? "Open the chart" : knitLabel}
-        </Link>
-      }
     >
       {updated}
       <div className="project-layout">

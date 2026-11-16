@@ -2,6 +2,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  justify-content: center;
+  min-width: 38px;
   min-height: 38px;
   padding: 0 0.2rem;
   border: none;
@@ -20,11 +22,12 @@
 
 @media (pointer: coarse) {
   .settings-button {
+    min-width: 44px;
     min-height: 44px;
   }
 }
 
-/* Only the icon where the masthead is tight. */
+/* Only the icon where the title block is tight. */
 @media (max-width: 420px) {
   .settings-button span {
     position: absolute;

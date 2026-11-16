@@ -26,7 +26,7 @@ async function openSettings(page) {
 }
 async function start(page) {
   await page.goto(design);
-  await page.getByRole("button", { name: "Start knitting this", exact: true }).click();
+  await page.getByRole("button", { name: "Start knitting", exact: true }).click();
   await expect(page.getByRole("button", { name: "End of round", exact: true })).toBeVisible();
 }
 /** Hamefarin in a medium, as a project's choices. */
@@ -103,7 +103,7 @@ test("the design and its projects work without WebGL, and nothing fetches the so
   expect(links).toHaveLength(6);
   await page.goto(links[0]);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Start knitting this", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start knitting", exact: true })).toBeVisible();
   await expect(page.getByText("The 3D preview is unavailable.", { exact: false })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await knittedTo(page, yokeDone);
@@ -164,7 +164,7 @@ test("the chart is its own page, and closing the knitting keeps you on it", asyn
   const bar = page.getByRole("region", { name: "Your progress" });
   await expect(bar).toContainText("knitted");
   await expect(bar).toContainText("Yoke, round 2 of");
-  await bar.getByRole("button", { name: "Resume knitting", exact: true }).click();
+  await bar.getByRole("button", { name: "Keep knitting", exact: true }).click();
   await expect(position(page)).toContainText("Yoke, round 2, stitch 1.");
 
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
@@ -814,7 +814,7 @@ test("closed up, scrolled all the way left, the chart's left-hand edge is never 
 test("closed up, scrolled left, the box stops at the chart's left-hand edge, with no blank past it to come back out of", async ({ page }) => {
   // Each Year Once's neck, where columns open and close again on the way across.
   await page.goto("#/sweater/wool-week-strips-once-oldest");
-  await page.getByRole("button", { name: "Start knitting this", exact: true }).click();
+  await page.getByRole("button", { name: "Start knitting", exact: true }).click();
   await expect(page.getByRole("button", { name: "End of round", exact: true })).toBeVisible();
   const scroller = page.locator(".chart-scroll");
   const { most, rest, opened } = await scroller.evaluate(async box => {
@@ -849,7 +849,7 @@ test("closed up, scrolled left, the box stops at the chart's left-hand edge, wit
 
 test("closed up, scrolled all the way left and then gently up, the chart's left-hand edge stays where it is", async ({ page }) => {
   await page.goto("#/sweater/wool-week-strips-once-oldest");
-  await page.getByRole("button", { name: "Start knitting this", exact: true }).click();
+  await page.getByRole("button", { name: "Start knitting", exact: true }).click();
   await expect(page.getByRole("button", { name: "End of round", exact: true })).toBeVisible();
   const scroller = page.locator(".chart-scroll");
   const { start, least, most, opened } = await scroller.evaluate(async box => {

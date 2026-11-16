@@ -7,45 +7,58 @@
   padding: 1.5rem var(--gutter) var(--foot);
 }
 
-.masthead {
+/* The same block on every page: a small line, the title in crimson, the gear. */
+.title-block {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  flex-wrap: wrap;
-  padding-bottom: 1rem;
-  margin-bottom: 1.75rem;
+  padding-bottom: 0.85rem;
+  margin-bottom: 1.5rem;
   border-bottom: 1px solid var(--rule);
 }
 
-.masthead-actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-left: auto;
+.title-block-text {
+  min-width: 0;
 }
 
-.masthead-title {
-  font-family: var(--display);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 1.05rem;
+.title-block .eyebrow {
+  margin: 0 0 0.25rem;
+  max-width: none;
+}
+
+/* The way home: the site's name, in ink where the rest of the line is soft, with a thumb's height to hit. */
+.title-block-home {
+  display: inline-block;
+  margin: -0.9rem 0;
+  padding: 0.9rem 0;
   color: var(--ink);
   text-decoration: none;
 }
 
 @media (hover: hover) {
-  .masthead-title:hover {
+  .title-block-home:hover {
     color: var(--crimson);
   }
 }
 
+.title-block-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: none;
+}
+
+/* Large enough to lead, small enough to leave a phone's screen to the page under it. */
 .page-title {
-  margin-bottom: 0.35em;
+  margin: 0;
+  font-size: clamp(1.55rem, 6.4vw, 2.6rem);
+  line-height: 1;
+  text-wrap: balance;
 }
 
 .colophon {
-  margin-top: 4rem;
+  margin-top: 3rem;
   padding-top: 1.25rem;
   border-top: 1px solid var(--rule);
   font-size: 0.88rem;

@@ -174,7 +174,7 @@ const Gear: React.FC = () => (
 
 /**
  * Everything most knitters will never need, behind one button in the
- * masthead. The page itself is left for the chart and the sweater.
+ * title block. The page itself is left for the chart and the sweater.
  */
 const Settings: React.FC = () => {
   const [open, setOpen] = useState(false);

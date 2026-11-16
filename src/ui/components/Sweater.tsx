@@ -179,13 +179,8 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
   return (
     <PageLayout
       title={sweater.name}
-      eyebrow="A top-down Fair Isle yoke"
+      eyebrow="a design"
       lede={`By ${sweater.designer}`}
-      aside={
-        <Button variant="primary" onClick={start}>
-          Start knitting this
-        </Button>
-      }
     >
       <div className="sweater-layout">
         <div className="sweater-stage">
