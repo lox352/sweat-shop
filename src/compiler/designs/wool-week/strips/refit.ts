@@ -471,21 +471,31 @@ const rungs: Record<number, [rank: number, state: State][]> = {
 };
 
 /*
- * The same ladders with three of them reordered by what a cut is made of
- * (see worthOf), where the order set by hand went against it:
- * - 2014: a core between two trimmings (chart C between peeries, which
- *   mirrors about its middle) before two cores side by side; both stars with
- *   a peerie between still first, where there is room for them.
- * - 2017: three bands, which mirror about their middle, before four, which
- *   do not: the first step taken.
- * - 2020: its two cores each framed either side (as the hat) kept longest:
- *   the last step taken.
+ * The same ladders, reordered where the order set by hand went against what
+ * its knitter looks for in a cut:
+ * - **A pattern is not cut into.** A step that takes rows off a pattern -
+ *   "a row off each side" - is almost never to be taken: only when every
+ *   step that keeps the patterns whole has been, the years' whole cuts
+ *   narrowed first. (Rows of sky over the sheep are not the sheep; a plain
+ *   edge is no pattern; the lattice is cropped where its frames end.)
+ * - **Twice is company, four times is dull.** 2017's band is one motif,
+ *   turned about row by row: three of it before four, the first step taken.
+ * - **A core wants its trimmings.** 2014's one star between two peeries
+ *   before its two stars side by side; and 2020's two stars each framed
+ *   either side (as the hat) kept longest of the steps that cut nothing.
  */
+const CUTS_INTO = 30;
 const symmetric: Record<number, [rank: number, state: State][]> = {
   ...rungs,
   2014: [[0, y2014("P30").states[0]], [1, y2014("C21").states[0]]],
-  2017: [[0, y2017(true).states[0]], ...y2017(false).states.map((state, at): [number, State] => [[0.5, 9, 11][at], state])],
+  2017: [[0, y2017(true).states[0]], ...y2017(false).states.map((state, at): [number, State] => [[0.5, CUTS_INTO + 9, CUTS_INTO + 11][at], state])],
+  // Its three bands with a row off each side stand taller than its two whole: a ladder only goes down, so that cut is left out.
+  2018: [
+    ...y2018(true).states.slice(0, 2).map((state, at): [number, State] => [[0, 2][at], state]),
+    ...y2018(false).states.map((state, at): [number, State] => [[6, 8, CUTS_INTO + 10][at], state]),
+  ],
   2020: y2020.states.map((state, at) => [[0, 20][at], state]),
+  2023: sleeveLadders[1].states.map((state, at) => [[0, 6, CUTS_INTO + 9, CUTS_INTO + 10][at], state]),
 };
 let rungsNow = rungs;
 /** For measuring: the rungs to plan by. */
