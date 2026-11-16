@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Design, SizeAbout, Tension } from "../../pattern/design";
+import type { Design, Placement, Shade, SizeAbout, Tension } from "../../pattern/design";
 import type { SweaterStitches } from "../../pattern/knitted";
 import { type RoundIndex, roundNames } from "../../reading/progress";
 import { whenKnitting } from "../../library/knitting";
@@ -29,6 +29,8 @@ const PatternUpdated: React.FC<{
   tension: Tension | undefined;
   fit: ProjectFit | undefined;
   palette: Palette;
+  /** The colourway as it would be on a sweater planned otherwise, and the wools that would add: see useColourway. */
+  coloursOn: (placement: Placement | undefined) => { palette: Palette; added: Shade[] };
   /** Said by whoever published the update, where it puts right a mistake: see the editions manifest. */
   errata?: string;
   /** Told of an update that changes nothing ahead: nothing more to say of it. */
@@ -39,7 +41,7 @@ const PatternUpdated: React.FC<{
   onJoin: (knitting: SweaterStitches) => void;
   /** Taking the rest worked out afresh from the updated pattern. */
   onFit: (fitted: Fitted) => void;
-}> = ({ sweater, size, knitted, index, progress, tension, fit, palette, errata, onSeen, onSwitch, onJoin, onFit }) => {
+}> = ({ sweater, size, knitted, index, progress, tension, fit, palette, coloursOn, errata, onSeen, onSwitch, onJoin, onFit }) => {
   const [update, setUpdate] = useState<Update>();
 
   useEffect(() => {
@@ -125,6 +127,7 @@ const PatternUpdated: React.FC<{
             tension={tension ?? { stitchesPer10cm: size.stitchesPer10cm, roundsPer10cm: size.roundsPer10cm }}
             fit={undefined}
             palette={palette}
+            coloursOn={coloursOn}
             roundNames={names}
             title="Work the rest out from the updated pattern"
             lead={

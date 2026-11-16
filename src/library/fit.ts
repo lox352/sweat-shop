@@ -1,4 +1,4 @@
-import type { Design, Measurements, Tension } from "../pattern/design";
+import type { Design, Measurements, Placement, Tension } from "../pattern/design";
 import type { SweaterStitches } from "../pattern/knitted";
 import type { EditionFile } from "./editions/format";
 
@@ -38,6 +38,8 @@ export interface Fitted {
   /** The rest, written out as a pattern. */
   written: string;
   option?: string;
+  /** Where the bands planned afresh sit, for a design whose colourways follow that: see Placement. */
+  placement?: Placement;
 }
 
 /**

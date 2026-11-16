@@ -195,12 +195,33 @@ export const fitting = (prefix: string, lowTrim: () => string): Fitting => {
     const out = coming.filter((year) => !years.includes(year));
     if (out.length > 0) notes.push(`Left out: ${named(out)}.`);
 
+    /*
+     * Where each year planned here sits, for a colourway that steps down the
+     * jumper: the yoke the first part of the way, then the body and the
+     * sleeves each the rest from the underarm, so a body band and the sleeve
+     * band level with it share a place. Each year at the middle of its rounds.
+     */
+    const first = Array.from({ length: round }, (_, i) => i + 1).find((one) => yearAt(knitted, one) !== undefined) ?? round;
+    const yokeDone = knitted.roundKinds.slice(first - 1, round).filter((kind) => kind === "round").length;
+    const yokeAll = yokeDone + pieces.yoke.length;
+    const armpit = yokeAll / (yokeAll + pieces.body.length);
+    const middles = (rows: Row[]): [number, number][] =>
+      [...new Set(rows.map((row) => row.year))].map((year) => [year, (rows.findIndex((row) => row.year === year) + rows.map((row) => row.year).lastIndexOf(year) + 1) / 2]);
+    const places = Object.fromEntries([
+      ...middles(pieces.yoke).map(([year, at]) => [String(year), (yokeDone + at) / (yokeAll + pieces.body.length)]),
+      ...middles(pieces.body).map(([year, at]) => [String(year), armpit + (1 - armpit) * (at / pieces.body.length)]),
+      ...middles(pieces.sleeve).map(([year, at]) => [String(year), armpit + (1 - armpit) * (at / pieces.sleeve.length)]),
+    ]);
+    const last = (rows: Row[]) => String(rows[rows.length - 1].year);
+
     return {
       sections,
       charts: [...yoke.charts.values(), ...low.charts],
       checks: { ...(pieces.yoke.length > 0 ? { yoke: yokeEnd } : {}), ...low.checks },
       finished: fits,
       notes,
+      // The waist and wrists are ribbed beside the last years of the body and the sleeves, whichever those now are.
+      placement: { places, trims: { [lowTrim()]: [last(pieces.body), last(pieces.sleeve)] } },
     };
   };
   return { options, cutAfter, plan };

@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useMemo, useState } from "react";
-import type { FitOption, Measurements, SizeAbout, Tension } from "../../pattern/design";
+import type { FitOption, Measurements, Placement, Shade, SizeAbout, Tension } from "../../pattern/design";
 import type { SweaterStitches } from "../../pattern/knitted";
 import { decodeEdition } from "../../library/editions/format";
 import type { Fitted, Unfitted } from "../../library/fit";
@@ -39,35 +39,40 @@ const FitPreview: React.FC<{
   options: FitOption[];
   /** The way to show first, where one was taken before. */
   first?: string;
+  /** The colourway on the sweater in hand, and as it would be on each way: see useColourway. */
   palette: Palette;
+  coloursOn: (placement: Placement | undefined) => { palette: Palette; added: Shade[] };
   /** What the knitting calls each of its rounds, from 0: see progress.roundNames. */
   roundNames: string[];
   /** What taking it is called. */
   take: string;
   onTake: (fitted: Fitted) => void;
   onLeave: () => void;
-}> = ({ size, knitted, progress, tension, found, unfitted, options, first, palette, roundNames, take, onTake, onLeave }) => {
+}> = ({ size, knitted, progress, tension, found, unfitted, options, first, palette, coloursOn, roundNames, take, onTake, onLeave }) => {
   const [chosen, setChosen] = useState(() => (found.some((one) => one.option === first) ? first : found[0]?.option));
   const fitted = found.find((one) => one.option === chosen) ?? found[0];
   const labelOf = (option: string | undefined) => options.find((one) => one.id === option)?.label ?? "Worked out for you";
   // As it was, in the knitter's own stitches; then each way, as the knitting it would be.
+  const knittings = useMemo(() => [atTension(knitted, tension), ...found.map((one) => decodeEdition(one.file))], [knitted, tension, found]);
   const candidates = useMemo(
     () => [
-      { id: "was", label: "As the pattern has it", knitting: atTension(knitted, tension) },
-      ...found.map((one) => ({ id: one.option ?? "fitted", label: labelOf(one.option), knitting: decodeEdition(one.file) })),
+      { id: "was", label: "As the pattern has it", knitting: knittings[0], palette },
+      // Each in the colourway as it would be on it: a colourway that steps down the garment follows where the years would sit.
+      ...found.map((one, at) => ({ id: one.option ?? "fitted", label: labelOf(one.option), knitting: knittings[at + 1], palette: coloursOn(one.placement).palette })),
     ],
     // What a way is called does not change while it is shown.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [knitted, tension, found],
+    [knittings, found, palette, coloursOn],
   );
   if (!fitted) return null;
+  const { added } = coloursOn(fitted.placement);
   const nameOf = (round: number) => roundNames[round - 1] ?? `round ${round}`;
 
   return (
     <div role="status" className="refit-shown">
       <PreviewBoundary>
         <Suspense fallback={<p role="status">Drawing them side by side…</p>}>
-          <SweaterComparison candidates={candidates} chosen={fitted.option ?? "fitted"} palette={palette} />
+          <SweaterComparison candidates={candidates} chosen={fitted.option ?? "fitted"} />
         </Suspense>
       </PreviewBoundary>
       {found.length + unfitted.length > 1 && (
@@ -94,6 +99,12 @@ const FitPreview: React.FC<{
         {fitted.notes.map((note) => (
           <li key={note}>{note}</li>
         ))}
+        {added.length > 0 && (
+          <li>
+            This colourway steps down the sweater, so the years still to come take the yarns for where they now sit. That adds {added.length}{" "}
+            {added.length === 1 ? "yarn" : "yarns"} to what the pattern listed: {added.map((shade) => (shade.code ? `${shade.name} (${shade.code})` : shade.name)).join(", ")}.
+          </li>
+        )}
       </ul>
       <table className="my-tension-table">
         <thead>

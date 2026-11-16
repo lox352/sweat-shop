@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { sweaterById } from "../../library/catalogue";
-import type { SlotId, Tension } from "../../pattern/design";
+import type { Placement, SlotId, Tension } from "../../pattern/design";
 import { useSweater } from "../useSweater";
+import { useColourway } from "../useColourway";
 import { viewChart } from "../../reading/counted";
 import { currentEdition, editionOf, isSuperseded, errataOf } from "../../library/editions";
 import PatternUpdated from "./PatternUpdated";
@@ -14,7 +15,7 @@ import type { SweaterStitches } from "../../pattern/knitted";
 import { sameTension, yarnPerStitch } from "../../reading/tension";
 import { makeOnesAtMarkers } from "../../reading/marker-routes";
 import type { ChartView } from "../../reading/views";
-import { colourwayLabel, keyOf, paletteOf, slotNames, trimmed, type Overrides } from "../../reading/palette";
+import { colourwayLabel, keyOf, paletteOf, slotNames, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
 import { totals, positionOf, currentRun, whereYouAre, roundNames, roundWhats } from "../../reading/progress";
 import { keyEntryAt } from "../../reading/stitch-key";
 import { faceAfter, holdsIn, needleChangesIn, turnsIn } from "../chart/chart-marks";
@@ -277,6 +278,7 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
         // The published edition it left, through any fit before this one.
         from: current.fit ? current.fit.from : editionOf(current),
         ...(fitted.option ? { option: fitted.option } : {}),
+        ...(fitted.placement ? { placement: fitted.placement } : {}),
       },
       // Worked out from the pattern as it is now.
       upTo: currentEdition(current.sweaterId, current.sizeId),
@@ -438,11 +440,19 @@ const ProjectView: React.FC<{
   const shownView = chosen && chosen.id !== tabOf(knittingIn) ? chosen : knittingIn;
   const chart = shownView ? viewChart(built, counted, shownView) : { layout: counted.layout, markers: counted.markers };
   const makeOnes = useMemo(() => makeOnesAtMarkers({ stitches, knitting: built.knitting }), [stitches, built.knitting]);
-  const colourway = useMemo(
-    () => trimmed(sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0], project.trim),
-    [sweater, project.colourwayId, project.trim],
-  );
+  // The colourway as it is on this sweater: one that steps down the garment, placed where the project's own planning put its bands.
+  const published = useMemo(() => sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0], [sweater, project.colourwayId]);
+  const { colourway: laid, on: laidOn } = useColourway(published, project.fit?.placement);
+  const colourway = useMemo(() => trimmed(laid, project.trim), [laid, project.trim]);
   const palette = useMemo(() => paletteOf(colourway, project.shades), [colourway, project.shades]);
+  // And as it would be on a sweater planned otherwise, with the wools that would add: for a fit's preview.
+  const coloursOn = useCallback(
+    (placement: Placement | undefined) => {
+      const there = trimmed(laidOn(placement), project.trim);
+      return { palette: paletteOf(there, project.shades), added: woolsAdded(colourway, there) };
+    },
+    [laidOn, colourway, project.trim, project.shades],
+  );
   // The design's knitting has moved on since this project began: it says so, and offers the update.
   const updated = isSuperseded(sweater.id, size.id, project.upTo ?? edition) ? (
     <PatternUpdated
@@ -454,6 +464,7 @@ const ProjectView: React.FC<{
       tension={project.tension}
       fit={project.fit}
       palette={palette}
+      coloursOn={coloursOn}
       errata={errataOf(sweater.id, size.id)}
       onSeen={seeUpdate}
       onSwitch={takeUpdate}
@@ -733,6 +744,7 @@ const ProjectView: React.FC<{
             tension={project.tension}
             fit={project.fit}
             palette={palette}
+            coloursOn={coloursOn}
             roundNames={names}
             onTake={takeFit}
             onGoBack={leaveFit}

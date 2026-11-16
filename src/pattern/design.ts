@@ -64,6 +64,36 @@ export interface Colourway {
    * knitter's own.
    */
   trims?: Shade[];
+  /**
+   * Its yarns follow where a band sits down the garment: the shades above are
+   * for the design as published, and for a sweater laid out otherwise its
+   * yarns by place are fetched (see library/colourways) and placed on it (see
+   * reading/palette's placed).
+   */
+  stepped?: true;
+}
+
+/**
+ * Where the bands of a sweater sit, as its planner laid them out for one
+ * knitter: each band planned afresh, by what the design calls it, at its
+ * place down the garment from 0 at the neck to 1 at the hem or cuff; and for
+ * each part of the trim, the bands it is knitted beside. The bands already
+ * knitted are not among them: their wool is in the fabric.
+ */
+export interface Placement {
+  places: Record<string, number>;
+  trims?: Record<SlotId, string[]>;
+}
+
+/**
+ * A stepped colourway's yarns by place (see Colourway.stepped): for each of
+ * the design's bands, the slots that share each of its yarns, and that yarn
+ * at each of the places in `at`, as a number among `wools`.
+ */
+export interface Steps {
+  at: number[];
+  wools: Omit<Shade, "slot">[];
+  bands: Record<string, { slots: SlotId[][]; wools: number[][] }>;
 }
 
 /**

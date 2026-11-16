@@ -14,7 +14,7 @@ const files = dir => readdirSync(dir, { withFileTypes: true }).flatMap(entry => 
 // out again: see src/library/fit. And the settling worker, fetched only to
 // settle such a sweater: see src/physics/settling.
 const assets = files("dist").filter(path => !path.endsWith("/sw.js") &&
-  !path.startsWith("dist/shapes/") && !path.startsWith("dist/editions/") && !/\/(fit|settle)\.worker-[^/]+\.js$/.test(path)).sort();
+  !path.startsWith("dist/shapes/") && !path.startsWith("dist/editions/") && !path.startsWith("dist/colourways/") && !/\/(fit|settle)\.worker-[^/]+\.js$/.test(path)).sort();
 const hash = createHash("sha256");
 for (const path of assets) hash.update(path).update(readFileSync(path));
 const template = readFileSync("scripts/service-worker.js", "utf8");
