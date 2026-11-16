@@ -446,6 +446,27 @@ const fitSleeve = (total: number, ends: Ends): Placed[] => {
 
 const toRow = (r: R): Row => ("plain" in r ? { year: r.year, plain: r.plain } : r);
 
+/** What the rules choose for a size, piece by piece: how the years are shared out, the rounds each piece has, and each year's cut with its rounds of pattern. */
+export const chosen = (size: Measured, sizeId: string, g?: Gauge) => {
+  const start = starts[sizeId];
+  const sp = splitOf(size, g);
+  const piece = { top: true, bottom: false };
+  const whole = { top: true, bottom: true };
+  const yokeWith = (seed: boolean) => fit([y2014(start.c2014), y2015, y2016(seed)], sp.yoke, piece, [2, 0, 1, 1, 1, 1]);
+  let yoke = yokeWith(true);
+  if (!yoke || yoke.at.some((a) => a !== 0)) yoke = yokeWith(false);
+  const body = fit([y2017(start.four2017), y2018(start.three2018), y2019, y2020, y2021], sp.body, whole, [3, 1, 0, 1, 0]);
+  const sleeve = fitSleeve(sp.sleeve, whole);
+  const cuts = (placed: Placed[]) => placed.map((p) => `${p.year} ${p.state.label} (${p.rounds.length})`);
+  return {
+    split: `${sp.k}/${sp.m}/${sp.n}`,
+    rounds: [sp.yoke, sp.body, sp.sleeve],
+    yoke: yoke ? cuts(yoke.placed) : [],
+    body: body ? cuts(body.placed) : [],
+    sleeve: cuts(sleeve),
+  };
+};
+
 export const refit = (size: Measured, sizeId: string, g?: Gauge): Plan => {
   const start = starts[sizeId];
   if (!start) throw new Error(`no refit for size ${sizeId}`);
