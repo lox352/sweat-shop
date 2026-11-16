@@ -66,8 +66,8 @@ export interface ProjectFit {
   tension: Tension;
   /** What the sweater will measure. */
   finished: Measurements;
-  /** The round the rest was planned from: every round to it is as the pattern had it. */
-  round: number;
+  /** The round the rest was planned from: every round to it is as the pattern had it. None, where the whole was planned, from the cast-on. */
+  round?: number;
   /** The edition it was fitted from, to go back to. */
   from?: string;
   /** Which of the design's ways of laying the rest out. */
@@ -96,7 +96,7 @@ export const isFit = (value: unknown): value is ProjectFit => {
   const fit = value as Partial<ProjectFit> | null;
   return typeof fit === "object" && fit !== null && isTension(fit.tension) &&
     typeof fit.finished === "object" && fit.finished !== null && measures.every((key) => Number.isFinite(fit.finished?.[key])) &&
-    Number.isSafeInteger(fit.round) && (fit.round ?? 0) > 0 &&
+    (fit.round === undefined || (Number.isSafeInteger(fit.round) && fit.round > 0)) &&
     (fit.from === undefined || (typeof fit.from === "string" && /^[0-9a-f]{1,64}$/.test(fit.from))) &&
     (fit.option === undefined || (typeof fit.option === "string" && fit.option.length <= 40)) &&
     (fit.placement === undefined || isPlacement(fit.placement));
@@ -263,8 +263,10 @@ export const startProject = (
   shades: Overrides = {},
   /** And any trim. */
   trim?: string,
+  /** Knitting of its own to begin on, worked out for its knitter before the cast-on (see library/fit), already kept on the device. */
+  own?: Pick<Project, "edition" | "tension" | "fit" | "upTo">,
 ): Project => {
-  const edition = currentEdition(sweaterId, sizeId);
+  const edition = own?.edition ?? currentEdition(sweaterId, sizeId);
   return writeProject({
     version: currentVersion,
     id: `${prefix}${crypto.randomUUID()}`,
@@ -275,6 +277,9 @@ export const startProject = (
     shades: Object.keys(shades).length > 0 ? shades : undefined,
     progress: 0,
     ...(edition ? { edition } : {}),
+    ...(own?.tension ? { tension: own.tension } : {}),
+    ...(own?.fit ? { fit: own.fit } : {}),
+    ...(own?.upTo ? { upTo: own.upTo } : {}),
     startedAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });

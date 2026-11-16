@@ -91,10 +91,16 @@ const FitPreview: React.FC<{
           })}
         </fieldset>
       )}
-      <p>
-        <strong>From the end of {nameOf(fitted.round)}.</strong>{" "}
-        {progress < (knitted.rounds[fitted.round - 1]?.at(-1) ?? 0) ? "Knit to there as the pattern has it. The rest changes from there:" : "The rest changes from there:"}
-      </p>
+      {fitted.round === undefined ? (
+        <p>
+          <strong>From the cast-on.</strong> The whole pattern, worked out for your tension:
+        </p>
+      ) : (
+        <p>
+          <strong>From the end of {nameOf(fitted.round)}.</strong>{" "}
+          {progress < (knitted.rounds[fitted.round - 1]?.at(-1) ?? 0) ? "Knit to there as the pattern has it. The rest changes from there:" : "The rest changes from there:"}
+        </p>
+      )}
       <ul>
         {fitted.notes.map((note) => (
           <li key={note}>{note}</li>
@@ -127,7 +133,7 @@ const FitPreview: React.FC<{
         </tbody>
       </table>
       <details>
-        <summary>The rest, written out</summary>
+        <summary>{fitted.round === undefined ? "The pattern, written out" : "The rest, written out"}</summary>
         <pre className="refit-written">{fitted.written}</pre>
       </details>
       <p className="my-tension-actions">

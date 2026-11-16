@@ -285,8 +285,8 @@ export interface FitRequest {
   finished: Measurements;
   /** The knitter's own tension. */
   tension: Tension;
-  /** What is knitted, and the round it is knitted to. */
-  from: Start;
+  /** What is knitted, and the round it is knitted to. Nothing, for a whole sweater planned from the cast-on: see Fitting.whole. */
+  from?: Start;
   /** Which of the design's ways of doing it, where it offers more than one. */
   option?: string;
 }
@@ -314,6 +314,8 @@ export interface Fitted {
 export interface Fitting {
   /** The ways the rest can be laid out, where the knitter has a choice. */
   options?: FitOption[];
+  /** Whether it plans a whole sweater too, from nothing knitted: a pattern for a knitter's tension, before it is begun. */
+  whole?: true;
   /** The first round, at or after `round`, after which the rest can be planned afresh; none once it no longer can. */
   cutAfter(knitted: SweaterStitches, round: number): number | undefined;
   plan(ask: FitRequest): Fitted;

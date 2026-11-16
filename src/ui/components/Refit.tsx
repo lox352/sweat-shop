@@ -47,15 +47,19 @@ const Refit: React.FC<{
 
   const fittedNow = fit && sameTension(fit.tension, tension);
   // Every round to the one it was fitted from is as the pattern had it: until the knitting passes it, the pattern as written can be gone back to.
-  const canGoBack = fit?.from !== undefined && progress <= (knitted.rounds[fit.round - 1]?.at(-1) ?? -1);
+  const canGoBack = fit?.from !== undefined && progress <= (fit.round === undefined ? 0 : (knitted.rounds[fit.round - 1]?.at(-1) ?? -1));
 
   if (fittedNow && state.at === "rest") {
     return (
       <div className="refit">
-        <p>
-          The rest of your pattern is worked out for this tension, from the end of <strong>{roundNames[fit.round - 1] ?? `round ${fit.round}`}</strong>. Every
-          round to there is as the pattern had it.
-        </p>
+        {fit.round === undefined ? (
+          <p>Your pattern is worked out for this tension, from the cast-on.</p>
+        ) : (
+          <p>
+            The rest of your pattern is worked out for this tension, from the end of <strong>{roundNames[fit.round - 1] ?? `round ${fit.round}`}</strong>.
+            Every round to there is as the pattern had it.
+          </p>
+        )}
         {canGoBack && (
           <p>
             <Button variant="quiet" onClick={onGoBack}>
