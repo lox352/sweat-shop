@@ -446,6 +446,72 @@ const fitSleeve = (total: number, ends: Ends): Placed[] => {
 
 const toRow = (r: R): Row => ("plain" in r ? { year: r.year, plain: r.plain } : r);
 
+/*
+ * One rule for every piece (in the making: see ruled). Each year has one
+ * ladder, every cut it has, fullest first; and each step down it has a rank,
+ * how readily it is taken, the least missed first. A piece starts every year
+ * at the top, takes the steps of its years in rank order until it fits, and
+ * then takes back any an earlier step of another year made room for.
+ */
+const rungs: Record<number, [rank: number, state: State][]> = {
+  2014: [[0, y2014("P30").states[0]], [1, y2014("B26").states[0]], [5, y2014("C21").states[0]]],
+  2015: y2015.states.map((state, at) => [[0, 3, 4, 6, 7][at], state]),
+  2016: [[0, y2016(true).states[0]], [2, y2016(true).states[1]]],
+  2017: [[0, y2017(true).states[0]], ...y2017(false).states.map((state, at): [number, State] => [[7, 9, 11][at], state])],
+  2018: [...y2018(true).states.map((state, at): [number, State] => [[0, 2, 4][at], state]), ...y2018(false).states.map((state, at): [number, State] => [[6, 8, 10][at], state])],
+  2019: [[0, y2019.states[0]]],
+  2020: y2020.states.map((state, at) => [[0, 1][at], state]),
+  2021: [[0, y2021.states[0]]],
+  2022: sleeveLadders[0].states.map((state, at) => [[0, 2, 12][at], state]),
+  2023: sleeveLadders[1].states.map((state, at) => [[0, 6, 9, 10][at], state]),
+  2024: sleeveLadders[2].states.map((state, at) => [[0, 3, 11][at], state]),
+  2025: sleeveLadders[3].states.map((state, at) => [[0, 1, 8][at], state]),
+  2026: sleeveLadders[4].states.map((state, at) => [[0, 4, 5, 7][at], state]),
+};
+
+const ruledPiece = (years: number[], total: number, ends: Ends, slack: number) => {
+  const ladders: Ladder[] = years.map((year) => ({ year, states: rungs[year].map(([, state]) => state) }));
+  for (const mode of [STRICT, { mirror: true, share: true }, { mirror: false, share: true }]) {
+    const at = years.map(() => 0);
+    const spare = () => layout(place(ladders, at), total, ends, mode).spare;
+    const taken: number[] = [];
+    let stuck = false;
+    while (spare() < 0) {
+      // The step least missed, of those still to take.
+      const next = years
+        .map((year, i) => ({ i, rank: rungs[year][at[i] + 1]?.[0] }))
+        .filter((one) => one.rank !== undefined)
+        .sort((a, b) => a.rank! - b.rank!)[0];
+      if (!next) {
+        stuck = true;
+        break;
+      }
+      at[next.i]++;
+      taken.push(next.i);
+    }
+    if (stuck) continue;
+    const last = taken[taken.length - 1];
+    for (const k of taken.slice(0, -1)) {
+      if (k === last || at[k] === 0) continue;
+      at[k]--;
+      if (spare() < slack) at[k]++;
+    }
+    return { placed: place(ladders, at), mode };
+  }
+  return null;
+};
+
+/** What the one rule chooses for a size, as `chosen` says what the rules as they are choose. */
+export const ruled = (size: Measured, g?: Gauge, slacks: [number, number, number] = [0, 0, 2]) => {
+  const sp = splitOf(size, g);
+  const years = [2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
+  const yoke = ruledPiece(years.slice(0, sp.k), sp.yoke, { top: true, bottom: false }, slacks[0]);
+  const body = ruledPiece(years.slice(sp.k, sp.k + sp.m), sp.body, { top: true, bottom: true }, slacks[1]);
+  const sleeve = ruledPiece(years.slice(sp.k + sp.m), sp.sleeve, { top: true, bottom: true }, slacks[2]);
+  const cuts = (placed: Placed[] | undefined) => (placed ?? []).map((p) => `${p.year} ${p.state.label} (${p.rounds.length})`);
+  return { split: `${sp.k}/${sp.m}/${sp.n}`, rounds: [sp.yoke, sp.body, sp.sleeve], yoke: cuts(yoke?.placed), body: cuts(body?.placed), sleeve: cuts(sleeve?.placed) };
+};
+
 /** What the rules choose for a size, piece by piece: how the years are shared out, the rounds each piece has, and each year's cut with its rounds of pattern. */
 export const chosen = (size: Measured, sizeId: string, g?: Gauge) => {
   const start = starts[sizeId];
