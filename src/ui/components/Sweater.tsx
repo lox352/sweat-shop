@@ -175,8 +175,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
         ))}
       </div>
       <p className="quiet">
-        The finished chest has about {Math.round(size.finished.chestCm - size.toFitChestCm)}cm of ease. Each size is its own knitting - its own cast-on,
-        increases and divide - and the chart follows the size you choose.
+        About {Math.round(size.finished.chestCm - size.toFitChestCm)}cm of ease at the chest. Each size is its own knitting, and the chart follows the one you choose.
       </p>
     </>
   );

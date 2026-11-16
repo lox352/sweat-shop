@@ -34,10 +34,23 @@
   white-space: nowrap;
 }
 
-/* On a page of its own, the ease and what a size is are said small, under the sizes. */
+/* On a page of its own, sixteen sizes and what is said under them fit without scrolling: the sizes closer set, the saying small. */
+.pages-page > .size-chooser {
+  gap: 0.4rem;
+  margin-bottom: 0.7rem;
+}
+
+.pages-page > .size-chooser .size-option {
+  padding: 0.3rem 0.5rem;
+}
+
+.pages-page > .size-chooser .size-option strong {
+  line-height: 1.2;
+}
+
 .pages-page > .size-chooser + .quiet {
   font-size: var(--text-s);
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
 /* The schematic fills its page and no more: drawn to the page's height where that is the less. */
