@@ -543,10 +543,15 @@ test("Each Year Once knits every hat from 2014 to 2026 once, the yoke's first, t
   await expect(shownPage.locator(".colourway-option")).toHaveCount(13);
   // On from the colours' last page is the next tab's first: the whole design is one row.
   const track = page.locator(".pages-track");
-  // To a tenth of a page: a page is not always a whole number of pixels wide.
-  const along = () => track.evaluate((row) => Math.round((row.scrollLeft / row.clientWidth) * 10) / 10);
-  await expect.poll(along).toBe(9);
-  await track.evaluate((row) => row.scrollBy({ left: row.clientWidth, behavior: "instant" }));
+  // Once the row has come to rest on the last of the colours - still for a fifth of a second, to a tenth of a page, a page not always being a whole number of pixels wide.
+  const atRest = () =>
+    track.evaluate(async (row) => {
+      const was = row.scrollLeft;
+      await new Promise((done) => setTimeout(done, 200));
+      return row.scrollLeft === was ? Math.round((was / row.clientWidth) * 10) / 10 : -1;
+    });
+  await expect.poll(atRest).toBe(9);
+  await track.evaluate((row) => row.scrollTo({ left: 10 * row.clientWidth, behavior: "instant" }));
   await expect(page.getByRole("tablist", { name: "This design" }).getByRole("tab", { selected: true })).toHaveText("Tension");
   await page.getByRole("tablist", { name: "This design" }).getByRole("tab", { name: "Colours", exact: true }).click();
   await expect(shownPage.getByRole("heading", { level: 2 })).toHaveText("Shetland and Fair Isle");
