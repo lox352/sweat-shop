@@ -1,5 +1,6 @@
-import { useMemo, useRef } from "react";
-import { Canvas } from "@react-three/fiber";
+import React, { useEffect, useMemo, useRef } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
+import type * as THREE from "three";
 import { OrbitControls } from "@react-three/drei";
 import { isFabric } from "../../pattern/Stitch";
 import type { SweaterStitches } from "../../pattern/knitted";
@@ -19,29 +20,70 @@ export interface SweaterStageProps {
   reducedMotion: boolean;
   /** Where its fabric came to rest, when that is known: see library/settled. */
   settled?: Float32Array;
+  /** Where it is laid out, where whoever shows it has laid it out already: see physics/pose. */
+  posed?: Float32Array;
+  /** What the camera is placed for, where that is more than this sweater: several, drawn to one scale. */
+  frame?: [number, number, number][];
+  /** The stages it turns with: see TurnedTogether. */
+  together?: TurnedTogether;
 }
 
-/**
- * The sweater in three dimensions: three.js, and nothing else.
- *
- * Loaded on demand, behind its own boundary, so nothing of it is fetched by a
- * page that never shows it, and a phone without WebGL still has every
- * instruction on the page.
- *
- * It draws the knitting it is given, where it is given that it came to rest:
- * it looks nothing up, and nothing here imports the solver that settles one.
- * A knitting with no settled positions is drawn blocked, as physics/pose.ts
- * lays it out, which is where the settling starts from.
- */
-export default function SweaterStage({ knitting: built, palette, progress, reducedMotion, settled }: SweaterStageProps) {
+/** Stages that turn as one: the one being turned tells the others where it is looked at from, and they follow. */
+export interface TurnedTogether {
+  stages: Set<(from: object, position: THREE.Vector3, target: THREE.Vector3) => void>;
+  /** The stage last taken hold of: the only one that tells the others, so that their following is never told back. */
+  turning?: object;
+}
+
+type Listening = OrbitLike & {
+  addEventListener?: (type: string, listener: () => void) => void;
+  removeEventListener?: (type: string, listener: () => void) => void;
+};
+
+/** Turns this stage with the others it is shown with, and them with it. */
+const Together: React.FC<{ together: TurnedTogether; controls: React.MutableRefObject<OrbitLike | null> }> = ({ together, controls }) => {
+  const camera = useThree((state) => state.camera);
+  const invalidate = useThree((state) => state.invalidate);
+  useEffect(() => {
+    const self = {};
+    const follow = (from: object, position: THREE.Vector3, target: THREE.Vector3) => {
+      const orbit = controls.current;
+      if (from === self || !orbit) return;
+      camera.position.copy(position);
+      orbit.target.copy(target);
+      orbit.update();
+      invalidate();
+    };
+    together.stages.add(follow);
+    const orbit: Listening | null = controls.current;
+    const held = () => {
+      together.turning = self;
+    };
+    // As it is turned, and as it glides to a stop after: but only the one taken hold of.
+    const turned = () => {
+      if (together.turning !== self || !controls.current) return;
+      for (const stage of together.stages) stage(self, camera.position, controls.current.target);
+    };
+    orbit?.addEventListener?.("start", held);
+    orbit?.addEventListener?.("change", turned);
+    return () => {
+      together.stages.delete(follow);
+      orbit?.removeEventListener?.("start", held);
+      orbit?.removeEventListener?.("change", turned);
+    };
+  }, [together, controls, camera, invalidate]);
+  return null;
+};
+
+export default function SweaterStage({ knitting: built, palette, progress, reducedMotion, settled, posed, frame, together }: SweaterStageProps) {
   const controls = useRef<OrbitLike | null>(null);
   // Settled positions only fit the knitting if it is still the shape that was settled.
   const positions = useMemo(
     () =>
       settled && settled.length === settledLength(built.stitches)
         ? allPositions(built.stitches, settled)
-        : pose(built.knitting).positions,
-    [built, settled],
+        : (posed ?? pose(built.knitting).positions),
+    [built, settled, posed],
   );
   // In the order StitchInstances draws them, which the colours have to match.
   const drawn = useMemo(() => built.stitches.filter(isFabric), [built]);
@@ -77,7 +119,7 @@ export default function SweaterStage({ knitting: built, palette, progress, reduc
       dpr={[1, 2]}
     >
       {/* Framed for the shape it is drawn in: once laid out, and once more when it comes to rest. */}
-      <FrameModel subject={positions} extremes={extremes} controls={controls} />
+      <FrameModel subject={positions} extremes={frame ?? extremes} controls={controls} />
       <OrbitControls
         ref={controls as never}
         enableDamping={!reducedMotion}
@@ -86,6 +128,7 @@ export default function SweaterStage({ knitting: built, palette, progress, reduc
         zoomSpeed={0.7}
         makeDefault
       />
+      {together && <Together together={together} controls={controls} />}
       <StitchInstances
         stitches={built.stitches}
         rounds={built.knitting.rounds}

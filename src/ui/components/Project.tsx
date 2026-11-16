@@ -438,6 +438,11 @@ const ProjectView: React.FC<{
   const shownView = chosen && chosen.id !== tabOf(knittingIn) ? chosen : knittingIn;
   const chart = shownView ? viewChart(built, counted, shownView) : { layout: counted.layout, markers: counted.markers };
   const makeOnes = useMemo(() => makeOnesAtMarkers({ stitches, knitting: built.knitting }), [stitches, built.knitting]);
+  const colourway = useMemo(
+    () => trimmed(sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0], project.trim),
+    [sweater, project.colourwayId, project.trim],
+  );
+  const palette = useMemo(() => paletteOf(colourway, project.shades), [colourway, project.shades]);
   // The design's knitting has moved on since this project began: it says so, and offers the update.
   const updated = isSuperseded(sweater.id, size.id, project.upTo ?? edition) ? (
     <PatternUpdated
@@ -448,6 +453,7 @@ const ProjectView: React.FC<{
       progress={project.progress}
       tension={project.tension}
       fit={project.fit}
+      palette={palette}
       errata={errataOf(sweater.id, size.id)}
       onSeen={seeUpdate}
       onSwitch={takeUpdate}
@@ -464,11 +470,6 @@ const ProjectView: React.FC<{
     />
   );
 
-  const colourway = useMemo(
-    () => trimmed(sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0], project.trim),
-    [sweater, project.colourwayId, project.trim],
-  );
-  const palette = useMemo(() => paletteOf(colourway, project.shades), [colourway, project.shades]);
   // Fitted to its knitter, the knitting is in their stitches, not the size's: what it measures, and the yarn a stitch takes.
   const fitted = useMemo(() => project.fit && { finished: project.fit.finished, ...project.fit.tension }, [project.fit]);
   const metres = useMemo(
@@ -731,6 +732,7 @@ const ProjectView: React.FC<{
             progress={project.progress}
             tension={project.tension}
             fit={project.fit}
+            palette={palette}
             roundNames={names}
             onTake={takeFit}
             onGoBack={leaveFit}

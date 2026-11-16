@@ -1,6 +1,7 @@
 import Needles from "./needles";
+import { roundHeightFor } from "../../reading/tension";
 import { floatCatches } from "./rules";
-import { adjacentStitchDistance, verticalStitchDistance } from "../../constants";
+import { adjacentStitchDistance } from "../../constants";
 import type { Knitting } from "../../pattern/knitting";
 import { type SweaterStitches, markSpacer } from "../../pattern/knitted";
 import { StitchType } from "../../pattern/StitchType";
@@ -27,15 +28,7 @@ import {
  * order they are knitted, with the stitches on hold in between.
  */
 
-/**
- * How tall a round of this size is, relative to how wide a stitch is: the
- * tension the size is written for. At 28 stitches and 32 rounds to 10cm a
- * round is seven eighths of a stitch's width.
- */
-export const roundHeightFor = (size: Pick<Size, "stitchesPer10cm" | "roundsPer10cm">): number =>
-  size.stitchesPer10cm && size.roundsPer10cm
-    ? adjacentStitchDistance * (size.stitchesPer10cm / size.roundsPer10cm)
-    : verticalStitchDistance;
+export { roundHeightFor };
 
 /** The stitch a chart cell asks for. */
 const stitchFor = (cell: ChartCell): StitchType => {

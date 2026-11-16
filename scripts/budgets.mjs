@@ -54,7 +54,7 @@ const files = (dir) =>
   );
 const gzipped = (path) => gzipSync(readFileSync(path), { level: 9 }).length;
 const kind = (path) =>
-  /\/SweaterStage-[^/]+\.js$/.test(path) ? "stage" : /\/fit\.worker-[^/]+\.js$/.test(path) ? "fitting" : /\/settle\.worker-[^/]+\.js$/.test(path) ? "settling" : "page";
+  /\/Sweater(Stage|Comparison)-[^/]+\.js$/.test(path) ? "stage" : /\/fit\.worker-[^/]+\.js$/.test(path) ? "fitting" : /\/settle\.worker-[^/]+\.js$/.test(path) ? "settling" : "page";
 
 const assets = files("dist/assets").filter((path) => /\.(js|css)$/.test(path));
 const page = assets.filter((path) => kind(path) === "page").reduce((total, path) => total + gzipped(path), 0);

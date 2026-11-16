@@ -23,8 +23,6 @@ export interface FitQuestion {
   progress: number;
   /** The knitter's own tension. */
   tension: Tension;
-  /** Which of the design's ways of laying the rest out: see Design.fitting. */
-  option?: string;
 }
 
 export interface Fitted {
@@ -50,21 +48,39 @@ export interface Fitted {
 export const mayFit = (design: Design, knitted: SweaterStitches, progress: number): boolean =>
   !!design.fitting && !knitted.holds.some((held) => held.heldAt <= progress);
 
-/** What the worker says back: how far it has got, then the fit, or why there is none. */
-export type FitAnswer = { progress: number } | { fitted: Fitted } | { cannot: string };
+/**
+ * What the worker says back: how far it has got; each of the design's ways
+ * of laying the rest out as it is worked out, or why that one can't be; and
+ * that it has done. `cannot` with no option is the whole asking: none can be.
+ */
+export type FitAnswer = { progress: number } | { fitted: Fitted } | { cannot: string; option?: string } | { done: true };
+
+/** One of a design's ways that could not be worked out, and why. */
+export interface Unfitted {
+  option?: string;
+  why: string;
+}
 
 /**
- * Ask for the rest of a sweater at a knitter's tension. `progress` is told
- * how far the working out has got, from 0 to 1. Rejects, with something to
- * say to the knitter, where it can't be done.
+ * Ask for the rest of a sweater at a knitter's tension, every way its design
+ * can lay it out. `progress` is told how far the working out has got, from 0
+ * to 1, and `fitted` each way as it is done. Resolves, when all are, with
+ * those that could not be; rejects, with something to say to the knitter,
+ * where none could be asked for at all.
  */
-export const askForFit = (question: FitQuestion, progress?: (fraction: number) => void): { fitted: Promise<Fitted>; cancel: () => void } => {
+export const askForFit = (
+  question: FitQuestion,
+  on: { progress?: (fraction: number) => void; fitted: (fitted: Fitted) => void },
+): { done: Promise<Unfitted[]>; cancel: () => void } => {
   const worker = new Worker(new URL("../compiler/fit.worker.ts", import.meta.url), { type: "module" });
-  const fitted = new Promise<Fitted>((resolve, reject) => {
+  const unfitted: Unfitted[] = [];
+  const done = new Promise<Unfitted[]>((resolve, reject) => {
     worker.onmessage = ({ data }: MessageEvent<FitAnswer>) => {
-      if ("progress" in data) return progress?.(data.progress);
+      if ("progress" in data) return on.progress?.(data.progress);
+      if ("fitted" in data) return on.fitted(data.fitted);
+      if ("cannot" in data && data.option !== undefined) return void unfitted.push({ option: data.option, why: data.cannot });
       worker.terminate();
-      if ("fitted" in data) resolve(data.fitted);
+      if ("done" in data) resolve(unfitted);
       else reject(new Error(data.cannot));
     };
     worker.onerror = () => {
@@ -73,5 +89,5 @@ export const askForFit = (question: FitQuestion, progress?: (fraction: number) =
     };
   });
   worker.postMessage(question);
-  return { fitted, cancel: () => worker.terminate() };
+  return { done, cancel: () => worker.terminate() };
 };
