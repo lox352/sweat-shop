@@ -726,7 +726,7 @@ const ProjectView: React.FC<{
         </span>
       </p>
       <p className="jumper-wool-actions">
-        <Button onClick={() => customiseFrom(undefined)}>Customise</Button>
+        <Button onClick={() => customiseFrom(undefined)}>Change wool</Button>
         <Button aria-expanded={bases} onClick={() => setBases((open) => !open)}>
           Another colourway
         </Button>

@@ -86,7 +86,7 @@ const Customise: React.FC<{
     <Sheet
       full
       // With a wool chosen the card is that wool's: its name at the top, and the way back to them all.
-      title={chosen ? `${chosen.yarn.name}${chosen.yarn.code ? ` ${chosen.yarn.code}` : ""}` : "Customise"}
+      title={chosen ? `${chosen.yarn.name}${chosen.yarn.code ? ` ${chosen.yarn.code}` : ""}` : "Change wool"}
       eyebrow={
         chosen && picking
           ? `${
