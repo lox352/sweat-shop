@@ -116,46 +116,50 @@
   }
 }
 
+/* Each a pill on one line: what it is, what it is now, and that it opens. */
 .colours-adjust-one {
   flex: 1 1 0;
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   min-height: 44px;
-  padding: 0.3rem 0.7rem;
+  padding: 0.3rem 0.8rem;
   font: inherit;
+  font-size: var(--text-s);
   color: inherit;
   text-align: left;
+  white-space: nowrap;
   background: var(--paper-raised);
   border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border-radius: 999px;
   cursor: pointer;
 }
 
-.colours-adjust-one .shade-chip {
+.colours-adjust-swatch {
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: var(--radius-small);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.25);
+}
+
+.colours-adjust-one strong {
+  flex: none;
+}
+
+.colours-adjust-one .quiet {
+  flex: 0 1 auto;
   min-width: 0;
-  width: 1.5rem;
-  height: 1.5rem;
-  padding: 0;
-}
-
-.colours-adjust-what {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-}
-
-.colours-adjust-what strong {
-  font-size: var(--text-s);
-}
-
-.colours-adjust-what .quiet {
   overflow: hidden;
-  white-space: nowrap;
   text-overflow: ellipsis;
   font-size: var(--text-xs);
+}
+
+.colours-adjust-go {
+  flex: none;
+  margin-left: auto;
+  color: var(--ink-faint);
 }
 
 @media (hover: hover) {

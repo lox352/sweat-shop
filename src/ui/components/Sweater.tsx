@@ -8,7 +8,7 @@ import { useColourway } from "../useColourway";
 import { currentEdition } from "../../library/editions";
 import type { Fitted } from "../../library/fit";
 import { sameTension } from "../../reading/tension";
-import { ballsOf, colourwayLabel, inkOn, lit, paletteOf, trimIdOf, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
+import { ballsOf, colourwayLabel, lit, paletteOf, rgbOf, trimIdOf, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
 import { totals } from "../../reading/progress";
 import { metresFor } from "../../reading/yardage";
 import { chartPath, keepKnitting, startProject } from "../../projects/projects";
@@ -227,22 +227,33 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
    */
   const trims = sweater.trim && colourway.trims && colourway.trims.length > 1 ? colourway.trims : undefined;
   const trimNow = trims && (trims.find((one) => trimIdOf(one) === trim) ?? (published.shades.some((s) => s.slot === sweater.trim!.slot) ? colourway.shades.find((s) => s.slot === sweater.trim!.slot) : undefined));
+  // Where the trim is in parts, each the darkest yarn beside it, the darkest of them stands for it.
+  const trimHex =
+    trimNow?.hex ??
+    (sweater.trim &&
+      published.shades
+        .filter((shade) => shade.slot.split("/")[0] === sweater.trim!.slot)
+        .map((shade) => shade.hex)
+        .sort((a, b) => rgbOf(a).reduce((sum, part) => sum + part, 0) - rgbOf(b).reduce((sum, part) => sum + part, 0))[0]);
+  const chevron = (
+    <svg className="colours-adjust-go" width="6" height="10" viewBox="0 0 7 12" aria-hidden="true">
+      <path d="M1 1l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
   const adjust = (
     <div className="colours-adjust">
       {trims && sweater.trim && (
         <button type="button" className="colours-adjust-one" aria-haspopup="dialog" onClick={() => setSheet("trim")}>
-          {trimNow && <span className="shade-chip" style={{ background: trimNow.hex, color: inkOn(trimNow.hex) }} aria-hidden="true" />}
-          <span className="colours-adjust-what">
-            <strong>{sweater.trim.label}</strong>
-            <span className="quiet">{trimNow?.name ?? "Darkest beside each"}</span>
-          </span>
+          {trimHex && <span className="colours-adjust-swatch" style={{ background: trimHex }} aria-hidden="true" />}
+          <strong>{sweater.trim.label}</strong>
+          <span className="quiet">{trimNow?.name ?? "Darkest beside each"}</span>
+          {chevron}
         </button>
       )}
       <button type="button" className="colours-adjust-one" aria-haspopup="dialog" onClick={() => setSheet("customise")}>
-        <span className="colours-adjust-what">
-          <strong>Customise</strong>
-          <span className="quiet">{changed > 0 ? `${changed} ${changed === 1 ? "wool" : "wools"} your own` : "Change any wool"}</span>
-        </span>
+        <strong>Change wool</strong>
+        {changed > 0 && <span className="quiet">{changed} your own</span>}
+        {chevron}
       </button>
     </div>
   );

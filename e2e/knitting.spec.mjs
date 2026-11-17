@@ -496,7 +496,7 @@ test("a bought design comes in every size it is written for, by its own wool, ev
   await expect(chosen).toContainText("15 shades");
   // Any of them can be changed, each on its own, in a card up from the foot of the colours: the chart and the wools in it, the jumper still over it.
   await panel("Colours").click();
-  await shownPage.getByRole("button", { name: /^Customise/ }).click();
+  await shownPage.getByRole("button", { name: /^Change wool/ }).click();
   const customise = page.getByRole("dialog", { name: "Customise the colours" });
   await expect(page.locator(".stage .sweater-canvas")).toBeVisible();
   await expect(customise.locator(".customise-wool")).toHaveCount(15);
@@ -519,7 +519,7 @@ test("a bought design comes in every size it is written for, by its own wool, ev
   await expect(customise).toHaveCount(0);
   await expect(page).toHaveURL(/tab=colours$/);
   await expect(badge).toContainText("Your own, from");
-  await expect(shownPage.getByRole("button", { name: /^Customise/ })).toContainText("1 wool your own");
+  await expect(shownPage.getByRole("button", { name: /^Change wool/ })).toContainText("1 your own");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 });
 
