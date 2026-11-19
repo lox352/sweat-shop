@@ -111,6 +111,9 @@ const LookBar: React.FC<{
 /** How many changes Undo can step back through. */
 const undoLimit = 100;
 
+/** How near the knitting is to a view of the chart, in stitches, for it to be laid out ahead: a round or two of a yoke. */
+const aheadOfView = 1000;
+
 /** The panels of a jumper's page, under its stage. */
 const panels = ["progress", "wool", "fit"] as const;
 
@@ -409,6 +412,22 @@ const ProjectView: React.FC<{
   const chosen = !knitting ? views.find((one) => one.id === chosenView) : undefined;
   const shownView = chosen && chosen.id !== tabOf(knittingIn) ? chosen : knittingIn;
   const chart = shownView ? viewChart(built, counted, shownView) : { layout: counted.layout, markers: counted.markers };
+  /*
+   * The view the knitting comes to next, laid out ahead while it is near:
+   * a sleeve put on hold takes the chart to what is left on the needles, a
+   * view laid out for the first time as it is shown, and the tap that put
+   * it on hold took a third of a second on a phone. Laid out a moment after
+   * a tap, while the stitches before it are knitted, it is to hand then.
+   */
+  const nextView = useMemo(
+    () => (knitting ? views.filter((one) => one.begins > project.progress).sort((a, b) => a.begins - b.begins)[0] : undefined),
+    [knitting, views, project.progress],
+  );
+  useEffect(() => {
+    if (!nextView || nextView.begins - project.progress > aheadOfView) return;
+    const ahead = setTimeout(() => viewChart(built, counted, nextView), 600);
+    return () => clearTimeout(ahead);
+  }, [nextView, project.progress, built, counted]);
   const makeOnes = useMemo(() => makeOnesAtMarkers({ stitches, knitting: built.knitting }), [stitches, built.knitting]);
   // The colourway as it is on this sweater: one that steps down the garment, placed where the project's own planning put its bands.
   const published = useMemo(() => sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0], [sweater, project.colourwayId]);
