@@ -112,6 +112,12 @@ export interface TileContent {
   collapse?: boolean;
   /** The stitch to be worked next: outlined, and held still when lines move. */
   follow?: number;
+  /**
+   * Or, where the chart is looked around and not knitted, the stitch to be
+   * worked next only outlined: where the knitting has got to, said on the
+   * chart, but nothing held still for it and nothing scrolled to it.
+   */
+  mark?: number;
 }
 
 interface Tile {
@@ -844,7 +850,7 @@ export class TileView {
      * here: the frame under way does that. Brought up to date anyway, the
      * lines eased on a step after what was placed over them was placed.
      */
-    if (same && was.progress === content.progress && was.follow === content.follow) return;
+    if (same && was.progress === content.progress && was.follow === content.follow && was.mark === content.mark) return;
     this.update(true);
   }
 
@@ -1883,9 +1889,10 @@ export class TileView {
     return this.drawn;
   }
 
-  /** The outline round the stitch to be worked next, on the layer with the tiles. */
+  /** The outline round the stitch to be worked next, on the layer with the tiles: followed, or only marked. */
   private placeNext(content: TileContent) {
-    const at = content.follow === undefined ? undefined : this.placeOnLayer(content.follow);
+    const next = content.follow ?? content.mark;
+    const at = next === undefined ? undefined : this.placeOnLayer(next);
     this.next.hidden = !at;
     if (!at) return;
     const style = this.next.style;

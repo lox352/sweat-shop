@@ -154,6 +154,28 @@ test("accessible chart controls and text instructions", async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 });
 
+test("looked around, the chart still says where the knitting has got to, and opens there", async ({ page }) => {
+  // Well up the yoke: a long way from the cast-on at the chart's bottom right.
+  await knittedTo(page, 6000);
+  const here = page.locator(".chart-next");
+  await expect(here).toBeInViewport();
+  // The knitting folded away, the stitch to be worked next is still outlined, where it was.
+  const before = await here.boundingBox();
+  await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  await expect(here).toBeVisible();
+  await expect(here).toBeInViewport();
+  await page.waitForTimeout(300);
+  const after = await here.boundingBox();
+  expect(Math.abs(after.x - before.x)).toBeLessThan(2);
+  expect(Math.abs(after.y - before.y)).toBeLessThan(2);
+  // Closed, and opened again from the jumper's page to look around: there, not at the cast-on.
+  await page.getByRole("link", { name: "Close the chart", exact: true }).click();
+  await page.getByRole("link", { name: "Look around the chart", exact: true }).click();
+  await expect(page).toHaveURL(/\/chart$/);
+  await expect(here).toBeInViewport();
+  await expect(page.getByRole("region", { name: "Your progress" }).getByRole("button", { name: "Keep knitting", exact: true })).toBeVisible();
+});
+
 test("the chart is a view over the jumper: folding the knitting away leaves you looking around it, and its cross goes back", async ({ page }) => {
   await page.goto(design);
   // The design page shows the sweater and what there is to choose, a page at a time, and ends with what was chosen and the way to start.

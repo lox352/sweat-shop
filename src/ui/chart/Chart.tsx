@@ -195,13 +195,18 @@ const Chart: React.FC<ChartProps> = ({
    * hold part way round, a change of needles - it is the stitch after the
    * step: a step has no cell to mark, and the knitting goes on from there.
    */
-  const nextId = useMemo(() => {
-    if (showAt !== undefined) return showAt;
-    if (!follow) return undefined;
+  const here = useMemo(() => {
     let id = progress + 1;
     while (stitches[id] && isStep(stitches[id])) id++;
     return id;
-  }, [follow, progress, stitches, showAt]);
+  }, [progress, stitches]);
+  /*
+   * The stitch the chart goes to and keeps in view: the next to be worked,
+   * while it is knitted, or one it is asked to show. Looked around and not
+   * knitted, the next stitch is only marked, so that where the knitting has
+   * got to is never lost from the chart (see TileView's mark).
+   */
+  const nextId = showAt ?? (follow ? here : undefined);
 
   /*
    * The whole sweater, every stitch over the stitch it was worked into: the
@@ -338,12 +343,28 @@ const Chart: React.FC<ChartProps> = ({
    * where it sits.
    */
   const opened = useRef(false);
+  /*
+   * Looked around part way through, though, it opens where the knitting has
+   * got to, as the knitting does: the next stitch in the middle across, its
+   * round a little up from the foot. Coming back to the chart is coming back
+   * to your place in it, not to the cast-on, however far up you are.
+   */
+  const openAt = nextId === undefined && !onPick && progress > 0 && layout.cells.has(here) ? here : undefined;
   useEffect(() => {
     const scroller = scrollRef.current;
     if (!scroller || opened.current) return;
     opened.current = true;
     scroller.scrollLeft = scrollAcross(scroller)[1];
     scroller.scrollTop = scroller.scrollHeight;
+    const sheet = sheetRef.current;
+    if (openAt === undefined || !sheet) return;
+    const cell = cellNow.current;
+    const inBox = { x: scroller.clientWidth / 2 - cell / 2, y: scroller.clientHeight - lift(scroller.clientHeight, cell) - cell };
+    const placed = tilesRef.current?.jumpTo(openAt, inBox);
+    if (!placed) return;
+    scroller.scrollTo({ left: sheet.offsetLeft + placed.x - inBox.x, top: Math.max(placed.y - inBox.y, 0), behavior: "instant" });
+    // Once, as it opens: see opened.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const at = nextId === undefined ? undefined : layout.cells.get(nextId);
@@ -672,6 +693,7 @@ const Chart: React.FC<ChartProps> = ({
             colours={colours}
             margin={leftMargin(cellSize)}
             follow={nextId}
+            mark={nextId === undefined && !onPick ? here : undefined}
             collapse
             // Placed again in the same frame as the tiles, or it would lag them a frame as lines open and close.
             onMove={picked !== undefined ? (now) => (now ? flushSync(moved) : moved()) : undefined}
