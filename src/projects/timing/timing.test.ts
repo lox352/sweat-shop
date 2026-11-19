@@ -53,6 +53,22 @@ describe("the log", () => {
     expect(observations.map(({ from, to, ms }) => [from, to, ms])).toEqual([[0, 10, undefined], [500, 510, undefined]]);
   });
 
+  it("adds each tap to the end of the log as stored, and reads it again only when it has changed elsewhere", () => {
+    recordProgress("project-b", 0, 4);
+    vi.advanceTimersByTime(5_000);
+    recordProgress("project-b", 4, 9);
+    expect(readLog("project-b")).toEqual([[Date.UTC(2026, 8, 20, 18) / 1000, 4], [5, 5]]);
+    // Another tab knits on, and the log it writes is the log now.
+    localStorage.setItem("time-project-b".replace("project-", ""), JSON.stringify([[Date.UTC(2026, 8, 20, 17) / 1000, 30]]));
+    vi.advanceTimersByTime(7_000);
+    recordProgress("project-b", 30, 33);
+    expect(readLog("project-b")).toEqual([[Date.UTC(2026, 8, 20, 17) / 1000, 30], [3_612, 3]]);
+    // A log not well formed is begun again.
+    localStorage.setItem("time-b", "not a log");
+    recordProgress("project-b", 33, 40);
+    expect(readLog("project-b")).toEqual([[Date.UTC(2026, 8, 20, 18, 0, 12) / 1000, 33, 2], [0, 7]]);
+  });
+
   it("records nothing once statistics are turned off", () => {
     updateSettings({ noStatistics: true });
     recordProgress("project-a", 0, 10);

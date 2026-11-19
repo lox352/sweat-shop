@@ -460,7 +460,8 @@ const ProjectView: React.FC<{
 
   const counts = totals(index, project.progress);
   const position = positionOf(stitches, project.progress, index);
-  const time = useKnittingTime(project.id, stitches, project.progress);
+  // Not while knitting, where it isn't shown: see useKnittingTime.
+  const time = useKnittingTime(view === "chart" && knitting ? undefined : project.id, stitches, project.progress);
 
   // Every view of the chart names each round as the knitting panel does.
   const names = useMemo(() => roundNames(index), [index]);

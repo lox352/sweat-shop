@@ -82,6 +82,7 @@ export const writeLog = (projectId: string, rows: Row[]) => {
 };
 
 export const deleteLog = (projectId: string) => {
+  kept.delete(projectId);
   try {
     localStorage.removeItem(logKeyFor(projectId));
   } catch {
@@ -100,14 +101,46 @@ const tail = (rows: Row[]) => {
   return { seconds, progress };
 };
 
+/**
+ * Each log as last written here: as stored, how many rows it has, and where
+ * its clock and progress had got to. A tap is a row on the end of a log
+ * that by the end of a sweater runs to tens of thousands, and read, checked,
+ * summed and written whole again for each one it took a third of a second a
+ * tap on a phone. Kept, a tap adds its row to the end of what is stored, and
+ * the log is read whole again only where it is not what was last written:
+ * the first tap of a visit, or the log changed by another tab or a restore.
+ */
+const kept = new Map<string, { raw: string; rows: number; seconds: number; progress: number }>();
+
 /** Add rows, given where the log had got to and the seconds since its last row. */
 const append = (projectId: string, build: (lastProgress: number, since: number) => Row[]) => {
   if (readSettings().noStatistics) return;
-  const rows = readLog(projectId);
-  if (rows.length >= maxRows) return;
-  const last = tail(rows);
+  let raw: string;
+  try {
+    raw = localStorage.getItem(logKeyFor(projectId)) ?? "";
+  } catch {
+    raw = "";
+  }
+  let last = kept.get(projectId);
+  if (!last || last.raw !== raw) {
+    const rows = readLog(projectId);
+    // Not as stored - a log not well formed is begun again - so written whole.
+    last = { raw: rows.length > 0 ? raw : "", rows: rows.length, ...tail(rows) };
+  }
+  if (last.rows >= maxRows) return;
   const now = Math.round(Date.now() / 1000);
-  writeLog(projectId, [...rows, ...build(last.progress, now - last.seconds)].slice(0, maxRows));
+  const added = build(last.progress, now - last.seconds).slice(0, maxRows - last.rows);
+  if (added.length === 0) return;
+  const text = added.map((row) => JSON.stringify(row)).join(",");
+  const written = last.raw ? `${last.raw.slice(0, -1)},${text}]` : `[${text}]`;
+  try {
+    localStorage.setItem(logKeyFor(projectId), written);
+    kept.set(projectId, { raw: written, rows: last.rows + added.length, ...tail([[last.seconds, last.progress], ...added]) });
+  } catch {
+    // Storage full or unavailable: the time just isn't recorded.
+    kept.delete(projectId);
+  }
+  queueMicrotask(() => window.dispatchEvent(new Event(logChanged)));
 };
 
 /** Progress changed from `from` to `to`, by a tap, a jump on the chart or an undo. */
