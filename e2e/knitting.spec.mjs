@@ -698,6 +698,66 @@ test("starting to knit brings the stitch into view, and keeps it there when the 
   await expect.poll(bottomShowing).toBe(true);
 });
 
+test("scrolled away from the stitch to look along the chart, a button points the way back to it and goes there, knitting nothing", async ({ page }) => {
+  await knittedTo(page, 6000);
+  const next = page.locator(".chart-next");
+  const back = page.getByRole("button", { name: "Back to your stitch" });
+  const scroll = (by) => page.locator(".chart-scroll").evaluate((box, by) => box.scrollBy(by.left ?? 0, by.top ?? 0), by);
+  // The box come to rest, its scroll the same for a third of a second: a scroll set mid-glide would be glided over.
+  const rest = () => page.locator(".chart-scroll").evaluate((box) => new Promise((done) => {
+    let last = "";
+    let since = 0;
+    const look = (now) => {
+      const at = `${box.scrollLeft},${box.scrollTop}`;
+      if (at !== last) [last, since] = [at, now];
+      if (now - since >= 300) done();
+      else requestAnimationFrame(look);
+    };
+    requestAnimationFrame(look);
+  }));
+  /** How far round the arrow is from the way the stitch is, from the middle of the chart's box, in degrees. */
+  const offCourse = () => page.evaluate(() => {
+    const box = document.querySelector(".chart-scroll").getBoundingClientRect();
+    const next = document.querySelector(".chart-next").getBoundingClientRect();
+    const way = (Math.atan2(next.top + next.height / 2 - (box.top + box.height / 2), next.left + next.width / 2 - (box.left + box.width / 2)) * 180) / Math.PI;
+    const arrow = Number(document.querySelector(".chart-back svg").style.transform.match(/rotate\((-?[\d.]+)deg\)/)[1]);
+    return Math.abs(((arrow - way + 540) % 360) - 180);
+  });
+  await expect(next).toBeInViewport();
+  // The knitting brings the stitch into view by itself: there is nothing to go back to.
+  await rest();
+  await expect(back).toHaveCount(0);
+  const where = await position(page).textContent();
+
+  // Up the chart, to see what is coming: the stitch is below.
+  await scroll({ top: -600 });
+  await expect(back).toBeVisible();
+  expect(await offCourse()).toBeLessThanOrEqual(30);
+  // And along it to the left too.
+  await scroll({ left: -800 });
+  await expect.poll(offCourse).toBeLessThanOrEqual(30);
+  await back.click();
+  await expect(back).toHaveCount(0);
+  await rest();
+  await expect(next).toBeInViewport();
+  // Only looked at again, not knitted.
+  await expect(position(page)).toHaveText(where);
+
+  // Scrolled back to it by hand, the way back goes as it comes into view.
+  await scroll({ top: -600 });
+  await expect(back).toBeVisible();
+  await scroll({ top: 600 });
+  await expect(back).toHaveCount(0);
+  // And knitting on from out of sight goes to the next stitch, the way back with it.
+  await scroll({ top: -600 });
+  await expect(back).toBeVisible();
+  await page.locator(".knitting-panel .btn-primary").first().click();
+  await expect(back).toHaveCount(0);
+  await rest();
+  await expect(next).toBeInViewport();
+  await expect(position(page)).not.toHaveText(where);
+});
+
 test("the chart page does not pan sideways, and zooming leaves the chart where it lands", async ({ page }) => {
   await start(page);
   const fits = () => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);

@@ -176,6 +176,47 @@
   display: none;
 }
 
+/*
+ * The way back to the stitch being worked, scrolled away from to look along
+ * the chart: over the foot of the chart, in the middle, under where the
+ * stitch comes back to, its arrow pointing the way it is. Centred by its
+ * margins, as a button's own transform is its press.
+ */
+.chart-back {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  width: max-content;
+  margin: 0 auto;
+  padding-left: 14px;
+  font-size: var(--text-s);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.2);
+  animation: chart-back-in 0.15s ease-out;
+}
+
+.chart-back-arrow {
+  flex: none;
+  transition: transform 0.2s ease;
+}
+
+@keyframes chart-back-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-back {
+    animation: none;
+  }
+
+  .chart-back-arrow {
+    transition: none;
+  }
+}
+
 /* The chart and the progress over it, stacked: pushed to the bottom of its box where it is shorter, and from the top as ever where it is taller. */
 .chart-sheets {
   position: relative;

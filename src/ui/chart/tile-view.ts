@@ -661,6 +661,20 @@ export class TileView {
    * under a smooth scroll on its way there.
    */
   onTargetMoved?: (by: number) => void;
+  /**
+   * Told, once the box has come to rest with the stitch being followed out
+   * of it, which way the stitch is from the middle of the box: in degrees
+   * clockwise from straight across to the right, to the nearest eighth of a
+   * turn. Told nothing - undefined - once it is in the box again, or the box
+   * is on its way to it. For the way back to it: see lookForFollow.
+   */
+  onAway?: (towards: number | undefined) => void;
+  /** What onAway was last told. */
+  private away?: number;
+  /** A look at whether the stitch is out of sight, once the box comes to rest. */
+  private awayLook = 0;
+  /** When the view was made: until the box has had time to be sent to the stitch, it is not out of sight, only not there yet. */
+  private readonly madeAt = performance.now();
 
   private readonly onScroll = () => {
     this.movedAt = performance.now();
@@ -1514,6 +1528,7 @@ export class TileView {
     }
     this.hud?.frame(time, this.paints, this.paintTime, this.heading, this.past, this.paintedAhead());
     this.placeNext(content);
+    this.lookForFollow(time);
     if (this.columns.moving || this.rows.moving) this.schedule();
     if (moved || rebased || this.toTell) {
       if (drawing) {
@@ -1900,6 +1915,47 @@ export class TileView {
     style.top = `${at.y - 1}px`;
     style.width = `${at.width + 2}px`;
     style.height = `${at.height + 2}px`;
+  }
+
+  /**
+   * Whether the stitch being followed has been left out of sight - scrolled
+   * away from, or zoomed away from, to look along the chart - and which way
+   * it is: see onAway. Only once the box has come to rest, so that a scroll
+   * on its way somewhere, or one passing the stitch by, never says so; and
+   * not while the box is being sent to the stitch, which brings it back. In
+   * sight again, or the box sent to it, that is said at once.
+   */
+  private lookForFollow(time: number) {
+    const follow = this.content?.follow;
+    clearTimeout(this.awayLook);
+    if (!this.onAway) {
+      this.away = undefined;
+      return;
+    }
+    const sent = this.target !== undefined || this.glide !== undefined;
+    if (follow === undefined || sent || this.followShowing()) return this.tellAway(undefined);
+    const since = time - Math.max(this.movedAt, this.madeAt);
+    if (this.touching || this.columns.moving || this.rows.moving || since < settling) {
+      // Looked at again once the box has had time to come to rest; a finger still down looks again itself when it lifts.
+      if (!this.touching) this.awayLook = window.setTimeout(() => this.schedule(), Math.max(settling - since, 0) + 16);
+      return;
+    }
+    const { scene } = this.content!;
+    const column = scene.columnOf[follow];
+    const row = scene.rowOf[follow];
+    if (!row) return this.tellAway(undefined);
+    // From the middle of the box to the middle of the stitch's cell, or where it would open, closed up.
+    const view = this.showing();
+    const x = this.columns.places.start[column] + this.columns.places.size[column] / 2 - (view.x + view.width / 2);
+    const y = this.rows.places.start[row] + this.rows.places.size[row] / 2 - (view.y + view.height / 2);
+    const eighth = Math.round(Math.atan2(y, x) / (Math.PI / 4));
+    this.tellAway((((eighth * 45) % 360) + 360) % 360);
+  }
+
+  private tellAway(towards: number | undefined) {
+    if (towards === this.away) return;
+    this.away = towards;
+    this.onAway?.(towards);
   }
 
   /** Where a stitch's cell is drawn, from the chart's own top left: nowhere while its column or row is closed up. */
@@ -2509,6 +2565,9 @@ export class TileView {
     const views = registry();
     if (views?.includes(this)) views.splice(views.indexOf(this), 1);
     cancelAnimationFrame(this.frame);
+    clearTimeout(this.awayLook);
+    // Whatever shows the way back is told there is none, rather than left showing it for a view that is gone.
+    this.tellAway(undefined);
     this.scroller.removeEventListener("scroll", this.onScroll);
     this.scroller.removeEventListener("wheel", this.onScroll);
     this.scroller.removeEventListener("touchstart", this.onTouch);

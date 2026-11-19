@@ -113,6 +113,8 @@
 
 .knit-screen .chart-frame,
 .chart-fills .chart-frame {
+  /* For the way back to the stitch, over the foot of the chart: see .chart-back. */
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -122,8 +124,8 @@
   padding: 0;
 }
 
-.knit-screen .chart-frame > :not(.chart-scroll, .chart-yarn-numbers),
-.chart-fills .chart-frame > :not(.chart-scroll, .chart-yarn-numbers) {
+.knit-screen .chart-frame > :not(.chart-scroll, .chart-yarn-numbers, .chart-back),
+.chart-fills .chart-frame > :not(.chart-scroll, .chart-yarn-numbers, .chart-back) {
   display: none;
 }
 

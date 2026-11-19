@@ -36,6 +36,8 @@ interface ChartTilesProps extends TileContent {
   onTargetMoved?: (by: number) => void;
   /** Told where to send the box instead, for the stitch it is going to: see TileView.onAim. */
   onAim?: (to: { left: number; top: number }) => void;
+  /** Told which way the stitch being followed is, left out of sight, and when it is not: see TileView.onAway. */
+  onAway?: (towards: number | undefined) => void;
   /** What floats over the tiles, placed by placeAfloat, and carried with them as they slide. */
   children?: ReactNode;
 }
@@ -45,7 +47,7 @@ interface ChartTilesProps extends TileContent {
  * be worked next and, when asked, closes up the columns no row in view has a
  * stitch in and the rows no column on screen has.
  */
-const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetMoved, onAim, children, ...content }, ref) => {
+const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetMoved, onAim, onAway, children, ...content }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const afloatRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<TileView>();
@@ -76,6 +78,7 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetM
     view.onMove = onMove;
     view.onTargetMoved = onTargetMoved;
     view.onAim = onAim;
+    view.onAway = onAway;
     view.show(content);
   });
 

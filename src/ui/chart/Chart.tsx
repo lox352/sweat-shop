@@ -21,6 +21,7 @@ import { usePinchZoom } from "./usePinchZoom";
 import { Glide } from "./glide";
 import { scrollModes } from "./scroll-modes";
 import { leastCell, maxCell, minCell, stepCell } from "./zoom";
+import Button from "../components/ui/Button";
 import "./Chart.css";
 
 /**
@@ -235,6 +236,18 @@ const Chart: React.FC<ChartProps> = ({
    * got to is never lost from the chart (see TileView's mark).
    */
   const nextId = showAt ?? (follow ? here : undefined);
+  /*
+   * Scrolled away from the stitch being worked, to look along the chart, the
+   * way back to it without knitting on: a tap knits a run, and the next is
+   * aimed at, but the chart may be wanted at the stitch before then. Which
+   * way it is, while it is out of sight: see TileView.onAway. Only for the
+   * knitting: a stitch the chart is asked to show is not one to go back to.
+   */
+  const backable = follow && showAt === undefined && !onPick;
+  const [away, setAway] = useState<number>();
+  useEffect(() => {
+    if (!backable) setAway(undefined);
+  }, [backable]);
 
   /*
    * The whole sweater, every stitch over the stitch it was worked into: the
@@ -727,6 +740,7 @@ const Chart: React.FC<ChartProps> = ({
             onMove={picked !== undefined ? (now) => (now ? flushSync(moved) : moved()) : undefined}
             onTargetMoved={targetMoved}
             onAim={aimMoved}
+            onAway={backable ? setAway : undefined}
           >
             {picked !== undefined && (
               <StitchPicker
@@ -769,6 +783,22 @@ const Chart: React.FC<ChartProps> = ({
           </ChartTiles>
         </div>
       </div>
+      {backable && away !== undefined && (
+        <Button
+          variant="secondary"
+          className="chart-back"
+          onClick={() => {
+            setAway(undefined);
+            aim(reducedMotion() ? "auto" : "smooth");
+          }}
+        >
+          {/* An arrow drawn pointing right, turned to point the way the stitch is. */}
+          <svg className="chart-back-arrow" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style={{ transform: `rotate(${away}deg)` }}>
+            <path d="M2.5 8h10M8.5 4l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Back to your stitch
+        </Button>
+      )}
       <StitchLegend stitches={stitches} notes={stitchNotes} needles={needles} holds={holds} turns={turns} face={face} />
       {writtenRounds && <details className="chart-help" onToggle={e => setShowText(e.currentTarget.open)}>
         <summary>Text round instructions</summary>
