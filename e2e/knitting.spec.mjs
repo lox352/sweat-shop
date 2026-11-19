@@ -878,6 +878,40 @@ test("tapping a stitch on the chart carries on from it, and can be undone", asyn
   await expect(position(page)).toHaveText(original);
 });
 
+test("a stitch tapped says where it is and how to carry on from it, however little room there is round it, and the chart stays put", async ({ page }) => {
+  // On a short row from the wrong side: every stitch the chart shows from the right side is hatched, and says why at length.
+  await knittedTo(page, 1800);
+  await expect(position(page)).toContainText("short row 4, wrong side");
+  const scroller = page.locator(".chart-scroll");
+  const box = await scroller.boundingBox();
+  const picker = page.locator(".stitch-picker");
+  await expect(page.locator(".chart-next")).toBeInViewport();
+  const next = await page.locator(".chart-next").boundingBox();
+  const cell = next.width - 2;
+  // Stitches up the column of the one to be worked - in a yoke a column goes on up - from near the top of the box to its middle.
+  for (const down of [0.15, 0.35, 0.55]) {
+    const scrolled = await scroller.evaluate((box) => [box.scrollLeft, box.scrollTop]);
+    const up = Math.max(1, Math.round((next.y + next.height / 2 - (box.y + box.height * down)) / cell));
+    await page.mouse.click(next.x + next.width / 2, next.y + next.height / 2 - up * cell);
+    await expect(picker).toBeVisible();
+    // Its head, the round and stitch, and its way to carry on, both in the chart's box.
+    const seen = await picker.evaluate((bubble) => {
+      const box = bubble.closest(".chart-scroll").getBoundingClientRect();
+      const inBox = (element) => {
+        const at = element.getBoundingClientRect();
+        return at.top >= box.top - 1 && at.bottom <= box.bottom + 1;
+      };
+      return { head: inBox(bubble.querySelector(".stitch-picker-head")), carryOn: inBox(bubble.querySelector(".btn-primary")) };
+    });
+    expect(seen, `tapped ${down * 100}% down`).toEqual({ head: true, carryOn: true });
+    await expect(picker.getByRole("button", { name: /^(Knit up to|Go back to) here$/ })).toBeFocused();
+    // Shown without scrolling the chart to it.
+    expect(await scroller.evaluate((box) => [box.scrollLeft, box.scrollTop])).toEqual(scrolled);
+    await page.keyboard.press("Escape");
+    await expect(picker).toHaveCount(0);
+  }
+});
+
 test("a stitch picked stays outlined, its note beside it, as the chart slides with its scroll", async ({ page }) => {
   // The chart's views, to ask where a stitch is drawn: see TileView.probe.
   await page.addInitScript(() => {
