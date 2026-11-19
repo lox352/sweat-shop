@@ -282,6 +282,36 @@
 }
 
 .stitch-picker-head {
+  top: 0;
+  background: var(--paper-raised);
+  box-shadow: 0 8px 8px -2px var(--paper-raised);
+}
+
+.stitch-picker-scrolls > .btn {
+  bottom: 0;
+  box-shadow: 0 -10px 10px -2px var(--paper-raised);
+}
+
+.stitch-picker-scrolls > .stitch-picker-head::before,
+.stitch-picker-scrolls > .btn::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0.8rem;
+  background: var(--paper-raised);
+  pointer-events: none;
+}
+
+.stitch-picker-scrolls > .stitch-picker-head::before {
+  bottom: 100%;
+}
+
+.stitch-picker-scrolls > .btn::after {
+  top: 100%;
+}
+
+.stitch-picker-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -369,6 +399,53 @@
  */
 .chart-tiles-layered canvas {
   will-change: transform;
+}
+
+/*
+ * The round numbers, down the right-hand edge of the box wherever it is
+ * along the chart: a strip as wide as the gutter, in a track across the
+ * whole sheet, pinned to the box's right-hand edge as the box scrolls
+ * along - by the browser, as it scrolls, so it never lags - and at the
+ * chart's own edge, the gutter itself. What is in it is moved down with the
+ * tiles' layer (see TileView.placeRuler). Cut off at the sheet's top and
+ * bottom, as the tiles are; not across, where a number of four figures at
+ * the smallest cells reaches past the gutter's edge.
+ */
+.chart-ruler-track {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+  overflow-y: clip;
+  pointer-events: none;
+}
+
+.chart-ruler {
+  position: sticky;
+  right: 0;
+  flex: none;
+  width: var(--ruler-width, 22px);
+}
+
+.chart-ruler-rows {
+  position: relative;
+  height: 100%;
+}
+
+/* Each number on a tag of the chart's paper, so that over the stitches it is read as easily as in the gutter, where the tag is not seen. */
+.chart-ruler-rows > span {
+  position: absolute;
+  top: 0;
+  left: calc(var(--ruler-inset, 7px) - 3px);
+  margin-top: calc(var(--ruler-size, 12px) * -0.5 - 1px);
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: var(--paper-raised);
+  color: var(--ink-faint);
+  font-family: var(--body);
+  font-size: var(--ruler-size, 12px);
+  line-height: 1;
+  white-space: nowrap;
 }
 
 /* The stitch to be worked next, outlined over the tiles. */

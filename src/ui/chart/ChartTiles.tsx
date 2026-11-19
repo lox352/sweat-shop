@@ -50,6 +50,7 @@ interface ChartTilesProps extends TileContent {
 const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetMoved, onAim, onAway, children, ...content }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const afloatRef = useRef<HTMLDivElement>(null);
+  const rulerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<TileView>();
 
   /*
@@ -64,6 +65,7 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetM
     if (!container || !scroller || !sheet) return;
     const view = new TileView(container, scroller, sheet);
     view.afloat = afloatRef.current ?? undefined;
+    view.ruler = rulerRef.current ?? undefined;
     viewRef.current = view;
     return () => {
       view.destroy();
@@ -100,6 +102,12 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetM
   return (
     <>
       <div ref={containerRef} className="chart-tiles" style={{ left: -content.margin, right: 0 }} aria-hidden="true" />
+      {/* The round numbers, down the right-hand edge of the box wherever it is along the chart: see TileView.ruler. */}
+      <div className="chart-ruler-track" aria-hidden="true">
+        <div className="chart-ruler">
+          <div ref={rulerRef} className="chart-ruler-rows" />
+        </div>
+      </div>
       {/* Clipped to the sheet, as the tiles are: see .chart-afloat-clip. */}
       <div className="chart-afloat-clip">
         <div ref={afloatRef} className="chart-afloat">

@@ -758,6 +758,54 @@ test("scrolled away from the stitch to look along the chart, a button points the
   await expect(position(page)).not.toHaveText(where);
 });
 
+test("scrolled along a round and up the chart, the round numbers stay down the box's right-hand edge, each beside its row", async ({ page }) => {
+  // The chart's own view, to read where it draws each row: see TileView.probe.
+  await page.addInitScript(() => {
+    window.__chartViews = [];
+  });
+  await knittedTo(page, 6000);
+  const scroller = page.locator(".chart-scroll");
+  /** The numbers in sight: each one's way from its row's middle, as the tiles draw it, and from the box's right-hand edge, inside its padding. */
+  const numbers = () => page.evaluate(() => {
+    const view = window.__chartViews.at(-1);
+    const box = document.querySelector(".chart-scroll");
+    const edge = box.getBoundingClientRect().right - parseFloat(getComputedStyle(box).paddingRight);
+    const { top, bottom } = box.getBoundingClientRect();
+    const layer = document.querySelector(".chart-layer").getBoundingClientRect();
+    const { start, size } = view.rows.places;
+    return [...document.querySelectorAll(".chart-ruler-rows > span")]
+      .map((number) => ({ row: Number(number.textContent), at: number.getBoundingClientRect() }))
+      .filter(({ at }) => at.top >= top && at.bottom <= bottom)
+      .map(({ row, at }) => ({
+        row,
+        down: Math.round(at.top + at.height / 2 - (layer.top + start[row] + size[row] / 2)),
+        fromEdge: Math.round(edge - at.right),
+      }));
+  });
+  const rest = () => page.waitForTimeout(600);
+  await expect.poll(async () => (await numbers()).length).toBeGreaterThan(3);
+  await rest();
+  const check = async () => {
+    const shown = await numbers();
+    expect(shown.length).toBeGreaterThan(3);
+    // Every fifth round, at least, each beside its own row and inside the box, at its right-hand edge.
+    for (const { row, down, fromEdge } of shown) {
+      expect(Math.abs(down), `round ${row}`).toBeLessThanOrEqual(1);
+      expect(fromEdge, `round ${row}`).toBeGreaterThanOrEqual(0);
+      expect(fromEdge, `round ${row}`).toBeLessThan(36);
+    }
+    const rows = shown.map(({ row }) => row).sort((a, b) => a - b);
+    expect(rows.filter((row) => row % 5 === 0).length).toBeGreaterThanOrEqual(rows.length - 2);
+    return rows;
+  };
+  const here = await check();
+  // Along the round to its far end, and up the chart: the gutter beside column 1 is out of sight, and the numbers are not.
+  await scroller.evaluate((box) => box.scrollBy(-100000, -300));
+  await rest();
+  const there = await check();
+  expect(Math.max(...there)).toBeGreaterThan(Math.max(...here));
+});
+
 test("the chart page does not pan sideways, and zooming leaves the chart where it lands", async ({ page }) => {
   await start(page);
   const fits = () => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);

@@ -1,6 +1,16 @@
 import type { ChartScene } from "./chart-scene";
 import type { Break } from "./breaks";
-import { type ChartColours, type ChartOverlay, type PaintState, gutter, markerRowsChanging, paintRegion } from "./chart-painter";
+import {
+  type ChartColours,
+  type ChartOverlay,
+  type PaintState,
+  gutter,
+  markerRowsChanging,
+  numberInset,
+  numberSize,
+  paintRegion,
+  roundNumbers,
+} from "./chart-painter";
 import { scrollAcross, scrollsFromRight } from "./scroll-corner";
 import {
   type ColumnMap,
@@ -640,6 +650,16 @@ export class TileView {
    * stitch however the layer slides with the box's scroll (see along).
    */
   afloat?: HTMLElement;
+  /**
+   * Where the round numbers are put, if anywhere, rather than painted on the
+   * chart: in a strip down the right-hand edge of the box wherever it is
+   * along the chart, the strip pinned to the box's edge across, and this,
+   * inside it, moved down with the layer. See placeRuler.
+   */
+  ruler?: HTMLElement;
+  /** The numbers in the ruler, each row's; and what they were put there for. */
+  private readonly rulerLabels = new Map<number, HTMLSpanElement>();
+  private rulerFor?: { on: boolean; places: Places; cell: number; scene: ChartScene };
   /** How far the layer is put along now, in whole pixels of the screen: see onPixels. */
   private drawn = { x: 0, y: 0 };
   /**
@@ -650,7 +670,8 @@ export class TileView {
   private slider?: {
     across: Timeline;
     down: Timeline;
-    moved: Map<HTMLElement, [Animation, Animation]>;
+    /** Each element's animations across and down: the ruler, which stays at the box's edge across, has none across. */
+    moved: Map<HTMLElement, [Animation | undefined, Animation]>;
     made: { across?: Made; down?: Made };
   };
   /**
@@ -1528,6 +1549,7 @@ export class TileView {
     }
     this.hud?.frame(time, this.paints, this.paintTime, this.heading, this.past, this.paintedAhead());
     this.placeNext(content);
+    this.placeRuler(content);
     this.lookForFollow(time);
     if (this.columns.moving || this.rows.moving) this.schedule();
     if (moved || rebased || this.toTell) {
@@ -1730,6 +1752,8 @@ export class TileView {
       overlay: content.overlay,
       colours: content.colours,
       ratio: this.ratio,
+      // Put in the ruler instead: see placeRuler.
+      numbers: !this.rulered(content),
     };
   }
 
@@ -1740,6 +1764,8 @@ export class TileView {
    */
   private shiftLayer(x: number, y: number) {
     this.drawn = { x, y };
+    // The ruler goes down with the layer, and stays at the box's edge across.
+    if (this.ruler) this.ruler.style.transform = y ? `translateY(${y}px)` : "";
     if (this.slider) {
       // Where it is now, under the keyframes: what shows when the box can't be scrolled that way, and its timeline is idle.
       for (const element of [this.layer, this.afloat]) {
@@ -1786,10 +1812,10 @@ export class TileView {
    */
   private slideWithScroll() {
     const slider = this.slider!;
-    for (const element of [this.layer, this.afloat]) {
+    for (const element of [this.layer, this.afloat, this.ruler]) {
       if (!element || slider.moved.has(element)) continue;
       const still = [{ translate: "0px 0px" }, { translate: "0px 0px" }];
-      const across = element.animate(still, { timeline: slider.across, fill: "both" } as KeyframeAnimationOptions);
+      const across = element === this.ruler ? undefined : element.animate(still, { timeline: slider.across, fill: "both" } as KeyframeAnimationOptions);
       const down = element.animate([{ transform: "none" }, { transform: "none" }], { timeline: slider.down, fill: "both" } as KeyframeAnimationOptions);
       slider.moved.set(element, [across, down]);
       slider.made = {};
@@ -1884,7 +1910,7 @@ export class TileView {
             return { offset: Math.min(1, Math.max(0, offset)), ...frame(by), ...(pixels > 0 ? { easing: `steps(${pixels}, jump-end)` } : {}) };
           });
       }
-      for (const animations of slider.moved.values()) (animations[index].effect as KeyframeEffect).setKeyframes(frames);
+      for (const animations of slider.moved.values()) (animations[index]?.effect as KeyframeEffect | undefined)?.setKeyframes(frames);
       slider.made[name] = { key, from, to, easing };
     }
   }
@@ -1915,6 +1941,61 @@ export class TileView {
     style.top = `${at.y - 1}px`;
     style.width = `${at.width + 2}px`;
     style.height = `${at.height + 2}px`;
+  }
+
+  /** Whether the round numbers are put in the ruler, and not painted: not where the gutter has strips of its own, painted with the numbers as before. */
+  private rulered(content: TileContent): boolean {
+    return !!this.ruler && !content.overlay?.strips?.length;
+  }
+
+  /**
+   * The round numbers put in the ruler, each beside its row as the rows are
+   * drawn now. Painted beside column 1, they were out of sight but for a
+   * round's first stitches: scrolled along a round, or up the chart to see
+   * what is coming, which round was which could not be seen. The ruler is
+   * as wide as the gutter, and at the chart's right-hand edge it is the
+   * gutter, each number where it was painted; anywhere else, it is pinned to
+   * the box's edge (see .chart-ruler), each number on a tag of the chart's
+   * paper. Put again only when the rows or the cell size change, or the
+   * chart: as rows ease, every frame, the layer's own shift down carrying
+   * it otherwise (see slideWithScroll).
+   */
+  private placeRuler(content: TileContent) {
+    const ruler = this.ruler;
+    if (!ruler) return;
+    const on = this.rulered(content);
+    const { cell, scene } = content;
+    const places = this.rows.places;
+    const was = this.rulerFor;
+    if (was && was.on === on && was.places === places && was.cell === cell && was.scene === scene) return;
+    this.rulerFor = { on, places, cell, scene };
+    const strip = ruler.parentElement;
+    if (strip) {
+      strip.hidden = !on;
+      if (was?.cell !== cell) {
+        strip.style.setProperty("--ruler-width", `${gutter(cell)}px`);
+        strip.style.setProperty("--ruler-inset", `${numberInset(cell)}px`);
+        strip.style.setProperty("--ruler-size", `${numberSize(cell)}px`);
+      }
+    }
+    const rows = on ? roundNumbers(scene, cell, places.start, places.size) : [];
+    const kept = new Set(rows);
+    for (const [row, label] of this.rulerLabels) {
+      if (kept.has(row)) continue;
+      label.remove();
+      this.rulerLabels.delete(row);
+    }
+    for (const row of rows) {
+      let label = this.rulerLabels.get(row);
+      if (!label) {
+        label = document.createElement("span");
+        label.textContent = String(row);
+        ruler.appendChild(label);
+        this.rulerLabels.set(row, label);
+      }
+      // Moved, not laid out again: the middle of its row.
+      label.style.translate = `0px ${places.start[row] + places.size[row] / 2}px`;
+    }
   }
 
   /**
@@ -2583,6 +2664,10 @@ export class TileView {
       canvas.remove();
     }
     this.layer.remove();
+    // The ruler is the page's, and may be given to the next view: its numbers are this one's.
+    for (const label of this.rulerLabels.values()) label.remove();
+    this.rulerLabels.clear();
+    if (this.ruler && this.slider) for (const animation of this.slider.moved.get(this.ruler) ?? []) animation?.cancel();
     this.tiles.clear();
     this.spare = [];
   }
