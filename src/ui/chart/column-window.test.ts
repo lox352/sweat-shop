@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import { buildSweater } from "../../compiler/engine/engine";
 import { layOutSweater } from "../../reading/layout";
 import {
+  type ColumnMap,
   LiveColumns,
   LiveRows,
   columnAt,
+  columnsWith,
+  blocksKept,
   everyColumn,
   everyRow,
   indexColumns,
@@ -13,6 +16,7 @@ import {
   placeFrom,
   rowMapOf,
   rowsWithin,
+  sameShows,
 } from "./column-window";
 import { testSweater } from "../../compiler/engine/test-sweater";
 import { sweaters } from "../../compiler/designs";
@@ -225,5 +229,66 @@ describe("where the columns go", () => {
     let right = closed - 1;
     while (right > 0 && !map.shows[right]) right--;
     expect(left[closed]).toBe(left[right]);
+  });
+});
+
+describe("lines closing in a block, kept while in view", () => {
+  const lines = 20;
+  const showing = (from: number, to: number) => Uint8Array.from({ length: lines + 2 }, (_, line) => (line >= from && line <= to ? 1 : 0));
+  const everywhere = () => true;
+  // A map showing just these: columnsWith reads nothing of the map it adds to but what it shows.
+  const mapFrom = (shows: Uint8Array) => columnsWith({ shows: new Uint8Array(shows.length) } as ColumnMap, shows);
+
+  it("are a block that would close at once, kept as paper", () => {
+    // Lines 15 to 20 lose their last stitch on screen at once: a sleeve's cuff, the box gone on to the body.
+    const kept = blocksKept(showing(1, 14), showing(1, 20), undefined, everywhere, everywhere, 3)!;
+    expect([...kept].map((on, line) => (on ? line : 0)).filter(Boolean)).toEqual([15, 16, 17, 18, 19, 20]);
+  });
+
+  it("but only while in view: out of it they close", () => {
+    const kept = blocksKept(showing(1, 14), showing(1, 20), undefined, (line) => line <= 18, everywhere, 3)!;
+    expect([...kept].map((on, line) => (on ? line : 0)).filter(Boolean)).toEqual([15, 16, 17, 18]);
+  });
+
+  it("and once kept, stay kept while in view, however few are left", () => {
+    const before = blocksKept(showing(1, 14), showing(1, 20), undefined, everywhere, everywhere, 3);
+    const kept = blocksKept(showing(1, 14), showing(1, 16), before, everywhere, everywhere, 3)!;
+    expect([...kept].map((on, line) => (on ? line : 0)).filter(Boolean)).toEqual([15, 16]);
+  });
+
+  it("and close together once all of them are out of view, not one by one", () => {
+    const before = blocksKept(showing(1, 14), showing(1, 20), undefined, everywhere, everywhere, 3);
+    // The box gone down the chart: only line 15 still in view, the rest of the block above it.
+    const some = blocksKept(showing(1, 14), showing(1, 20), before, (line) => line <= 15, everywhere, 3)!;
+    expect([...some].map((on, line) => (on ? line : 0)).filter(Boolean)).toEqual([15, 16, 17, 18, 19, 20]);
+    expect(blocksKept(showing(1, 14), showing(1, 20), some, (line) => line <= 14, everywhere, 3)).toBeUndefined();
+  });
+
+  it("nor anything the box was not looking at before it moved: sent somewhere else altogether, it keeps nothing", () => {
+    expect(blocksKept(showing(1, 14), showing(1, 20), undefined, everywhere, () => false, 3)).toBeUndefined();
+  });
+
+  it("not a line or a few closing one at a time, as a yoke's edge does", () => {
+    expect(blocksKept(showing(1, 18), showing(1, 20), undefined, everywhere, everywhere, 3)).toBeUndefined();
+  });
+
+  it("between lines showing as at the edges: a short rows' band, its stitches off screen", () => {
+    const shows = showing(1, 20);
+    for (let line = 5; line <= 10; line++) shows[line] = 0;
+    const kept = blocksKept(shows, showing(1, 20), undefined, everywhere, everywhere, 3)!;
+    expect([...kept].map((on, line) => (on ? line : 0)).filter(Boolean)).toEqual([5, 6, 7, 8, 9, 10]);
+  });
+
+  it("but not lines closing here and there, as a yoke's make-ones do, however many", () => {
+    const shows = showing(1, 20);
+    for (const line of [3, 6, 9, 12, 15]) shows[line] = 0;
+    expect(blocksKept(shows, showing(1, 20), undefined, everywhere, everywhere, 3)).toBeUndefined();
+  });
+
+  it("show alongside the lines with stitches", () => {
+    const kept = blocksKept(showing(1, 14), showing(1, 20), undefined, everywhere, everywhere, 3)!;
+    const map = columnsWith(mapFrom(showing(1, 14)), kept);
+    expect(map.count).toBe(20);
+    expect(sameShows(map, mapFrom(showing(1, 20)))).toBe(true);
   });
 });

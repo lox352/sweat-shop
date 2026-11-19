@@ -302,6 +302,68 @@ const mapFrom = (columns: number, shows: (column: number) => boolean): ColumnMap
 /** The chart with only the columns that have a stitch in a row in view. */
 export const mapOf = (live: LiveColumns): ColumnMap => mapFrom(live.index.columns, (column) => live.has(column));
 
+/** A column map with these columns showing as well: see blocksKept. */
+export const columnsWith = (map: ColumnMap, kept: Uint8Array): ColumnMap => mapFrom(map.shows.length - 2, (column) => !!map.shows[column] || !!kept[column]);
+
+/** Whether two maps show the same lines. */
+export const sameShows = (a: { shows: Uint8Array }, b: { shows: Uint8Array }): boolean => {
+  if (a.shows.length !== b.shows.length) return false;
+  for (let line = 0; line < a.shows.length; line++) if (a.shows[line] !== b.shows[line]) return false;
+  return true;
+};
+
+/**
+ * The lines that showed until now, `was`, and would close - no longer
+ * among those `shows` - but are still in view: kept showing while they are,
+ * as the paper they are, where more than `block` side by side would close at
+ * once, or they were kept already (`kept`). Undefined, none.
+ *
+ * A sleeve's rounds go on past the body's, at the top of the chart: scrolled
+ * along it from the sleeve to the body, they had no stitch on screen once the
+ * sleeve's last column left the box, and closed all at once - a box's half of
+ * rows, and everything under them shoved up the box in a moment, the top of
+ * the chart being held at the top of the box. So with the short rows at the
+ * back of the neck, scrolled along to the front: closing, the band of them
+ * pulled the yoke above down the box, the foot of the chart being held at
+ * its foot. Kept, the knitter sees the paper the chart has there - beside
+ * the sleeve's cuff, or across the front, where the short rows were worked
+ * at the back - and nothing on screen moves but with the finger; once the
+ * whole block is out of view they close together, unseen: one by one, each
+ * moved every line after it on the chart, and the tiles in view were
+ * painted afresh for each, a frame's work a row. Only lines seen as the box
+ * moves, in view before (`seen`) and after (`inView`): the box sent
+ * somewhere else altogether keeps nothing of where it was. A line or two
+ * at a time, as a yoke closes a stitch here and there going down it, closes
+ * as it goes.
+ */
+export const blocksKept = (
+  shows: Uint8Array,
+  was: Uint8Array,
+  kept: Uint8Array | undefined,
+  inView: (line: number) => boolean,
+  seen: (line: number) => boolean,
+  block: number,
+): Uint8Array | undefined => {
+  const lines = shows.length - 2;
+  const keep = new Uint8Array(lines + 2);
+  let any = false;
+  for (let line = 1; line <= lines; ) {
+    if (!was[line] || shows[line]) {
+      line++;
+      continue;
+    }
+    // A run of lines side by side closing - those closed up already between them no gap on screen.
+    const run: number[] = [];
+    for (; line <= lines && !shows[line]; line++) if (was[line]) run.push(line);
+    const already = run.filter((one) => kept?.[one]);
+    const closing = run.filter((one) => !kept?.[one] && inView(one) && seen(one));
+    const held = [...(already.some(inView) ? already : []), ...(closing.length > block ? closing : [])];
+    for (const one of held) keep[one] = 1;
+    any ||= held.length > 0;
+  }
+  return any ? keep : undefined;
+};
+
 /**
  * Where each row goes with the empty ones closed up: as a column map, a row
  * standing as many cells down as there are rows showing above it. Row 0 and
@@ -323,6 +385,9 @@ const rowMapFrom = (rows: number, shows: (row: number) => boolean): RowMap => {
 
 /** The chart with only the rows that have a stitch in a column on screen. */
 export const rowMapOf = (live: LiveRows): RowMap => rowMapFrom(live.lines, (row) => live.has(row));
+
+/** A row map with these rows showing as well: see blocksKept. */
+export const rowsWith = (map: RowMap, kept: Uint8Array): RowMap => rowMapFrom(map.shows.length - 2, (row) => !!map.shows[row] || !!kept[row]);
 
 /** The chart with every row. */
 export const everyRow = (rows: number): RowMap => rowMapFrom(rows, () => true);

@@ -1,23 +1,37 @@
 import type { ChartScene } from "./chart-scene";
 import type { Break } from "./breaks";
-import { type ChartColours, type ChartOverlay, type PaintState, gutter, markerRowsChanging, paintRegion } from "./chart-painter";
+import {
+  type ChartColours,
+  type ChartOverlay,
+  type PaintState,
+  gutter,
+  markerRowsChanging,
+  numberInset,
+  numberSize,
+  paintRegion,
+  roundNumbers,
+} from "./chart-painter";
 import { scrollAcross, scrollsFromRight } from "./scroll-corner";
 import {
   type ColumnMap,
   LiveColumns,
   LiveRows,
   type RowMap,
+  columnsWith,
+  blocksKept,
   everyColumn,
   everyRow,
   indexColumns,
   mapOf,
   rowMapOf,
+  rowsWith,
   rowsWithin,
+  sameShows,
 } from "./column-window";
 import type { Palette } from "../../reading/palette";
 import { torn } from "./zoom";
-import { type Course, type Places, absorb, boxAt, placeOf, scrollFor, universalOf } from "./scroll-model";
-import { glideTime, hermite } from "./glide";
+import { type Course, type Places, absorb, blockNear, boxAt, middleLine, placeOf, scrollFor, universalOf } from "./scroll-model";
+import { farOff as glideFarOff, glideTime, hermite } from "./glide";
 import { onScrollModes, scrollModes, showScrollPanel } from "./scroll-modes";
 export { type Places, Reach, along, reach } from "./scroll-model";
 
@@ -45,14 +59,19 @@ export { type Places, Reach, along, reach } from "./scroll-model";
  * shows the chart the same part of the way along, about a pivot that far
  * across the box, however many lines have opened or closed since - see
  * along. A scroll at an end shows that edge of the chart, either way and
- * both ways, so there is never an edge out of reach or blank sheet past one;
- * the lines either side of the pivot open out from it and close in on it;
- * and where the layer goes depends only on the scroll and the lines showing,
- * never on how they came to show, so nothing creeps. Only the stitch being
- * worked, or one being scrolled to, while on screen, or the point a zoom was
- * about, is held still, the layer moved on by as much. Once the box has come to rest, the sheet takes the
- * chart's size, the layer goes back to its corner and the box is scrolled to
- * match, in the same frame, so nothing on screen moves.
+ * both ways, so there is no blank sheet past one; the lines either side of
+ * the pivot open out from it and close in on it; and where the layer goes
+ * depends only on the scroll and the lines showing, never on how they came
+ * to show, so nothing creeps. Only the stitch being worked, or one being
+ * scrolled to, while on screen, or the point a zoom was about, is held
+ * still, the layer moved on by as much - and what is in the middle of the
+ * box, as a block of lines opens or closes near it, which the pivot would
+ * have shove everything beyond it along at once (see sendLines): the block
+ * opens past the box's edge, which may then be out of reach until rest. A
+ * block that would close in view stays, as paper, while any of it is (see
+ * blocksKept). Once the box has come to rest, the sheet takes the chart's
+ * size, the layer goes back to its corner and the box is scrolled to match,
+ * in the same frame, so nothing on screen moves, and every edge is in reach.
  */
 
 /** A tile's side, in CSS pixels. */
@@ -112,6 +131,12 @@ export interface TileContent {
   collapse?: boolean;
   /** The stitch to be worked next: outlined, and held still when lines move. */
   follow?: number;
+  /**
+   * Or, where the chart is looked around and not knitted, the stitch to be
+   * worked next only outlined: where the knitting has got to, said on the
+   * chart, but nothing held still for it and nothing scrolled to it.
+   */
+  mark?: number;
 }
 
 interface Tile {
@@ -569,6 +594,11 @@ export class TileView {
   private liveRows?: LiveRows;
   private columnMap?: ColumnMap;
   private rowMap?: RowMap;
+  /** The lines kept showing while in view, with no stitch to show: see blocksKept. */
+  private keptColumns?: Uint8Array;
+  private keptRows?: Uint8Array;
+  /** Where the box's top left corner was on the chart when the lines were last settled. */
+  private seenAt?: { x: number; y: number };
   /** Where the lines were before the cell size last changed, and at what size, to zoom about. */
   private before?: { columns: Places; rows: Places; x: number; y: number; cell: number };
   /** A stitch to hold still while lines move: one the chart is scrolling to. */
@@ -634,6 +664,18 @@ export class TileView {
    * stitch however the layer slides with the box's scroll (see along).
    */
   afloat?: HTMLElement;
+  /**
+   * Where the round numbers are put, if anywhere, rather than painted on the
+   * chart: in a strip down the right-hand edge of the box wherever it is
+   * along the chart, the strip pinned to the box's edge across, and this,
+   * inside it, moved down with the layer. See placeRuler.
+   */
+  ruler?: HTMLElement;
+  /** The numbers in the ruler, each row's; and what they were put there for. */
+  private readonly rulerLabels = new Map<number, HTMLSpanElement>();
+  private rulerFor?: { on: boolean; places: Places; cell: number; scene: ChartScene };
+  /** The box's padding to its right, which the ruler stays inside: see rulerAt. */
+  private rulerPad?: number;
   /** How far the layer is put along now, in whole pixels of the screen: see onPixels. */
   private drawn = { x: 0, y: 0 };
   /**
@@ -645,6 +687,8 @@ export class TileView {
     across: Timeline;
     down: Timeline;
     moved: Map<HTMLElement, [Animation, Animation]>;
+    /** The ruler's strip, slid across to stay at the box's edge and down with the layer: see rulerAt. */
+    ruler?: { strip: HTMLElement; across: Animation; down: Animation };
     made: { across?: Made; down?: Made };
   };
   /**
@@ -655,6 +699,22 @@ export class TileView {
    * under a smooth scroll on its way there.
    */
   onTargetMoved?: (by: number) => void;
+  /**
+   * Told, once the box has come to rest with the stitch being followed out
+   * of it, which way the stitch is from the middle of the box: in degrees
+   * clockwise from straight across to the right, to the nearest eighth of a
+   * turn. Told nothing - undefined - once it is in the box again, or the box
+   * is on its way to it. For the way back to it: see lookForFollow.
+   */
+  onAway?: (towards: number | undefined) => void;
+  /** What onAway was last told. */
+  private away?: number;
+  /** A look at whether the stitch is out of sight, once the box comes to rest. */
+  private awayLook = 0;
+  /** The rest of the tiles to paint ahead, a couple at a time: see warm. */
+  private warming = 0;
+  /** When the view was made: until the box has had time to be sent to the stitch, it is not out of sight, only not there yet. */
+  private readonly madeAt = performance.now();
 
   private readonly onScroll = () => {
     this.movedAt = performance.now();
@@ -844,7 +904,7 @@ export class TileView {
      * here: the frame under way does that. Brought up to date anyway, the
      * lines eased on a step after what was placed over them was placed.
      */
-    if (same && was.progress === content.progress && was.follow === content.follow) return;
+    if (same && was.progress === content.progress && was.follow === content.follow && was.mark === content.mark) return;
     this.update(true);
   }
 
@@ -857,6 +917,7 @@ export class TileView {
     this.liveRows = new LiveRows(indexColumns(index));
     this.columnMap = everyColumn(layout.columns);
     this.rowMap = everyRow(layout.rows);
+    this.keptColumns = this.keptRows = undefined;
     this.columns.reset(columnPlaces(this.columnMap, content.cell, content.scene.breaks));
     this.rows.reset(rowPlaces(this.rowMap, content.cell));
     this.anchorColumns();
@@ -999,39 +1060,145 @@ export class TileView {
     let rows = false;
     for (let round = 0; round < rounds; round++) {
       const [first, last] = this.rowsInView(view().y);
-      const columnsMoved = this.liveColumns!.moveTo(first, last);
-      if (columnsMoved) {
-        this.columnMap = mapOf(this.liveColumns!);
-        const to = columnPlaces(this.columnMap, cell, content.scene.breaks);
-        if (fresh) {
-          this.columns.reset(to);
-          this.anchorColumns();
-        } else {
-          const held = this.columnHeld();
-          if (held !== undefined) {
-            this.columns.retarget(to, held);
-            this.keepColumnsInBox();
-          } else this.columns.send(to);
+      let columnsMoved = false;
+      // Looked at again while any are kept, which close once out of view.
+      if (this.liveColumns!.moveTo(first, last) || this.keptColumns) {
+        const map = this.columnsShowing(fresh, view().x);
+        columnsMoved = map !== this.columnMap;
+        if (columnsMoved) {
+          this.columnMap = map;
+          const to = columnPlaces(map, cell, content.scene.breaks);
+          if (fresh) {
+            this.columns.reset(to);
+            this.anchorColumns();
+          } else {
+            const held = this.columnHeld();
+            if (held !== undefined) {
+              this.columns.retarget(to, held);
+              this.keepColumnsInBox();
+            } else if (this.sendLines(this.columns, to, view().x, this.scroller.clientWidth)) {
+              this.keepColumnsInBox(false);
+            }
+          }
+          columns = true;
         }
-        columns = true;
       }
-      const rowsMoved = this.liveRows!.moveTo(this.onScreen(view().x));
-      if (rowsMoved) {
-        this.rowMap = rowMapOf(this.liveRows!);
-        const to = rowPlaces(this.rowMap, cell);
-        if (fresh) this.rows.reset(to);
-        else {
-          const held = this.rowHeld();
-          if (held !== undefined) {
-            this.rows.retarget(to, held);
-            this.keepRowsInBox();
-          } else this.rows.send(to);
+      let rowsMoved = false;
+      if (this.liveRows!.moveTo(this.onScreen(view().x)) || this.keptRows) {
+        const map = this.rowsShowing(fresh, view().y);
+        rowsMoved = map !== this.rowMap;
+        if (rowsMoved) {
+          this.rowMap = map;
+          const to = rowPlaces(map, cell);
+          if (fresh) this.rows.reset(to);
+          else {
+            const held = this.rowHeld();
+            if (held !== undefined) {
+              this.rows.retarget(to, held);
+              this.keepRowsInBox();
+            } else if (this.sendLines(this.rows, to, view().y, this.scroller.clientHeight)) {
+              this.keepRowsInBox();
+            }
+          }
+          rows = true;
         }
-        rows = true;
       }
       if (!columnsMoved && !rowsMoved) break;
     }
+    // Where the box was on the chart, for what it has seen as it next moves: see blocksKept.
+    const { x, y } = view();
+    this.seenAt = { x, y };
     return { columns, rows };
+  }
+
+  /**
+   * The columns to show: those with a stitch in a row in view, and those
+   * kept while in view (see blocksKept), the box `x` along the chart - the
+   * map showing now, if that is the same. Laid out afresh, `fresh`, none are
+   * kept.
+   */
+  private columnsShowing(fresh: boolean, x: number): ColumnMap {
+    const live = mapOf(this.liveColumns!);
+    const now = this.columnMap!;
+    const { start, size } = this.columns.target;
+    const span = this.scroller.offsetWidth;
+    const across = (line: number, at: number) => start[line] + size[line] > at && start[line] < at + span;
+    const before = this.seenAt?.x;
+    const kept = fresh ? undefined : blocksKept(live.shows, now.shows, this.keptColumns, (line) => across(line, x), (line) => before === undefined || across(line, before), blockOf);
+    this.keptColumns = kept;
+    const map = kept ? columnsWith(live, kept) : live;
+    return sameShows(map, now) ? now : map;
+  }
+
+  /** And the rows, the box `y` down the chart. */
+  private rowsShowing(fresh: boolean, y: number): RowMap {
+    const live = rowMapOf(this.liveRows!);
+    const now = this.rowMap!;
+    const { start, size } = this.rows.target;
+    const span = this.scroller.offsetHeight;
+    const down = (line: number, at: number) => start[line] + size[line] > at && start[line] < at + span;
+    const before = this.seenAt?.y;
+    const kept = fresh ? undefined : blocksKept(live.shows, now.shows, this.keptRows, (line) => down(line, y), (line) => before === undefined || down(line, before), blockOf);
+    this.keptRows = kept;
+    const map = kept ? rowsWith(live, kept) : live;
+    return sameShows(map, now) ? now : map;
+  }
+
+  /**
+   * `axis`'s lines sent on, with nothing held, from where they are going now
+   * to `to`, the box `from` along the chart and `size` long: where the box's
+   * scroll puts them (see along) - unless they open or close in a block near
+   * the box (see blockNear), when the line in the middle of the box is held
+   * still instead, and the rest open and close about it. The scroll's pivot
+   * shares out what opens or closes about it, and a block opening there
+   * shoved everything beyond it in the box along at once - at an end of the
+   * chart, where the pivot is the box's edge, everything: scrolled along the
+   * top of the chart onto a sleeve, whose rounds go on past the body's,
+   * everything went down the box by more than half its height in a moment;
+   * flung up a yoke onto its sleeves, by more still. Held, the block opens
+   * past the box's edge, there to scroll to, and nothing in the box moves but
+   * with the finger. Lines opening here and there, as a yoke's make-ones do,
+   * go as the scroll puts them, an edge the box is at kept at its own. Not
+   * while the box is being sent to a stitch, or zoomed about a point, which
+   * hold what they do. Says whether it held anything.
+   */
+  private sendLines(axis: Axis, to: Places, from: number, size: number): boolean {
+    const was = axis.target;
+    const held = !this.glide && this.target === undefined && !this.point && blockNear(was, to, from, size, blockOf) ? middleLine(was, to, from + size / 2) : undefined;
+    if (held === undefined) {
+      axis.send(to);
+      return false;
+    }
+    axis.retarget(to, held);
+    return true;
+  }
+
+  /**
+   * What is held let go of as far as it would carry the chart's edge into
+   * the box, where the box's scroll can't follow: held for lines opened at
+   * the top of the chart (see sendLines), and the box then scrolled on down
+   * to the foot before it came to rest, the foot would come up the box by as
+   * much, blank paper under it, and the chart jump down for it at rest. So
+   * as the box nears an edge the chart stays at it, as it does with nothing
+   * held, while the scroll goes on to its end.
+   */
+  private keepHeldInChart() {
+    if (this.glide || this.target !== undefined || this.point) return;
+    const ways = [
+      { axis: this.columns, course: () => this.courseAcross(this.columns.places), at: () => this.scrolledTo().left - this.sheet.offsetLeft },
+      { axis: this.rows, course: () => this.courseDown(this.rows.places), at: () => this.scrolledTo().top - this.sheet.offsetTop },
+    ];
+    for (const { axis, course: courseOf, at } of ways) {
+      if (axis.moving || Math.abs(axis.held) < 0.5) continue;
+      const course = courseOf();
+      if (!course) continue;
+      const box = Math.min(course.room - course.near, Math.max(-course.near, at()));
+      const scrolled = boxAt(course, box);
+      // From where the box shows the chart, between its two edges as the scroll can show them.
+      const shown = scrolled - axis.held;
+      const within = Math.min(Math.max(shown, -course.near), Math.max(-course.near, axis.places.start[0] + course.far - course.size));
+      if (Math.abs(within - shown) >= 0.5) axis.absorbed(scrolled - within);
+    }
   }
 
   /**
@@ -1103,33 +1270,49 @@ export class TileView {
     });
   }
 
-  /** Mark stale the tiles across the rows whose stitches changed from done to to do, or back. */
+  /**
+   * Mark stale the tiles over the stitches that changed from done to to do,
+   * or back, and a few cells either side, for what is drawn over the edge of
+   * a cell; and across the whole chart, the rows whose marker lines change
+   * tense as they are worked (see markerRowsChanging), wherever the line is
+   * along them. Only the tiles over the stitches: marked stale all the way
+   * across their rows, the tiles of a round's beginning were stale by its
+   * end, and painted afresh as the knitting went on to the next round, in
+   * the frame it got there (see warm).
+   */
   private progressed(from: number, to: number) {
-    const { scene } = this.content!;
+    const { scene, cell } = this.content!;
     const [low, high] = from < to ? [from, to] : [to, from];
     if (high - low > 5000) {
       this.version++;
       return;
     }
-    let first = Infinity;
-    let last = -Infinity;
-    const include = (row: number) => {
-      first = Math.min(first, row);
-      last = Math.max(last, row);
-    };
+    const { start: top, size: height } = this.rows.places;
+    const { start: left, size: width } = this.columns.places;
+    let [x0, x1, y0, y1] = [Infinity, -Infinity, Infinity, -Infinity];
     for (let id = low + 1; id <= high; id++) {
       const row = scene.rowOf[id];
-      if (row) include(row);
+      if (!row) continue;
+      const column = scene.columnOf[id];
+      x0 = Math.min(x0, left[column]);
+      x1 = Math.max(x1, left[column] + width[column]);
+      y0 = Math.min(y0, top[row]);
+      y1 = Math.max(y1, top[row] + height[row]);
     }
-    // And the rows whose marker lines change tense as the stitches are worked: see markerRowsChanging.
+    const reach = 3 * cell;
+    const across = { x0: x0 - reach, x1: x1 + reach };
+    let [b0, b1] = [Infinity, -Infinity];
     const rows = scene.layout.rows;
-    for (const row of markerRowsChanging(scene, from, to)) if (row >= 1 && row <= rows) include(row);
-    if (first > last) return;
-    const { start, size } = this.rows.places;
-    const top = start[last];
-    const bottom = start[first] + size[first];
+    for (const row of markerRowsChanging(scene, from, to)) {
+      if (row < 1 || row > rows) continue;
+      b0 = Math.min(b0, top[row]);
+      b1 = Math.max(b1, top[row] + height[row]);
+    }
     this.tiles.forEach((tile) => {
-      if (tile.y < bottom && tile.y + tileSize > top) tile.painted = -1;
+      // A row up and down too: a turned stitch's veil covers its part in the row above (see paintRegion's doubles).
+      const over = tile.y < y1 + cell && tile.y + tileSize > y0 - cell && tile.x < across.x1 && tile.x + tileSize > across.x0;
+      const lined = tile.y < b1 && tile.y + tileSize > b0;
+      if (over || lined) tile.painted = -1;
     });
   }
 
@@ -1270,11 +1453,15 @@ export class TileView {
    * jump across when it comes to rest; then the edge is held still instead.
    * Not while the box is being scrolled to a stitch, or zoomed about one:
    * where it is going was worked out from that stitch's place on the sheet.
+   * The box goes past the chart's foot by its own padding, as its scroll
+   * takes it at rest: held short of that, at the foot of the chart rows
+   * opening far above, out of view, pulled the chart up the box by as much.
    */
   private keepRowsInBox() {
     if (this.target !== undefined || this.point) return;
     const top = this.sheet.offsetTop;
-    this.rows.keepBox(this.scrolledTo().top - top, this.scroller.clientHeight, -top);
+    const below = parseFloat(getComputedStyle(this.scroller).paddingBottom) || 0;
+    this.rows.keepBox(this.scrolledTo().top - top, this.scroller.clientHeight, -top, below);
   }
 
   /**
@@ -1299,9 +1486,14 @@ export class TileView {
    * still near it: the box can't be scrolled past that edge, so there would
    * be nothing in the gap, and the box would only be put right at rest, by a
    * scroll a phone can lose. A chart narrower than the box has nothing to
-   * scroll, and is left as it is.
+   * scroll, and is left as it is. `reach`: nor carried out of the box's
+   * reach, past its right-hand edge - but for what is held still so that
+   * nothing in the box moves (see sendLines), where it is let go there as
+   * the top of the chart is, to scroll to once at rest: pulled back, it
+   * shoved what was in the box along, 150 pixels in a frame, flung down a
+   * raglan from its neck as its columns opened beyond the round's first.
    */
-  private keepColumnsInBox() {
+  private keepColumnsInBox(reach = true) {
     if (this.point) return;
     const size = this.scroller.clientWidth;
     // The chart, its round numbers, and the box's own padding past them.
@@ -1311,7 +1503,7 @@ export class TileView {
     const was = this.columns.targetShift;
     const [lowest, highest] = scrollAcross(this.scroller);
     this.columns.keepBox(this.scrolledTo().left - left, size, lowest - left, room);
-    if (this.nearRight()) {
+    if (reach && this.nearRight()) {
       /*
        * Nor carried out past the furthest right the box can go, which
        * holding a stitch still would do as columns close between it and
@@ -1497,6 +1689,7 @@ export class TileView {
     // And again for the sheet as it is now, given a size or brought to rest.
     this.columns.follow();
     this.rows.follow();
+    this.keepHeldInChart();
     this.reAim(settled || rebased || sheetWas !== `${this.sheet.style.width}|${this.sheet.style.height}|${this.sheet.offsetLeft}`);
     const [x, y] = this.onPixels(this.columns.shift, this.rows.shift);
     this.shiftLayer(x, y);
@@ -1508,6 +1701,8 @@ export class TileView {
     }
     this.hud?.frame(time, this.paints, this.paintTime, this.heading, this.past, this.paintedAhead());
     this.placeNext(content);
+    this.placeRuler(content);
+    this.lookForFollow(time);
     if (this.columns.moving || this.rows.moving) this.schedule();
     if (moved || rebased || this.toTell) {
       if (drawing) {
@@ -1679,6 +1874,71 @@ export class TileView {
     this.keep(wanted);
   }
 
+  /**
+   * The tiles the box will show with the stitch `id` brought `inBox`, painted
+   * ahead while there is nothing else to do: the next round's beginning,
+   * while the knitting is along this one. Going on to it, the box goes from
+   * the chart's far side to its right-hand edge (see Glide's setOff), and
+   * every tile it showed there was painted in the frame it got there, most
+   * of that frame's work - the tiles of a round's beginning long since given
+   * up for those along it, or stale. Painted with the lines as they are now,
+   * which one row up from the rows in view they mostly still are; kept as
+   * used now, and looked at again after every stitch, so that they are kept
+   * as the knitting goes on along the round, and painted again only where
+   * something on them has changed.
+   */
+  warm(id: number, inBox: { x: number; y: number }) {
+    clearTimeout(this.warming);
+    const content = this.content;
+    if (!content || this.touching || this.glide || this.target !== undefined || this.columns.moving || this.rows.moving) return;
+    const at = this.placeOnLayer(id);
+    if (!at) return;
+    const { margin } = content;
+    const view = this.showing();
+    const size = this.size();
+    // As far along and down the chart as the box can go: see reachable, in Chart.
+    const x = Math.min(Math.max(at.x - inBox.x, -margin), Math.max(size.width - view.width, -margin));
+    const y = Math.min(Math.max(at.y - inBox.y, 0), Math.max(size.height - view.height, 0));
+    /*
+     * The stretch the box will show on its way: from where the glide sets off,
+     * a box short of there, put at once (see Glide's setOff). Nearer than
+     * that, it glides from where it is, over what is painted round the box
+     * already, and there is nothing to paint ahead.
+     */
+    const far = (to: number, from: number, extent: number) => Math.abs(to - from) > extent * glideFarOff;
+    if (!far(x, view.x, view.width) && !far(y, view.y, view.height)) return;
+    const setOff = (to: number, from: number, extent: number) => (far(to, from, extent) ? to - Math.sign(to - from) * extent : to);
+    const [x0, y0] = [setOff(x, view.x, view.width), setOff(y, view.y, view.height)];
+    const span = (from: number, to: number, extent: number) => [
+      Math.max(0, Math.floor(from / tileSize)),
+      Math.min(Math.ceil(extent / tileSize) - 1, Math.floor((to - 1) / tileSize)),
+    ];
+    const [tx0, tx1] = span(Math.min(x, x0) + margin, Math.max(x, x0) + view.width + margin, size.width + margin);
+    const [ty0, ty1] = span(Math.min(y, y0), Math.max(y, y0) + view.height, size.height);
+    const state = this.stateFor(content);
+    // A couple of tiles at a time, from the foot of the box up, where the stitch goes, so as never to keep a tap waiting long.
+    let painted = 0;
+    for (let ty = ty1; ty >= ty0; ty--) {
+      for (let tx = tx0; tx <= tx1; tx++) {
+        const key = `${tx}|${ty}`;
+        let tile = this.tiles.get(key);
+        if (!tile) {
+          tile = { key, tx, x: 0, y: ty * tileSize, canvas: this.canvas(), painted: -1, used: 0, placed: false };
+          this.tiles.set(key, tile);
+        }
+        tile.x = tx * tileSize - margin;
+        tile.used = this.clock;
+        if (tile.painted === this.version && !tile.part) continue;
+        if (painted === 2) {
+          this.warming = window.setTimeout(() => this.warm(id, inBox), 40);
+          return;
+        }
+        this.paint(tile, content, state);
+        painted++;
+      }
+    }
+  }
+
   /** Keep only as many canvases as a phone can spare, beyond those `wanted`: the longest unused go first. */
   private keep(wanted: Set<string>) {
     // The tiles wanted on the layer Safari keeps the pictures of, and the rest off it.
@@ -1709,6 +1969,8 @@ export class TileView {
       overlay: content.overlay,
       colours: content.colours,
       ratio: this.ratio,
+      // Put in the ruler instead: see placeRuler.
+      numbers: !this.rulered(content),
     };
   }
 
@@ -1719,6 +1981,7 @@ export class TileView {
    */
   private shiftLayer(x: number, y: number) {
     this.drawn = { x, y };
+    const strip = this.ruler?.parentElement;
     if (this.slider) {
       // Where it is now, under the keyframes: what shows when the box can't be scrolled that way, and its timeline is idle.
       for (const element of [this.layer, this.afloat]) {
@@ -1726,9 +1989,16 @@ export class TileView {
         element.style.translate = x ? `${x}px 0px` : "";
         element.style.transform = y ? `translateY(${y}px)` : "";
       }
+      // And the ruler's strip, at the box's edge across and down with the layer: see rulerAt.
+      if (strip && this.content) {
+        strip.style.translate = `${this.rulerAt(this.scrolledTo().left)}px 0px`;
+        strip.style.transform = y ? `translateY(${y}px)` : "";
+      }
       this.slideWithScroll();
       return;
     }
+    // Pinned to the box's edge by the browser (see .chart-ruler), the ruler goes down with the layer.
+    if (this.ruler) this.ruler.style.transform = y ? `translateY(${y}px)` : "";
     const transform = x || y ? `translate(${x}px, ${y}px)` : "";
     this.layer.style.transform = transform;
     if (this.afloat) this.afloat.style.transform = transform;
@@ -1771,6 +2041,16 @@ export class TileView {
       const across = element.animate(still, { timeline: slider.across, fill: "both" } as KeyframeAnimationOptions);
       const down = element.animate([{ transform: "none" }, { transform: "none" }], { timeline: slider.down, fill: "both" } as KeyframeAnimationOptions);
       slider.moved.set(element, [across, down]);
+      slider.made = {};
+    }
+    const strip = this.ruler?.parentElement;
+    if (strip && slider.ruler?.strip !== strip) {
+      const still = [{ translate: "0px 0px" }, { translate: "0px 0px" }];
+      const across = strip.animate(still, { timeline: slider.across, fill: "both" } as KeyframeAnimationOptions);
+      const down = strip.animate([{ transform: "none" }, { transform: "none" }], { timeline: slider.down, fill: "both" } as KeyframeAnimationOptions);
+      slider.ruler = { strip, across, down };
+      // Slid by the browser rather than pinned: see .chart-ruler-slid.
+      strip.parentElement?.classList.add("chart-ruler-slid");
       slider.made = {};
     }
     const box = this.scroller;
@@ -1864,6 +2144,20 @@ export class TileView {
           });
       }
       for (const animations of slider.moved.values()) (animations[index].effect as KeyframeEffect).setKeyframes(frames);
+      if (slider.ruler) {
+        /*
+         * The ruler's strip goes down with the layer; across, it goes as the
+         * box scrolls, a pixel for a pixel, to stay at its right-hand edge:
+         * from one end of the scroll to the other, all in a line.
+         */
+        const keyframes =
+          name === "down"
+            ? frames
+            : [lowest, highest]
+                .map((at) => ({ offset: highest - lowest > 1 ? progress(at, range) : 0, translate: `${this.rulerAt(at)}px 0px` }))
+                .sort((a, b) => a.offset - b.offset);
+        (slider.ruler[name].effect as KeyframeEffect).setKeyframes(keyframes);
+      }
       slider.made[name] = { key, from, to, easing };
     }
   }
@@ -1883,9 +2177,10 @@ export class TileView {
     return this.drawn;
   }
 
-  /** The outline round the stitch to be worked next, on the layer with the tiles. */
+  /** The outline round the stitch to be worked next, on the layer with the tiles: followed, or only marked. */
   private placeNext(content: TileContent) {
-    const at = content.follow === undefined ? undefined : this.placeOnLayer(content.follow);
+    const next = content.follow ?? content.mark;
+    const at = next === undefined ? undefined : this.placeOnLayer(next);
     this.next.hidden = !at;
     if (!at) return;
     const style = this.next.style;
@@ -1893,6 +2188,114 @@ export class TileView {
     style.top = `${at.y - 1}px`;
     style.width = `${at.width + 2}px`;
     style.height = `${at.height + 2}px`;
+  }
+
+  /**
+   * Where across the sheet the ruler's strip goes, slid with the box's
+   * scroll by the browser (see slideWithScroll), with the box scrolled
+   * `left` along: its right-hand edge at the box's, inside its padding. At
+   * the chart's own right-hand edge, the strip is the gutter.
+   */
+  private rulerAt(left: number): number {
+    const box = this.scroller;
+    if (this.rulerPad === undefined) this.rulerPad = parseFloat(getComputedStyle(box).paddingRight) || 0;
+    return left - this.sheet.offsetLeft + box.clientWidth - this.rulerPad - gutter(this.content!.cell);
+  }
+
+  /** Whether the round numbers are put in the ruler, and not painted: not where the gutter has strips of its own, painted with the numbers as before. */
+  private rulered(content: TileContent): boolean {
+    return !!this.ruler && !content.overlay?.strips?.length;
+  }
+
+  /**
+   * The round numbers put in the ruler, each beside its row as the rows are
+   * drawn now. Painted beside column 1, they were out of sight but for a
+   * round's first stitches: scrolled along a round, or up the chart to see
+   * what is coming, which round was which could not be seen. The ruler is
+   * as wide as the gutter, and at the chart's right-hand edge it is the
+   * gutter, each number where it was painted; anywhere else, it is pinned to
+   * the box's edge (see .chart-ruler), each number on a tag of the chart's
+   * paper. Put again only when the rows or the cell size change, or the
+   * chart: as rows ease, every frame, the layer's own shift down carrying
+   * it otherwise (see slideWithScroll).
+   */
+  private placeRuler(content: TileContent) {
+    const ruler = this.ruler;
+    if (!ruler) return;
+    const on = this.rulered(content);
+    const { cell, scene } = content;
+    const places = this.rows.places;
+    const strip = ruler.parentElement;
+    const was = this.rulerFor;
+    if (was && was.on === on && was.places === places && was.cell === cell && was.scene === scene) return;
+    this.rulerFor = { on, places, cell, scene };
+    if (strip) {
+      strip.hidden = !on;
+      if (was?.cell !== cell) {
+        strip.style.setProperty("--ruler-width", `${gutter(cell)}px`);
+        strip.style.setProperty("--ruler-inset", `${numberInset(cell)}px`);
+        strip.style.setProperty("--ruler-size", `${numberSize(cell)}px`);
+      }
+    }
+    const rows = on ? roundNumbers(scene, cell, places.start, places.size) : [];
+    const kept = new Set(rows);
+    for (const [row, label] of this.rulerLabels) {
+      if (kept.has(row)) continue;
+      label.remove();
+      this.rulerLabels.delete(row);
+    }
+    for (const row of rows) {
+      let label = this.rulerLabels.get(row);
+      if (!label) {
+        label = document.createElement("span");
+        label.textContent = String(row);
+        ruler.appendChild(label);
+        this.rulerLabels.set(row, label);
+      }
+      // Moved, not laid out again: the middle of its row.
+      label.style.translate = `0px ${places.start[row] + places.size[row] / 2}px`;
+    }
+  }
+
+  /**
+   * Whether the stitch being followed has been left out of sight - scrolled
+   * away from, or zoomed away from, to look along the chart - and which way
+   * it is: see onAway. Only once the box has come to rest, so that a scroll
+   * on its way somewhere, or one passing the stitch by, never says so; and
+   * not while the box is being sent to the stitch, which brings it back. In
+   * sight again, or the box sent to it, that is said at once.
+   */
+  private lookForFollow(time: number) {
+    const follow = this.content?.follow;
+    clearTimeout(this.awayLook);
+    if (!this.onAway) {
+      this.away = undefined;
+      return;
+    }
+    const sent = this.target !== undefined || this.glide !== undefined;
+    if (follow === undefined || sent || this.followShowing()) return this.tellAway(undefined);
+    const since = time - Math.max(this.movedAt, this.madeAt);
+    if (this.touching || this.columns.moving || this.rows.moving || since < settling) {
+      // Looked at again once the box has had time to come to rest; a finger still down looks again itself when it lifts.
+      if (!this.touching) this.awayLook = window.setTimeout(() => this.schedule(), Math.max(settling - since, 0) + 16);
+      return;
+    }
+    const { scene } = this.content!;
+    const column = scene.columnOf[follow];
+    const row = scene.rowOf[follow];
+    if (!row) return this.tellAway(undefined);
+    // From the middle of the box to the middle of the stitch's cell, or where it would open, closed up.
+    const view = this.showing();
+    const x = this.columns.places.start[column] + this.columns.places.size[column] / 2 - (view.x + view.width / 2);
+    const y = this.rows.places.start[row] + this.rows.places.size[row] / 2 - (view.y + view.height / 2);
+    const eighth = Math.round(Math.atan2(y, x) / (Math.PI / 4));
+    this.tellAway((((eighth * 45) % 360) + 360) % 360);
+  }
+
+  private tellAway(towards: number | undefined) {
+    if (towards === this.away) return;
+    this.away = towards;
+    this.onAway?.(towards);
   }
 
   /** Where a stitch's cell is drawn, from the chart's own top left: nowhere while its column or row is closed up. */
@@ -1912,34 +2315,53 @@ export class TileView {
   /**
    * For the scroll harness: how many of the tiles taken to show the chart as
    * it is now do not - each painted afresh on a spare canvas and the two
-   * compared, a pixel in every few. None should: a tile left as it was is
-   * one no line before it moved for.
+   * compared. None should: a tile left as it was is one no line before it
+   * moved for.
+   *
+   * What a stale tile shows is the chart as it was: whole cells in another
+   * colour, or another cell where one should be. So a tile is wrong where a
+   * square two pixels a side differs throughout - never where only the
+   * edges of its letters do, as they may between a canvas drawn on the
+   * screen and one drawn aside: on a Mac the round numbers are drawn a
+   * shade bolder on the one than the other, the chart the same.
    */
   audit(): { tiles: number; wrong: number; which: string[] } {
     const content = this.content;
     if (!content) return { tiles: 0, wrong: 0, which: [] };
     const state = this.stateFor(content);
     const spare = document.createElement("canvas");
+    const side = Math.max(4, Math.round(this.ratio * 2));
     let tiles = 0;
     let wrong = 0;
     const which: string[] = [];
     for (const tile of this.tiles.values()) {
       if (tile.painted !== this.version || tile.part) continue;
       tiles++;
-      spare.width = tile.canvas.width;
-      spare.height = tile.canvas.height;
+      const { width, height } = tile.canvas;
+      spare.width = width;
+      spare.height = height;
       const ctx = spare.getContext("2d", { alpha: false });
       const own = tile.canvas.getContext("2d", { alpha: false });
       if (!ctx || !own) continue;
       ctx.setTransform(this.ratio, 0, 0, this.ratio, -tile.x * this.ratio, -tile.y * this.ratio);
       paintRegion(ctx, { x: tile.x, y: tile.y, width: tileSize, height: tileSize }, content.scene, state);
-      const a = own.getImageData(0, 0, spare.width, spare.height).data;
-      const b = ctx.getImageData(0, 0, spare.width, spare.height).data;
-      for (let k = 0; k < a.length; k += 4 * 7) {
-        if (Math.abs(a[k] - b[k]) + Math.abs(a[k + 1] - b[k + 1]) + Math.abs(a[k + 2] - b[k + 2]) > 24) {
-          wrong++;
-          which.push(tile.key);
-          break;
+      const a = own.getImageData(0, 0, width, height).data;
+      const b = ctx.getImageData(0, 0, width, height).data;
+      const differs = (x: number, y: number) => {
+        const k = (y * width + x) * 4;
+        return Math.abs(a[k] - b[k]) + Math.abs(a[k + 1] - b[k + 1]) + Math.abs(a[k + 2] - b[k + 2]) > 24;
+      };
+      const throughout = (x: number, y: number) => {
+        for (let dy = 0; dy < side; dy++) for (let dx = 0; dx < side; dx++) if (!differs(x + dx, y + dy)) return false;
+        return true;
+      };
+      search: for (let y = 0; y + side <= height; y += side) {
+        for (let x = 0; x + side <= width; x += side) {
+          if (differs(x, y) && throughout(x, y)) {
+            wrong++;
+            which.push(tile.key);
+            break search;
+          }
         }
       }
     }
@@ -2483,6 +2905,10 @@ export class TileView {
     const views = registry();
     if (views?.includes(this)) views.splice(views.indexOf(this), 1);
     cancelAnimationFrame(this.frame);
+    clearTimeout(this.awayLook);
+    clearTimeout(this.warming);
+    // Whatever shows the way back is told there is none, rather than left showing it for a view that is gone.
+    this.tellAway(undefined);
     this.scroller.removeEventListener("scroll", this.onScroll);
     this.scroller.removeEventListener("wheel", this.onScroll);
     this.scroller.removeEventListener("touchstart", this.onTouch);
@@ -2498,6 +2924,14 @@ export class TileView {
       canvas.remove();
     }
     this.layer.remove();
+    // The ruler is the page's, and may be given to the next view: its numbers are this one's.
+    for (const label of this.rulerLabels.values()) label.remove();
+    this.rulerLabels.clear();
+    if (this.slider?.ruler) {
+      this.slider.ruler.across.cancel();
+      this.slider.ruler.down.cancel();
+      this.slider.ruler.strip.parentElement?.classList.remove("chart-ruler-slid");
+    }
     this.tiles.clear();
     this.spare = [];
   }

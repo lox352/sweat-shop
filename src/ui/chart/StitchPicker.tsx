@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useReducer, useRef } from "react";
 import { Stitch } from "../../pattern/Stitch";
 import { ChartLayout } from "../../reading/layout";
 import { progressBefore } from "../../reading/jump";
@@ -10,8 +10,11 @@ import { HatchSwatch, OnHoldSwatch, Swatch, hatchSaying } from "./ChartHelp";
 const bubbleWidth = 236;
 /** Wider when it also explains the stitch. */
 const explainingWidth = 272;
-/** Room enough over a stitch for the bubble, in the part of the chart on screen: plain, explaining its stitch, and saying what its hatching or hold is. */
+/** Room enough over a stitch for the bubble, in the part of the chart on screen: plain, explaining its stitch, and saying what its hatching or hold is. Its first guess: see below. */
 const roomAbove = { plain: 230, explaining: 300, saying: 390 };
+/** Between the bubble and its stitch, and the least of it to show where there is no room for it all. */
+const gap = 8;
+const least = 120;
 
 /**
  * The bubble over a stitch tapped on the chart, offering to carry on from it.
@@ -56,15 +59,26 @@ const StitchPicker: React.FC<{
   /** And how wide the chart's sheet is then, and how far along it what floats over the tiles is put. */
   chartWidth: number;
   along: number;
-  /** The part of the chart on screen, as the stitch is picked, in what the stitch is placed on. */
-  box?: () => { left: number; right: number; top: number } | undefined;
+  /** The part of the chart on screen, as the stitch is picked, in what the stitch is placed on: as far down as can be seen of it. */
+  box?: () => { left: number; right: number; top: number; bottom: number } | undefined;
 }> = ({ id, stitches, rounds, layout, cell, progress, onJump, onClose, entry, yarn, labels, names, otherFace, onHold, note, place, chartWidth, along, box }) => {
   /*
    * A stitch picked near the edge of the screen has its bubble moved in, to
    * be whole on screen: by so much, found once as it is picked and kept, so
    * that it stays beside its stitch as the chart slides under a finger.
    */
-  const moved = useRef<{ id: number; across: number; below: boolean }>();
+  const moved = useRef<{ id: number; across: number; below: boolean; measured?: boolean; tallest?: number }>();
+  /*
+   * Which side it goes, first guessed from what it says (see roomAbove), is
+   * then found from how tall it turns out, before it is seen: one saying
+   * what a hatched stitch is runs to ten lines on a phone, and above a
+   * stitch with room for its guess, its head - where the stitch is, the
+   * round and stitch to be knitted up to - was cut off by the top of the
+   * chart. It goes where there is room for it all; where there is none
+   * either side, where there is most, scrolling within itself from its head.
+   */
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  const [, measured] = useReducer((count: number) => count + 1, 0);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -72,6 +86,33 @@ const StitchPicker: React.FC<{
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  useLayoutEffect(() => {
+    const kept = moved.current;
+    const bubble = bubbleRef.current;
+    const seen = box?.();
+    const spot = place(id);
+    if (!kept || kept.id !== id || kept.measured || !bubble || !seen || !spot) return;
+    kept.measured = true;
+    /*
+     * The way to carry on from the stitch has the focus, for a key or a
+     * screen reader, but without scrolling to it: a focus scrolls the chart
+     * to show what has it, and the bubble's button, where it first went past
+     * the foot of the box, took the chart up 174 pixels and the bubble's
+     * head off the top. The bubble scrolls to it itself, where it must.
+     */
+    bubble.querySelector<HTMLButtonElement>(".btn-primary")?.focus({ preventScroll: true });
+    const height = bubble.offsetHeight;
+    const above = spot.y - gap - seen.top;
+    const beneath = seen.bottom - (spot.y + cell + gap);
+    const below = height <= above ? false : height <= beneath ? true : beneath > above;
+    const tallest = height <= Math.max(above, beneath) ? undefined : Math.max(below ? beneath : above, least);
+    if (below !== kept.below || tallest !== kept.tallest) {
+      kept.below = below;
+      kept.tallest = tallest;
+      measured();
+    }
+  });
 
   const at = layout.cells.get(id);
   if (!at) return null;
@@ -98,7 +139,8 @@ const StitchPicker: React.FC<{
     Math.max(width - bubble - 4, 4) - along,
   );
   // Above the stitch, unless that would run off the top of the chart, or of what is on screen of it.
-  const below = y < 96 || moved.current.below;
+  const below = moved.current.measured ? moved.current.below : y < 96 || moved.current.below;
+  const tallest = moved.current.tallest;
   const here = target === progress;
 
   return (
@@ -109,15 +151,17 @@ const StitchPicker: React.FC<{
         aria-hidden="true"
       />
       <div
-        className={`stitch-picker${below ? " stitch-picker-below" : ""}`}
+        ref={bubbleRef}
+        className={`stitch-picker${below ? " stitch-picker-below" : ""}${tallest !== undefined ? " stitch-picker-scrolls" : ""}`}
         role="dialog"
         aria-label={where}
         style={{
           left,
           width: bubble,
           // Above, it hangs from the stitch's top: the chart's height changes as its rows close up.
-          top: below ? y + cell + 8 : y - 8,
+          top: below ? y + cell + gap : y - gap,
           transform: below ? undefined : "translateY(-100%)",
+          ...(tallest !== undefined ? { maxHeight: tallest, overflowY: "auto" as const } : {}),
         }}
         onClick={(event) => event.stopPropagation()}
       >
@@ -186,7 +230,6 @@ const StitchPicker: React.FC<{
         ) : (
           <Button
             variant="primary"
-            autoFocus
             onClick={() => {
               onJump(target);
               onClose();

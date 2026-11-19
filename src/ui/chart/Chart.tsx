@@ -1,17 +1,17 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { Stitch, isStep } from "../../pattern/Stitch";
-import { type ChartLayout, layOutSweater, mirrorLayout } from "../../reading/layout";
+import { type ChartLayout, layOutSweater } from "../../reading/layout";
 import { scrollAcross } from "./scroll-corner";
 import type { MarkerLine } from "../../reading/view";
 import type { RoundKind } from "../../pattern/rounds";
 import { Palette, yarnFor } from "../../reading/palette";
 import ChartTiles, { type TilesHandle } from "./ChartTiles";
 import ChartNotes from "./ChartNotes";
-import { sceneOf } from "./chart-scene";
+import { sceneFor } from "./view-scene";
 import { type ChartOverlay, defaultColours, leftMargin } from "./chart-painter";
 import { StitchLegend, TextRound } from "./ChartHelp";
-import { faceAfter, holdsIn, joinIn, needleChangesIn, otherFaceRows, turnsIn } from "./chart-marks";
+import { faceAfter, otherFaceRows } from "./chart-marks";
 import { type HoldRegion, onHoldAt } from "../../reading/holds";
 import StitchPicker from "./StitchPicker";
 import { keyEntryAt } from "../../reading/stitch-key";
@@ -20,7 +20,8 @@ import type { Design } from "../../pattern/design";
 import { usePinchZoom } from "./usePinchZoom";
 import { Glide } from "./glide";
 import { scrollModes } from "./scroll-modes";
-import { leastCell, minCell, stepCell } from "./zoom";
+import { leastCell, maxCell, minCell, stepCell } from "./zoom";
+import Button from "../components/ui/Button";
 import "./Chart.css";
 
 /**
@@ -35,6 +36,33 @@ const lift = (showing: number, cell: number, share = 0.25) => Math.max(clearance
 
 const reducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/*
+ * The size of stitch the knitter last left the chart at, kept on this
+ * device, so that the chart opens at it again rather than at the size it
+ * starts at: a knitter who reads it larger, or smaller, set it so every
+ * time they opened it. Only a size a stitch is drawn at whole - its rules
+ * and symbol - is kept: zoomed out past that, to see the whole of a round,
+ * is a look, not a way to knit from, and the chart opens at the size before.
+ */
+const zoomKey = "chartZoom";
+const startingZoom = 16;
+const keptZoom = (): number => {
+  try {
+    const kept = Number(localStorage.getItem(zoomKey));
+    return Number.isInteger(kept) && kept >= minCell && kept <= maxCell ? kept : startingZoom;
+  } catch {
+    return startingZoom;
+  }
+};
+const keepZoom = (cell: number) => {
+  if (cell < minCell) return;
+  try {
+    localStorage.setItem(zoomKey, String(Math.round(cell)));
+  } catch {
+    // Still at that size for this visit; it just won't be remembered.
+  }
+};
 
 /**
  * A colour from the stylesheet, so the canvas is painted in the same palette
@@ -144,7 +172,7 @@ const Chart: React.FC<ChartProps> = ({
   const [picked, setPicked] = useState<number>();
   const makeOneLean = stitchNotes?.m1?.lean;
   const closePicker = useCallback(() => setPicked(undefined), []);
-  const [zoom, setZoom] = useState(16);
+  const [zoom, setZoom] = useState(keptZoom);
   const { highContrast: contrast, writtenRounds } = useSettings();
   const [textRound, setTextRound] = useState(1);
   const [showText, setShowText] = useState(false);
@@ -170,6 +198,7 @@ const Chart: React.FC<ChartProps> = ({
   const zoomTo = useCallback((cell: number) => {
     fitted.current = cell <= least();
     setZoom(cell);
+    keepZoom(cell);
   }, [least]);
   /*
    * The tiles, where the columns and rows are closed up: where a stitch is
@@ -195,13 +224,30 @@ const Chart: React.FC<ChartProps> = ({
    * hold part way round, a change of needles - it is the stitch after the
    * step: a step has no cell to mark, and the knitting goes on from there.
    */
-  const nextId = useMemo(() => {
-    if (showAt !== undefined) return showAt;
-    if (!follow) return undefined;
+  const here = useMemo(() => {
     let id = progress + 1;
     while (stitches[id] && isStep(stitches[id])) id++;
     return id;
-  }, [follow, progress, stitches, showAt]);
+  }, [progress, stitches]);
+  /*
+   * The stitch the chart goes to and keeps in view: the next to be worked,
+   * while it is knitted, or one it is asked to show. Looked around and not
+   * knitted, the next stitch is only marked, so that where the knitting has
+   * got to is never lost from the chart (see TileView's mark).
+   */
+  const nextId = showAt ?? (follow ? here : undefined);
+  /*
+   * Scrolled away from the stitch being worked, to look along the chart, the
+   * way back to it without knitting on: a tap knits a run, and the next is
+   * aimed at, but the chart may be wanted at the stitch before then. Which
+   * way it is, while it is out of sight: see TileView.onAway. Only for the
+   * knitting: a stitch the chart is asked to show is not one to go back to.
+   */
+  const backable = follow && showAt === undefined && !onPick;
+  const [away, setAway] = useState<number>();
+  useEffect(() => {
+    if (!backable) setAway(undefined);
+  }, [backable]);
 
   /*
    * The whole sweater, every stitch over the stitch it was worked into: the
@@ -225,22 +271,24 @@ const Chart: React.FC<ChartProps> = ({
     [stitches],
   );
   const face = faceAfter(turnIds, progress);
-  const layout = useMemo(() => (face === "wrong" ? mirrorLayout(laid) : laid), [laid, face]);
   /*
-   * Turned over with it: the line to the left of a column, to the left of
-   * the column on its other side - row by row too, as each row's stretch is
-   * drawn where its route says.
+   * Turned over with it - the line to the left of a column, to the left of
+   * the column on its other side, row by row too - and every stitch drawn as
+   * it looks from there, with the steps and the marks on it: made once for
+   * the view and the side it is seen from, however many times the chart is
+   * made for it (see sceneFor).
    */
-  const markerLines = useMemo(
-    () =>
-      face === "wrong"
-        ? (markers ?? []).map((line) => ({
-            ...line,
-            after: laid.columns - line.after,
-            route: line.route.map((row) => ({ ...row, after: laid.columns - row.after })),
-          }))
-        : (markers ?? []),
-    [markers, face, laid.columns],
+  const {
+    layout,
+    scene,
+    markers: markerLines,
+    needles,
+    join,
+    holds,
+    turns,
+  } = useMemo(
+    () => sceneFor(laid, { stitches, rounds, face, makeOneLean, markers, names, pieces, holdRegions }),
+    [laid, stitches, rounds, face, makeOneLean, markers, names, pieces, holdRegions],
   );
   /*
    * And every stitch is drawn as it looks from the side shown: from the right
@@ -261,26 +309,6 @@ const Chart: React.FC<ChartProps> = ({
     return (holdRegions ?? []).filter((region) => now.has(region.heldAt));
   }, [holdRegions, heldNow]);
   const onHoldSets = useMemo(() => onHold.map((region) => region.region), [onHold]);
-  const needles = useMemo(() => needleChangesIn(stitches, rounds, names), [stitches, rounds, names]);
-  // Each drawn across its own piece, between the rows either side of it; held stitches taken up onto other needles are not.
-  const needleRules = useMemo(
-    () =>
-      needles.filter((change) => !change.takeUp).map((change) => ({
-        after: laid.roundRows[change.after - 1] ?? change.after,
-        piece: laid.cells.get(rounds[change.after - 1]?.[0] ?? -1)?.piece ?? "",
-      })),
-    [needles, laid, rounds],
-  );
-  const join = useMemo(() => joinIn(stitches, rounds), [stitches, rounds]);
-  const holds = useMemo(() => holdsIn(stitches, rounds, pieces), [stitches, rounds, pieces]);
-  const turns = useMemo(() => turnsIn(stitches, rounds), [stitches, rounds]);
-  // Every stitch a holder takes, marked where it is: in the views that show it rather than the bar.
-  const held = useMemo(() => (holdRegions ?? []).flatMap((region) => region.stitches), [holdRegions]);
-
-  const scene = useMemo(
-    () => sceneOf(layout, stitches, rounds, { needleRules, join, holds, held, turns, face, makeOneLean, markers: markerLines }),
-    [layout, stitches, rounds, needleRules, join, holds, held, turns, face, makeOneLean, markerLines],
-  );
   leastRef.current = () => {
     const box = scrollRef.current;
     if (!box) return minCell;
@@ -301,6 +329,23 @@ const Chart: React.FC<ChartProps> = ({
     watch.observe(box);
     return () => watch.disconnect();
   }, [least]);
+  /*
+   * The words and figures on the chart - its round numbers, a yarn's number -
+   * are drawn in the page's own face. Painted before that face has arrived,
+   * a tile draws them in another and is never painted again, as nothing it
+   * shows has changed: so once the faces still on their way have arrived,
+   * the chart is painted afresh.
+   */
+  const [facesIn, faceArrived] = useReducer((count: number) => count + 1, 0);
+  useEffect(() => {
+    const faces = typeof document === "undefined" ? undefined : document.fonts;
+    if (!faces || faces.status === "loaded") return;
+    let live = true;
+    faces.ready.then(() => live && faceArrived());
+    return () => {
+      live = false;
+    };
+  }, []);
   const colours = useMemo(
     () => ({
       ...defaultColours,
@@ -310,7 +355,9 @@ const Chart: React.FC<ChartProps> = ({
       faint: token("--ink-faint", defaultColours.faint),
       font: token("--body", defaultColours.font),
     }),
-    [],
+    // A new object each time a face arrives: see facesIn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [facesIn],
   );
 
   /*
@@ -319,12 +366,28 @@ const Chart: React.FC<ChartProps> = ({
    * where it sits.
    */
   const opened = useRef(false);
+  /*
+   * Looked around part way through, though, it opens where the knitting has
+   * got to, as the knitting does: the next stitch in the middle across, its
+   * round a little up from the foot. Coming back to the chart is coming back
+   * to your place in it, not to the cast-on, however far up you are.
+   */
+  const openAt = nextId === undefined && !onPick && progress > 0 && layout.cells.has(here) ? here : undefined;
   useEffect(() => {
     const scroller = scrollRef.current;
     if (!scroller || opened.current) return;
     opened.current = true;
     scroller.scrollLeft = scrollAcross(scroller)[1];
     scroller.scrollTop = scroller.scrollHeight;
+    const sheet = sheetRef.current;
+    if (openAt === undefined || !sheet) return;
+    const cell = cellNow.current;
+    const inBox = { x: scroller.clientWidth / 2 - cell / 2, y: scroller.clientHeight - lift(scroller.clientHeight, cell) - cell };
+    const placed = tilesRef.current?.jumpTo(openAt, inBox);
+    if (!placed) return;
+    scroller.scrollTo({ left: sheet.offsetLeft + placed.x - inBox.x, top: Math.max(placed.y - inBox.y, 0), behavior: "instant" });
+    // Once, as it opens: see opened.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const at = nextId === undefined ? undefined : layout.cells.get(nextId);
@@ -479,6 +542,32 @@ const Chart: React.FC<ChartProps> = ({
     aim(reducedMotion() || aimedOn.current !== layout ? "auto" : "smooth", afresh);
     aimedOn.current = layout;
   }, [aim, at, layout]);
+  /*
+   * The next round's beginning, painted ahead a moment after each stitch,
+   * while the knitting is along this one: going on to it is going to the
+   * chart's far side, all of it to paint in the frame the box gets there,
+   * after the tap that ends a round. See TileView.warm. Only where the
+   * knitting is done: the jumper's page's window of the chart, following
+   * the stitch too, never goes on to the next round while it is open.
+   */
+  const nextRound = useMemo(() => {
+    if (!backable || !onJump) return undefined;
+    const round = layout.cells.get(here)?.round;
+    let id = round === undefined ? undefined : rounds[round]?.[0];
+    while (id !== undefined && stitches[id] && isStep(stitches[id])) id++;
+    return id !== undefined && layout.cells.has(id) ? id : undefined;
+  }, [backable, onJump, layout, here, rounds, stitches]);
+  useEffect(() => {
+    if (nextRound === undefined) return;
+    const warm = setTimeout(() => {
+      const scroller = scrollRef.current;
+      if (!scroller) return;
+      const cell = cellNow.current;
+      tilesRef.current?.warm(nextRound, { x: scroller.clientWidth / 2 - cell / 2, y: scroller.clientHeight - lift(scroller.clientHeight, cell, followAt) - cell });
+    }, 900);
+    return () => clearTimeout(warm);
+  }, [nextRound, progress, followAt]);
+
   /*
    * When the knitting stops, the box is no longer being sent anywhere: the
    * stitch it was sent to is let go of at once, not at rest, so that columns
@@ -653,11 +742,13 @@ const Chart: React.FC<ChartProps> = ({
             colours={colours}
             margin={leftMargin(cellSize)}
             follow={nextId}
+            mark={nextId === undefined && !onPick ? here : undefined}
             collapse
             // Placed again in the same frame as the tiles, or it would lag them a frame as lines open and close.
             onMove={picked !== undefined ? (now) => (now ? flushSync(moved) : moved()) : undefined}
             onTargetMoved={targetMoved}
             onAim={aimMoved}
+            onAway={backable ? setAway : undefined}
           >
             {picked !== undefined && (
               <StitchPicker
@@ -669,7 +760,15 @@ const Chart: React.FC<ChartProps> = ({
                   const sheet = sheetRef.current?.getBoundingClientRect();
                   const shift = tilesRef.current?.afloatShift();
                   if (!scroller || !sheet || !shift) return undefined;
-                  return { left: scroller.left - sheet.left - shift.x, right: scroller.right - sheet.left - shift.x, top: scroller.top - sheet.top - shift.y };
+                  // As far up and down as can be seen: inside the box, the sheet - what floats over it is cut off at its edges - and the window.
+                  const top = Math.max(scroller.top, sheet.top, 0);
+                  const bottom = Math.min(scroller.bottom, sheet.bottom, window.innerHeight);
+                  return {
+                    left: scroller.left - sheet.left - shift.x,
+                    right: scroller.right - sheet.left - shift.x,
+                    top: top - sheet.top - shift.y,
+                    bottom: bottom - sheet.top - shift.y,
+                  };
                 }}
                 note={pickerNote?.(picked)}
                 entry={keyEntryAt(stitches, picked, stitchNotes, face)}
@@ -700,6 +799,22 @@ const Chart: React.FC<ChartProps> = ({
           </ChartTiles>
         </div>
       </div>
+      {backable && away !== undefined && (
+        <Button
+          variant="secondary"
+          className="chart-back"
+          onClick={() => {
+            setAway(undefined);
+            aim(reducedMotion() ? "auto" : "smooth");
+          }}
+        >
+          {/* An arrow drawn pointing right, turned to point the way the stitch is. */}
+          <svg className="chart-back-arrow" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style={{ transform: `rotate(${away}deg)` }}>
+            <path d="M2.5 8h10M8.5 4l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Back to your stitch
+        </Button>
+      )}
       <StitchLegend stitches={stitches} notes={stitchNotes} needles={needles} holds={holds} turns={turns} face={face} />
       {writtenRounds && <details className="chart-help" onToggle={e => setShowText(e.currentTarget.open)}>
         <summary>Text round instructions</summary>

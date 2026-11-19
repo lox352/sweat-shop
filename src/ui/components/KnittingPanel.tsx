@@ -15,7 +15,7 @@ import {
 } from "../../reading/progress";
 import { Palette, inkOn, yarnFor } from "../../reading/palette";
 import Button from "./ui/Button";
-import { KeyEntry, keyEntryAt, stitchKey } from "../../reading/stitch-key";
+import { KeyEntry, keyEntryAt, keyRank } from "../../reading/stitch-key";
 import { HowTo, NeedlesSwatch, Swatch as StitchSwatch } from "../chart/ChartHelp";
 import type { StitchKeyId, StitchNote } from "../../pattern/design";
 import "./KnittingPanel.css";
@@ -53,8 +53,8 @@ const roundEntries = (
     const entry = keyEntryAt(stitches, id, notes);
     if (entry && entry.id !== "k1" && !seen.has(entry.id)) seen.set(entry.id, entry);
   });
-  const order = stitchKey(stitches, notes).map((entry) => entry.id);
-  return [...seen.values()].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+  // In the key's order, which is the same whatever the key holds: not the whole key worked out, every stitch of the sweater, to find it.
+  return [...seen.values()].sort((a, b) => keyRank(a.id) - keyRank(b.id));
 };
 
 /**

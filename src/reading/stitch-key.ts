@@ -391,7 +391,27 @@ const reverseIds: Record<ReverseStitch, true> = {
   pickUpPurl: true,
 };
 
-export const stitchKey = (stitches: Stitch[], notes: Notes = {}, view: KeyView = "worked"): KeyEntry[] => {
+/** Where an entry comes in the key, whatever else the key has in it: the key is always in this order. */
+export const keyRank = (id: KeyId): number => order.indexOf(id);
+
+/**
+ * The key, worked out once for a sweater's stitches, its notes and the side
+ * it is seen from, however many ask: the chart's own, made afresh with each
+ * view of the knitting, the full key, and the time spent on each stitch.
+ */
+const keys = new WeakMap<Stitch[], Map<string, { notes: Notes | undefined; entries: KeyEntry[] }>>();
+
+export const stitchKey = (stitches: Stitch[], notes?: Notes, view: KeyView = "worked"): KeyEntry[] => {
+  let byView = keys.get(stitches);
+  if (!byView) keys.set(stitches, (byView = new Map()));
+  const kept = byView.get(view);
+  if (kept && kept.notes === notes) return kept.entries;
+  const entries = keyOf(stitches, notes ?? {}, view);
+  byView.set(view, { notes, entries });
+  return entries;
+};
+
+const keyOf = (stitches: Stitch[], notes: Notes, view: KeyView): KeyEntry[] => {
   const used = new Set<KeyId>();
   let joinAt = -1;
   stitches.forEach((stitch, index) => {

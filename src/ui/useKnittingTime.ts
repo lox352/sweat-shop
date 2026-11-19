@@ -26,14 +26,18 @@ const rawLog = (projectId: string) => {
  * How long a project has taken and has left, kept up to date as its log
  * grows; undefined while there is nothing to say, or the knitter has asked
  * for no statistics.
+ *
+ * Without a project, undefined, and nothing read: while knitting, where it
+ * isn't shown, a log tens of thousands of rows long was otherwise read and
+ * summed again at every tap.
  */
 export const useKnittingTime = (
-  projectId: string,
+  projectId: string | undefined,
   stitches: Stitch[],
   progress: number,
 ): TimeSummary | undefined => {
   const { noStatistics } = useSettings();
-  const raw = useSyncExternalStore(subscribe, () => rawLog(projectId), () => "");
+  const raw = useSyncExternalStore(subscribe, () => (projectId ? rawLog(projectId) : ""), () => "");
   return useMemo(() => {
     if (noStatistics || !raw) return undefined;
     let rows: unknown;

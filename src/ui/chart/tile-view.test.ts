@@ -83,7 +83,7 @@ describe("the chart on tiles", () => {
     expect(container.querySelectorAll("canvas").length).toBe(0);
   });
 
-  it("repaints only the tiles across a stitch's row when it is worked, and all of them for a zoom", () => {
+  it("repaints only the tiles over a stitch when it is worked, and all of them for a zoom", () => {
     const { scroller, sheet, container } = box(300, 200);
     const view = new TileView(container, scroller, sheet);
     view.show(content());
@@ -91,19 +91,54 @@ describe("the chart on tiles", () => {
     // Nothing changed: nothing repainted.
     view.show(content());
     expect(painted).toEqual([]);
-    // A stitch of the top row is worked: the tiles across that row's band, which is the top row of tiles.
+    // A stitch of the top row is worked where the row begins, at the chart's right-hand edge, out of the box: nothing in it is repainted.
     const top = scene.index.id[scene.index.start[layout.rows]];
     view.show(content({ progress: top - 1 }));
     painted = [];
     view.show(content({ progress: top }));
-    expect(painted).toHaveLength(2);
-    expect(painted.every((at) => at.endsWith("|0"))).toBe(true);
+    expect(painted).toEqual([]);
+    // And where it ends, at the left, in the box: the tile over it, at the top, and not the one beside it along the row.
+    const end = scene.index.id[scene.index.start[layout.rows + 1] - 1];
+    view.show(content({ progress: end - 1 }));
+    painted = [];
+    view.show(content({ progress: end }));
+    expect(painted).toHaveLength(1);
+    expect(painted[0].endsWith("|0")).toBe(true);
     painted = [];
     // A zoom changes the room left of the chart too: every tile is painted from the chart's new left edge.
-    view.show(content({ progress: top, cell: 32, margin: 16 }));
+    view.show(content({ progress: end, cell: 32, margin: 16 }));
     expect(painted.length).toBe(container.querySelectorAll("canvas").length);
     expect(new Set(painted.map((at) => Number(at.split("|")[0])))).toEqual(new Set([16, 16 - tileSize]));
     view.destroy();
+  });
+
+  it("paints ahead what the box will show at a stitch far along, a couple of tiles at a time, and nothing twice", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const { scroller, sheet, container } = box(300, 200);
+    const view = new TileView(container, scroller, sheet);
+    view.show(content());
+    painted = [];
+    // Where the top row begins, at the chart's right-hand edge, far from the box at its left.
+    const far = scene.index.id[scene.index.start[layout.rows]];
+    view.warm(far, { x: 130, y: 80 });
+    expect(painted).toHaveLength(2);
+    vi.runAllTimers();
+    // From a box short of there - where the glide sets off - to there: a box and a half across at least, the top row of tiles first.
+    expect(painted.length).toBeGreaterThanOrEqual(3);
+    expect(painted[0].endsWith("|0")).toBe(true);
+    expect(new Set(painted).size).toBe(painted.length);
+    // Each then on the page, so that the box finds them there.
+    expect(container.querySelectorAll("canvas").length).toBeGreaterThanOrEqual(4 + painted.length - 2);
+    painted = [];
+    view.warm(far, { x: 130, y: 80 });
+    vi.runAllTimers();
+    expect(painted).toEqual([]);
+    // Near the box, there is nothing to paint ahead.
+    view.warm(scene.index.id[scene.index.start[layout.rows + 1] - 1], { x: 130, y: 80 });
+    vi.runAllTimers();
+    expect(painted).toEqual([]);
+    view.destroy();
+    vi.useRealTimers();
   });
 
   it("keeps the tiles near the box on the layer Safari keeps the pictures of, and puts none on the page unpainted", () => {
@@ -470,7 +505,7 @@ describe("the chart on tiles, closed up", () => {
     view.destroy();
   });
 
-  it("scrolled across from the right, holds the chart's left-hand edge at the far left, and never leaves an edge out of reach while columns change", () => {
+  it("scrolled across from the right, holds the chart's left-hand edge at the far left, never leaves blank paper past an edge while columns change, and has every edge in reach at rest", () => {
     const narrow = 6 * cell;
     const { scroller, sheet, container, writes, scrollTo, touch } = scrollingBox(narrow, 200);
     scroller.style.direction = "rtl";
@@ -510,15 +545,33 @@ describe("the chart on tiles, closed up", () => {
           if (inset === 0) expect(left(), `rows ${first} up, frame ${frame}`).toBeCloseTo(was, 6);
         }
         changed += Number(container.dataset.columnsShowing !== columns);
-        // Before rest, the finger still down, the box scrolled to either end of the sheet shows that edge of the chart.
+        /*
+         * Before rest, the finger still down, the box scrolled to either end
+         * of the sheet shows no blank paper past that edge of the chart. A
+         * block of columns opening beside the box is held off the screen,
+         * nothing in the box shoved along for it (see sendLines), and may
+         * leave the edge out of reach until rest; lines opening here and
+         * there leave it where the scroll puts it.
+         */
         scrollTo(narrow - (parseFloat(sheet.style.width) || 0), scroller.scrollTop);
         frames(1);
-        expect(left(), `rows ${first} up, at the left`).toBeCloseTo(0, 6);
+        expect(left(), `rows ${first} up, at the left`).toBeLessThan(1e-6);
         scrollTo(0, scroller.scrollTop);
         frames(1);
-        expect(right(), `rows ${first} up, at the right`).toBeCloseTo(0, 6);
+        expect(right(), `rows ${first} up, at the right`).toBeLessThan(1e-6);
         expect(writes.filter((write) => write.startsWith("left"))).toEqual([]);
+        // At rest, the sheet sized for the chart, either end of the scroll shows that edge.
         touch("touchend", 0);
+        now += 200;
+        view.update();
+        scrollTo(narrow - (parseFloat(sheet.style.width) || 0), scroller.scrollTop);
+        now += 200;
+        view.update();
+        expect(left(), `rows ${first} up, at rest, at the left`).toBeCloseTo(0, 6);
+        scrollTo(0, scroller.scrollTop);
+        now += 200;
+        view.update();
+        expect(right(), `rows ${first} up, at rest, at the right`).toBeCloseTo(0, 6);
       }
     }
     // Columns did open and close.

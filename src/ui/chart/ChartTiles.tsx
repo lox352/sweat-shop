@@ -25,6 +25,8 @@ export interface TilesHandle {
   glideTo(id: number, inBox: { x: number; y: number }, smooth: boolean): void;
   /** Stop such a glide where the box is. */
   stopGlide(): void;
+  /** Paint ahead the tiles the box will show with a stitch brought into it: see TileView.warm. */
+  warm(id: number, inBox: { x: number; y: number }): void;
   /** After a zoom, where the point zoomed about has got to on the sheet; see TileView.zoomedTo. */
   zoomedTo(x: number, y: number, screenX: number, screenY: number): { x: number; y: number } | undefined;
 }
@@ -36,6 +38,8 @@ interface ChartTilesProps extends TileContent {
   onTargetMoved?: (by: number) => void;
   /** Told where to send the box instead, for the stitch it is going to: see TileView.onAim. */
   onAim?: (to: { left: number; top: number }) => void;
+  /** Told which way the stitch being followed is, left out of sight, and when it is not: see TileView.onAway. */
+  onAway?: (towards: number | undefined) => void;
   /** What floats over the tiles, placed by placeAfloat, and carried with them as they slide. */
   children?: ReactNode;
 }
@@ -45,9 +49,10 @@ interface ChartTilesProps extends TileContent {
  * be worked next and, when asked, closes up the columns no row in view has a
  * stitch in and the rows no column on screen has.
  */
-const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetMoved, onAim, children, ...content }, ref) => {
+const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetMoved, onAim, onAway, children, ...content }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const afloatRef = useRef<HTMLDivElement>(null);
+  const rulerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<TileView>();
 
   /*
@@ -62,6 +67,7 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetM
     if (!container || !scroller || !sheet) return;
     const view = new TileView(container, scroller, sheet);
     view.afloat = afloatRef.current ?? undefined;
+    view.ruler = rulerRef.current ?? undefined;
     viewRef.current = view;
     return () => {
       view.destroy();
@@ -76,6 +82,7 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetM
     view.onMove = onMove;
     view.onTargetMoved = onTargetMoved;
     view.onAim = onAim;
+    view.onAway = onAway;
     view.show(content);
   });
 
@@ -91,12 +98,19 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetM
     aimTo: (id, inBox) => viewRef.current?.aimTo(id, inBox),
     glideTo: (id, inBox, smooth) => viewRef.current?.glideTo(id, inBox, smooth),
     stopGlide: () => viewRef.current?.stopGlide(),
+    warm: (id, inBox) => viewRef.current?.warm(id, inBox),
     zoomedTo: (x, y, screenX, screenY) => viewRef.current?.zoomedTo(x, y, screenX, screenY),
   }), []);
 
   return (
     <>
       <div ref={containerRef} className="chart-tiles" style={{ left: -content.margin, right: 0 }} aria-hidden="true" />
+      {/* The round numbers, down the right-hand edge of the box wherever it is along the chart: see TileView.ruler. */}
+      <div className="chart-ruler-track" aria-hidden="true">
+        <div className="chart-ruler">
+          <div ref={rulerRef} className="chart-ruler-rows" />
+        </div>
+      </div>
       {/* Clipped to the sheet, as the tiles are: see .chart-afloat-clip. */}
       <div className="chart-afloat-clip">
         <div ref={afloatRef} className="chart-afloat">

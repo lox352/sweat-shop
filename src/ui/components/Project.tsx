@@ -50,6 +50,7 @@ import { statsOverlay, type Layer } from "../chart/timing-overlay";
 import WoolList from "./WoolList";
 import { type Chosen } from "./Shades";
 import ViewTabs from "../chart/ViewTabs";
+import { sceneFor } from "../chart/view-scene";
 import ColourwayChoice from "./ColourwayChoice";
 import Customise from "./Customise";
 import { Schematic } from "./Schematic";
@@ -110,6 +111,9 @@ const LookBar: React.FC<{
  */
 /** How many changes Undo can step back through. */
 const undoLimit = 100;
+
+/** How near the knitting is to a view of the chart, in stitches, for it to be laid out ahead: a round or two of a yoke. */
+const aheadOfView = 1000;
 
 /** The panels of a jumper's page, under its stage. */
 const panels = ["progress", "wool", "fit"] as const;
@@ -409,6 +413,18 @@ const ProjectView: React.FC<{
   const chosen = !knitting ? views.find((one) => one.id === chosenView) : undefined;
   const shownView = chosen && chosen.id !== tabOf(knittingIn) ? chosen : knittingIn;
   const chart = shownView ? viewChart(built, counted, shownView) : { layout: counted.layout, markers: counted.markers };
+  /*
+   * The view the knitting comes to next, laid out ahead while it is near:
+   * a sleeve put on hold takes the chart to what is left on the needles, a
+   * view laid out for the first time as it is shown, and the tap that put
+   * it on hold took nearly two fifths of a second on a phone. Laid out a
+   * moment after a tap, while the stitches before it are knitted, and its
+   * chart made (see below), it is to hand then.
+   */
+  const nextView = useMemo(
+    () => (knitting ? views.filter((one) => one.begins > project.progress).sort((a, b) => a.begins - b.begins)[0] : undefined),
+    [knitting, views, project.progress],
+  );
   const makeOnes = useMemo(() => makeOnesAtMarkers({ stitches, knitting: built.knitting }), [stitches, built.knitting]);
   // The colourway as it is on this sweater: one that steps down the garment, placed where the project's own planning put its bands.
   const published = useMemo(() => sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0], [sweater, project.colourwayId]);
@@ -460,7 +476,8 @@ const ProjectView: React.FC<{
 
   const counts = totals(index, project.progress);
   const position = positionOf(stitches, project.progress, index);
-  const time = useKnittingTime(project.id, stitches, project.progress);
+  // Not while knitting, where it isn't shown: see useKnittingTime.
+  const time = useKnittingTime(view === "chart" && knitting ? undefined : project.id, stitches, project.progress);
 
   // Every view of the chart names each round as the knitting panel does.
   const names = useMemo(() => roundNames(index), [index]);
@@ -537,6 +554,26 @@ const ProjectView: React.FC<{
     [stitches],
   );
   const face = faceAfter(turnIds, project.progress);
+  /*
+   * And its chart made, as the chart will ask for it there: see sceneFor. So
+   * too, from the jumper's page, the chart of the view the knitting is in,
+   * which Keep knitting opens: the first time in a visit, it was made in
+   * the tap, half a second on a phone.
+   */
+  const makeOneLean = sweater.stitchNotes?.m1?.lean;
+  const ahead =
+    view === "overview" ? knittingIn : nextView && nextView.begins - project.progress <= aheadOfView ? nextView : undefined;
+  useEffect(() => {
+    if (!ahead) return;
+    // Laid out, then its chart made, each a task of its own, so that a tap waits for one at most.
+    let timer = setTimeout(() => {
+      const { layout, markers } = viewChart(built, counted, ahead);
+      timer = setTimeout(() => {
+        sceneFor(layout, { stitches, rounds: counted.rounds, face, makeOneLean, markers, names, pieces: sweater.pieces, holdRegions });
+      }, 50);
+    }, view === "overview" ? 1200 : 600);
+    return () => clearTimeout(timer);
+  }, [ahead, view, project.progress, built, counted, stitches, face, makeOneLean, names, sweater.pieces, holdRegions]);
   const currentStitch = run ? keyEntryAt(stitches, run.startId, sweater.stitchNotes)?.id : undefined;
 
   const title = project.name ?? sweater.name;

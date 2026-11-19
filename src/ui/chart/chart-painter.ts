@@ -130,6 +130,12 @@ export interface PaintState {
   colours: ChartColours;
   /** Device pixels to a CSS pixel, so the rules land on whole device pixels. */
   ratio: number;
+  /**
+   * Whether the round numbers are painted down the right-hand edge: not
+   * where they are set beside the chart instead, to stay in the box
+   * wherever it is along the chart (see TileView's ruler).
+   */
+  numbers?: boolean;
 }
 
 export interface Region {
@@ -203,6 +209,38 @@ const merged = (spans: [number, number][]): [number, number][] => {
     else out.push([span[0], span[1]]);
   }
   return out;
+};
+
+/** How tall the round numbers are, in pixels, at a cell size. */
+export const numberSize = (cell: number) => Math.max(12, cell * 0.55);
+/** And how far into the gutter they begin, from the chart's right-hand edge. */
+export const numberInset = (cell: number) => Math.max(2, Math.round(cell * 0.45));
+
+/**
+ * The rows numbered down the right-hand edge, from `firstRow` to `lastRow`:
+ * every fifth row, and the rows named, while there is room between them;
+ * zoomed out further, every tenth, or 25th, or 50th... only, as far apart
+ * as leaves the numbers clear of one another. Where the rows are is `top`
+ * and `height`, each row's, as they are drawn now.
+ */
+export const roundNumbers = (
+  scene: ChartScene,
+  cell: number,
+  top: Float64Array,
+  height: Float64Array,
+  firstRow = 1,
+  lastRow = scene.layout.rows,
+): number[] => {
+  const every = cell * emphasis >= numberSpacing ? 0 : ([10, 25, 50, 100, 250].find((n) => n * cell >= numberSpacing) ?? 500);
+  const rows: number[] = [];
+  if (every) {
+    for (let row = Math.ceil(firstRow / every) * every; row <= lastRow; row += every) if (height[row] > 0) rows.push(row);
+    return rows;
+  }
+  for (const row of clearOfEachOther(scene.numbered, (row) => top[row], height, numberSize(cell))) {
+    if (row >= firstRow && row <= lastRow && height[row] >= cell * markable) rows.push(row);
+  }
+  return rows;
 };
 
 /**
@@ -888,29 +926,15 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
     strokeIn(across(false), colours.marker, w(2.5));
   }
 
-  /* The round numbers down the right-hand edge, beside where column 1 ends. */
-  const numbersAt = left[0] + Math.max(2, Math.round(cell * 0.45));
-  if (numbersAt < region.x + region.width && numbersAt + gutter(cell) > region.x) {
+  /* The round numbers down the right-hand edge, beside where column 1 ends: see roundNumbers. */
+  const numbersAt = left[0] + numberInset(cell);
+  if (state.numbers !== false && numbersAt < region.x + region.width && numbersAt + gutter(cell) > region.x) {
     ctx.fillStyle = colours.faint;
-    const size = Math.max(12, cell * 0.55);
-    ctx.font = `${size}px ${colours.font}`;
+    ctx.font = `${numberSize(cell)}px ${colours.font}`;
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
-    /*
-     * Every fifth row, and the rows named, while there is room between them;
-     * zoomed out further, every tenth, or 25th, or 50th... only, as far apart
-     * as leaves the numbers clear of one another.
-     */
-    const every = cell * emphasis >= numberSpacing ? 0 : ([10, 25, 50, 100, 250].find((n) => n * cell >= numberSpacing) ?? 500);
-    if (every) {
-      for (let row = Math.ceil(firstRow / every) * every; row <= lastRow; row += every) {
-        if (height[row] > 0) ctx.fillText(String(row), numbersAt, top(row) + height[row] / 2);
-      }
-    } else {
-      for (const row of clearOfEachOther(scene.numbered, top, height, size)) {
-        if (row < firstRow || row > lastRow || height[row] < cell * markable) continue;
-        ctx.fillText(String(row), numbersAt, top(row) + height[row] / 2);
-      }
+    for (const row of roundNumbers(scene, cell, state.top, height, firstRow, lastRow)) {
+      ctx.fillText(String(row), numbersAt, top(row) + height[row] / 2);
     }
   }
 

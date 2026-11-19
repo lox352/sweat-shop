@@ -154,6 +154,28 @@ test("accessible chart controls and text instructions", async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 });
 
+test("looked around, the chart still says where the knitting has got to, and opens there", async ({ page }) => {
+  // Well up the yoke: a long way from the cast-on at the chart's bottom right.
+  await knittedTo(page, 6000);
+  const here = page.locator(".chart-next");
+  await expect(here).toBeInViewport();
+  // The knitting folded away, the stitch to be worked next is still outlined, where it was.
+  const before = await here.boundingBox();
+  await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  await expect(here).toBeVisible();
+  await expect(here).toBeInViewport();
+  await page.waitForTimeout(300);
+  const after = await here.boundingBox();
+  expect(Math.abs(after.x - before.x)).toBeLessThan(2);
+  expect(Math.abs(after.y - before.y)).toBeLessThan(2);
+  // Closed, and opened again from the jumper's page to look around: there, not at the cast-on.
+  await page.getByRole("link", { name: "Close the chart", exact: true }).click();
+  await page.getByRole("link", { name: "Look around the chart", exact: true }).click();
+  await expect(page).toHaveURL(/\/chart$/);
+  await expect(here).toBeInViewport();
+  await expect(page.getByRole("region", { name: "Your progress" }).getByRole("button", { name: "Keep knitting", exact: true })).toBeVisible();
+});
+
 test("the chart is a view over the jumper: folding the knitting away leaves you looking around it, and its cross goes back", async ({ page }) => {
   await page.goto(design);
   // The design page shows the sweater and what there is to choose, a page at a time, and ends with what was chosen and the way to start.
@@ -676,6 +698,114 @@ test("starting to knit brings the stitch into view, and keeps it there when the 
   await expect.poll(bottomShowing).toBe(true);
 });
 
+test("scrolled away from the stitch to look along the chart, a button points the way back to it and goes there, knitting nothing", async ({ page }) => {
+  await knittedTo(page, 6000);
+  const next = page.locator(".chart-next");
+  const back = page.getByRole("button", { name: "Back to your stitch" });
+  const scroll = (by) => page.locator(".chart-scroll").evaluate((box, by) => box.scrollBy(by.left ?? 0, by.top ?? 0), by);
+  // The box come to rest, its scroll the same for a third of a second: a scroll set mid-glide would be glided over.
+  const rest = () => page.locator(".chart-scroll").evaluate((box) => new Promise((done) => {
+    let last = "";
+    let since = 0;
+    const look = (now) => {
+      const at = `${box.scrollLeft},${box.scrollTop}`;
+      if (at !== last) [last, since] = [at, now];
+      if (now - since >= 300) done();
+      else requestAnimationFrame(look);
+    };
+    requestAnimationFrame(look);
+  }));
+  /** How far round the arrow is from the way the stitch is, from the middle of the chart's box, in degrees. */
+  const offCourse = () => page.evaluate(() => {
+    const box = document.querySelector(".chart-scroll").getBoundingClientRect();
+    const next = document.querySelector(".chart-next").getBoundingClientRect();
+    const way = (Math.atan2(next.top + next.height / 2 - (box.top + box.height / 2), next.left + next.width / 2 - (box.left + box.width / 2)) * 180) / Math.PI;
+    const arrow = Number(document.querySelector(".chart-back svg").style.transform.match(/rotate\((-?[\d.]+)deg\)/)[1]);
+    return Math.abs(((arrow - way + 540) % 360) - 180);
+  });
+  await expect(next).toBeInViewport();
+  // The knitting brings the stitch into view by itself: there is nothing to go back to.
+  await rest();
+  await expect(back).toHaveCount(0);
+  const where = await position(page).textContent();
+
+  // Up the chart, to see what is coming: the stitch is below.
+  await scroll({ top: -600 });
+  await expect(back).toBeVisible();
+  expect(await offCourse()).toBeLessThanOrEqual(30);
+  // And along it to the left too.
+  await scroll({ left: -800 });
+  await expect.poll(offCourse).toBeLessThanOrEqual(30);
+  await back.click();
+  await expect(back).toHaveCount(0);
+  await rest();
+  await expect(next).toBeInViewport();
+  // Only looked at again, not knitted.
+  await expect(position(page)).toHaveText(where);
+
+  // Scrolled back to it by hand, the way back goes as it comes into view.
+  await scroll({ top: -600 });
+  await expect(back).toBeVisible();
+  await scroll({ top: 600 });
+  await expect(back).toHaveCount(0);
+  // And knitting on from out of sight goes to the next stitch, the way back with it.
+  await scroll({ top: -600 });
+  await expect(back).toBeVisible();
+  await page.locator(".knitting-panel .btn-primary").first().click();
+  await expect(back).toHaveCount(0);
+  await rest();
+  await expect(next).toBeInViewport();
+  await expect(position(page)).not.toHaveText(where);
+});
+
+test("scrolled along a round and up the chart, the round numbers stay down the box's right-hand edge, each beside its row", async ({ page }) => {
+  // The chart's own view, to read where it draws each row: see TileView.probe.
+  await page.addInitScript(() => {
+    window.__chartViews = [];
+  });
+  await knittedTo(page, 6000);
+  const scroller = page.locator(".chart-scroll");
+  /** The numbers in sight: each one's way from its row's middle, as the tiles draw it, and from the box's right-hand edge, inside its padding. */
+  const numbers = () => page.evaluate(() => {
+    const view = window.__chartViews.at(-1);
+    const box = document.querySelector(".chart-scroll");
+    const edge = box.getBoundingClientRect().right - parseFloat(getComputedStyle(box).paddingRight);
+    const { top, bottom } = box.getBoundingClientRect();
+    const layer = document.querySelector(".chart-layer").getBoundingClientRect();
+    const { start, size } = view.rows.places;
+    return [...document.querySelectorAll(".chart-ruler-rows > span")]
+      .map((number) => ({ row: Number(number.textContent), at: number.getBoundingClientRect() }))
+      .filter(({ at }) => at.top >= top && at.bottom <= bottom)
+      .map(({ row, at }) => ({
+        row,
+        down: Math.round(at.top + at.height / 2 - (layer.top + start[row] + size[row] / 2)),
+        fromEdge: Math.round(edge - at.right),
+      }));
+  });
+  const rest = () => page.waitForTimeout(600);
+  await expect.poll(async () => (await numbers()).length).toBeGreaterThan(3);
+  await rest();
+  const check = async () => {
+    const shown = await numbers();
+    expect(shown.length).toBeGreaterThan(3);
+    // Every fifth round, at least, each beside its own row and inside the box, at its right-hand edge.
+    for (const { row, down, fromEdge } of shown) {
+      expect(Math.abs(down), `round ${row}`).toBeLessThanOrEqual(1);
+      expect(fromEdge, `round ${row}`).toBeGreaterThanOrEqual(0);
+      expect(fromEdge, `round ${row}`).toBeLessThan(36);
+    }
+    const rows = shown.map(({ row }) => row).sort((a, b) => a - b);
+    expect(rows.filter((row) => row % 5 === 0).length).toBeGreaterThanOrEqual(rows.length - 2);
+    return rows;
+  };
+  const here = await check();
+  // Along the round to its far end, and up the chart: the gutter beside column 1 is out of sight, and the numbers are not.
+  await scroller.evaluate((box) => box.scrollBy(-100000, -300));
+  await rest();
+  const there = await check();
+  expect(Math.max(...there)).toBeGreaterThan(Math.max(...here));
+});
+
 test("the chart page does not pan sideways, and zooming leaves the chart where it lands", async ({ page }) => {
   await start(page);
   const fits = () => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
@@ -748,6 +878,40 @@ test("tapping a stitch on the chart carries on from it, and can be undone", asyn
   await expect(position(page)).toHaveText(original);
 });
 
+test("a stitch tapped says where it is and how to carry on from it, however little room there is round it, and the chart stays put", async ({ page }) => {
+  // On a short row from the wrong side: every stitch the chart shows from the right side is hatched, and says why at length.
+  await knittedTo(page, 1800);
+  await expect(position(page)).toContainText("short row 4, wrong side");
+  const scroller = page.locator(".chart-scroll");
+  const box = await scroller.boundingBox();
+  const picker = page.locator(".stitch-picker");
+  await expect(page.locator(".chart-next")).toBeInViewport();
+  const next = await page.locator(".chart-next").boundingBox();
+  const cell = next.width - 2;
+  // Stitches up the column of the one to be worked - in a yoke a column goes on up - from near the top of the box to its middle.
+  for (const down of [0.15, 0.35, 0.55]) {
+    const scrolled = await scroller.evaluate((box) => [box.scrollLeft, box.scrollTop]);
+    const up = Math.max(1, Math.round((next.y + next.height / 2 - (box.y + box.height * down)) / cell));
+    await page.mouse.click(next.x + next.width / 2, next.y + next.height / 2 - up * cell);
+    await expect(picker).toBeVisible();
+    // Its head, the round and stitch, and its way to carry on, both in the chart's box.
+    const seen = await picker.evaluate((bubble) => {
+      const box = bubble.closest(".chart-scroll").getBoundingClientRect();
+      const inBox = (element) => {
+        const at = element.getBoundingClientRect();
+        return at.top >= box.top - 1 && at.bottom <= box.bottom + 1;
+      };
+      return { head: inBox(bubble.querySelector(".stitch-picker-head")), carryOn: inBox(bubble.querySelector(".btn-primary")) };
+    });
+    expect(seen, `tapped ${down * 100}% down`).toEqual({ head: true, carryOn: true });
+    await expect(picker.getByRole("button", { name: /^(Knit up to|Go back to) here$/ })).toBeFocused();
+    // Shown without scrolling the chart to it.
+    expect(await scroller.evaluate((box) => [box.scrollLeft, box.scrollTop])).toEqual(scrolled);
+    await page.keyboard.press("Escape");
+    await expect(picker).toHaveCount(0);
+  }
+});
+
 test("a stitch picked stays outlined, its note beside it, as the chart slides with its scroll", async ({ page }) => {
   // The chart's views, to ask where a stitch is drawn: see TileView.probe.
   await page.addInitScript(() => {
@@ -817,6 +981,26 @@ async function zoomAllTheWayIn(page) {
     await expect.poll(tall).toBeGreaterThan(before);
   }
 }
+
+test("the chart opens at the size it was last zoomed to, though not zoomed right out", async ({ page }) => {
+  await knittedTo(page, 3000);
+  const chart = page.getByRole("region", { name: /Scrollable knitting chart/ });
+  const cell = () => page.locator(".chart-next").evaluate((mark) => Math.round(mark.getBoundingClientRect().width) - 2);
+  await expect.poll(cell).toBe(16);
+  await chart.press("+");
+  await chart.press("+");
+  await expect.poll(cell).toBe(24);
+  // Closed and opened again: at the size it was left at.
+  await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  await page.getByRole("link", { name: "Close the chart", exact: true }).click();
+  await page.locator(".stage-bar").getByRole("link", { name: "Keep knitting", exact: true }).click();
+  await expect.poll(cell).toBe(24);
+  // Zoomed out past a stitch drawn whole is a look at the whole round: opened again, it is at the last size it was knitted from.
+  for (let press = 0; press < 6; press++) await chart.press("-");
+  await expect.poll(cell).toBeLessThan(8);
+  await page.reload();
+  await expect.poll(cell).toBe(8);
+});
 
 test("closed up, the rib at the neck is its stitches side by side, and every column shows by the widest round", async ({ page }) => {
   await start(page);
@@ -1088,6 +1272,69 @@ test("closed up, a row with no stitch in the columns on screen takes no height, 
   // At rest, the sheet is as tall as the rows showing.
   const showing = Number(await tiles.getAttribute("data-rows-showing"));
   expect(await page.locator(".chart-sheets").evaluate(sheet => sheet.offsetHeight)).toBe(showing * 16);
+});
+
+test("closed up, along the top of the chart onto a sleeve and back, nothing in the box moves up or down", async ({ page }) => {
+  // The chart's views, to ask where a stitch is drawn: see TileView.probe.
+  await page.addInitScript(() => {
+    window.__chartViews = [];
+  });
+  await knittedTo(page, 0, { sweaterId: "wool-week-strips-once-oldest", sizeId: "m", colourwayId: "early-light" });
+  await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  /*
+   * At the top of the chart, from its right-hand edge leftwards over the body
+   * and on over a sleeve, whose rounds go on past the body's, and back: the
+   * sleeve's rows open and close as it comes and goes, a frame at a time.
+   * Every frame, a stitch in the box is where it was up and down, the box
+   * scrolled only across.
+   */
+  const { most, opened } = await page.locator(".chart-scroll").evaluate(async (box) => {
+    const frame = () => new Promise((done) => requestAnimationFrame(done));
+    const rest = () => new Promise((done) => setTimeout(done, 600));
+    const view = window.__chartViews.at(-1);
+    const tiles = box.querySelector(".chart-tiles");
+    box.scrollLeft = 0;
+    box.scrollTop = 0;
+    await rest();
+    const rect = box.getBoundingClientRect();
+    const sheet = () => document.querySelector(".chart-sheets").getBoundingClientRect();
+    // A stitch in the box, nearest its middle, and how far down the screen it is.
+    const find = () => {
+      for (let dx = 0; dx < rect.width / 2; dx += 8) {
+        for (const x of [rect.left + rect.width / 2 - dx, rect.left + rect.width / 2 + dx]) {
+          const id = view.stitchAt(x, rect.top + rect.height / 2);
+          if (id !== undefined) return id;
+        }
+      }
+      return undefined;
+    };
+    const down = (id) => {
+      const cell = id === undefined ? undefined : view.cellOnSheet(id);
+      const x = cell && sheet().left + cell.x;
+      return cell && x > rect.left && x < rect.right ? sheet().top + cell.y : undefined;
+    };
+    const counts = new Set();
+    let most = 0;
+    let id = find();
+    let was = down(id);
+    for (const way of [-1, 1]) {
+      for (let step = 0; step < 220; step++) {
+        box.scrollLeft += way * 14;
+        await frame();
+        counts.add(tiles.dataset.rowsShowing);
+        const now = down(id);
+        if (now !== undefined && was !== undefined) most = Math.max(most, Math.abs(now - was));
+        if (now === undefined) id = find();
+        was = down(id);
+      }
+      await rest();
+      was = down(id);
+    }
+    return { most, opened: counts.size };
+  });
+  // The sleeve's rows opened and closed on the way.
+  expect(opened).toBeGreaterThan(1);
+  expect(most).toBeLessThan(1);
 });
 
 test("backup restores copies and rename/delete require their dialogs", async ({ page }) => {
