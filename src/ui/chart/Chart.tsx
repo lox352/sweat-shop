@@ -1,17 +1,17 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { Stitch, isStep } from "../../pattern/Stitch";
-import { type ChartLayout, layOutSweater, mirrorLayout } from "../../reading/layout";
+import { type ChartLayout, layOutSweater } from "../../reading/layout";
 import { scrollAcross } from "./scroll-corner";
 import type { MarkerLine } from "../../reading/view";
 import type { RoundKind } from "../../pattern/rounds";
 import { Palette, yarnFor } from "../../reading/palette";
 import ChartTiles, { type TilesHandle } from "./ChartTiles";
 import ChartNotes from "./ChartNotes";
-import { sceneOf } from "./chart-scene";
+import { sceneFor } from "./view-scene";
 import { type ChartOverlay, defaultColours, leftMargin } from "./chart-painter";
 import { StitchLegend, TextRound } from "./ChartHelp";
-import { faceAfter, holdsIn, joinIn, needleChangesIn, otherFaceRows, turnsIn } from "./chart-marks";
+import { faceAfter, otherFaceRows } from "./chart-marks";
 import { type HoldRegion, onHoldAt } from "../../reading/holds";
 import StitchPicker from "./StitchPicker";
 import { keyEntryAt } from "../../reading/stitch-key";
@@ -271,22 +271,24 @@ const Chart: React.FC<ChartProps> = ({
     [stitches],
   );
   const face = faceAfter(turnIds, progress);
-  const layout = useMemo(() => (face === "wrong" ? mirrorLayout(laid) : laid), [laid, face]);
   /*
-   * Turned over with it: the line to the left of a column, to the left of
-   * the column on its other side - row by row too, as each row's stretch is
-   * drawn where its route says.
+   * Turned over with it - the line to the left of a column, to the left of
+   * the column on its other side, row by row too - and every stitch drawn as
+   * it looks from there, with the steps and the marks on it: made once for
+   * the view and the side it is seen from, however many times the chart is
+   * made for it (see sceneFor).
    */
-  const markerLines = useMemo(
-    () =>
-      face === "wrong"
-        ? (markers ?? []).map((line) => ({
-            ...line,
-            after: laid.columns - line.after,
-            route: line.route.map((row) => ({ ...row, after: laid.columns - row.after })),
-          }))
-        : (markers ?? []),
-    [markers, face, laid.columns],
+  const {
+    layout,
+    scene,
+    markers: markerLines,
+    needles,
+    join,
+    holds,
+    turns,
+  } = useMemo(
+    () => sceneFor(laid, { stitches, rounds, face, makeOneLean, markers, names, pieces, holdRegions }),
+    [laid, stitches, rounds, face, makeOneLean, markers, names, pieces, holdRegions],
   );
   /*
    * And every stitch is drawn as it looks from the side shown: from the right
@@ -307,26 +309,6 @@ const Chart: React.FC<ChartProps> = ({
     return (holdRegions ?? []).filter((region) => now.has(region.heldAt));
   }, [holdRegions, heldNow]);
   const onHoldSets = useMemo(() => onHold.map((region) => region.region), [onHold]);
-  const needles = useMemo(() => needleChangesIn(stitches, rounds, names), [stitches, rounds, names]);
-  // Each drawn across its own piece, between the rows either side of it; held stitches taken up onto other needles are not.
-  const needleRules = useMemo(
-    () =>
-      needles.filter((change) => !change.takeUp).map((change) => ({
-        after: laid.roundRows[change.after - 1] ?? change.after,
-        piece: laid.cells.get(rounds[change.after - 1]?.[0] ?? -1)?.piece ?? "",
-      })),
-    [needles, laid, rounds],
-  );
-  const join = useMemo(() => joinIn(stitches, rounds), [stitches, rounds]);
-  const holds = useMemo(() => holdsIn(stitches, rounds, pieces), [stitches, rounds, pieces]);
-  const turns = useMemo(() => turnsIn(stitches, rounds), [stitches, rounds]);
-  // Every stitch a holder takes, marked where it is: in the views that show it rather than the bar.
-  const held = useMemo(() => (holdRegions ?? []).flatMap((region) => region.stitches), [holdRegions]);
-
-  const scene = useMemo(
-    () => sceneOf(layout, stitches, rounds, { needleRules, join, holds, held, turns, face, makeOneLean, markers: markerLines }),
-    [layout, stitches, rounds, needleRules, join, holds, held, turns, face, makeOneLean, markerLines],
-  );
   leastRef.current = () => {
     const box = scrollRef.current;
     if (!box) return minCell;

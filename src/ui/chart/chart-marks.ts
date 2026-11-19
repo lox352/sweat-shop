@@ -45,6 +45,29 @@ export const markAt = (
   return forkMark(centre(parentAt?.column ?? at.column), [0.5, centre(madeAt.column)], purled);
 };
 
+/**
+ * Worked out once for a sweater's stitches and rounds - and whatever else is
+ * asked of it, as it is - however many charts ask: a chart is made afresh
+ * for each view of the knitting, a sleeve put on hold or taken up, and these
+ * are the same for every view. Worked out again in each, they were a fifth
+ * of the tap that put a sleeve on hold, on a phone.
+ */
+const perSweater = <R, A = undefined>(work: (stitches: Stitch[], rounds: number[][], also?: A) => R) => {
+  const kept = new WeakMap<Stitch[], WeakMap<number[][], Map<A | undefined, R>>>();
+  return (stitches: Stitch[], rounds: number[][], also?: A): R => {
+    let byRounds = kept.get(stitches);
+    if (!byRounds) kept.set(stitches, (byRounds = new WeakMap()));
+    let byAlso = byRounds.get(rounds);
+    if (!byAlso) byRounds.set(rounds, (byAlso = new Map()));
+    if (!byAlso.has(also)) {
+      // A few at most: anything else asked of it is the page's, kept the same between renders.
+      if (byAlso.size >= 8) byAlso.clear();
+      byAlso.set(also, work(stitches, rounds, also));
+    }
+    return byAlso.get(also)!;
+  };
+};
+
 /** Where the needles change: after which round, and to what size. */
 export interface NeedleChange {
   after: number;
@@ -63,7 +86,7 @@ export interface NeedleChange {
  * The needle changes among these rounds, each placed after the last round
  * worked before it. Only those with fabric on both sides are drawn.
  */
-export const needleChangesIn = (
+export const needleChangesIn = perSweater((
   stitches: Stitch[],
   rounds: number[][],
   /** What each round is called. */
@@ -84,7 +107,7 @@ export const needleChangesIn = (
     }
   }
   return out;
-};
+});
 
 /**
  * Where the knitting is joined in the round: after which round, and the
@@ -97,14 +120,14 @@ export interface Join {
   first: number;
 }
 
-export const joinIn = (stitches: Stitch[], rounds: number[][]): Join | undefined => {
+export const joinIn = perSweater((stitches: Stitch[], rounds: number[][]): Join | undefined => {
   const step = stitches.find((stitch) => stitch.type === "join");
   if (!step) return undefined;
   const after = rounds.findIndex((ids) => ids.includes(step.id - 1)) + 1;
   const next = rounds[after];
   if (after < 1 || !next) return undefined;
   return { after, last: step.id - 1, first: next[0] };
-};
+});
 
 /**
  * Where a piece's stitches are put on hold, part way through a round - a
@@ -121,7 +144,7 @@ export interface Hold {
   label: string;
 }
 
-export const holdsIn = (
+export const holdsIn = perSweater((
   stitches: Stitch[],
   rounds: number[][],
   pieces: { id: string; label: string }[] = [],
@@ -141,7 +164,7 @@ export const holdsIn = (
     out.push({ before, after, holder: stitch.holder, count: stitch.count, label });
   }
   return out;
-};
+});
 
 /**
  * Where a short row turns: the last stitch of the row - the one the turn makes
@@ -153,7 +176,7 @@ export interface Turn {
   before: number;
 }
 
-export const turnsIn = (stitches: Stitch[], rounds: number[][]): Turn[] => {
+export const turnsIn = perSweater((stitches: Stitch[], rounds: number[][]): Turn[] => {
   const roundOf = new Map<number, number>();
   rounds.forEach((ids, index) => ids.forEach((id) => roundOf.set(id, index)));
   const out: Turn[] = [];
@@ -166,7 +189,7 @@ export const turnsIn = (stitches: Stitch[], rounds: number[][]): Turn[] => {
     out.push({ last: ids[ids.length - 1], before: ids[ids.length - 2] });
   }
   return out;
-};
+});
 
 /**
  * Which side of the sweater is towards you once the knitting is worked as far

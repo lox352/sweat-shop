@@ -50,6 +50,7 @@ import { statsOverlay, type Layer } from "../chart/timing-overlay";
 import WoolList from "./WoolList";
 import { type Chosen } from "./Shades";
 import ViewTabs from "../chart/ViewTabs";
+import { sceneFor } from "../chart/view-scene";
 import ColourwayChoice from "./ColourwayChoice";
 import Customise from "./Customise";
 import { Schematic } from "./Schematic";
@@ -416,18 +417,14 @@ const ProjectView: React.FC<{
    * The view the knitting comes to next, laid out ahead while it is near:
    * a sleeve put on hold takes the chart to what is left on the needles, a
    * view laid out for the first time as it is shown, and the tap that put
-   * it on hold took a third of a second on a phone. Laid out a moment after
-   * a tap, while the stitches before it are knitted, it is to hand then.
+   * it on hold took nearly two fifths of a second on a phone. Laid out a
+   * moment after a tap, while the stitches before it are knitted, and its
+   * chart made (see below), it is to hand then.
    */
   const nextView = useMemo(
     () => (knitting ? views.filter((one) => one.begins > project.progress).sort((a, b) => a.begins - b.begins)[0] : undefined),
     [knitting, views, project.progress],
   );
-  useEffect(() => {
-    if (!nextView || nextView.begins - project.progress > aheadOfView) return;
-    const ahead = setTimeout(() => viewChart(built, counted, nextView), 600);
-    return () => clearTimeout(ahead);
-  }, [nextView, project.progress, built, counted]);
   const makeOnes = useMemo(() => makeOnesAtMarkers({ stitches, knitting: built.knitting }), [stitches, built.knitting]);
   // The colourway as it is on this sweater: one that steps down the garment, placed where the project's own planning put its bands.
   const published = useMemo(() => sweater.colourways.find((c) => c.id === project.colourwayId) ?? sweater.colourways[0], [sweater, project.colourwayId]);
@@ -557,6 +554,19 @@ const ProjectView: React.FC<{
     [stitches],
   );
   const face = faceAfter(turnIds, project.progress);
+  // And its chart made, as the chart will ask for it there: see sceneFor.
+  const makeOneLean = sweater.stitchNotes?.m1?.lean;
+  useEffect(() => {
+    if (!nextView || nextView.begins - project.progress > aheadOfView) return;
+    // Laid out, then its chart made, each a task of its own, so that a tap waits for one at most.
+    let ahead = setTimeout(() => {
+      const { layout, markers } = viewChart(built, counted, nextView);
+      ahead = setTimeout(() => {
+        sceneFor(layout, { stitches, rounds: counted.rounds, face, makeOneLean, markers, names, pieces: sweater.pieces, holdRegions });
+      }, 50);
+    }, 600);
+    return () => clearTimeout(ahead);
+  }, [nextView, project.progress, built, counted, stitches, face, makeOneLean, names, sweater.pieces, holdRegions]);
   const currentStitch = run ? keyEntryAt(stitches, run.startId, sweater.stitchNotes)?.id : undefined;
 
   const title = project.name ?? sweater.name;
