@@ -46,11 +46,15 @@ const kb = 1024;
  * worked out in workers the page does not carry, but what the page does
  * with one is its own - a tension asked for and compared, the preview of a
  * fit, knitting and shapes kept on the device, an update joined part way,
- * a colourway placed on it - and brings it to 210KB: 220KB.
+ * a colourway placed on it - and brings it to 210KB: 220KB. The chart
+ * keeping its place as it is looked about - the way back to the stitch
+ * being knitted, the round numbers kept beside the box, a block of lines
+ * opening or closing round the box held off the screen or kept as paper,
+ * and a pinch carried along with the fingers - brings it to 221KB: 230KB.
  */
 // A frozen edition of the largest size is 19KB.
 // The fitting worker is 78KB: every design's planner and charts, and the engine.
-const budgets = { page: 220 * kb, stage: 260 * kb, settled: 300 * kb, edition: 40 * kb, fitting: 100 * kb, settling: 20 * kb };
+const budgets = { page: 230 * kb, stage: 260 * kb, settled: 300 * kb, edition: 40 * kb, fitting: 100 * kb, settling: 20 * kb };
 
 const files = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
