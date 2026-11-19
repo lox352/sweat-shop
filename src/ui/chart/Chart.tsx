@@ -301,6 +301,23 @@ const Chart: React.FC<ChartProps> = ({
     watch.observe(box);
     return () => watch.disconnect();
   }, [least]);
+  /*
+   * The words and figures on the chart - its round numbers, a yarn's number -
+   * are drawn in the page's own face. Painted before that face has arrived,
+   * a tile draws them in another and is never painted again, as nothing it
+   * shows has changed: so once the faces still on their way have arrived,
+   * the chart is painted afresh.
+   */
+  const [facesIn, faceArrived] = useReducer((count: number) => count + 1, 0);
+  useEffect(() => {
+    const faces = typeof document === "undefined" ? undefined : document.fonts;
+    if (!faces || faces.status === "loaded") return;
+    let live = true;
+    faces.ready.then(() => live && faceArrived());
+    return () => {
+      live = false;
+    };
+  }, []);
   const colours = useMemo(
     () => ({
       ...defaultColours,
@@ -310,7 +327,9 @@ const Chart: React.FC<ChartProps> = ({
       faint: token("--ink-faint", defaultColours.faint),
       font: token("--body", defaultColours.font),
     }),
-    [],
+    // A new object each time a face arrives: see facesIn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [facesIn],
   );
 
   /*
