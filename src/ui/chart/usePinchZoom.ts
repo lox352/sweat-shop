@@ -1,5 +1,5 @@
 import { RefObject, useCallback, useEffect, useLayoutEffect, useRef } from "react";
-import { scrollAcross } from "./scroll-corner";
+import { scrollAcross, scrollsFromRight } from "./scroll-corner";
 import { maxCell, minCell, settleCell } from "./zoom";
 
 interface Gesture {
@@ -8,22 +8,53 @@ interface Gesture {
   /** The point being zoomed about, in the sheet's own pixels at startCell. */
   originX: number;
   originY: number;
-  /** And where that point is on screen, which is where it has to stay. */
+  /** And where that point was on screen as the fingers came down. */
   screenX: number;
   screenY: number;
-  /** Where the fingers are now, between them: see end. */
+  /** Where the fingers are now, between them, which is where it goes: see place. */
   atX: number;
   atY: number;
+  /** The box's scroll as the fingers came down, and the sheet's place and size on screen then, unscaled. */
+  scrollLeft: number;
+  scrollTop: number;
+  sheet: { left: number; top: number; width: number; height: number };
 }
+
+/**
+ * How far a chart pulled `over` pixels past its edge goes, in a box `size`
+ * long: less and less the further it is pulled, as a phone's own scroll
+ * goes past an end.
+ */
+export const resisted = (over: number, size: number) => (size > 0 ? (1 - 1 / ((over * 0.55) / size + 1)) * size : 0);
+
+/**
+ * A box's scroll set as fingers lift from it. An iPhone scrolls a box
+ * itself, apart from the page, and while it thinks a finger is still on it -
+ * as it does for a while after a long pinch - it ignores a scroll set from
+ * here and keeps its own. Zoomed out, that is past the chart's new edge:
+ * blank, until the next touch springs it back. Stopping the box scrolling
+ * for a frame makes it let go of its own, and the scroll set here then
+ * stands.
+ */
+const setAsLifted = (scroller: HTMLElement, set: () => void) => {
+  scroller.style.overflow = "hidden";
+  set();
+  requestAnimationFrame(() => {
+    scroller.style.overflow = "";
+    set();
+  });
+};
 
 /**
  * Pinch to zoom the chart, and ctrl + wheel for a trackpad pinch on a laptop.
  *
- * While fingers are down the sheet is only scaled with a transform, which a
- * browser can do every frame; the chart itself is redrawn at its new cell size
- * once, when the gesture ends. Then the scroll is moved so that the stitch
- * that was under your fingers is still under them - whether or not you are
- * knitting: a zoom never goes looking for the stitch you are on.
+ * While fingers are down the sheet is only scaled and moved with a transform,
+ * which a browser can do every frame - grown or shrunk about where they came
+ * down, and carried along with them (see panOf); the chart itself is redrawn
+ * at its new cell size once, when the gesture ends. Then the scroll is moved
+ * so that the stitch that was under your fingers is still under them -
+ * whether or not you are knitting: a zoom never goes looking for the stitch
+ * you are on.
  *
  * Returns a way to zoom about a point without a gesture, for the keys.
  */
@@ -62,6 +93,7 @@ export function usePinchZoom(
     if (!scroller || !sheet) return;
 
     const begin = (clientX: number, clientY: number) => {
+      sheet.style.transform = "";
       const box = sheet.getBoundingClientRect();
       gesture.current = {
         startCell: current.current,
@@ -72,6 +104,9 @@ export function usePinchZoom(
         screenY: clientY,
         atX: clientX,
         atY: clientY,
+        scrollLeft: scroller.scrollLeft,
+        scrollTop: scroller.scrollTop,
+        sheet: { left: box.left, top: box.top, width: box.width, height: box.height },
       };
       sheet.style.transformOrigin = `${gesture.current.originX}px ${gesture.current.originY}px`;
       /*
@@ -82,11 +117,65 @@ export function usePinchZoom(
        */
     };
 
+    /**
+     * How far the scaled sheet is moved, `x` and `y`, to put the point the
+     * fingers came down on between them as they are now: the pan of a pinch.
+     * Pinched first and moved after, the fingers held the page from
+     * scrolling the box (see onTouchMove), and the chart only grew or shrank
+     * about where they began, the move lost; moved first, the browser
+     * scrolled the box under them, as it goes on doing - taken back out here,
+     * so either way the chart goes with the fingers. Past the chart's edge
+     * it resists, as the box's own scroll does, so that it is not left far
+     * out to spring back from as the fingers lift.
+     */
+    const panOf = (g: Gesture) => {
+      const scale = g.cell / g.startCell;
+      const scrolledX = scroller.scrollLeft - g.scrollLeft;
+      const scrolledY = scroller.scrollTop - g.scrollTop;
+      const view = scroller.getBoundingClientRect();
+      const style = getComputedStyle(scroller);
+      const pad = (side: string) => parseFloat(style.getPropertyValue(`padding-${side}`)) || 0;
+      const way = (moved: number, sheetAt: number, origin: number, size: number, from: number, to: number, end: "near" | "far") => {
+        // The scaled sheet's near edge on screen, unmoved, and how far it can go each way while it covers the box.
+        const near = sheetAt + origin * (1 - scale);
+        const most = from - near;
+        const least = to - (near + size * scale);
+        if (least > most) return end === "far" ? least : most;
+        const span = to - from;
+        if (moved > most) return most + resisted(moved - most, span);
+        if (moved < least) return least - resisted(least - moved, span);
+        return moved;
+      };
+      const left = view.left + scroller.clientLeft;
+      const top = view.top + scroller.clientTop;
+      return {
+        x: way(
+          g.atX - g.screenX + scrolledX,
+          g.sheet.left - scrolledX,
+          g.originX,
+          g.sheet.width,
+          left + pad("left"),
+          left + scroller.clientWidth - pad("right"),
+          // Narrower than the box, the chart keeps to the edge it is scrolled from: see scroll-corner.
+          scrollsFromRight(scroller) ? "far" : "near",
+        ),
+        y: way(g.atY - g.screenY + scrolledY, g.sheet.top - scrolledY, g.originY, g.sheet.height, top + pad("top"), top + scroller.clientHeight - pad("bottom"), "near"),
+      };
+    };
+
+    /** The sheet scaled about where the fingers came down and moved with them: see panOf. */
+    const place = () => {
+      const g = gesture.current;
+      if (!g) return;
+      const { x, y } = panOf(g);
+      sheet.style.transform = `translate(${x}px, ${y}px) scale(${g.cell / g.startCell})`;
+    };
+
     const scaleTo = (cellWanted: number) => {
       const g = gesture.current;
       if (!g) return;
       g.cell = clamp(cellWanted);
-      sheet.style.transform = `scale(${g.cell / g.startCell})`;
+      place();
     };
 
     const end = () => {
@@ -95,7 +184,21 @@ export function usePinchZoom(
       if (!g) return;
       const next = settleCell(g.cell, leastNow.current());
       if (next === g.startCell) {
+        /*
+         * No zoom after all, but the chart moved with the fingers: the box
+         * scrolled by as much, for it to stay where they left it.
+         */
+        const { x, y } = panOf(g);
         sheet.style.transform = "";
+        if (Math.abs(x) >= 0.5 || Math.abs(y) >= 0.5) {
+          const [lowest, highest] = scrollAcross(scroller);
+          const left = Math.min(Math.max(scroller.scrollLeft - x, lowest), highest);
+          const top = Math.min(Math.max(scroller.scrollTop - y, 0), scroller.scrollHeight - scroller.clientHeight);
+          setAsLifted(scroller, () => {
+            scroller.scrollLeft = left;
+            scroller.scrollTop = top;
+          });
+        }
         return;
       }
       /*
@@ -136,7 +239,8 @@ export function usePinchZoom(
     const onTouchMove = (event: TouchEvent) => {
       const g = gesture.current;
       if (!g || event.touches.length !== 2 || startDistance === 0) return;
-      event.preventDefault();
+      // Scrolling already, the browser goes on with it: see panOf.
+      if (event.cancelable) event.preventDefault();
       g.atX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
       g.atY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
       scaleTo((g.startCell * distance(event.touches)) / startDistance);
@@ -201,23 +305,9 @@ export function usePinchZoom(
     const left = sheetLeft + (placed?.x ?? done.originX * done.ratio) - done.screenX;
     const top = sheetTop + (placed?.y ?? done.originY * done.ratio) - done.screenY;
     const [lowest, highest] = scrollAcross(scroller);
-    const place = () => {
+    setAsLifted(scroller, () => {
       scroller.scrollLeft = Math.min(Math.max(left, lowest), highest);
       scroller.scrollTop = Math.min(Math.max(top, 0), scroller.scrollHeight - scroller.clientHeight);
-    };
-    /*
-     * An iPhone scrolls a box itself, apart from the page, and while it
-     * thinks a finger is still on it - as it does for a while after a long
-     * pinch - it ignores a scroll set from here and keeps its own. Zoomed
-     * out, that is past the chart's new edge: blank, until the next touch
-     * springs it back. Stopping the box scrolling for a frame makes it let
-     * go of its own, and the scroll set here then stands.
-     */
-    scroller.style.overflow = "hidden";
-    place();
-    requestAnimationFrame(() => {
-      scroller.style.overflow = "";
-      place();
     });
   }, [cell, scrollRef, sheetRef, placeAfter]);
 
