@@ -561,6 +561,32 @@ const Chart: React.FC<ChartProps> = ({
     aimedOn.current = layout;
   }, [aim, at, layout]);
   /*
+   * The next round's beginning, painted ahead a moment after each stitch,
+   * while the knitting is along this one: going on to it is going to the
+   * chart's far side, all of it to paint in the frame the box gets there,
+   * after the tap that ends a round. See TileView.warm. Only where the
+   * knitting is done: the jumper's page's window of the chart, following
+   * the stitch too, never goes on to the next round while it is open.
+   */
+  const nextRound = useMemo(() => {
+    if (!backable || !onJump) return undefined;
+    const round = layout.cells.get(here)?.round;
+    let id = round === undefined ? undefined : rounds[round]?.[0];
+    while (id !== undefined && stitches[id] && isStep(stitches[id])) id++;
+    return id !== undefined && layout.cells.has(id) ? id : undefined;
+  }, [backable, onJump, layout, here, rounds, stitches]);
+  useEffect(() => {
+    if (nextRound === undefined) return;
+    const warm = setTimeout(() => {
+      const scroller = scrollRef.current;
+      if (!scroller) return;
+      const cell = cellNow.current;
+      tilesRef.current?.warm(nextRound, { x: scroller.clientWidth / 2 - cell / 2, y: scroller.clientHeight - lift(scroller.clientHeight, cell, followAt) - cell });
+    }, 900);
+    return () => clearTimeout(warm);
+  }, [nextRound, progress, followAt]);
+
+  /*
    * When the knitting stops, the box is no longer being sent anywhere: the
    * stitch it was sent to is let go of at once, not at rest, so that columns
    * opening as you scroll straight away can't send the box back to it.

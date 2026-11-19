@@ -27,7 +27,7 @@ import {
 import type { Palette } from "../../reading/palette";
 import { torn } from "./zoom";
 import { type Course, type Places, absorb, boxAt, placeOf, scrollFor, universalOf } from "./scroll-model";
-import { glideTime, hermite } from "./glide";
+import { farOff as glideFarOff, glideTime, hermite } from "./glide";
 import { onScrollModes, scrollModes, showScrollPanel } from "./scroll-modes";
 export { type Places, Reach, along, reach } from "./scroll-model";
 
@@ -694,6 +694,8 @@ export class TileView {
   private away?: number;
   /** A look at whether the stitch is out of sight, once the box comes to rest. */
   private awayLook = 0;
+  /** The rest of the tiles to paint ahead, a couple at a time: see warm. */
+  private warming = 0;
   /** When the view was made: until the box has had time to be sent to the stitch, it is not out of sight, only not there yet. */
   private readonly madeAt = performance.now();
 
@@ -1144,33 +1146,49 @@ export class TileView {
     });
   }
 
-  /** Mark stale the tiles across the rows whose stitches changed from done to to do, or back. */
+  /**
+   * Mark stale the tiles over the stitches that changed from done to to do,
+   * or back, and a few cells either side, for what is drawn over the edge of
+   * a cell; and across the whole chart, the rows whose marker lines change
+   * tense as they are worked (see markerRowsChanging), wherever the line is
+   * along them. Only the tiles over the stitches: marked stale all the way
+   * across their rows, the tiles of a round's beginning were stale by its
+   * end, and painted afresh as the knitting went on to the next round, in
+   * the frame it got there (see warm).
+   */
   private progressed(from: number, to: number) {
-    const { scene } = this.content!;
+    const { scene, cell } = this.content!;
     const [low, high] = from < to ? [from, to] : [to, from];
     if (high - low > 5000) {
       this.version++;
       return;
     }
-    let first = Infinity;
-    let last = -Infinity;
-    const include = (row: number) => {
-      first = Math.min(first, row);
-      last = Math.max(last, row);
-    };
+    const { start: top, size: height } = this.rows.places;
+    const { start: left, size: width } = this.columns.places;
+    let [x0, x1, y0, y1] = [Infinity, -Infinity, Infinity, -Infinity];
     for (let id = low + 1; id <= high; id++) {
       const row = scene.rowOf[id];
-      if (row) include(row);
+      if (!row) continue;
+      const column = scene.columnOf[id];
+      x0 = Math.min(x0, left[column]);
+      x1 = Math.max(x1, left[column] + width[column]);
+      y0 = Math.min(y0, top[row]);
+      y1 = Math.max(y1, top[row] + height[row]);
     }
-    // And the rows whose marker lines change tense as the stitches are worked: see markerRowsChanging.
+    const reach = 3 * cell;
+    const across = { x0: x0 - reach, x1: x1 + reach };
+    let [b0, b1] = [Infinity, -Infinity];
     const rows = scene.layout.rows;
-    for (const row of markerRowsChanging(scene, from, to)) if (row >= 1 && row <= rows) include(row);
-    if (first > last) return;
-    const { start, size } = this.rows.places;
-    const top = start[last];
-    const bottom = start[first] + size[first];
+    for (const row of markerRowsChanging(scene, from, to)) {
+      if (row < 1 || row > rows) continue;
+      b0 = Math.min(b0, top[row]);
+      b1 = Math.max(b1, top[row] + height[row]);
+    }
     this.tiles.forEach((tile) => {
-      if (tile.y < bottom && tile.y + tileSize > top) tile.painted = -1;
+      // A row up and down too: a turned stitch's veil covers its part in the row above (see paintRegion's doubles).
+      const over = tile.y < y1 + cell && tile.y + tileSize > y0 - cell && tile.x < across.x1 && tile.x + tileSize > across.x0;
+      const lined = tile.y < b1 && tile.y + tileSize > b0;
+      if (over || lined) tile.painted = -1;
     });
   }
 
@@ -1720,6 +1738,71 @@ export class TileView {
     }
     if (left) this.schedule();
     this.keep(wanted);
+  }
+
+  /**
+   * The tiles the box will show with the stitch `id` brought `inBox`, painted
+   * ahead while there is nothing else to do: the next round's beginning,
+   * while the knitting is along this one. Going on to it, the box goes from
+   * the chart's far side to its right-hand edge (see Glide's setOff), and
+   * every tile it showed there was painted in the frame it got there, most
+   * of that frame's work - the tiles of a round's beginning long since given
+   * up for those along it, or stale. Painted with the lines as they are now,
+   * which one row up from the rows in view they mostly still are; kept as
+   * used now, and looked at again after every stitch, so that they are kept
+   * as the knitting goes on along the round, and painted again only where
+   * something on them has changed.
+   */
+  warm(id: number, inBox: { x: number; y: number }) {
+    clearTimeout(this.warming);
+    const content = this.content;
+    if (!content || this.touching || this.glide || this.target !== undefined || this.columns.moving || this.rows.moving) return;
+    const at = this.placeOnLayer(id);
+    if (!at) return;
+    const { margin } = content;
+    const view = this.showing();
+    const size = this.size();
+    // As far along and down the chart as the box can go: see reachable, in Chart.
+    const x = Math.min(Math.max(at.x - inBox.x, -margin), Math.max(size.width - view.width, -margin));
+    const y = Math.min(Math.max(at.y - inBox.y, 0), Math.max(size.height - view.height, 0));
+    /*
+     * The stretch the box will show on its way: from where the glide sets off,
+     * a box short of there, put at once (see Glide's setOff). Nearer than
+     * that, it glides from where it is, over what is painted round the box
+     * already, and there is nothing to paint ahead.
+     */
+    const far = (to: number, from: number, extent: number) => Math.abs(to - from) > extent * glideFarOff;
+    if (!far(x, view.x, view.width) && !far(y, view.y, view.height)) return;
+    const setOff = (to: number, from: number, extent: number) => (far(to, from, extent) ? to - Math.sign(to - from) * extent : to);
+    const [x0, y0] = [setOff(x, view.x, view.width), setOff(y, view.y, view.height)];
+    const span = (from: number, to: number, extent: number) => [
+      Math.max(0, Math.floor(from / tileSize)),
+      Math.min(Math.ceil(extent / tileSize) - 1, Math.floor((to - 1) / tileSize)),
+    ];
+    const [tx0, tx1] = span(Math.min(x, x0) + margin, Math.max(x, x0) + view.width + margin, size.width + margin);
+    const [ty0, ty1] = span(Math.min(y, y0), Math.max(y, y0) + view.height, size.height);
+    const state = this.stateFor(content);
+    // A couple of tiles at a time, from the foot of the box up, where the stitch goes, so as never to keep a tap waiting long.
+    let painted = 0;
+    for (let ty = ty1; ty >= ty0; ty--) {
+      for (let tx = tx0; tx <= tx1; tx++) {
+        const key = `${tx}|${ty}`;
+        let tile = this.tiles.get(key);
+        if (!tile) {
+          tile = { key, tx, x: 0, y: ty * tileSize, canvas: this.canvas(), painted: -1, used: 0, placed: false };
+          this.tiles.set(key, tile);
+        }
+        tile.x = tx * tileSize - margin;
+        tile.used = this.clock;
+        if (tile.painted === this.version && !tile.part) continue;
+        if (painted === 2) {
+          this.warming = window.setTimeout(() => this.warm(id, inBox), 40);
+          return;
+        }
+        this.paint(tile, content, state);
+        painted++;
+      }
+    }
   }
 
   /** Keep only as many canvases as a phone can spare, beyond those `wanted`: the longest unused go first. */
@@ -2647,6 +2730,7 @@ export class TileView {
     if (views?.includes(this)) views.splice(views.indexOf(this), 1);
     cancelAnimationFrame(this.frame);
     clearTimeout(this.awayLook);
+    clearTimeout(this.warming);
     // Whatever shows the way back is told there is none, rather than left showing it for a view that is gone.
     this.tellAway(undefined);
     this.scroller.removeEventListener("scroll", this.onScroll);

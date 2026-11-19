@@ -24,8 +24,8 @@
 export const glideTime = (distance: number) => Math.min(550, Math.max(250, 200 + Math.sqrt(distance) * 8));
 /** And never less than this, sent somewhere else on the way. */
 const least = 120;
-/** Further than this many of the box's widths away, or heights, a glide goes most of the way at once: see from. */
-const farOff = 1.5;
+/** Further than this many of the box's widths away, or heights, a glide goes most of the way at once: see setOff. */
+export const farOff = 1.5;
 
 /**
  * Where a glide from `at` to `goal` sets off from, each way, in a box

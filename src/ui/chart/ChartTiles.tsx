@@ -25,6 +25,8 @@ export interface TilesHandle {
   glideTo(id: number, inBox: { x: number; y: number }, smooth: boolean): void;
   /** Stop such a glide where the box is. */
   stopGlide(): void;
+  /** Paint ahead the tiles the box will show with a stitch brought into it: see TileView.warm. */
+  warm(id: number, inBox: { x: number; y: number }): void;
   /** After a zoom, where the point zoomed about has got to on the sheet; see TileView.zoomedTo. */
   zoomedTo(x: number, y: number, screenX: number, screenY: number): { x: number; y: number } | undefined;
 }
@@ -96,6 +98,7 @@ const ChartTiles = forwardRef<TilesHandle, ChartTilesProps>(({ onMove, onTargetM
     aimTo: (id, inBox) => viewRef.current?.aimTo(id, inBox),
     glideTo: (id, inBox, smooth) => viewRef.current?.glideTo(id, inBox, smooth),
     stopGlide: () => viewRef.current?.stopGlide(),
+    warm: (id, inBox) => viewRef.current?.warm(id, inBox),
     zoomedTo: (x, y, screenX, screenY) => viewRef.current?.zoomedTo(x, y, screenX, screenY),
   }), []);
 
