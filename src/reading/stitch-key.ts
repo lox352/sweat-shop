@@ -391,6 +391,9 @@ const reverseIds: Record<ReverseStitch, true> = {
   pickUpPurl: true,
 };
 
+/** Where an entry comes in the key, whatever else the key has in it: the key is always in this order. */
+export const keyRank = (id: KeyId): number => order.indexOf(id);
+
 export const stitchKey = (stitches: Stitch[], notes: Notes = {}, view: KeyView = "worked"): KeyEntry[] => {
   const used = new Set<KeyId>();
   let joinAt = -1;
