@@ -660,6 +660,8 @@ export class TileView {
   /** The numbers in the ruler, each row's; and what they were put there for. */
   private readonly rulerLabels = new Map<number, HTMLSpanElement>();
   private rulerFor?: { on: boolean; places: Places; cell: number; scene: ChartScene };
+  /** The box's padding to its right, which the ruler stays inside: see rulerAt. */
+  private rulerPad?: number;
   /** How far the layer is put along now, in whole pixels of the screen: see onPixels. */
   private drawn = { x: 0, y: 0 };
   /**
@@ -670,8 +672,9 @@ export class TileView {
   private slider?: {
     across: Timeline;
     down: Timeline;
-    /** Each element's animations across and down: the ruler, which stays at the box's edge across, has none across. */
-    moved: Map<HTMLElement, [Animation | undefined, Animation]>;
+    moved: Map<HTMLElement, [Animation, Animation]>;
+    /** The ruler's strip, slid across to stay at the box's edge and down with the layer: see rulerAt. */
+    ruler?: { strip: HTMLElement; across: Animation; down: Animation };
     made: { across?: Made; down?: Made };
   };
   /**
@@ -1847,8 +1850,7 @@ export class TileView {
    */
   private shiftLayer(x: number, y: number) {
     this.drawn = { x, y };
-    // The ruler goes down with the layer, and stays at the box's edge across.
-    if (this.ruler) this.ruler.style.transform = y ? `translateY(${y}px)` : "";
+    const strip = this.ruler?.parentElement;
     if (this.slider) {
       // Where it is now, under the keyframes: what shows when the box can't be scrolled that way, and its timeline is idle.
       for (const element of [this.layer, this.afloat]) {
@@ -1856,9 +1858,16 @@ export class TileView {
         element.style.translate = x ? `${x}px 0px` : "";
         element.style.transform = y ? `translateY(${y}px)` : "";
       }
+      // And the ruler's strip, at the box's edge across and down with the layer: see rulerAt.
+      if (strip && this.content) {
+        strip.style.translate = `${this.rulerAt(this.scrolledTo().left)}px 0px`;
+        strip.style.transform = y ? `translateY(${y}px)` : "";
+      }
       this.slideWithScroll();
       return;
     }
+    // Pinned to the box's edge by the browser (see .chart-ruler), the ruler goes down with the layer.
+    if (this.ruler) this.ruler.style.transform = y ? `translateY(${y}px)` : "";
     const transform = x || y ? `translate(${x}px, ${y}px)` : "";
     this.layer.style.transform = transform;
     if (this.afloat) this.afloat.style.transform = transform;
@@ -1895,12 +1904,22 @@ export class TileView {
    */
   private slideWithScroll() {
     const slider = this.slider!;
-    for (const element of [this.layer, this.afloat, this.ruler]) {
+    for (const element of [this.layer, this.afloat]) {
       if (!element || slider.moved.has(element)) continue;
       const still = [{ translate: "0px 0px" }, { translate: "0px 0px" }];
-      const across = element === this.ruler ? undefined : element.animate(still, { timeline: slider.across, fill: "both" } as KeyframeAnimationOptions);
+      const across = element.animate(still, { timeline: slider.across, fill: "both" } as KeyframeAnimationOptions);
       const down = element.animate([{ transform: "none" }, { transform: "none" }], { timeline: slider.down, fill: "both" } as KeyframeAnimationOptions);
       slider.moved.set(element, [across, down]);
+      slider.made = {};
+    }
+    const strip = this.ruler?.parentElement;
+    if (strip && slider.ruler?.strip !== strip) {
+      const still = [{ translate: "0px 0px" }, { translate: "0px 0px" }];
+      const across = strip.animate(still, { timeline: slider.across, fill: "both" } as KeyframeAnimationOptions);
+      const down = strip.animate([{ transform: "none" }, { transform: "none" }], { timeline: slider.down, fill: "both" } as KeyframeAnimationOptions);
+      slider.ruler = { strip, across, down };
+      // Slid by the browser rather than pinned: see .chart-ruler-slid.
+      strip.parentElement?.classList.add("chart-ruler-slid");
       slider.made = {};
     }
     const box = this.scroller;
@@ -1993,7 +2012,21 @@ export class TileView {
             return { offset: Math.min(1, Math.max(0, offset)), ...frame(by), ...(pixels > 0 ? { easing: `steps(${pixels}, jump-end)` } : {}) };
           });
       }
-      for (const animations of slider.moved.values()) (animations[index]?.effect as KeyframeEffect | undefined)?.setKeyframes(frames);
+      for (const animations of slider.moved.values()) (animations[index].effect as KeyframeEffect).setKeyframes(frames);
+      if (slider.ruler) {
+        /*
+         * The ruler's strip goes down with the layer; across, it goes as the
+         * box scrolls, a pixel for a pixel, to stay at its right-hand edge:
+         * from one end of the scroll to the other, all in a line.
+         */
+        const keyframes =
+          name === "down"
+            ? frames
+            : [lowest, highest]
+                .map((at) => ({ offset: highest - lowest > 1 ? progress(at, range) : 0, translate: `${this.rulerAt(at)}px 0px` }))
+                .sort((a, b) => a.offset - b.offset);
+        (slider.ruler[name].effect as KeyframeEffect).setKeyframes(keyframes);
+      }
       slider.made[name] = { key, from, to, easing };
     }
   }
@@ -2026,6 +2059,18 @@ export class TileView {
     style.height = `${at.height + 2}px`;
   }
 
+  /**
+   * Where across the sheet the ruler's strip goes, slid with the box's
+   * scroll by the browser (see slideWithScroll), with the box scrolled
+   * `left` along: its right-hand edge at the box's, inside its padding. At
+   * the chart's own right-hand edge, the strip is the gutter.
+   */
+  private rulerAt(left: number): number {
+    const box = this.scroller;
+    if (this.rulerPad === undefined) this.rulerPad = parseFloat(getComputedStyle(box).paddingRight) || 0;
+    return left - this.sheet.offsetLeft + box.clientWidth - this.rulerPad - gutter(this.content!.cell);
+  }
+
   /** Whether the round numbers are put in the ruler, and not painted: not where the gutter has strips of its own, painted with the numbers as before. */
   private rulered(content: TileContent): boolean {
     return !!this.ruler && !content.overlay?.strips?.length;
@@ -2049,10 +2094,10 @@ export class TileView {
     const on = this.rulered(content);
     const { cell, scene } = content;
     const places = this.rows.places;
+    const strip = ruler.parentElement;
     const was = this.rulerFor;
     if (was && was.on === on && was.places === places && was.cell === cell && was.scene === scene) return;
     this.rulerFor = { on, places, cell, scene };
-    const strip = ruler.parentElement;
     if (strip) {
       strip.hidden = !on;
       if (was?.cell !== cell) {
@@ -2751,7 +2796,11 @@ export class TileView {
     // The ruler is the page's, and may be given to the next view: its numbers are this one's.
     for (const label of this.rulerLabels.values()) label.remove();
     this.rulerLabels.clear();
-    if (this.ruler && this.slider) for (const animation of this.slider.moved.get(this.ruler) ?? []) animation?.cancel();
+    if (this.slider?.ruler) {
+      this.slider.ruler.across.cancel();
+      this.slider.ruler.down.cancel();
+      this.slider.ruler.strip.parentElement?.classList.remove("chart-ruler-slid");
+    }
     this.tiles.clear();
     this.spare = [];
   }

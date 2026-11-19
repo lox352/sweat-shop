@@ -244,6 +244,8 @@
 .chart-afloat-clip {
   position: absolute;
   inset: 0;
+  /* Over the round numbers, as over the tiles: see .chart-ruler-track. */
+  z-index: 2;
   overflow: hidden;
   overflow: clip;
   pointer-events: none;
@@ -433,6 +435,7 @@
 .chart-ruler-track {
   position: absolute;
   inset: 0;
+  z-index: 1;
   display: flex;
   justify-content: flex-end;
   overflow-y: clip;
@@ -444,6 +447,25 @@
   right: 0;
   flex: none;
   width: var(--ruler-width, 22px);
+}
+
+/*
+ * Or, where the browser slides it with the box's scroll, as it does the
+ * tiles' layer, put at the sheet's corner and slid from there: across, to
+ * stay at the box's edge, and down with the layer (see
+ * TileView.slideWithScroll). Pinned, Safari lost the numbers from the strip
+ * whenever the box changed size - the knitting opened or closed - until the
+ * chart was next touched.
+ */
+.chart-ruler-slid {
+  display: block;
+}
+
+.chart-ruler-slid > .chart-ruler {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
 }
 
 .chart-ruler-rows {
