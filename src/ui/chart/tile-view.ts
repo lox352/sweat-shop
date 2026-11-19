@@ -2260,10 +2260,12 @@ export class TileView {
   /**
    * Whether the stitch being followed has been left out of sight - scrolled
    * away from, or zoomed away from, to look along the chart - and which way
-   * it is: see onAway. Only once the box has come to rest, so that a scroll
-   * on its way somewhere, or one passing the stitch by, never says so; and
-   * not while the box is being sent to the stitch, which brings it back. In
-   * sight again, or the box sent to it, that is said at once.
+   * it is: see onAway. Only while the box is at rest, so that a scroll on
+   * its way somewhere, or one passing the stitch by, never says so, and the
+   * way back is not one more thing moving over the chart: the box moving,
+   * it is not away, and once it has come to rest it is again. Nor while the
+   * box is being sent to the stitch, which brings it back. In sight again,
+   * or the box sent to it, that is said at once.
    */
   private lookForFollow(time: number) {
     const follow = this.content?.follow;
@@ -2275,7 +2277,9 @@ export class TileView {
     const sent = this.target !== undefined || this.glide !== undefined;
     if (follow === undefined || sent || this.followShowing()) return this.tellAway(undefined);
     const since = time - Math.max(this.movedAt, this.madeAt);
-    if (this.touching || this.columns.moving || this.rows.moving || since < settling) {
+    const moving = this.columns.moving || this.rows.moving || since < settling;
+    if (moving) this.tellAway(undefined);
+    if (moving || this.touching) {
       // Looked at again once the box has had time to come to rest; a finger still down looks again itself when it lifts.
       if (!this.touching) this.awayLook = window.setTimeout(() => this.schedule(), Math.max(settling - since, 0) + 16);
       return;

@@ -180,7 +180,8 @@
  * The way back to the stitch being worked, scrolled away from to look along
  * the chart: over the foot of the chart, in the middle, under where the
  * stitch comes back to, its arrow pointing the way it is. Centred by its
- * margins, as a button's own transform is its press.
+ * margins, as a button's own transform is its press. Only while the chart is
+ * still: it fades out as the chart moves, and in again once it rests.
  */
 .chart-back {
   position: absolute;
@@ -193,26 +194,27 @@
   padding-left: 14px;
   font-size: var(--text-s);
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.2);
-  animation: chart-back-in 0.15s ease-out;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.12s ease-in, visibility 0s linear 0.12s;
 }
 
+.chart-back[data-shown="true"] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 0.2s ease-out;
+}
+
+/* Turned while out of sight, so it never swings round as it fades in. */
 .chart-back-arrow {
   flex: none;
-  transition: transform 0.2s ease;
-}
-
-@keyframes chart-back-in {
-  from {
-    opacity: 0;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .chart-back {
-    animation: none;
-  }
-
-  .chart-back-arrow {
+  .chart-back,
+  .chart-back[data-shown="true"] {
     transition: none;
   }
 }

@@ -733,6 +733,25 @@ test("scrolled away from the stitch to look along the chart, a button points the
   await scroll({ top: -600 });
   await expect(back).toBeVisible();
   expect(await offCourse()).toBeLessThanOrEqual(30);
+  // Only while the chart is still: faded out within a few frames of it moving, and back once it rests.
+  const shownMoving = await page.locator(".chart-scroll").evaluate(async (box) => {
+    const frame = () => new Promise((done) => requestAnimationFrame(done));
+    const seen = () => {
+      const button = document.querySelector(".chart-back");
+      if (!button) return false;
+      const style = getComputedStyle(button);
+      return style.visibility !== "hidden" && Number(style.opacity) > 0.1;
+    };
+    let shown = 0;
+    for (let step = 0; step < 30; step++) {
+      box.scrollBy(0, -3);
+      await frame();
+      if (step >= 12 && seen()) shown++;
+    }
+    return shown;
+  });
+  expect(shownMoving).toBe(0);
+  await expect(back).toBeVisible();
   // And along it to the left too.
   await scroll({ left: -800 });
   await expect.poll(offCourse).toBeLessThanOrEqual(30);
