@@ -1912,34 +1912,53 @@ export class TileView {
   /**
    * For the scroll harness: how many of the tiles taken to show the chart as
    * it is now do not - each painted afresh on a spare canvas and the two
-   * compared, a pixel in every few. None should: a tile left as it was is
-   * one no line before it moved for.
+   * compared. None should: a tile left as it was is one no line before it
+   * moved for.
+   *
+   * What a stale tile shows is the chart as it was: whole cells in another
+   * colour, or another cell where one should be. So a tile is wrong where a
+   * square two pixels a side differs throughout - never where only the
+   * edges of its letters do, as they may between a canvas drawn on the
+   * screen and one drawn aside: on a Mac the round numbers are drawn a
+   * shade bolder on the one than the other, the chart the same.
    */
   audit(): { tiles: number; wrong: number; which: string[] } {
     const content = this.content;
     if (!content) return { tiles: 0, wrong: 0, which: [] };
     const state = this.stateFor(content);
     const spare = document.createElement("canvas");
+    const side = Math.max(4, Math.round(this.ratio * 2));
     let tiles = 0;
     let wrong = 0;
     const which: string[] = [];
     for (const tile of this.tiles.values()) {
       if (tile.painted !== this.version || tile.part) continue;
       tiles++;
-      spare.width = tile.canvas.width;
-      spare.height = tile.canvas.height;
+      const { width, height } = tile.canvas;
+      spare.width = width;
+      spare.height = height;
       const ctx = spare.getContext("2d", { alpha: false });
       const own = tile.canvas.getContext("2d", { alpha: false });
       if (!ctx || !own) continue;
       ctx.setTransform(this.ratio, 0, 0, this.ratio, -tile.x * this.ratio, -tile.y * this.ratio);
       paintRegion(ctx, { x: tile.x, y: tile.y, width: tileSize, height: tileSize }, content.scene, state);
-      const a = own.getImageData(0, 0, spare.width, spare.height).data;
-      const b = ctx.getImageData(0, 0, spare.width, spare.height).data;
-      for (let k = 0; k < a.length; k += 4 * 7) {
-        if (Math.abs(a[k] - b[k]) + Math.abs(a[k + 1] - b[k + 1]) + Math.abs(a[k + 2] - b[k + 2]) > 24) {
-          wrong++;
-          which.push(tile.key);
-          break;
+      const a = own.getImageData(0, 0, width, height).data;
+      const b = ctx.getImageData(0, 0, width, height).data;
+      const differs = (x: number, y: number) => {
+        const k = (y * width + x) * 4;
+        return Math.abs(a[k] - b[k]) + Math.abs(a[k + 1] - b[k + 1]) + Math.abs(a[k + 2] - b[k + 2]) > 24;
+      };
+      const throughout = (x: number, y: number) => {
+        for (let dy = 0; dy < side; dy++) for (let dx = 0; dx < side; dx++) if (!differs(x + dx, y + dy)) return false;
+        return true;
+      };
+      search: for (let y = 0; y + side <= height; y += side) {
+        for (let x = 0; x + side <= width; x += side) {
+          if (differs(x, y) && throughout(x, y)) {
+            wrong++;
+            which.push(tile.key);
+            break search;
+          }
         }
       }
     }
