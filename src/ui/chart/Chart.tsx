@@ -20,7 +20,7 @@ import type { Design } from "../../pattern/design";
 import { usePinchZoom } from "./usePinchZoom";
 import { Glide } from "./glide";
 import { scrollModes } from "./scroll-modes";
-import { leastCell, minCell, stepCell } from "./zoom";
+import { leastCell, maxCell, minCell, stepCell } from "./zoom";
 import "./Chart.css";
 
 /**
@@ -35,6 +35,33 @@ const lift = (showing: number, cell: number, share = 0.25) => Math.max(clearance
 
 const reducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/*
+ * The size of stitch the knitter last left the chart at, kept on this
+ * device, so that the chart opens at it again rather than at the size it
+ * starts at: a knitter who reads it larger, or smaller, set it so every
+ * time they opened it. Only a size a stitch is drawn at whole - its rules
+ * and symbol - is kept: zoomed out past that, to see the whole of a round,
+ * is a look, not a way to knit from, and the chart opens at the size before.
+ */
+const zoomKey = "chartZoom";
+const startingZoom = 16;
+const keptZoom = (): number => {
+  try {
+    const kept = Number(localStorage.getItem(zoomKey));
+    return Number.isInteger(kept) && kept >= minCell && kept <= maxCell ? kept : startingZoom;
+  } catch {
+    return startingZoom;
+  }
+};
+const keepZoom = (cell: number) => {
+  if (cell < minCell) return;
+  try {
+    localStorage.setItem(zoomKey, String(Math.round(cell)));
+  } catch {
+    // Still at that size for this visit; it just won't be remembered.
+  }
+};
 
 /**
  * A colour from the stylesheet, so the canvas is painted in the same palette
@@ -144,7 +171,7 @@ const Chart: React.FC<ChartProps> = ({
   const [picked, setPicked] = useState<number>();
   const makeOneLean = stitchNotes?.m1?.lean;
   const closePicker = useCallback(() => setPicked(undefined), []);
-  const [zoom, setZoom] = useState(16);
+  const [zoom, setZoom] = useState(keptZoom);
   const { highContrast: contrast, writtenRounds } = useSettings();
   const [textRound, setTextRound] = useState(1);
   const [showText, setShowText] = useState(false);
@@ -170,6 +197,7 @@ const Chart: React.FC<ChartProps> = ({
   const zoomTo = useCallback((cell: number) => {
     fitted.current = cell <= least();
     setZoom(cell);
+    keepZoom(cell);
   }, [least]);
   /*
    * The tiles, where the columns and rows are closed up: where a stitch is

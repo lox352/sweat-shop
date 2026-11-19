@@ -840,6 +840,26 @@ async function zoomAllTheWayIn(page) {
   }
 }
 
+test("the chart opens at the size it was last zoomed to, though not zoomed right out", async ({ page }) => {
+  await knittedTo(page, 3000);
+  const chart = page.getByRole("region", { name: /Scrollable knitting chart/ });
+  const cell = () => page.locator(".chart-next").evaluate((mark) => Math.round(mark.getBoundingClientRect().width) - 2);
+  await expect.poll(cell).toBe(16);
+  await chart.press("+");
+  await chart.press("+");
+  await expect.poll(cell).toBe(24);
+  // Closed and opened again: at the size it was left at.
+  await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  await page.getByRole("link", { name: "Close the chart", exact: true }).click();
+  await page.locator(".stage-bar").getByRole("link", { name: "Keep knitting", exact: true }).click();
+  await expect.poll(cell).toBe(24);
+  // Zoomed out past a stitch drawn whole is a look at the whole round: opened again, it is at the last size it was knitted from.
+  for (let press = 0; press < 6; press++) await chart.press("-");
+  await expect.poll(cell).toBeLessThan(8);
+  await page.reload();
+  await expect.poll(cell).toBe(8);
+});
+
 test("closed up, the rib at the neck is its stitches side by side, and every column shows by the widest round", async ({ page }) => {
   await start(page);
   // Close enough that the rows in view are the neck's, below the yoke's first make-ones.
