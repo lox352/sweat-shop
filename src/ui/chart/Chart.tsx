@@ -752,7 +752,15 @@ const Chart: React.FC<ChartProps> = ({
                   const sheet = sheetRef.current?.getBoundingClientRect();
                   const shift = tilesRef.current?.afloatShift();
                   if (!scroller || !sheet || !shift) return undefined;
-                  return { left: scroller.left - sheet.left - shift.x, right: scroller.right - sheet.left - shift.x, top: scroller.top - sheet.top - shift.y };
+                  // As far up and down as can be seen: inside the box, the sheet - what floats over it is cut off at its edges - and the window.
+                  const top = Math.max(scroller.top, sheet.top, 0);
+                  const bottom = Math.min(scroller.bottom, sheet.bottom, window.innerHeight);
+                  return {
+                    left: scroller.left - sheet.left - shift.x,
+                    right: scroller.right - sheet.left - shift.x,
+                    top: top - sheet.top - shift.y,
+                    bottom: bottom - sheet.top - shift.y,
+                  };
                 }}
                 note={pickerNote?.(picked)}
                 entry={keyEntryAt(stitches, picked, stitchNotes, face)}

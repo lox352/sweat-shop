@@ -281,7 +281,26 @@
   cursor: auto;
 }
 
-.stitch-picker-head {
+/*
+ * Too tall for the room either side of its stitch, it scrolls within
+ * itself, keeping where the stitch is at its head and the way to carry on
+ * from it at its foot, what is between them going under them; a scroll
+ * that reaches its end goes no further, rather than on to the chart. Each
+ * is kept inside the bubble's own padding, which is filled in with its
+ * paper, so that nothing scrolled shows round them.
+ */
+.stitch-picker-scrolls {
+  overscroll-behavior: contain;
+}
+
+.stitch-picker-scrolls > .stitch-picker-head,
+.stitch-picker-scrolls > .btn {
+  position: sticky;
+  z-index: 1;
+  flex: none;
+}
+
+.stitch-picker-scrolls > .stitch-picker-head {
   top: 0;
   background: var(--paper-raised);
   box-shadow: 0 8px 8px -2px var(--paper-raised);
