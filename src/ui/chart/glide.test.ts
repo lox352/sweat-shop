@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Glide, glideTime, hermite } from "./glide";
+import { Glide, glideTime, hermite, setOff } from "./glide";
 
 /** Frames run by hand: each at the time given. */
 let frames: ((time: number) => void)[] = [];
@@ -35,6 +35,34 @@ describe("gliding the chart's box", () => {
     expect(speed).toBe(0);
     // Going at the speed it set off at.
     expect(hermite(10, 0.5, 110, 200, 0.001)[1]).toBeCloseTo(0.5, 2);
+  });
+
+  it("far off, goes most of the way at once and glides in the last box's width", () => {
+    // A box 400 across and 500 high: further than a box and a half, it sets off a box short.
+    expect(setOff(0, -4000, 400)).toBe(-3600);
+    expect(setOff(-4000, 0, 400)).toBe(-400);
+    expect(setOff(0, -600, 400)).toBe(0);
+    expect(setOff(0, 16, 500)).toBe(0);
+    // A box with no size yet goes the whole way.
+    expect(setOff(0, -4000, 0)).toBe(0);
+
+    const { scroller, written } = box();
+    Object.defineProperty(scroller, "clientWidth", { value: 400 });
+    Object.defineProperty(scroller, "clientHeight", { value: 500 });
+    const glide = new Glide(scroller);
+    glide.to({ left: -4000, top: 16 }, 0);
+    // A frame for whatever else the tap changed to be shown first, the box still where it was.
+    run(0);
+    expect(written).toEqual([]);
+    expect(glide.going).toBe(true);
+    // Then it goes, from a box short, its time counted from there.
+    run(16);
+    expect(written[0]).toEqual([-3600, 0]);
+    const time = glideTime(Math.hypot(400, 16));
+    for (let t = 32; t < time + 66; t += 16) run(t);
+    expect(glide.going).toBe(false);
+    expect(written[written.length - 1]).toEqual([-4000, 16]);
+    for (let k = 1; k < written.length; k++) expect(written[k][0]).toBeLessThanOrEqual(written[k - 1][0]);
   });
 
   it("goes the whole way in one movement, each frame further, and stops there", () => {

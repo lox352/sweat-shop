@@ -24,6 +24,24 @@
 export const glideTime = (distance: number) => Math.min(550, Math.max(250, 200 + Math.sqrt(distance) * 8));
 /** And never less than this, sent somewhere else on the way. */
 const least = 120;
+/** Further than this many of the box's widths away, or heights, a glide goes most of the way at once: see from. */
+const farOff = 1.5;
+
+/**
+ * Where a glide from `at` to `goal` sets off from, each way, in a box
+ * `size` across that way: from where it is, or, going further than a box
+ * and a half, from a box short of the goal, put there at once. The end of
+ * a round is the far side of the chart from the next round's beginning,
+ * and gliding there swept the whole chart past - every frame of it a strip
+ * not seen before, to paint: across a yoke, frames of up to a tenth of a
+ * second on a slow phone, for a blur no one could read on its way. So it
+ * goes there and glides in the last box's width: the chart is seen going
+ * the way it went, and the stitch is there sooner.
+ */
+export const setOff = (at: number, goal: number, size: number): number => {
+  if (!(size > 0) || Math.abs(goal - at) <= size * farOff) return at;
+  return goal - Math.sign(goal - at) * size;
+};
 
 export interface Point {
   left: number;
@@ -53,6 +71,16 @@ export class Glide {
   /** How many frames running the box has been held at an edge short of where it was sent, and how much room it had. */
   private held = 0;
   private room = "";
+  /**
+   * Whether it waits a frame before it goes: setting off from afar (see
+   * setOff), what it goes to is all to be painted, a frame's work and more
+   * on a slow phone. Whatever else the tap that sent it changed - the
+   * knitting panel's next instruction - is shown first, so the tap is seen
+   * to have been taken at once, and the box goes in the frame after.
+   */
+  private waiting = false;
+  /** And that its time is to be counted from the frame it goes in, there at once. */
+  private restart = false;
 
   /** `onFrame` is told after each frame's scroll is written, to bring what is drawn up to it in the same frame. */
   constructor(
@@ -83,9 +111,14 @@ export class Glide {
       this.speed = speed;
       this.time = Math.max(least, left);
     } else {
-      this.from = { left: this.box.scrollLeft, top: this.box.scrollTop };
+      // Put there by the first frame, along with what is drawn for it: see step.
+      this.from = {
+        left: setOff(this.box.scrollLeft, goal.left, this.box.clientWidth),
+        top: setOff(this.box.scrollTop, goal.top, this.box.clientHeight),
+      };
       this.speed = { left: 0, top: 0 };
       this.time = glideTime(Math.hypot(goal.left - this.from.left, goal.top - this.from.top));
+      this.waiting = this.from.left !== this.box.scrollLeft || this.from.top !== this.box.scrollTop;
     }
     this.goal = { ...goal };
     this.start = now;
@@ -97,6 +130,16 @@ export class Glide {
   }
 
   private readonly step = (now: number) => {
+    if (this.waiting) {
+      this.waiting = false;
+      this.restart = true;
+      this.frame = requestAnimationFrame(this.step);
+      return;
+    }
+    if (this.restart) {
+      this.restart = false;
+      this.start = now;
+    }
     const done = now - this.start >= this.time;
     const { at } = done ? { at: this.goal } : this.state(now);
     this.frame = done ? 0 : requestAnimationFrame(this.step);
@@ -135,6 +178,8 @@ export class Glide {
   readonly stop = () => {
     cancelAnimationFrame(this.frame);
     this.frame = 0;
+    this.waiting = false;
+    this.restart = false;
     delete this.box.dataset.gliding;
   };
 
