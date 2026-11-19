@@ -554,19 +554,26 @@ const ProjectView: React.FC<{
     [stitches],
   );
   const face = faceAfter(turnIds, project.progress);
-  // And its chart made, as the chart will ask for it there: see sceneFor.
+  /*
+   * And its chart made, as the chart will ask for it there: see sceneFor. So
+   * too, from the jumper's page, the chart of the view the knitting is in,
+   * which Keep knitting opens: the first time in a visit, it was made in
+   * the tap, half a second on a phone.
+   */
   const makeOneLean = sweater.stitchNotes?.m1?.lean;
+  const ahead =
+    view === "overview" ? knittingIn : nextView && nextView.begins - project.progress <= aheadOfView ? nextView : undefined;
   useEffect(() => {
-    if (!nextView || nextView.begins - project.progress > aheadOfView) return;
+    if (!ahead) return;
     // Laid out, then its chart made, each a task of its own, so that a tap waits for one at most.
-    let ahead = setTimeout(() => {
-      const { layout, markers } = viewChart(built, counted, nextView);
-      ahead = setTimeout(() => {
+    let timer = setTimeout(() => {
+      const { layout, markers } = viewChart(built, counted, ahead);
+      timer = setTimeout(() => {
         sceneFor(layout, { stitches, rounds: counted.rounds, face, makeOneLean, markers, names, pieces: sweater.pieces, holdRegions });
       }, 50);
-    }, 600);
-    return () => clearTimeout(ahead);
-  }, [nextView, project.progress, built, counted, stitches, face, makeOneLean, names, sweater.pieces, holdRegions]);
+    }, view === "overview" ? 1200 : 600);
+    return () => clearTimeout(timer);
+  }, [ahead, view, project.progress, built, counted, stitches, face, makeOneLean, names, sweater.pieces, holdRegions]);
   const currentStitch = run ? keyEntryAt(stitches, run.startId, sweater.stitchNotes)?.id : undefined;
 
   const title = project.name ?? sweater.name;
