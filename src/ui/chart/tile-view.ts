@@ -17,16 +17,20 @@ import {
   LiveColumns,
   LiveRows,
   type RowMap,
+  columnsWith,
+  blocksKept,
   everyColumn,
   everyRow,
   indexColumns,
   mapOf,
   rowMapOf,
+  rowsWith,
   rowsWithin,
+  sameShows,
 } from "./column-window";
 import type { Palette } from "../../reading/palette";
 import { torn } from "./zoom";
-import { type Course, type Places, absorb, boxAt, placeOf, scrollFor, universalOf } from "./scroll-model";
+import { type Course, type Places, absorb, blockNear, boxAt, middleLine, placeOf, scrollFor, universalOf } from "./scroll-model";
 import { farOff as glideFarOff, glideTime, hermite } from "./glide";
 import { onScrollModes, scrollModes, showScrollPanel } from "./scroll-modes";
 export { type Places, Reach, along, reach } from "./scroll-model";
@@ -55,14 +59,19 @@ export { type Places, Reach, along, reach } from "./scroll-model";
  * shows the chart the same part of the way along, about a pivot that far
  * across the box, however many lines have opened or closed since - see
  * along. A scroll at an end shows that edge of the chart, either way and
- * both ways, so there is never an edge out of reach or blank sheet past one;
- * the lines either side of the pivot open out from it and close in on it;
- * and where the layer goes depends only on the scroll and the lines showing,
- * never on how they came to show, so nothing creeps. Only the stitch being
- * worked, or one being scrolled to, while on screen, or the point a zoom was
- * about, is held still, the layer moved on by as much. Once the box has come to rest, the sheet takes the
- * chart's size, the layer goes back to its corner and the box is scrolled to
- * match, in the same frame, so nothing on screen moves.
+ * both ways, so there is no blank sheet past one; the lines either side of
+ * the pivot open out from it and close in on it; and where the layer goes
+ * depends only on the scroll and the lines showing, never on how they came
+ * to show, so nothing creeps. Only the stitch being worked, or one being
+ * scrolled to, while on screen, or the point a zoom was about, is held
+ * still, the layer moved on by as much - and what is in the middle of the
+ * box, as a block of lines opens or closes near it, which the pivot would
+ * have shove everything beyond it along at once (see sendLines): the block
+ * opens past the box's edge, which may then be out of reach until rest. A
+ * block that would close in view stays, as paper, while any of it is (see
+ * blocksKept). Once the box has come to rest, the sheet takes the chart's
+ * size, the layer goes back to its corner and the box is scrolled to match,
+ * in the same frame, so nothing on screen moves, and every edge is in reach.
  */
 
 /** A tile's side, in CSS pixels. */
@@ -585,6 +594,11 @@ export class TileView {
   private liveRows?: LiveRows;
   private columnMap?: ColumnMap;
   private rowMap?: RowMap;
+  /** The lines kept showing while in view, with no stitch to show: see blocksKept. */
+  private keptColumns?: Uint8Array;
+  private keptRows?: Uint8Array;
+  /** Where the box's top left corner was on the chart when the lines were last settled. */
+  private seenAt?: { x: number; y: number };
   /** Where the lines were before the cell size last changed, and at what size, to zoom about. */
   private before?: { columns: Places; rows: Places; x: number; y: number; cell: number };
   /** A stitch to hold still while lines move: one the chart is scrolling to. */
@@ -903,6 +917,7 @@ export class TileView {
     this.liveRows = new LiveRows(indexColumns(index));
     this.columnMap = everyColumn(layout.columns);
     this.rowMap = everyRow(layout.rows);
+    this.keptColumns = this.keptRows = undefined;
     this.columns.reset(columnPlaces(this.columnMap, content.cell, content.scene.breaks));
     this.rows.reset(rowPlaces(this.rowMap, content.cell));
     this.anchorColumns();
@@ -1045,39 +1060,145 @@ export class TileView {
     let rows = false;
     for (let round = 0; round < rounds; round++) {
       const [first, last] = this.rowsInView(view().y);
-      const columnsMoved = this.liveColumns!.moveTo(first, last);
-      if (columnsMoved) {
-        this.columnMap = mapOf(this.liveColumns!);
-        const to = columnPlaces(this.columnMap, cell, content.scene.breaks);
-        if (fresh) {
-          this.columns.reset(to);
-          this.anchorColumns();
-        } else {
-          const held = this.columnHeld();
-          if (held !== undefined) {
-            this.columns.retarget(to, held);
-            this.keepColumnsInBox();
-          } else this.columns.send(to);
+      let columnsMoved = false;
+      // Looked at again while any are kept, which close once out of view.
+      if (this.liveColumns!.moveTo(first, last) || this.keptColumns) {
+        const map = this.columnsShowing(fresh, view().x);
+        columnsMoved = map !== this.columnMap;
+        if (columnsMoved) {
+          this.columnMap = map;
+          const to = columnPlaces(map, cell, content.scene.breaks);
+          if (fresh) {
+            this.columns.reset(to);
+            this.anchorColumns();
+          } else {
+            const held = this.columnHeld();
+            if (held !== undefined) {
+              this.columns.retarget(to, held);
+              this.keepColumnsInBox();
+            } else if (this.sendLines(this.columns, to, view().x, this.scroller.clientWidth)) {
+              this.keepColumnsInBox(false);
+            }
+          }
+          columns = true;
         }
-        columns = true;
       }
-      const rowsMoved = this.liveRows!.moveTo(this.onScreen(view().x));
-      if (rowsMoved) {
-        this.rowMap = rowMapOf(this.liveRows!);
-        const to = rowPlaces(this.rowMap, cell);
-        if (fresh) this.rows.reset(to);
-        else {
-          const held = this.rowHeld();
-          if (held !== undefined) {
-            this.rows.retarget(to, held);
-            this.keepRowsInBox();
-          } else this.rows.send(to);
+      let rowsMoved = false;
+      if (this.liveRows!.moveTo(this.onScreen(view().x)) || this.keptRows) {
+        const map = this.rowsShowing(fresh, view().y);
+        rowsMoved = map !== this.rowMap;
+        if (rowsMoved) {
+          this.rowMap = map;
+          const to = rowPlaces(map, cell);
+          if (fresh) this.rows.reset(to);
+          else {
+            const held = this.rowHeld();
+            if (held !== undefined) {
+              this.rows.retarget(to, held);
+              this.keepRowsInBox();
+            } else if (this.sendLines(this.rows, to, view().y, this.scroller.clientHeight)) {
+              this.keepRowsInBox();
+            }
+          }
+          rows = true;
         }
-        rows = true;
       }
       if (!columnsMoved && !rowsMoved) break;
     }
+    // Where the box was on the chart, for what it has seen as it next moves: see blocksKept.
+    const { x, y } = view();
+    this.seenAt = { x, y };
     return { columns, rows };
+  }
+
+  /**
+   * The columns to show: those with a stitch in a row in view, and those
+   * kept while in view (see blocksKept), the box `x` along the chart - the
+   * map showing now, if that is the same. Laid out afresh, `fresh`, none are
+   * kept.
+   */
+  private columnsShowing(fresh: boolean, x: number): ColumnMap {
+    const live = mapOf(this.liveColumns!);
+    const now = this.columnMap!;
+    const { start, size } = this.columns.target;
+    const span = this.scroller.offsetWidth;
+    const across = (line: number, at: number) => start[line] + size[line] > at && start[line] < at + span;
+    const before = this.seenAt?.x;
+    const kept = fresh ? undefined : blocksKept(live.shows, now.shows, this.keptColumns, (line) => across(line, x), (line) => before === undefined || across(line, before), blockOf);
+    this.keptColumns = kept;
+    const map = kept ? columnsWith(live, kept) : live;
+    return sameShows(map, now) ? now : map;
+  }
+
+  /** And the rows, the box `y` down the chart. */
+  private rowsShowing(fresh: boolean, y: number): RowMap {
+    const live = rowMapOf(this.liveRows!);
+    const now = this.rowMap!;
+    const { start, size } = this.rows.target;
+    const span = this.scroller.offsetHeight;
+    const down = (line: number, at: number) => start[line] + size[line] > at && start[line] < at + span;
+    const before = this.seenAt?.y;
+    const kept = fresh ? undefined : blocksKept(live.shows, now.shows, this.keptRows, (line) => down(line, y), (line) => before === undefined || down(line, before), blockOf);
+    this.keptRows = kept;
+    const map = kept ? rowsWith(live, kept) : live;
+    return sameShows(map, now) ? now : map;
+  }
+
+  /**
+   * `axis`'s lines sent on, with nothing held, from where they are going now
+   * to `to`, the box `from` along the chart and `size` long: where the box's
+   * scroll puts them (see along) - unless they open or close in a block near
+   * the box (see blockNear), when the line in the middle of the box is held
+   * still instead, and the rest open and close about it. The scroll's pivot
+   * shares out what opens or closes about it, and a block opening there
+   * shoved everything beyond it in the box along at once - at an end of the
+   * chart, where the pivot is the box's edge, everything: scrolled along the
+   * top of the chart onto a sleeve, whose rounds go on past the body's,
+   * everything went down the box by more than half its height in a moment;
+   * flung up a yoke onto its sleeves, by more still. Held, the block opens
+   * past the box's edge, there to scroll to, and nothing in the box moves but
+   * with the finger. Lines opening here and there, as a yoke's make-ones do,
+   * go as the scroll puts them, an edge the box is at kept at its own. Not
+   * while the box is being sent to a stitch, or zoomed about a point, which
+   * hold what they do. Says whether it held anything.
+   */
+  private sendLines(axis: Axis, to: Places, from: number, size: number): boolean {
+    const was = axis.target;
+    const held = !this.glide && this.target === undefined && !this.point && blockNear(was, to, from, size, blockOf) ? middleLine(was, to, from + size / 2) : undefined;
+    if (held === undefined) {
+      axis.send(to);
+      return false;
+    }
+    axis.retarget(to, held);
+    return true;
+  }
+
+  /**
+   * What is held let go of as far as it would carry the chart's edge into
+   * the box, where the box's scroll can't follow: held for lines opened at
+   * the top of the chart (see sendLines), and the box then scrolled on down
+   * to the foot before it came to rest, the foot would come up the box by as
+   * much, blank paper under it, and the chart jump down for it at rest. So
+   * as the box nears an edge the chart stays at it, as it does with nothing
+   * held, while the scroll goes on to its end.
+   */
+  private keepHeldInChart() {
+    if (this.glide || this.target !== undefined || this.point) return;
+    const ways = [
+      { axis: this.columns, course: () => this.courseAcross(this.columns.places), at: () => this.scrolledTo().left - this.sheet.offsetLeft },
+      { axis: this.rows, course: () => this.courseDown(this.rows.places), at: () => this.scrolledTo().top - this.sheet.offsetTop },
+    ];
+    for (const { axis, course: courseOf, at } of ways) {
+      if (axis.moving || Math.abs(axis.held) < 0.5) continue;
+      const course = courseOf();
+      if (!course) continue;
+      const box = Math.min(course.room - course.near, Math.max(-course.near, at()));
+      const scrolled = boxAt(course, box);
+      // From where the box shows the chart, between its two edges as the scroll can show them.
+      const shown = scrolled - axis.held;
+      const within = Math.min(Math.max(shown, -course.near), Math.max(-course.near, axis.places.start[0] + course.far - course.size));
+      if (Math.abs(within - shown) >= 0.5) axis.absorbed(scrolled - within);
+    }
   }
 
   /**
@@ -1332,11 +1453,15 @@ export class TileView {
    * jump across when it comes to rest; then the edge is held still instead.
    * Not while the box is being scrolled to a stitch, or zoomed about one:
    * where it is going was worked out from that stitch's place on the sheet.
+   * The box goes past the chart's foot by its own padding, as its scroll
+   * takes it at rest: held short of that, at the foot of the chart rows
+   * opening far above, out of view, pulled the chart up the box by as much.
    */
   private keepRowsInBox() {
     if (this.target !== undefined || this.point) return;
     const top = this.sheet.offsetTop;
-    this.rows.keepBox(this.scrolledTo().top - top, this.scroller.clientHeight, -top);
+    const below = parseFloat(getComputedStyle(this.scroller).paddingBottom) || 0;
+    this.rows.keepBox(this.scrolledTo().top - top, this.scroller.clientHeight, -top, below);
   }
 
   /**
@@ -1361,9 +1486,14 @@ export class TileView {
    * still near it: the box can't be scrolled past that edge, so there would
    * be nothing in the gap, and the box would only be put right at rest, by a
    * scroll a phone can lose. A chart narrower than the box has nothing to
-   * scroll, and is left as it is.
+   * scroll, and is left as it is. `reach`: nor carried out of the box's
+   * reach, past its right-hand edge - but for what is held still so that
+   * nothing in the box moves (see sendLines), where it is let go there as
+   * the top of the chart is, to scroll to once at rest: pulled back, it
+   * shoved what was in the box along, 150 pixels in a frame, flung down a
+   * raglan from its neck as its columns opened beyond the round's first.
    */
-  private keepColumnsInBox() {
+  private keepColumnsInBox(reach = true) {
     if (this.point) return;
     const size = this.scroller.clientWidth;
     // The chart, its round numbers, and the box's own padding past them.
@@ -1373,7 +1503,7 @@ export class TileView {
     const was = this.columns.targetShift;
     const [lowest, highest] = scrollAcross(this.scroller);
     this.columns.keepBox(this.scrolledTo().left - left, size, lowest - left, room);
-    if (this.nearRight()) {
+    if (reach && this.nearRight()) {
       /*
        * Nor carried out past the furthest right the box can go, which
        * holding a stitch still would do as columns close between it and
@@ -1559,6 +1689,7 @@ export class TileView {
     // And again for the sheet as it is now, given a size or brought to rest.
     this.columns.follow();
     this.rows.follow();
+    this.keepHeldInChart();
     this.reAim(settled || rebased || sheetWas !== `${this.sheet.style.width}|${this.sheet.style.height}|${this.sheet.offsetLeft}`);
     const [x, y] = this.onPixels(this.columns.shift, this.rows.shift);
     this.shiftLayer(x, y);

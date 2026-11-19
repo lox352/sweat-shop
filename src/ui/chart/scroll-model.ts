@@ -193,6 +193,61 @@ export const along = (rest: Places, places: Places, part: number, size: number, 
 
 
 /**
+ * The line to hold still for lines that would otherwise shove what is in the
+ * box (see TileView.sendLines): the one showing, before and after, nearest
+ * the point `at` along the lines as they were - the middle of the box.
+ */
+export const middleLine = (was: Places, to: Places, at: number): number | undefined => {
+  let best: number | undefined;
+  let nearest = Infinity;
+  for (let line = 1; line < was.size.length - 1; line++) {
+    if (!(was.size[line] > 0 && to.size[line] > 0)) continue;
+    const off = Math.abs(was.start[line] + was.size[line] / 2 - at);
+    if (off < nearest) {
+      nearest = off;
+      best = line;
+    }
+  }
+  return best;
+};
+
+/**
+ * Whether lines going from `was` to `to` open or close in a block - more
+ * than `block` side by side at once, those closed up either way between
+ * them no gap on screen - within half a box of the box, `from` along the
+ * lines as they were and `size` long: where the scroll's pivot, which
+ * shares out what opens and closes about it, would have it shove whatever
+ * is beyond it in the box along at once (see along). At an end of the chart
+ * the pivot is the box's edge, and a block opening there shoved everything:
+ * scrolled along the top of the chart onto a sleeve, whose rounds go on past
+ * the body's, everything went down the box by more than half its height in
+ * a moment; along its foot, past the short rows at the back of the neck, the
+ * yoke went up and down it. Lines opening here and there, as a yoke's
+ * make-ones do a stitch apart, are no block: they open about the pivot, an
+ * edge the box is at kept at its own. Nor is one further off, which the
+ * pivot leaves the box alone for. See TileView.sendLines.
+ */
+export const blockNear = (was: Places, to: Places, from: number, size: number, block: number): boolean => {
+  const [near, far] = [from - size / 2, from + size + size / 2];
+  let run = 0;
+  let seen = false;
+  for (let line = 1; line < was.size.length - 1; line++) {
+    const [before, after] = [was.size[line] > 0, to.size[line] > 0];
+    if (!before && !after) continue;
+    if (before === after) {
+      run = 0;
+      seen = false;
+      continue;
+    }
+    // Where it is: across the lines as they were, or, closed up, a point.
+    const [a, b] = [was.start[line], was.start[line] + was.size[line]];
+    seen ||= b >= near && a <= far;
+    if (++run > block && seen) return true;
+  }
+  return false;
+};
+
+/**
  * One way across the chart, as the box's scroll sees it: the lines as they
  * are, those the sheet was last given the size of, and those the pivot is
  * measured along (see keepsRef in tile-view); the box's length that way,

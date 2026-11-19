@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type Course, type Places, absorb, boxAt, placeOf, scrollFor, universalOf } from "./scroll-model";
+import { type Course, type Places, absorb, blockNear, boxAt, middleLine, placeOf, scrollFor, universalOf } from "./scroll-model";
 
 const cell = 16;
 
@@ -101,5 +101,43 @@ describe("the chart opened out", () => {
     for (const u of [open.start[last], (open.start[first] + open.start[last]) / 2, open.start[first] + cell / 2]) {
       expect(placeOf(closed, open, u)).toBeCloseTo(onScreen, 6);
     }
+  });
+});
+
+describe("lines opening and closing in a block", () => {
+  // Rows as the chart lays them out: line 1 the bottom row, the last the top; the top of the chart, nought, past the last.
+  const rows = 40;
+  const upTo = (top: number) => linesOf(Array.from({ length: rows }, (_, k) => k + 1 <= top));
+
+  it("hold what is in view still: a sleeve's rounds opening past the body's at the top, the box there", () => {
+    // The box at the top of the chart: rounds 31 to 40 open above the body's thirty, at the box's edge.
+    expect(blockNear(upTo(30), upTo(40), 0, 10 * cell, 3)).toBe(true);
+  });
+
+  it("and within half a box of it, where the pivot would share it out", () => {
+    expect(blockNear(upTo(30), upTo(40), 4 * cell, 10 * cell, 3)).toBe(true);
+  });
+
+  it("but not further off, which the pivot leaves the box alone for", () => {
+    expect(blockNear(upTo(30), upTo(40), 20 * cell, 6 * cell, 3)).toBe(false);
+  });
+
+  it("nor a line or a few, nor lines opening here and there, as a yoke's make-ones do", () => {
+    expect(blockNear(upTo(30), upTo(33), 0, 10 * cell, 3)).toBe(false);
+    const scattered = linesOf(Array.from({ length: rows }, (_, k) => k % 2 === 0));
+    expect(blockNear(scattered, upTo(40), 0, 10 * cell, 3)).toBe(false);
+  });
+
+  it("taking lines closed up either way between them as no gap on screen", () => {
+    const gapped = (open: boolean) => linesOf(Array.from({ length: rows }, (_, k) => (k >= 10 && k < 20 ? open && k % 2 === 0 : true)));
+    expect(blockNear(gapped(false), gapped(true), 10 * cell, 10 * cell, 3)).toBe(true);
+  });
+
+  it("hold the line in the middle of the box, showing before and after", () => {
+    const was = upTo(30);
+    const middle = middleLine(was, upTo(40), 4 * cell + cell / 2)!;
+    // Four cells down from the top of thirty rows: row 26.
+    expect(was.start[middle]).toBe(4 * cell);
+    expect(middle).toBe(26);
   });
 });

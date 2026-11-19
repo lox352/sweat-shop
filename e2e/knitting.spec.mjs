@@ -1274,6 +1274,69 @@ test("closed up, a row with no stitch in the columns on screen takes no height, 
   expect(await page.locator(".chart-sheets").evaluate(sheet => sheet.offsetHeight)).toBe(showing * 16);
 });
 
+test("closed up, along the top of the chart onto a sleeve and back, nothing in the box moves up or down", async ({ page }) => {
+  // The chart's views, to ask where a stitch is drawn: see TileView.probe.
+  await page.addInitScript(() => {
+    window.__chartViews = [];
+  });
+  await knittedTo(page, 0, { sweaterId: "wool-week-strips-once-oldest", sizeId: "m", colourwayId: "early-light" });
+  await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+  /*
+   * At the top of the chart, from its right-hand edge leftwards over the body
+   * and on over a sleeve, whose rounds go on past the body's, and back: the
+   * sleeve's rows open and close as it comes and goes, a frame at a time.
+   * Every frame, a stitch in the box is where it was up and down, the box
+   * scrolled only across.
+   */
+  const { most, opened } = await page.locator(".chart-scroll").evaluate(async (box) => {
+    const frame = () => new Promise((done) => requestAnimationFrame(done));
+    const rest = () => new Promise((done) => setTimeout(done, 600));
+    const view = window.__chartViews.at(-1);
+    const tiles = box.querySelector(".chart-tiles");
+    box.scrollLeft = 0;
+    box.scrollTop = 0;
+    await rest();
+    const rect = box.getBoundingClientRect();
+    const sheet = () => document.querySelector(".chart-sheets").getBoundingClientRect();
+    // A stitch in the box, nearest its middle, and how far down the screen it is.
+    const find = () => {
+      for (let dx = 0; dx < rect.width / 2; dx += 8) {
+        for (const x of [rect.left + rect.width / 2 - dx, rect.left + rect.width / 2 + dx]) {
+          const id = view.stitchAt(x, rect.top + rect.height / 2);
+          if (id !== undefined) return id;
+        }
+      }
+      return undefined;
+    };
+    const down = (id) => {
+      const cell = id === undefined ? undefined : view.cellOnSheet(id);
+      const x = cell && sheet().left + cell.x;
+      return cell && x > rect.left && x < rect.right ? sheet().top + cell.y : undefined;
+    };
+    const counts = new Set();
+    let most = 0;
+    let id = find();
+    let was = down(id);
+    for (const way of [-1, 1]) {
+      for (let step = 0; step < 220; step++) {
+        box.scrollLeft += way * 14;
+        await frame();
+        counts.add(tiles.dataset.rowsShowing);
+        const now = down(id);
+        if (now !== undefined && was !== undefined) most = Math.max(most, Math.abs(now - was));
+        if (now === undefined) id = find();
+        was = down(id);
+      }
+      await rest();
+      was = down(id);
+    }
+    return { most, opened: counts.size };
+  });
+  // The sleeve's rows opened and closed on the way.
+  expect(opened).toBeGreaterThan(1);
+  expect(most).toBeLessThan(1);
+});
+
 test("backup restores copies and rename/delete require their dialogs", async ({ page }) => {
   await start(page);
   // The chart fills the screen; Settings is on the jumper's page, a cross away.

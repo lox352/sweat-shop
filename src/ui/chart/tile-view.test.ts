@@ -505,7 +505,7 @@ describe("the chart on tiles, closed up", () => {
     view.destroy();
   });
 
-  it("scrolled across from the right, holds the chart's left-hand edge at the far left, and never leaves an edge out of reach while columns change", () => {
+  it("scrolled across from the right, holds the chart's left-hand edge at the far left, never leaves blank paper past an edge while columns change, and has every edge in reach at rest", () => {
     const narrow = 6 * cell;
     const { scroller, sheet, container, writes, scrollTo, touch } = scrollingBox(narrow, 200);
     scroller.style.direction = "rtl";
@@ -545,15 +545,33 @@ describe("the chart on tiles, closed up", () => {
           if (inset === 0) expect(left(), `rows ${first} up, frame ${frame}`).toBeCloseTo(was, 6);
         }
         changed += Number(container.dataset.columnsShowing !== columns);
-        // Before rest, the finger still down, the box scrolled to either end of the sheet shows that edge of the chart.
+        /*
+         * Before rest, the finger still down, the box scrolled to either end
+         * of the sheet shows no blank paper past that edge of the chart. A
+         * block of columns opening beside the box is held off the screen,
+         * nothing in the box shoved along for it (see sendLines), and may
+         * leave the edge out of reach until rest; lines opening here and
+         * there leave it where the scroll puts it.
+         */
         scrollTo(narrow - (parseFloat(sheet.style.width) || 0), scroller.scrollTop);
         frames(1);
-        expect(left(), `rows ${first} up, at the left`).toBeCloseTo(0, 6);
+        expect(left(), `rows ${first} up, at the left`).toBeLessThan(1e-6);
         scrollTo(0, scroller.scrollTop);
         frames(1);
-        expect(right(), `rows ${first} up, at the right`).toBeCloseTo(0, 6);
+        expect(right(), `rows ${first} up, at the right`).toBeLessThan(1e-6);
         expect(writes.filter((write) => write.startsWith("left"))).toEqual([]);
+        // At rest, the sheet sized for the chart, either end of the scroll shows that edge.
         touch("touchend", 0);
+        now += 200;
+        view.update();
+        scrollTo(narrow - (parseFloat(sheet.style.width) || 0), scroller.scrollTop);
+        now += 200;
+        view.update();
+        expect(left(), `rows ${first} up, at rest, at the left`).toBeCloseTo(0, 6);
+        scrollTo(0, scroller.scrollTop);
+        now += 200;
+        view.update();
+        expect(right(), `rows ${first} up, at rest, at the right`).toBeCloseTo(0, 6);
       }
     }
     // Columns did open and close.
