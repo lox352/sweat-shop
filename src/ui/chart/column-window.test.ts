@@ -1,23 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "../../compiler/engine/engine";
 import { layOutSweater } from "../../reading/layout";
-import {
-  type ColumnMap,
-  LiveColumns,
-  LiveRows,
-  columnAt,
-  columnsWith,
-  blocksKept,
-  everyColumn,
-  everyRow,
-  indexColumns,
-  indexRows,
-  mapOf,
-  placeFrom,
-  rowMapOf,
-  rowsWithin,
-  sameShows,
-} from "./column-window";
+import { LiveColumns, columnAt, everyColumn, indexRows, mapOf, placeFrom, rowsWithin } from "./column-window";
 import { testSweater } from "../../compiler/engine/test-sweater";
 import { sweaters } from "../../compiler/designs";
 import hamefarin from "../../compiler/designs/hamefarin";
@@ -36,30 +20,17 @@ const occupied = (index: ReturnType<typeof indexRows>, first: number, last: numb
   return out;
 };
 
-/** Each row's top edge and height, ten pixels a row, the rows in `closed` taking none. */
-const rowPlaces = (rows: number, closed: number[] = []) => {
+/** Each row's top edge and height, ten pixels a row. */
+const rowPlaces = (rows: number) => {
   const top = new Float64Array(rows + 2);
   const height = new Float64Array(rows + 2);
   let y = 0;
   for (let row = rows + 1; row >= 0; row--) {
     top[row] = y;
-    height[row] = row >= 1 && row <= rows && !closed.includes(row) ? 10 : 0;
+    height[row] = row >= 1 && row <= rows ? 10 : 0;
     y += height[row];
   }
   return { top, height };
-};
-
-/** The rows with a stitch in any of these columns, counted the slow way. */
-const crossed = (index: ReturnType<typeof indexRows>, columns: Iterable<number>) => {
-  const wanted = new Set(columns);
-  const out = new Set<number>();
-  for (let k = 0; k < index.column.length; k++) {
-    if (!wanted.has(index.column[k])) continue;
-    let row = 1;
-    while (index.start[row + 1] <= k) row++;
-    out.add(row);
-  }
-  return out;
 };
 
 describe("the rows on screen", () => {
@@ -72,14 +43,6 @@ describe("the rows on screen", () => {
     expect(rowsWithin(top, height, 10, 90, 120)).toEqual([1, 1]);
     // A box that only touches a row's edge does not show it.
     expect(rowsWithin(top, height, 10, 10, 20)).toEqual([9, 9]);
-  });
-
-  it("go by where the rows are drawn, a row closed up taking none of the box", () => {
-    // Rows 4 to 6 closed: row 7 stands on row 3, 30 to 40 and 40 to 50 down the chart.
-    const { top, height } = rowPlaces(10, [4, 5, 6]);
-    expect(rowsWithin(top, height, 10, 35, 45)).toEqual([3, 7]);
-    expect(rowsWithin(top, height, 10, 30, 40)).toEqual([7, 7]);
-    expect(rowsWithin(top, height, 10, 40, 50)).toEqual([3, 3]);
   });
 });
 
@@ -98,66 +61,6 @@ describe("a chart's rows in column order", () => {
         if (k > index.start[row]) expect(index.column[k]).toBeGreaterThan(index.column[k - 1]);
       }
     }
-  });
-});
-
-describe("a chart's columns in row order", () => {
-  const { layout } = laidOut(testSweater, "one");
-  const index = indexRows(layout);
-  const columns = indexColumns(index);
-
-  it("holds every stitch's row once, in its column, from the bottom up", () => {
-    expect(columns.row.length).toBe(layout.cells.size);
-    const seen = new Set<string>();
-    layout.cells.forEach((at) => seen.add(`${at.column}|${at.row}`));
-    for (let c = 1; c <= columns.columns; c++) {
-      for (let k = columns.start[c]; k < columns.start[c + 1]; k++) {
-        expect(seen.has(`${c}|${columns.row[k]}`)).toBe(true);
-        if (k > columns.start[c]) expect(columns.row[k]).toBeGreaterThan(columns.row[k - 1]);
-      }
-    }
-  });
-});
-
-describe("the rows showing, as the view moves sideways", () => {
-  const { built, layout } = laidOut(hamefarin, "m");
-  const index = indexRows(layout);
-  const columns = indexColumns(index);
-
-  it("are those with a stitch in a column on screen, however the view got there", () => {
-    const live = new LiveRows(columns);
-    const spans: [number, number][] = [];
-    for (let from = 1; from + 20 <= index.columns; from += 7) spans.push([from, from + 20]);
-    spans.push([1, index.columns], [300, 310], [5, 6], [100, 99]);
-    for (const [from, to] of spans) {
-      const on = Array.from({ length: Math.max(0, to - from + 1) }, (_, i) => from + i);
-      const before = new Set(Array.from({ length: index.rows }, (_, i) => i + 1).filter((row) => live.has(row)));
-      const changed = live.moveTo(on);
-      const want = crossed(index, on);
-      const now = new Set(Array.from({ length: index.rows }, (_, i) => i + 1).filter((row) => live.has(row)));
-      expect(now, `${from}-${to}`).toEqual(want);
-      expect(live.live).toBe(want.size);
-      expect(changed, `${from}-${to}`).toBe(before.size !== now.size || [...now].some((row) => !before.has(row)));
-    }
-  });
-
-  it("close up a short row's band wherever its stitches are off screen, and keep every round's", () => {
-    // The back of the neck's short rows, worked to and fro.
-    const short = [...new Set(layout.roundRows.filter((_, round) => built.roundKinds[round] !== "round"))];
-    expect(short.length).toBeGreaterThan(0);
-    // Somewhere across the chart, a stretch of columns no short row has a stitch in: the rows there show, the short rows do not.
-    const shortColumns = crossed(index, []);
-    for (const row of short) for (let k = index.start[row]; k < index.start[row + 1]; k++) shortColumns.add(index.column[k]);
-    const clear = Array.from({ length: index.columns }, (_, i) => i + 1).find(
-      (c) => !shortColumns.has(c) && occupied(index, 1, 1).has(c),
-    )!;
-    const live = new LiveRows(columns);
-    live.moveTo([clear]);
-    const map = rowMapOf(live);
-    for (const row of short) expect(map.shows[row], `row ${row}`).toBe(0);
-    expect(map.shows[1]).toBe(1);
-    expect(map.order[map.order.length - 1]).toBe(1);
-    expect(everyRow(index.rows).count).toBe(index.rows);
   });
 });
 
@@ -232,63 +135,3 @@ describe("where the columns go", () => {
   });
 });
 
-describe("lines closing in a block, kept while in view", () => {
-  const lines = 20;
-  const showing = (from: number, to: number) => Uint8Array.from({ length: lines + 2 }, (_, line) => (line >= from && line <= to ? 1 : 0));
-  const everywhere = () => true;
-  // A map showing just these: columnsWith reads nothing of the map it adds to but what it shows.
-  const mapFrom = (shows: Uint8Array) => columnsWith({ shows: new Uint8Array(shows.length) } as ColumnMap, shows);
-
-  it("are a block that would close at once, kept as paper", () => {
-    // Lines 15 to 20 lose their last stitch on screen at once: a sleeve's cuff, the box gone on to the body.
-    const kept = blocksKept(showing(1, 14), showing(1, 20), undefined, everywhere, everywhere, 3)!;
-    expect([...kept].map((on, line) => (on ? line : 0)).filter(Boolean)).toEqual([15, 16, 17, 18, 19, 20]);
-  });
-
-  it("but only while in view: out of it they close", () => {
-    const kept = blocksKept(showing(1, 14), showing(1, 20), undefined, (line) => line <= 18, everywhere, 3)!;
-    expect([...kept].map((on, line) => (on ? line : 0)).filter(Boolean)).toEqual([15, 16, 17, 18]);
-  });
-
-  it("and once kept, stay kept while in view, however few are left", () => {
-    const before = blocksKept(showing(1, 14), showing(1, 20), undefined, everywhere, everywhere, 3);
-    const kept = blocksKept(showing(1, 14), showing(1, 16), before, everywhere, everywhere, 3)!;
-    expect([...kept].map((on, line) => (on ? line : 0)).filter(Boolean)).toEqual([15, 16]);
-  });
-
-  it("and close together once all of them are out of view, not one by one", () => {
-    const before = blocksKept(showing(1, 14), showing(1, 20), undefined, everywhere, everywhere, 3);
-    // The box gone down the chart: only line 15 still in view, the rest of the block above it.
-    const some = blocksKept(showing(1, 14), showing(1, 20), before, (line) => line <= 15, everywhere, 3)!;
-    expect([...some].map((on, line) => (on ? line : 0)).filter(Boolean)).toEqual([15, 16, 17, 18, 19, 20]);
-    expect(blocksKept(showing(1, 14), showing(1, 20), some, (line) => line <= 14, everywhere, 3)).toBeUndefined();
-  });
-
-  it("nor anything the box was not looking at before it moved: sent somewhere else altogether, it keeps nothing", () => {
-    expect(blocksKept(showing(1, 14), showing(1, 20), undefined, everywhere, () => false, 3)).toBeUndefined();
-  });
-
-  it("not a line or a few closing one at a time, as a yoke's edge does", () => {
-    expect(blocksKept(showing(1, 18), showing(1, 20), undefined, everywhere, everywhere, 3)).toBeUndefined();
-  });
-
-  it("between lines showing as at the edges: a short rows' band, its stitches off screen", () => {
-    const shows = showing(1, 20);
-    for (let line = 5; line <= 10; line++) shows[line] = 0;
-    const kept = blocksKept(shows, showing(1, 20), undefined, everywhere, everywhere, 3)!;
-    expect([...kept].map((on, line) => (on ? line : 0)).filter(Boolean)).toEqual([5, 6, 7, 8, 9, 10]);
-  });
-
-  it("but not lines closing here and there, as a yoke's make-ones do, however many", () => {
-    const shows = showing(1, 20);
-    for (const line of [3, 6, 9, 12, 15]) shows[line] = 0;
-    expect(blocksKept(shows, showing(1, 20), undefined, everywhere, everywhere, 3)).toBeUndefined();
-  });
-
-  it("show alongside the lines with stitches", () => {
-    const kept = blocksKept(showing(1, 14), showing(1, 20), undefined, everywhere, everywhere, 3)!;
-    const map = columnsWith(mapFrom(showing(1, 14)), kept);
-    expect(map.count).toBe(20);
-    expect(sameShows(map, mapFrom(showing(1, 20)))).toBe(true);
-  });
-});

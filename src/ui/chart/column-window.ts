@@ -2,8 +2,7 @@ import type { ChartLayout } from "../../reading/layout";
 
 /**
  * Which of the chart's columns have a stitch in the rows on screen, and where
- * each column goes when the ones that do not are closed up - and the same
- * the other way, for the rows with no stitch in the columns on screen.
+ * each column goes when the ones that do not are closed up.
  *
  * A chart laid out stitch over stitch has empty columns wherever a stitch is
  * yet to be made or has been taken in: under every make-one, all the way down
@@ -14,6 +13,12 @@ import type { ChartLayout } from "../../reading/layout";
  * they are on the needles. So a column takes room only while a row on screen
  * has a stitch in it, and scrolling a make-one's row into view parts the
  * columns either side of it.
+ *
+ * Rows are never closed up. A row with no stitch on screen - a short row at
+ * the back of the neck, seen from the front; a sleeve's rounds past the
+ * body's, seen over the body - is paper, as on a chart printed whole. Closed
+ * up, a band of them came and went all at once as the box went along the
+ * chart, and everything in the box went up or down for it.
  *
  * Nothing here touches the page: these are the sums a view does as it scrolls,
  * kept cheap enough to do on every frame of a fling on a phone. A row coming
@@ -68,8 +73,8 @@ export const indexRows = (layout: ChartLayout): RowIndex => {
 /**
  * The rows any part of which is drawn between `y0` and `y1` down the chart,
  * each row `top[row]` down and `height[row]` tall: the first and last,
- * counted from 1 at the bottom. A row closed up counts only between two that
- * show. Empty, last before first, when no row is there.
+ * counted from 1 at the bottom. Empty, last before first, when no row is
+ * there.
  */
 export const rowsWithin = (
   top: ArrayLike<number>,
@@ -159,111 +164,6 @@ export class LiveColumns {
 }
 
 /**
- * Each column's stitches by row, as one array for the whole chart: column c's
- * rows are from start[c] to start[c + 1], from the bottom up.
- */
-export interface ColumnIndex {
-  columns: number;
-  rows: number;
-  start: Int32Array;
-  row: Int32Array;
-}
-
-/** The chart's stitches, column by column: the rows index turned on its side. */
-export const indexColumns = (index: RowIndex): ColumnIndex => {
-  const { rows, columns } = index;
-  const start = new Int32Array(columns + 3);
-  for (let k = 0; k < index.column.length; k++) start[index.column[k] + 1]++;
-  for (let c = 1; c <= columns + 2; c++) start[c] += start[c - 1];
-  const fill = start.slice();
-  const row = new Int32Array(index.column.length);
-  // Row by row from the bottom, so each column's rows come out in order.
-  for (let r = 1; r <= rows; r++) {
-    for (let k = index.start[r]; k < index.start[r + 1]; k++) row[fill[index.column[k]]++] = r;
-  }
-  return { columns, rows, start, row };
-};
-
-/**
- * How many of the columns on screen have a stitch in each row, kept up as the
- * view moves rather than counted afresh: a row shows only while one does.
- */
-export class LiveRows {
-  readonly count: Int32Array;
-  /** How many rows have a stitch in the columns on screen. */
-  live = 0;
-  /** The lowest and highest numbered columns on screen; none while high is below low. */
-  low = 1;
-  high = 0;
-  private on: Uint8Array;
-  private stamp: Int32Array;
-  private now = 0;
-  private columns: number[] = [];
-
-  constructor(readonly index: ColumnIndex) {
-    this.count = new Int32Array(index.rows + 2);
-    this.on = new Uint8Array(index.columns + 2);
-    this.stamp = new Int32Array(index.columns + 2);
-  }
-
-  get lines() {
-    return this.index.rows;
-  }
-
-  /** Whether a row has a stitch in a column on screen. */
-  has(row: number): boolean {
-    return this.count[row] > 0;
-  }
-
-  /**
-   * Bring the columns on screen to these, and say whether that changed which
-   * rows have a stitch in them. As with the columns, those coming on screen
-   * are counted in before those leaving are counted out.
-   */
-  moveTo(columns: ArrayLike<number>): boolean {
-    this.now++;
-    let changed = false;
-    const next: number[] = [];
-    let low = this.index.columns + 1;
-    let high = 0;
-    for (let i = 0; i < columns.length; i++) {
-      const c = columns[i];
-      low = Math.min(low, c);
-      high = Math.max(high, c);
-      this.stamp[c] = this.now;
-      next.push(c);
-      if (!this.on[c]) {
-        this.on[c] = 1;
-        changed = this.add(c, 1) || changed;
-      }
-    }
-    for (const c of this.columns) {
-      if (this.stamp[c] === this.now) continue;
-      this.on[c] = 0;
-      changed = this.add(c, -1) || changed;
-    }
-    this.columns = next;
-    this.low = low;
-    this.high = high;
-    return changed;
-  }
-
-  private add(c: number, by: 1 | -1): boolean {
-    const { start, row } = this.index;
-    let crossed = false;
-    for (let k = start[c]; k < start[c + 1]; k++) {
-      const before = this.count[row[k]];
-      this.count[row[k]] = before + by;
-      if (before === 0 || before + by === 0) {
-        crossed = true;
-        this.live += by;
-      }
-    }
-    return crossed;
-  }
-}
-
-/**
  * Where each column goes with the empty ones closed up.
  *
  * Measured from the chart's left edge, which is its highest column, in cells:
@@ -302,72 +202,10 @@ const mapFrom = (columns: number, shows: (column: number) => boolean): ColumnMap
 /** The chart with only the columns that have a stitch in a row in view. */
 export const mapOf = (live: LiveColumns): ColumnMap => mapFrom(live.index.columns, (column) => live.has(column));
 
-/** A column map with these columns showing as well: see blocksKept. */
-export const columnsWith = (map: ColumnMap, kept: Uint8Array): ColumnMap => mapFrom(map.shows.length - 2, (column) => !!map.shows[column] || !!kept[column]);
-
-/** Whether two maps show the same lines. */
-export const sameShows = (a: { shows: Uint8Array }, b: { shows: Uint8Array }): boolean => {
-  if (a.shows.length !== b.shows.length) return false;
-  for (let line = 0; line < a.shows.length; line++) if (a.shows[line] !== b.shows[line]) return false;
-  return true;
-};
-
 /**
- * The lines that showed until now, `was`, and would close - no longer
- * among those `shows` - but are still in view: kept showing while they are,
- * as the paper they are, where more than `block` side by side would close at
- * once, or they were kept already (`kept`). Undefined, none.
- *
- * A sleeve's rounds go on past the body's, at the top of the chart: scrolled
- * along it from the sleeve to the body, they had no stitch on screen once the
- * sleeve's last column left the box, and closed all at once - a box's half of
- * rows, and everything under them shoved up the box in a moment, the top of
- * the chart being held at the top of the box. So with the short rows at the
- * back of the neck, scrolled along to the front: closing, the band of them
- * pulled the yoke above down the box, the foot of the chart being held at
- * its foot. Kept, the knitter sees the paper the chart has there - beside
- * the sleeve's cuff, or across the front, where the short rows were worked
- * at the back - and nothing on screen moves but with the finger; once the
- * whole block is out of view they close together, unseen: one by one, each
- * moved every line after it on the chart, and the tiles in view were
- * painted afresh for each, a frame's work a row. Only lines seen as the box
- * moves, in view before (`seen`) and after (`inView`): the box sent
- * somewhere else altogether keeps nothing of where it was. A line or two
- * at a time, as a yoke closes a stitch here and there going down it, closes
- * as it goes.
- */
-export const blocksKept = (
-  shows: Uint8Array,
-  was: Uint8Array,
-  kept: Uint8Array | undefined,
-  inView: (line: number) => boolean,
-  seen: (line: number) => boolean,
-  block: number,
-): Uint8Array | undefined => {
-  const lines = shows.length - 2;
-  const keep = new Uint8Array(lines + 2);
-  let any = false;
-  for (let line = 1; line <= lines; ) {
-    if (!was[line] || shows[line]) {
-      line++;
-      continue;
-    }
-    // A run of lines side by side closing - those closed up already between them no gap on screen.
-    const run: number[] = [];
-    for (; line <= lines && !shows[line]; line++) if (was[line]) run.push(line);
-    const already = run.filter((one) => kept?.[one]);
-    const closing = run.filter((one) => !kept?.[one] && inView(one) && seen(one));
-    const held = [...(already.some(inView) ? already : []), ...(closing.length > block ? closing : [])];
-    for (const one of held) keep[one] = 1;
-    any ||= held.length > 0;
-  }
-  return any ? keep : undefined;
-};
-
-/**
- * Where each row goes with the empty ones closed up: as a column map, a row
- * standing as many cells down as there are rows showing above it. Row 0 and
- * the one past the last stand for the chart's bottom and top edges.
+ * Where each row goes, as a column map: a row standing as many cells down as
+ * there are rows above it. Row 0 and the one past the last stand for the
+ * chart's bottom and top edges.
  */
 export interface RowMap {
   shows: Uint8Array;
@@ -382,12 +220,6 @@ const rowMapFrom = (rows: number, shows: (row: number) => boolean): RowMap => {
   const map = mapFrom(rows, shows);
   return { shows: map.shows, count: map.count, above: map.leftOf, order: map.order };
 };
-
-/** The chart with only the rows that have a stitch in a column on screen. */
-export const rowMapOf = (live: LiveRows): RowMap => rowMapFrom(live.lines, (row) => live.has(row));
-
-/** A row map with these rows showing as well: see blocksKept. */
-export const rowsWith = (map: RowMap, kept: Uint8Array): RowMap => rowMapFrom(map.shows.length - 2, (row) => !!map.shows[row] || !!kept[row]);
 
 /** The chart with every row. */
 export const everyRow = (rows: number): RowMap => rowMapFrom(rows, () => true);

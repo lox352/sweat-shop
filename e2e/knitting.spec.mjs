@@ -1077,7 +1077,7 @@ test("closed up, scrolled all the way left, the chart's left-hand edge is never 
 });
 
 test("closed up, scrolled left, the box stops at the chart's left-hand edge, with no blank past it to come back out of", async ({ page }) => {
-  // Each Year Once's neck, where columns open and close again on the way across.
+  // Each Year Once's neck, swiped across and a little up the yoke: its make-ones open columns on the way.
   await page.goto("#/sweater/wool-week-strips-once-oldest?tab=start");
   await page.getByRole("button", { name: "Start knitting", exact: true }).click();
   await expect(page.getByRole("button", { name: "End of round", exact: true })).toBeVisible();
@@ -1094,10 +1094,11 @@ test("closed up, scrolled left, the box stops at the chart's left-hand edge, wit
     const blank = () => sheet.getBoundingClientRect().left + Number(/translate\((-?[\d.e-]+)px/.exec(layer.style.transform)?.[1] ?? 0) - inside;
     const counts = new Set();
     let most = -Infinity;
-    // A long swipe left, a little every frame, to the end.
+    // A long swipe left, a little every frame, to the end, drifting up.
     for (let step = 0; step < 600; step++) {
       const was = box.scrollLeft;
       box.scrollLeft -= 20;
+      box.scrollTop -= 1;
       await frame();
       counts.add(tiles.dataset.columnsShowing);
       most = Math.max(most, blank());
@@ -1243,7 +1244,7 @@ test("the Body view tears the yoke apart either side of each underarm, where a s
   expect(await notes.count()).toBeGreaterThanOrEqual(2);
 });
 
-test("closed up, a row with no stitch in the columns on screen takes no height, and the chart keeps its bottom", async ({ page }) => {
+test("closed up, every row takes its height wherever the box is along the chart, and the chart keeps its bottom", async ({ page }) => {
   await start(page);
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
   const tiles = page.locator(".chart-tiles");
@@ -1256,22 +1257,13 @@ test("closed up, a row with no stitch in the columns on screen takes no height, 
   await expect.poll(async () => (await gaps()).bottom).toBe(0);
   // Along the bottom of the chart from its right edge, a few hundred pixels at a time, each let come to rest.
   const width = await scroller.evaluate(box => box.scrollWidth);
-  const counts = [];
   for (let across = 0; across <= width; across += 300) {
     // Scrolled from the right, leftwards is less than nought.
     await scroller.evaluate((box, across) => { box.scrollLeft = -across; }, across);
-    await page.waitForTimeout(250);
-    const now = await gaps();
-    counts.push(now.showing);
-    // Rows close and open far above, over the sleeves, where the body goes on further: the box stays at the bottom.
-    expect(now.bottom).toBe(0);
+    // Over the sleeves, where the body goes on further, its rounds are paper: every row shows, and the box stays at the bottom.
+    await expect.poll(gaps).toEqual({ bottom: 0, showing: rows });
   }
-  // Fewer rows than in all somewhere along it, and more elsewhere.
-  expect(Math.min(...counts)).toBeLessThan(rows);
-  expect(Math.max(...counts)).toBeGreaterThan(Math.min(...counts));
-  // At rest, the sheet is as tall as the rows showing.
-  const showing = Number(await tiles.getAttribute("data-rows-showing"));
-  expect(await page.locator(".chart-sheets").evaluate(sheet => sheet.offsetHeight)).toBe(showing * 16);
+  expect(await page.locator(".chart-sheets").evaluate(sheet => sheet.offsetHeight)).toBe(rows * 16);
 });
 
 test("closed up, along the top of the chart onto a sleeve and back, nothing in the box moves up or down", async ({ page }) => {
@@ -1283,12 +1275,12 @@ test("closed up, along the top of the chart onto a sleeve and back, nothing in t
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
   /*
    * At the top of the chart, from its right-hand edge leftwards over the body
-   * and on over a sleeve, whose rounds go on past the body's, and back: the
-   * sleeve's rows open and close as it comes and goes, a frame at a time.
-   * Every frame, a stitch in the box is where it was up and down, the box
-   * scrolled only across.
+   * and on over a sleeve, whose rounds go on past the body's, and back, a
+   * frame at a time: the sleeve's rounds are paper over the body, there all
+   * the way. Every frame, a stitch in the box is where it was up and down,
+   * the box scrolled only across.
    */
-  const { most, opened } = await page.locator(".chart-scroll").evaluate(async (box) => {
+  const { most, showing, rows } = await page.locator(".chart-scroll").evaluate(async (box) => {
     const frame = () => new Promise((done) => requestAnimationFrame(done));
     const rest = () => new Promise((done) => setTimeout(done, 600));
     const view = window.__chartViews.at(-1);
@@ -1313,7 +1305,7 @@ test("closed up, along the top of the chart onto a sleeve and back, nothing in t
       const x = cell && sheet().left + cell.x;
       return cell && x > rect.left && x < rect.right ? sheet().top + cell.y : undefined;
     };
-    const counts = new Set();
+    const showing = new Set();
     let most = 0;
     let id = find();
     let was = down(id);
@@ -1321,7 +1313,7 @@ test("closed up, along the top of the chart onto a sleeve and back, nothing in t
       for (let step = 0; step < 220; step++) {
         box.scrollLeft += way * 14;
         await frame();
-        counts.add(tiles.dataset.rowsShowing);
+        showing.add(Number(tiles.dataset.rowsShowing));
         const now = down(id);
         if (now !== undefined && was !== undefined) most = Math.max(most, Math.abs(now - was));
         if (now === undefined) id = find();
@@ -1330,10 +1322,9 @@ test("closed up, along the top of the chart onto a sleeve and back, nothing in t
       await rest();
       was = down(id);
     }
-    return { most, opened: counts.size };
+    return { most, showing: [...showing], rows: Number(tiles.dataset.rows) };
   });
-  // The sleeve's rows opened and closed on the way.
-  expect(opened).toBeGreaterThan(1);
+  expect(showing).toEqual([rows]);
   expect(most).toBeLessThan(1);
 });
 
