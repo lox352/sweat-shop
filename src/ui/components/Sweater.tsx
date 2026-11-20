@@ -1,4 +1,4 @@
-import React, { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { startTransition, useCallback, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { sweaterById } from "../../library/catalogue";
 import type { Placement, SlotId, Tension } from "../../pattern/design";
@@ -8,20 +8,21 @@ import { useColourway } from "../useColourway";
 import { currentEdition } from "../../library/editions";
 import type { Fitted } from "../../library/fit";
 import { sameTension } from "../../reading/tension";
-import { ballsOf, colourwayLabel, lit, paletteOf, rgbOf, trimIdOf, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
+import { ballsOf, colourwayLabel, lit, paletteOf, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
 import { totals } from "../../reading/progress";
 import { metresFor } from "../../reading/yardage";
 import { chartPath, keepKnitting, startProject } from "../../projects/projects";
 import PageLayout from "./ui/PageLayout";
 import StageLayout from "./ui/StageLayout";
-import Sheet from "./ui/Sheet";
-import type { PageGroup, PagesHandle } from "./ui/Pages";
+import type { PageGroup } from "./ui/Pages";
 import Button from "./ui/Button";
 import SweaterModel from "./SweaterModel";
 import Customise from "./Customise";
 import { type Chosen } from "./Shades";
-import { ColourwayGrid, TrimChoice } from "./ColourwayChoice";
+import { ColourwayGrid } from "./ColourwayChoice";
+import { ColoursAdjust, TrimSheet } from "./ColoursAdjust";
 import { useColourwayChoice } from "../useColourwayChoice";
+import { useTabAddress } from "../useTabAddress";
 import MyTension from "./MyTension";
 import StartFitted from "./StartFitted";
 import { Schematic } from "./Schematic";
@@ -30,9 +31,9 @@ import "./Sweater.css";
 
 /**
  * One design: the jumper itself, kept on screen, and under it, a page at a
- * time, what there is to choose - a size, its colours, a tension - and at
- * the end of them what was chosen and the one way to start knitting it. See
- * StageLayout and Pages.
+ * time, what it is, then what there is to choose - a size, with the
+ * knitter's own tension, and its colours - and at the end of them what was
+ * chosen and the one way to start knitting it. See StageLayout and Pages.
  *
  * Every size of a sweater is different knitting - its own cast-on, its own
  * increases, its own divide - so changing size rebuilds the knitting, where
@@ -53,57 +54,19 @@ const Sweater: React.FC = () => {
   return <SweaterPage key={sweater.id} sweaterId={sweater.id} />;
 };
 
-const tabs = ["size", "colours", "tension", "start"] as const;
+const tabs = ["about", "size", "colours", "start"] as const;
 
 const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
   const sweater = sweaterById(sweaterId)!;
   const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
   const requested = params.get("size");
   const [sizeId, setSizeId] = useState(
     (requested && sweater.sizes.some((size) => size.id === requested) ? requested : undefined) ??
       defaultSize(sweater).id,
   );
-  /*
-   * The tab shown is the pages' own to know, and changes at once (see Pages).
-   * It is part of the address too, so a reload keeps it - but written there
-   * after, once the pages have come to rest, and replacing what was there, so
-   * back leaves the design and does not walk its tabs. An address from before
-   * the last tab was Start, asking for About, is given Start.
-   */
-  const asked = params.get("tab") === "about" ? "start" : params.get("tab");
-  const first = useRef(tabs.find((tab) => tab === asked) ?? "size").current;
-  const written = useRef<string>(first);
-  const settling = useRef<number>();
-  const onShown = useCallback(
-    (tab: string) => {
-      window.clearTimeout(settling.current);
-      settling.current = window.setTimeout(() => {
-        if (written.current === tab) return;
-        written.current = tab;
-        setParams(
-          (now) => {
-            const next = new URLSearchParams(now);
-            if (tab === "size") next.delete("tab");
-            else next.set("tab", tab);
-            return next;
-          },
-          { replace: true },
-        );
-      }, 600);
-    },
-    [setParams],
-  );
-  useEffect(() => () => window.clearTimeout(settling.current), []);
-  const pager = useRef<PagesHandle>(null);
-  const go = (tab: (typeof tabs)[number]) => pager.current?.go(tab);
-  // An address that comes to ask for another tab while the page is open - back or forward, a link followed - is gone to.
-  const wanted = tabs.find((tab) => tab === asked) ?? "size";
-  useEffect(() => {
-    if (wanted === written.current) return;
-    written.current = wanted;
-    pager.current?.go(wanted);
-  }, [wanted]);
+  // The tab shown is kept in the address: see useTabAddress. An address from when the tension had a tab of its own is given its page, which is the size's.
+  const { first, firstPage, onShown, pager, go } = useTabAddress(tabs, { tension: ["size", "tension"] });
 
   const [colourwayId, setColourwayId] = useState(sweater.colourways[0].id);
   const [trim, setTrim] = useState<string>();
@@ -188,6 +151,8 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
         ...(fitted.option ? { option: fitted.option } : {}),
         ...(fitted.placement ? { placement: fitted.placement } : {}),
       },
+      // How it was made, to be made again where it is not kept: see projects' Made.
+      made: { steps: [{ fit: fitted.tension, ...(fitted.option ? { option: fitted.option } : {}) }] },
       ...(from ? { upTo: from } : {}),
     });
     navigate(chartPath(project.id, true));
@@ -220,46 +185,21 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
     </>
   );
 
-  /*
-   * Under every page of colourways, what is done to the one chosen: its trim
-   * and its wools, each in a card up from the foot. The same row on each
-   * page, held at the page's foot while the colourways scroll over it.
-   */
-  const trims = sweater.trim && colourway.trims && colourway.trims.length > 1 ? colourway.trims : undefined;
-  const trimNow = trims && (trims.find((one) => trimIdOf(one) === trim) ?? (published.shades.some((s) => s.slot === sweater.trim!.slot) ? colourway.shades.find((s) => s.slot === sweater.trim!.slot) : undefined));
-  // Where the trim is in parts, each the darkest yarn beside it, the darkest of them stands for it.
-  const trimHex =
-    trimNow?.hex ??
-    (sweater.trim &&
-      published.shades
-        .filter((shade) => shade.slot.split("/")[0] === sweater.trim!.slot)
-        .map((shade) => shade.hex)
-        .sort((a, b) => rgbOf(a).reduce((sum, part) => sum + part, 0) - rgbOf(b).reduce((sum, part) => sum + part, 0))[0]);
-  const chevron = (
-    <svg className="colours-adjust-go" width="6" height="10" viewBox="0 0 7 12" aria-hidden="true">
-      <path d="M1 1l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+  // Under every page of colourways, what is done to the one chosen: see ColoursAdjust.
   const adjust = (
-    <div className="colours-adjust">
-      {trims && sweater.trim && (
-        <button type="button" className="colours-adjust-one" aria-haspopup="dialog" onClick={() => setSheet("trim")}>
-          {trimHex && <span className="colours-adjust-swatch" style={{ background: trimHex }} aria-hidden="true" />}
-          <strong>{sweater.trim.label}</strong>
-          <span className="quiet">{trimNow?.name ?? "Darkest beside each"}</span>
-          {chevron}
-        </button>
-      )}
-      <button type="button" className="colours-adjust-one" aria-haspopup="dialog" onClick={() => setSheet("customise")}>
-        <strong>Change wool</strong>
-        {changed > 0 && <span className="quiet">{changed} your own</span>}
-        {chevron}
-      </button>
-    </div>
+    <ColoursAdjust
+      trim={sweater.trim}
+      colourway={colourway}
+      given={published}
+      trimChosen={trim}
+      own={changed}
+      onTrim={() => setSheet("trim")}
+      onWool={() => setSheet("customise")}
+    />
   );
 
   const tensionPanel = (
-    <MyTension key={size.id} size={size} tension={tension} onChange={setTension}>
+    <MyTension key={size.id} size={size} tension={tension} onChange={setTension} recalculates={!!sweater.fitting}>
       {tension && sweater.fitting && !sameTension(size, tension) && (
         <StartFitted sweater={sweater} size={size} knitted={built} tension={tension} palette={palette} coloursOn={coloursOn} onStart={startFitted} onShown={setShownFit} />
       )}
@@ -288,12 +228,12 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
             </span>
           </span>
         </button>
-        <button type="button" onClick={() => go("tension")}>
+        <button type="button" onClick={() => go("size", "tension")}>
           <span className="ready-what">Tension</span>
           <span className="ready-chosen">
             {shownFit ? (
               <>
-                <strong>Worked out for yours</strong>{" "}
+                <strong>Recalculated for yours</strong>{" "}
                 <span className="quiet">
                   {shownFit.tension.stitchesPer10cm} stitches &amp; {shownFit.tension.roundsPer10cm} rounds to 10cm
                 </span>
@@ -337,6 +277,8 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
   );
 
   const groups: PageGroup[] = [
+    // What the design is, before anything is chosen of it.
+    { id: "about", label: "About", pages: [{ id: "about", label: "About this design", content: about }] },
     {
       id: "size",
       label: "Size",
@@ -344,6 +286,8 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
         { id: "choose", label: "Choose a size", content: choosing },
         { id: "flat", label: `Size ${size.label}, laid flat, to scale`, content: <Schematic size={size} /> },
         { id: "measurements", label: `Size ${size.label}, finished`, content: <Measurements size={size} /> },
+        // The knitter's own tension is what the size comes out at in their hands: the last of its pages.
+        { id: "tension", label: "Your tension", content: tensionPanel },
       ],
     },
     {
@@ -360,16 +304,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
         ),
       })),
     },
-    { id: "tension", label: "Tension", pages: [{ id: "tension", label: "Your tension", content: tensionPanel }] },
-    {
-      id: "start",
-      label: "Start",
-      forward: true,
-      pages: [
-        { id: "ready", label: "Ready to knit", content: ready },
-        { id: "about", label: "About this design", content: about },
-      ],
-    },
+    { id: "start", label: "Start", forward: true, pages: [{ id: "ready", label: "Ready to knit", content: ready }] },
   ];
 
   return (
@@ -382,6 +317,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
         tabsLabel="This design"
         groups={groups}
         first={first}
+        firstPage={firstPage}
         onShown={onShown}
         pages={pager}
         sheet={
@@ -397,12 +333,8 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
               onDone={closeSheet}
               onLight={setLighting}
             />
-          ) : sheet === "trim" && sweater.trim && trims ? (
-            <Sheet title={sweater.trim.label} eyebrow={colourway.name} onClose={closeSheet}>
-              <div className="sheet-body">
-                <TrimChoice trim={sweater.trim} colourway={colourway} given={published} chosen={trim} onTrim={setTrim} bare />
-              </div>
-            </Sheet>
+          ) : sheet === "trim" ? (
+            <TrimSheet trim={sweater.trim} colourway={colourway} given={published} chosen={trim} onTrim={setTrim} onClose={closeSheet} />
           ) : undefined
         }
       />

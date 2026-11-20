@@ -1,28 +1,29 @@
-import React, { useEffect, useRef } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import type { Measurements, SizeAbout, Tension } from "../../pattern/design";
+import { measured } from "./measured";
 import { asKnitted, sameTension } from "../../reading/tension";
 import TensionForm from "./TensionForm";
+import Button from "./ui/Button";
+import { StageSlot } from "./ui/stage-slot";
 import "./MyTension.css";
-
-const rows: { key: keyof Measurements; label: string }[] = [
-  { key: "chestCm", label: "Chest" },
-  { key: "upperArmCm", label: "Upper arm" },
-  { key: "neckCm", label: "Neck" },
-  { key: "cuffCm", label: "Cuff" },
-  { key: "yokeDepthCm", label: "Yoke depth" },
-  { key: "bodyLengthCm", label: "Body length" },
-  { key: "sleeveLengthCm", label: "Sleeve length" },
-];
 
 const signed = (cm: number) => `${cm > 0 ? "+" : cm < 0 ? "−" : ""}${Math.abs(cm)}cm`;
 
+const said = (tension: Tension) => `${tension.stitchesPer10cm} stitches and ${tension.roundsPer10cm} rounds to 10cm`;
+
 /**
- * A knitter's own tension, and what the pattern knits up to at it.
+ * A pattern's tension, and a knitter's own.
  *
  * A pattern only comes out at its measurements at the tension it was written
- * for. Measured in the knitting itself - so many stitches over so many
- * centimetres, so many rounds - a different tension says, before the sweater
- * is finished, how far off it will be: see reading/tension.
+ * for, so that is said first, as a pattern says it: a knitter whose swatch
+ * matches has nothing to do here. One whose swatch doesn't gives theirs, and
+ * is shown what the pattern then comes out at knitted as written (see
+ * reading/tension) - which is what there is to decide by - and, where the
+ * design can, offered the pattern recalculated for it (the children: see
+ * StartFitted, before a sweater is begun, and Refit, once it is).
+ *
+ * Once a tension is given it is a line, with the way to change it, and not a
+ * form: what follows from it is what the page is then about.
  */
 const MyTension: React.FC<{
   size: SizeAbout;
@@ -30,79 +31,109 @@ const MyTension: React.FC<{
   fitted?: { finished: Measurements } & Tension;
   tension: Tension | undefined;
   onChange: (tension: Tension | undefined) => void;
+  /** Whether the sweater is begun: before it is, a swatch is what is measured, and after, the knitting itself. */
+  begun?: boolean;
+  /** Whether the pattern can be recalculated for a tension, as things are: said before one is given. */
+  recalculates?: boolean;
   /** Anything more to say of the tension, below what it comes out at. */
   children?: React.ReactNode;
-}> = ({ size, fitted, tension, onChange, children }) => {
+}> = ({ size, fitted, tension, onChange, begun = false, recalculates = false, children }) => {
   const written = fitted ?? size;
   const knitted = tension && asKnitted(written.finished, written, tension);
+  const same = !!tension && sameTension(written, tension);
   // A sweater fitted comes as near the size as what was knitted lets it: the table says how near.
-  const table = tension && (fitted || !sameTension(written, tension));
+  const table = tension && (fitted || !same);
 
-  /*
-   * A tension given is answered below the form, which on a phone is below
-   * the foot of the panel: the answer is brought up to where it is seen. Not
-   * as the page opens with a tension already given, only when one is.
-   */
-  const answer = useRef<HTMLDivElement>(null);
-  const given = useRef(tension);
+  const stage = useContext(StageSlot);
+  // Asked for until there is one; and again when the one given is to be changed.
+  const [editing, setEditing] = useState(!tension);
   useEffect(() => {
-    const was = given.current;
-    given.current = tension;
-    if (!tension || (was && was.stitchesPer10cm === tension.stitchesPer10cm && was.roundsPer10cm === tension.roundsPer10cm)) return;
-    const smooth = !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    answer.current?.scrollIntoView?.({ block: "start", behavior: smooth ? "smooth" : "auto" });
+    if (!tension) setEditing(true);
   }, [tension]);
+
+  const lead = begun
+    ? `If your knitting measures the same, there is nothing to do here. If it doesn't, lay it flat, count what you have over a measured length - the longer the better - and give it here.${
+        recalculates ? " The rest of the pattern can be recalculated for it, while the whole yoke is still on the needles." : ""
+      }`
+    : recalculates
+      ? "If your swatch comes out the same, there is nothing to do here. If it doesn't, give what it measures: the pattern can be recalculated for it before you cast on, or part-way down the yoke if you only find out as you knit."
+      : "If your swatch comes out the same, there is nothing to do here. If it doesn't, give what it measures, to see what the pattern comes out at.";
 
   return (
     <section className="section my-tension" aria-labelledby="my-tension-heading">
       <h2 id="my-tension-heading">Your tension</h2>
-      <p className="quiet">
-        {fitted ? "The rest of your pattern is worked out for" : "The pattern is written for"} {written.stitchesPer10cm} stitches and{" "}
-        {written.roundsPer10cm} rounds to 10cm. Lay your knitting flat and
-        count what you have over a measured length, the longer the better.
+      <p className="my-tension-written">
+        {fitted ? "The rest of your pattern is written for" : "This pattern is written for"} <strong>{said(written)}</strong>
+        {fitted ? "" : `, on ${size.needlesMm}mm needles`}.
       </p>
-      <TensionForm tension={tension} first="Compare with the pattern" example={written} onChange={onChange} />
-      {tension && knitted && (
-        <div role="status" ref={answer} className="my-tension-answer">
-          <p>
-            <strong>
-              {tension.stitchesPer10cm} stitches and {tension.roundsPer10cm} rounds to 10cm.
-            </strong>{" "}
-            {!sameTension(written, tension)
-              ? "Knitted as written at that tension, this sweater comes out:"
-              : fitted
-                ? "That is the tension the rest is worked out for. It comes out:"
-                : "That is the pattern's tension: knitted as written, it comes out as designed."}
+      {editing || !tension ? (
+        <>
+          <p className="quiet">{lead}</p>
+          <TensionForm
+            tension={tension}
+            first="Compare with the pattern"
+            example={written}
+            onChange={(next) => {
+              onChange(next);
+              if (next) setEditing(false);
+            }}
+            onCancel={tension ? () => setEditing(false) : undefined}
+          />
+        </>
+      ) : (
+        <div role="status" className="my-tension-answer">
+          <p className="my-tension-yours">
+            <span>
+              Yours is <strong>{said(tension)}</strong>.
+            </span>
+            <Button variant="quiet" onClick={() => setEditing(true)}>
+              Change
+            </Button>
           </p>
-          {table && (
-            <table className="my-tension-table">
-              <thead>
-                <tr>
-                  <th scope="col">
-                    <span className="visually-hidden">Measurement</span>
-                  </th>
-                  <th scope="col">Pattern</th>
-                  <th scope="col">Yours</th>
-                  <th scope="col">
-                    <span className="visually-hidden">Difference</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(({ key, label }) => (
-                  <tr key={key}>
-                    <th scope="row">{label}</th>
-                    <td>{size.finished[key]}cm</td>
-                    <td>{knitted[key]}cm</td>
-                    <td className="quiet">{signed(Math.round((knitted[key] - size.finished[key]) * 2) / 2)}</td>
+          {same && !fitted && <p>That is the pattern's tension: knitted as written, it comes out as designed.</p>}
+          {table && knitted && (
+            // Put away while a pattern recalculated is on show: its own table has these figures, beside what it comes to (see FitPreview).
+            <div className="my-tension-as-written">
+              <p>
+                {same
+                  ? "That is the tension the rest is recalculated for. It comes out:"
+                  : begun
+                    ? "If you keep knitting the pattern as written, your sweater comes out:"
+                    : "Knitted as written at your tension, this sweater comes out:"}
+              </p>
+              <table className="my-tension-table">
+                <thead>
+                  <tr>
+                    <th scope="col">
+                      <span className="visually-hidden">Measurement</span>
+                    </th>
+                    <th scope="col">Pattern</th>
+                    <th scope="col">Yours</th>
+                    <th scope="col">
+                      <span className="visually-hidden">Difference</span>
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {measured.map(({ key, label }) => (
+                    <tr key={key}>
+                      <th scope="row">{label}</th>
+                      <td>{size.finished[key]}cm</td>
+                      <td>{knitted[key]}cm</td>
+                      <td className="quiet">{signed(Math.round((knitted[key] - size.finished[key]) * 2) / 2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
-      {children}
+      {/* Kept while the tension is being changed, and only put away: what was recalculated took minutes, and Cancel comes back to it. */}
+      <div className="my-tension-more" hidden={editing && !!tension}>
+        {/* And nothing of it over the stage meanwhile: the one jumper is back while the tension it was for is in question. */}
+        <StageSlot.Provider value={editing && tension ? null : stage}>{children}</StageSlot.Provider>
+      </div>
     </section>
   );
 };

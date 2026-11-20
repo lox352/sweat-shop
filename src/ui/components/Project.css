@@ -218,9 +218,78 @@
 .pattern-updated p { margin: 0; }
 .pattern-updated-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 
-/* The jumper's page: how far, in a figure and a line under it. */
+/*
+ * What a page under a stage lays out the same on a design's page and on a
+ * jumper's own: see Pages.
+ */
+
+/* On a page named for it, the tension begins under the page's title, with no section's margin over it, and what is said of it is said small. */
+.pages-page > .my-tension {
+  margin: 0;
+}
+
+.pages-page > .my-tension > .quiet {
+  font-size: var(--text-s);
+  line-height: 1.45;
+}
+
+/* On a page named for it, the tension's own heading is for a screen reader. */
+.pages-page .my-tension > h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The schematic fills what is left of its page and no more; the page's title says what it is. */
+.pages-page > .schematic {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pages-page > .schematic svg {
+  flex: 1;
+  min-height: 0;
+  max-width: none;
+}
+
+.pages-page > .schematic figcaption {
+  display: none;
+}
+
+/* The measurements two abreast. */
+.pages-page > .measurements {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1rem;
+}
+
+/* A page of colourways: they scroll, where a group has many, over the row at the page's foot. */
+.pages-page > .colourway-grid {
+  margin-bottom: 0.75rem;
+}
+
+/*
+ * A jumper's own page. Where the knitting is: how far, the chart at the
+ * needle, and the way back to it, filling the page between them.
+ */
+.jumper-now {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* How far, in a figure, with the stitches it counts beside it and a track under both. */
 .jumper-progress {
-  margin: 0 0 1rem;
+  flex: none;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.8rem;
+  margin: 0 0 0.75rem;
   max-width: none;
 }
 
@@ -231,13 +300,15 @@
   line-height: 1;
 }
 
-/* The line under the figure: whole, on a line of its own, where beside "Under 1%" it would break after a word or two. */
 .jumper-progress-counts {
-  display: block;
-  margin-top: 0.2rem;
+  display: flex;
+  flex-direction: column;
+  font-size: var(--text-s);
+  line-height: 1.35;
 }
 
 .jumper-track {
+  grid-column: 1 / -1;
   display: block;
   height: 6px;
   margin-top: 0.5rem;
@@ -252,28 +323,107 @@
   background: var(--crimson);
 }
 
+/* The one way forward, the width of the page, at its foot. */
+.jumper-knit {
+  flex: none;
+  width: 100%;
+  text-decoration: none;
+}
+
+/* A phone on its side has room beside the stage for the figure and the way forward, and not the chart with them: the chart comes after, scrolled to. */
+@media (orientation: landscape) and (max-height: 32rem) {
+  .jumper-progress {
+    margin-bottom: 0.5rem;
+  }
+
+  .jumper-progress em {
+    font-size: var(--text-xl);
+  }
+
+  .jumper-track {
+    margin-top: 0.3rem;
+  }
+
+  .jumper-knit {
+    order: 1;
+    min-height: 44px;
+    padding-block: 8px;
+    margin-bottom: 0.75rem;
+  }
+
+  .jumper-now .chart-window {
+    order: 2;
+    margin-bottom: 0;
+  }
+}
+
 /* The time's figures side by side: two short ones are a line, not a column. */
 .jumper-time {
   grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
   margin-bottom: 1rem;
 }
 
-/* The design's colourways open under their button: it shows that they are. */
-.jumper-wool-actions .btn[aria-expanded="true"] {
-  border-color: var(--ink-soft);
-  background: var(--paper-sunk);
+/* What it is, and under that, small, its size and when it was begun. */
+.jumper-kept {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 0.9rem;
+  line-height: 1.35;
 }
 
-.jumper-wool-actions {
-  margin-bottom: 0.9rem;
+.jumper-kept .quiet {
+  font-size: var(--text-s);
 }
 
-.jumper-manage,
-.jumper-wool-actions {
+.jumper-manage {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  gap: 0.5rem;
   align-items: center;
+}
+
+/* Its link, under the rest: what it is for said small, and the two ways of taking it. */
+.jumper-link {
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--rule);
+}
+
+.jumper-link > .quiet {
+  margin: 0 0 0.7rem;
+  font-size: var(--text-s);
+  line-height: 1.45;
+}
+
+.jumper-link-shown {
+  width: 100%;
+  margin-top: 0.6rem;
+  font: inherit;
+  font-size: var(--text-s);
+}
+
+/* A jumper offered to be made again from its link (see Restore): what can be done, and the bar while it is. */
+.restore-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.restore-working progress {
+  display: block;
+  width: 100%;
+  max-width: 28rem;
+}
+
+/* The wool to buy scrolls over the row at the page's foot; what is said of its metres is said small. */
+.pages-page > .wool-list {
+  margin-top: 0;
+}
+
+.pages-page > .wool-list-restore {
+  margin-bottom: 0.75rem;
+  font-size: var(--text-s);
+  line-height: 1.45;
 }
 
 /* The way out of the chart, back to the jumper: in the corner every view's is in. */
@@ -320,7 +470,7 @@
   justify-content: center;
 }
 
-/* What can be read of the chart in words stays to hand under it; its symbols are in the key, a button away. */
+/* The rounds written out, where a knitter has asked for them, stay to hand under the chart; its symbols are in the key, a button away. */
 .is-looking .chart-frame > .chart-help {
   display: block;
   flex: none;
@@ -339,7 +489,7 @@
   display: none;
 }
 
-/* Looking back at the time it took, the panel under the chart is about that, and the chart has what room is left: how to read it is put away. */
+/* Looking back at the time it took, the panel under the chart is about that, and the chart has what room is left: its rounds in words are put away. */
 .is-timing .chart-frame > .chart-help {
   display: none;
 }
@@ -350,10 +500,13 @@
 }
 
 
-/* On the jumper's page: a window of the chart at the needle. */
+/* On the jumper's page: a window of the chart at the needle, as tall as the page has room for. */
 .chart-window {
-  display: block;
-  margin: 0 0 1.25rem;
+  flex: 1 1 7rem;
+  min-height: 7rem;
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 0.75rem;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   background: var(--paper-raised);
@@ -363,9 +516,10 @@
 }
 
 .chart-window .chart-fills {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  height: 8.5rem;
 }
 
 .chart-window .chart-next {
@@ -373,6 +527,7 @@
 }
 
 .chart-window-label {
+  flex: none;
   display: flex;
   justify-content: space-between;
   align-items: baseline;

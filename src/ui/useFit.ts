@@ -9,6 +9,13 @@ export type FitState =
   | { at: "failed"; why: string };
 
 /**
+ * How much of the bar shown from asking to seeing is the working out: the
+ * rest is the settling of what was worked out, before it is shown (see
+ * FitPreview), which is much the longer.
+ */
+export const fitShare = 0.2;
+
+/**
  * The asking for the rest of a sweater to be worked out (see library/fit),
  * for whatever shows it: the one place that starts the worker, follows how
  * far it has got, gathers each of the design's ways as it is done, and stops

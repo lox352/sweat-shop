@@ -1,12 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import type { Colourway, Design } from "../../pattern/design";
-import { inkOn, paletteOf, trimIdOf, type Overrides, type Palette } from "../../reading/palette";
+import { inkOn, paletteOf, trimIdOf, type Palette } from "../../reading/palette";
 import BodyStrip from "./BodyStrip";
 import type { Body } from "./ColourPreview";
-import { useColourwayChoice } from "../useColourwayChoice";
 import "./ColourwayChoice.css";
-
-const balls = (n: number) => `${n} ${n === 1 ? "yarn" : "yarns"}`;
 
 /**
  * The trim, chosen among the colourway's own yarns: the one it gives first,
@@ -117,65 +114,3 @@ export const ColourwayGrid = React.memo(function ColourwayGrid({
     </div>
   );
 });
-
-/**
- * The sweater's colours on a jumper's own page, to start again from: the
- * design's colourways, a group at a time where it has many, the group of the
- * one in use first; and under them the trim. A design's page lays the same
- * choice out in its own pages: see Sweater.
- */
-const ColourwayChoice: React.FC<{
-  colourways: Colourway[];
-  colourway: Colourway;
-  overrides: Overrides;
-  body: Body;
-  onStartFrom: (colourwayId: string) => void;
-  /** The design's trim, where it has one, and choosing among the colourway's: see Design.trim. */
-  trim?: Design["trim"];
-  /** The trim chosen, if any, by its wool: see palette's trimIdOf. */
-  trimChosen?: string;
-  onTrim?: (trim: string | undefined) => void;
-  /** Whether it says which colourway is in use, over the choice of them: not where whatever shows it has said so already. */
-  named?: boolean;
-}> = ({ colourways, colourway, overrides, body, onStartFrom, trim, trimChosen, onTrim, named = true }) => {
-  const { groups, own, choose, confirm } = useColourwayChoice({ colourways, colourway, overrides, onStartFrom });
-  const [family, setFamily] = useState(colourway.family);
-  const shown = groups.find(([name]) => name === family)?.[1] ?? groups[0][1];
-
-  return (
-    <>
-      {named && <p className="your-colourway">
-        <strong>{colourway.name}</strong>{" "}
-        <span className="quiet">
-          {own > 0 ? (
-            `with ${balls(own)} of your own`
-          ) : (
-            <>
-              as the design gives it{" "}
-              {/* The spinner with its dot, so a line never ends on the dot alone. */}
-              <span className="your-colourway-brand">· {colourway.brand}</span>
-            </>
-          )}
-        </span>
-      </p>}
-      {groups.length > 1 && (
-        <div className="colourway-families" role="group" aria-label="Groups of colourways">
-          {groups.map(([name]) => (
-            <button key={name ?? ""} type="button" className="colourway-family" aria-pressed={name === family} onClick={() => setFamily(name)}>
-              {name}
-            </button>
-          ))}
-        </div>
-      )}
-      {/* All of the group, always: choosing the one in use changes nothing. */}
-      <ColourwayGrid options={shown} chosen={colourway.id} body={body} onChoose={choose} />
-      {trim && onTrim && colourway.trims && colourway.trims.length > 1 && (
-        <TrimChoice trim={trim} colourway={colourway} given={colourways.find((c) => c.id === colourway.id) ?? colourway} chosen={trimChosen} onTrim={onTrim} />
-      )}
-      {confirm}
-    </>
-  );
-};
-
-// Drawn again only when what it shows changes: a sampler has many colourways of a thousand yarns each, and a project changes for other reasons.
-export default React.memo(ColourwayChoice);

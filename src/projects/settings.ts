@@ -13,9 +13,11 @@ export interface Settings {
   writtenRounds: boolean;
   /** Don't time the knitting, and don't show how long hats have taken or have left. */
   noStatistics: boolean;
+  /** The note on Safari clearing what it keeps, and the Home Screen as the way out, has been read: see Home. */
+  homeScreenSaid: boolean;
 }
 
-const defaults: Settings = { highContrast: false, writtenRounds: false, noStatistics: false };
+const defaults: Settings = { highContrast: false, writtenRounds: false, noStatistics: false, homeScreenSaid: false };
 const key = "settings";
 const changed = "settingsChanged";
 

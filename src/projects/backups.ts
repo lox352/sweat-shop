@@ -4,7 +4,7 @@ import { editionOf } from "../library/editions";
 import { type EditionFile, decodeEdition } from "../library/editions/format";
 import { keepEdition, ownEdition } from "../library/editions/own";
 import { knittingToHand } from "../library/knitting";
-import { currentVersion, isFit, isTension, listProjects, type Project, writeProject } from "./projects";
+import { currentVersion, isFit, isMade, isShadesOf, isTension, listProjects, type Project, writeProject } from "./projects";
 import { isLog, readLog, writeLog, type Row } from "./timing/log";
 
 /** A project as a backup holds it: with its knitting-time log, if it has one, and its knitting, where that is its own (see library/editions/own). */
@@ -57,6 +57,7 @@ export function parseBackup(text: string): BackupProject[] {
       (p.tension !== undefined && !isTension(p.tension)) ||
       // A project fitted to its knitter knits knitting of its own, which must come with it; any that comes must be what the project knits.
       (p.fit !== undefined && !isFit(p.fit)) ||
+      (p.made !== undefined && !isMade(p.made)) ||
       ((p.fit !== undefined || p.knitting !== undefined) && !isOwnKnitting(p)) ||
       (p.upTo !== undefined && (typeof p.upTo !== "string" || !/^[0-9a-f]{1,64}$/.test(p.upTo))) ||
       pastTheEnd(sweater, p) ||
@@ -65,15 +66,7 @@ export function parseBackup(text: string): BackupProject[] {
       typeof p.startedAt !== "string" || !Number.isFinite(Date.parse(p.startedAt))) {
       throw new Error("A project contains an unknown pattern, size, colourway or invalid progress.");
     }
-    if (p.shades !== undefined) {
-      if (!p.shades || typeof p.shades !== "object" || Array.isArray(p.shades)) throw new Error("Invalid yarn choices.");
-      for (const [slot, shade] of Object.entries(p.shades)) {
-        if (!sweater.slots.some(known => known === slot) || !shade || typeof shade !== "object" ||
-          Object.keys(shade).some(k => !["wool", "name", "code", "hex"].includes(k)) ||
-          Object.values(shade).some(v => typeof v !== "string" || v.length > 200) ||
-          (shade.hex !== undefined && !/^#[0-9a-f]{6}$/i.test(shade.hex))) throw new Error("Invalid yarn choices.");
-      }
-    }
+    if (p.shades !== undefined && !isShadesOf(sweater.slots, p.shades)) throw new Error("Invalid yarn choices.");
     if (p.timeLog !== undefined && !isLog(p.timeLog)) throw new Error("Invalid knitting times.");
     return { version: currentVersion, id: `project-${crypto.randomUUID()}`, name: p.name,
       sweaterId: p.sweaterId, sizeId: p.sizeId, colourwayId: p.colourwayId, progress: p.progress,
@@ -82,6 +75,7 @@ export function parseBackup(text: string): BackupProject[] {
       ...(p.edition ? { edition: p.edition } : {}),
       ...(p.tension ? { tension: { stitchesPer10cm: p.tension.stitchesPer10cm, roundsPer10cm: p.tension.roundsPer10cm } } : {}),
       ...(p.fit ? { fit: p.fit } : {}),
+      ...(p.made ? { made: p.made } : {}),
       ...(p.knitting ? { knitting: p.knitting } : {}),
       ...(p.upTo ? { upTo: p.upTo } : {}),
       shades: p.shades, startedAt: p.startedAt, updatedAt: new Date().toISOString(),

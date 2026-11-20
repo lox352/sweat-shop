@@ -38,7 +38,7 @@ const PatternUpdated: React.FC<{
   /** Taking the update as published: every stitch knitted is the same in it. */
   onSwitch: () => void;
   /** Taking the update from a round: the knitter's rounds to it, and the update's from there. */
-  onJoin: (knitting: SweaterStitches) => void;
+  onJoin: (knitting: SweaterStitches, round: number) => void;
   /** Taking the rest worked out afresh from the updated pattern. */
   onFit: (fitted: Fitted) => void;
 }> = ({ sweater, size, knitted, index, progress, tension, fit, palette, coloursOn, errata, onSeen, onSwitch, onJoin, onFit }) => {
@@ -111,7 +111,7 @@ const PatternUpdated: React.FC<{
             {update.changed.length === 1 ? "is" : "are"} different.
           </p>
           <p className="pattern-updated-actions">
-            <button type="button" className="btn btn-primary" onClick={() => onJoin(update.knitting)}>
+            <button type="button" className="btn btn-primary" onClick={() => onJoin(update.knitting, update.round)}>
               Update from the end of {names[update.round - 1]}
             </button>
           </p>
@@ -129,11 +129,11 @@ const PatternUpdated: React.FC<{
             palette={palette}
             coloursOn={coloursOn}
             roundNames={names}
-            title="Work the rest out from the updated pattern"
+            title="Recalculate the rest from the updated pattern"
             lead={
               fit
-                ? "The rest of your pattern was worked out for your tension from the pattern as it was. It can be worked out again from the pattern as it is now."
-                : "The update is on other stitch counts from where you are on, so it can't be joined to your knitting as it is. The rest can be worked out again from the updated pattern, for the stitches on your needles."
+                ? "The rest of your pattern was recalculated for your tension from the pattern as it was. It can be recalculated from the pattern as it is now."
+                : "The update is on other stitch counts from where you are on, so it can't be joined to your knitting as it is. The rest can be recalculated from the updated pattern, for the stitches on your needles."
             }
             onTake={onFit}
             onGoBack={() => undefined}

@@ -119,6 +119,27 @@
   min-width: 6.5rem;
 }
 
+/* A link pasted in, and the button that opens it, one over the other: a row's control is as wide as a button. */
+.settings-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 8.5rem;
+}
+
+.settings-link input {
+  min-width: 0;
+  min-height: 2.4rem;
+  padding: 0.3rem 0.5rem;
+  font: inherit;
+  /* Sixteen pixels at least: a phone zooms the page to a smaller field. */
+  font-size: max(1rem, 16px);
+  color: inherit;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-small);
+}
+
 /* The file input is hidden behind its label, so the label shows its focus. */
 .setting-control input:focus-visible + label {
   outline: 2px solid var(--crimson);

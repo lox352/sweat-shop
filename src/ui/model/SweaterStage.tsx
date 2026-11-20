@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useRef } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
-import type * as THREE from "three";
+import { useMemo, useRef } from "react";
+import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { isFabric } from "../../pattern/Stitch";
 import type { SweaterStitches } from "../../pattern/knitted";
@@ -24,58 +23,13 @@ export interface SweaterStageProps {
   posed?: Float32Array;
   /** What the camera is placed for, where that is more than this sweater: several, drawn to one scale. */
   frame?: [number, number, number][];
-  /** The stages it turns with: see TurnedTogether. */
-  together?: TurnedTogether;
+  /** How big it is drawn, for one drawn beside others whose stitches are another size: see SweaterComparison. What it is framed for (`frame`) is already at this scale. */
+  scale?: number;
+  /** What it is turned, moved and zoomed from, where that is not its own canvas: one surface over several stages, each doing the same with what happens on it. See SweaterComparison. */
+  surface?: HTMLElement;
 }
 
-/** Stages that turn as one: the one being turned tells the others where it is looked at from, and they follow. */
-export interface TurnedTogether {
-  stages: Set<(from: object, position: THREE.Vector3, target: THREE.Vector3) => void>;
-  /** The stage last taken hold of: the only one that tells the others, so that their following is never told back. */
-  turning?: object;
-}
-
-type Listening = OrbitLike & {
-  addEventListener?: (type: string, listener: () => void) => void;
-  removeEventListener?: (type: string, listener: () => void) => void;
-};
-
-/** Turns this stage with the others it is shown with, and them with it. */
-const Together: React.FC<{ together: TurnedTogether; controls: React.MutableRefObject<OrbitLike | null> }> = ({ together, controls }) => {
-  const camera = useThree((state) => state.camera);
-  const invalidate = useThree((state) => state.invalidate);
-  useEffect(() => {
-    const self = {};
-    const follow = (from: object, position: THREE.Vector3, target: THREE.Vector3) => {
-      const orbit = controls.current;
-      if (from === self || !orbit) return;
-      camera.position.copy(position);
-      orbit.target.copy(target);
-      orbit.update();
-      invalidate();
-    };
-    together.stages.add(follow);
-    const orbit: Listening | null = controls.current;
-    const held = () => {
-      together.turning = self;
-    };
-    // As it is turned, and as it glides to a stop after: but only the one taken hold of.
-    const turned = () => {
-      if (together.turning !== self || !controls.current) return;
-      for (const stage of together.stages) stage(self, camera.position, controls.current.target);
-    };
-    orbit?.addEventListener?.("start", held);
-    orbit?.addEventListener?.("change", turned);
-    return () => {
-      together.stages.delete(follow);
-      orbit?.removeEventListener?.("start", held);
-      orbit?.removeEventListener?.("change", turned);
-    };
-  }, [together, controls, camera, invalidate]);
-  return null;
-};
-
-export default function SweaterStage({ knitting: built, palette, progress, reducedMotion, settled, posed, frame, together }: SweaterStageProps) {
+export default function SweaterStage({ knitting: built, palette, progress, reducedMotion, settled, posed, frame, scale = 1, surface }: SweaterStageProps) {
   const controls = useRef<OrbitLike | null>(null);
   // Settled positions only fit the knitting if it is still the shape that was settled.
   const positions = useMemo(
@@ -126,18 +80,20 @@ export default function SweaterStage({ knitting: built, palette, progress, reduc
         dampingFactor={0.08}
         rotateSpeed={0.65}
         zoomSpeed={0.7}
+        domElement={surface}
         makeDefault
       />
-      {together && <Together together={together} controls={controls} />}
-      <StitchInstances
-        stitches={built.stitches}
-        rounds={built.knitting.rounds}
-        positions={positions}
-        roundHeight={built.roundHeight}
-        colours={colours}
-        worked={worked}
-        reducedMotion={reducedMotion}
-      />
+      <group scale={scale}>
+        <StitchInstances
+          stitches={built.stitches}
+          rounds={built.knitting.rounds}
+          positions={positions}
+          roundHeight={built.roundHeight}
+          colours={colours}
+          worked={worked}
+          reducedMotion={reducedMotion}
+        />
+      </group>
     </Canvas>
   );
 }

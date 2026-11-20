@@ -19,7 +19,10 @@ test("a measured tension shows what the pattern knits up to as written, and is k
   await page.goto("#/project/1760000000000?tab=fit");
   const section = page.getByRole("region", { name: "Your tension" });
   // The largest of patterns to open: its page takes a moment.
-  await expect(section).toContainText("written for 32 stitches and 38 rounds to 10cm", { timeout: 20_000 });
+  // The pattern's own tension first, as a pattern says it; and that the rest can be recalculated for another, while the yoke is on the needles.
+  await expect(section).toContainText("This pattern is written for 32 stitches and 38 rounds to 10cm", { timeout: 20_000 });
+  await expect(section).toContainText("If your knitting measures the same, there is nothing to do here.");
+  await expect(section).toContainText("The rest of the pattern can be recalculated for it, while the whole yoke is still on the needles.");
   await expect(section.getByRole("table")).toHaveCount(0);
 
   await section.getByLabel("Stitches counted").fill("14");
@@ -28,7 +31,10 @@ test("a measured tension shows what the pattern knits up to as written, and is k
   await section.getByLabel("Centimetres the rounds were counted over").fill("20");
   await section.getByRole("button", { name: "Compare with the pattern", exact: true }).click();
 
-  await expect(section.getByRole("status")).toContainText("23.3 stitches and 25 rounds to 10cm");
+  // Given, it is a line with the way to change it, and what the pattern comes out at if it is knitted on as written.
+  await expect(section.getByRole("status")).toContainText("Yours is 23.3 stitches and 25 rounds to 10cm");
+  await expect(section.getByLabel("Stitches counted")).toHaveCount(0);
+  await expect(section.getByRole("status")).toContainText("If you keep knitting the pattern as written, your sweater comes out:");
   const chest = section.getByRole("row", { name: /Chest/ });
   await expect(chest).toContainText("116cm");
   await expect(chest).toContainText("159.5cm");
@@ -38,6 +44,7 @@ test("a measured tension shows what the pattern knits up to as written, and is k
   // Kept with the project, and still there when it is opened again.
   await page.reload();
   await expect(page.getByRole("region", { name: "Your tension" }).getByRole("row", { name: /Chest/ })).toContainText("159.5cm");
+  await page.getByRole("region", { name: "Your tension" }).getByRole("button", { name: "Change", exact: true }).click();
   await page.getByRole("region", { name: "Your tension" }).getByRole("button", { name: "Clear", exact: true }).click();
   await expect(page.getByRole("region", { name: "Your tension" }).getByRole("table")).toHaveCount(0);
   expect((await page.evaluate((id) => JSON.parse(localStorage.getItem(id)), id)).tension).toBeUndefined();

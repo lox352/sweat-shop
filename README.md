@@ -184,6 +184,8 @@ stitches whatever the code that built it has since become.
     through"); otherwise they knit on.
 - Knitting joined to an update, or fitted, is the project's own: an edition
   named by its knitting like any other, kept on the device and in backups.
+  How it was made is kept with it (`made`), and is what makes it again where
+  it was not kept: see "Keeping a jumper".
   So is an older edition a project stays on, which then need not stay
   published. The project records the published edition it is up to date
   with (`upTo`), and is offered the next update when the size moves on.
@@ -257,14 +259,19 @@ The rules every screen keeps, so that none has to be learnt twice:
   tab has changed, never before, so a tab tapped is there at once.
 - **A design is one row of pages** (`ui/Pages.tsx`). Each page is the size of
   the room under the stage, all of them side by side, swiped along and coming
-  to rest on one: a size's three (choose it, see it laid flat, read its
-  measurements), a page for each group of colourways, the tension, and at
-  the end *Start*, which says what was chosen and begins the knitting, with
-  the design's own story after it. The tabs mark where each kind begins, and
+  to rest on one: *About*, the design's own story, which it opens on; a
+  size's four (choose it, see it laid flat, read its measurements, and the
+  knitter's own tension, which is what it comes out at in their hands); a
+  page for each group of colourways; and at the end *Start*, which says what
+  was chosen and begins the knitting. The tabs mark where each kind begins, and
   a tab tapped goes to its first page; each page has its title over it and
   dots under it for the pages of its tab. Nothing is found by scrolling down
   past the rest, and there is no bar at the foot: the way forward is the last
-  tab. A jumper's own page keeps its panels that scroll and its bar.
+  tab. A jumper's own page is the same row: *Progress* (where the knitting
+  is and the way back to it, the time it has taken, and the jumper as a thing
+  kept - renamed, deleted), *Wool* (what to buy, then the design's
+  colourways to start again from) and *Fit* (its tension, and its size laid
+  flat and measured). Progress is its way forward, and the tab it opens on.
 - **A view over a page is closed from the top right**: the chart, by its
   cross, which has an address of its own and so is closed by back too.
 - **What comes up from the foot is a card** (`ui/Sheet.tsx`): a crimson rule
@@ -282,7 +289,8 @@ The rules every screen keeps, so that none has to be learnt twice:
   (`--text-xs` to `--text-display`, `--radius`). A size or a radius that is
   not one of them is a mistake.
 - **A thumb, not a pointer.** Anything tapped is at least 44px on a touch
-  screen, and the one way forward is always in the bar at the foot.
+  screen, and the one way forward is a button the width of its page, or
+  under the chart the bar at its foot.
 
 ## How the code is laid out
 
@@ -304,7 +312,7 @@ and what comes back is an edition of the project's own, kept on the device
 | `src/physics/` | Posing and settling a sweater. | `pattern` |
 | `src/library/` | What was published, fetched and decoded: the catalogue, editions, shapes. The only place that knows an address. | `pattern` |
 | `src/reading/` | What is read off a knitted sweater: the chart's layout, the rounds as counted, the views, yardage, colours. | `pattern` |
-| `src/projects/` | What the knitter owns: projects, backups, settings, knitting time. | the above |
+| `src/projects/` | What the knitter owns: projects, their links and backups, settings, knitting time. | the above |
 | `src/ui/` | The pages, the chart, the sweater in three dimensions. | all but `compiler` |
 | `scripts/` | The command line over the compiler and the physics: `editions`, `settle`, the dev server's live patterns. | |
 
@@ -314,10 +322,28 @@ and the physics.
 
 ## Fitting a sweater part way through
 
-A pattern comes out at its measurements only at its tension. A knitter who
-measures their own (**Your tension**, on a project's page) is shown what the
-pattern comes out at as written, and, for a design that can, offered the rest
-worked out again:
+A pattern comes out at its measurements only at its tension, so that is what
+**Your tension** says first, as a pattern does: a knitter whose swatch
+matches has nothing to do there. One whose doesn't gives theirs - which is
+then a line, with the way to change it, and no longer a form - and is shown
+what the pattern comes out at knitted as written, and, for a design that
+can, offered it recalculated. What that comes to is shown as what the
+knitter is choosing between:
+
+- **Before a sweater is begun**, the design itself: the sweater as designed,
+  at the pattern's tension, beside the one recalculated at theirs, each drawn
+  by the width of its own stitches so that both are their true size. The
+  question there is what recalculating costs the design.
+- **Once it is begun**, the sweater there will be if the knitting carries on
+  as written, in the knitter's own stitches, beside the one there will be if
+  the rest is recalculated from where they are.
+
+Under them, one table has all three: the pattern's measurements, the pattern
+knitted as written at the knitter's tension, and the recalculated one's. The
+way on - recalculating, how far it has got, taking it - stays at the foot of
+the page while that is read.
+
+The rest recalculated keeps to these:
 
 - **What is knitted is a fact.** Every round to the one the rest is planned
   from is kept as it is, stitch for stitch. Nothing re-derives it.
@@ -334,6 +360,16 @@ worked out again:
 - **The project owns the result**: an edition named by its knitting, kept on
   the device and carried in backups, with the tension, the measurements and
   the round it was fitted from on the project (`fit`).
+- **It is seen as it will hang, before it is taken**: the sweater as it was
+  and each way the rest can be laid out, side by side on the stage, every
+  one settled into its shape first (`useShapes`, in `ui/useShape.ts`). That
+  is the slow part - minutes, on a phone - so the bar that followed the
+  working out goes on to follow it, and nothing is shown until all have come
+  to rest. They are turned, moved and zoomed as one: a single surface over
+  them takes the fingers, and every sweater's camera listens to it, so a
+  drag across the gap, or a pinch with a finger on each, is one gesture. The
+  shape of the one taken is the project's from then on, and is not settled
+  again.
 
 **From the cast-on too.** A plan may start from nothing knitted: on a
 design's page a knitter gives their swatch's tension, sees what the pattern
@@ -366,6 +402,59 @@ tables by place.
 
 `node scripts/fit.mjs <design> <size> <round> <sts> <rounds>` writes a fit out
 to read, every way the design offers, in `docs/written/refits/`.
+
+## Keeping a jumper: its address, and the Home Screen
+
+A project is kept in the browser it was started in and nowhere else, and a
+browser clears what it keeps: for room, and - Safari - once a week of its use
+has gone by without the site being opened. Two things are done about that.
+
+**The site can be put on a Home Screen.** It has a manifest
+(`public/manifest.webmanifest`) and icons drawn from its favicon
+(`node scripts/icons.mjs`), so a phone adds it as an app of its own, with no
+browser round it. There Safari's week does not apply. The browser is also
+asked to keep what the site stores (`navigator.storage.persist()`, in
+`src/projects/keeping.ts`) when a jumper is on screen; what it answers is its
+own business. In Safari on a phone the home page says all this once, to a
+knitter with a jumper to lose. An app on the Home Screen keeps its own
+storage, apart from Safari's: a jumper begun in one is brought to the other by
+its link.
+
+**A jumper's address is the jumper** (`src/projects/link.ts`). A project is
+tiny - a design, a size, the wool, how far it has got - and where its knitting
+is its own, so is what made it: the published edition it began as, and each
+thing done since, in order (`made`, on the project: a recalculation's tension,
+round and way; an update's edition and the round it was joined at). All of it
+is written into the jumper's address (`?jumper=`), a few hundred characters,
+and kept there as the jumper changes. So whatever holds the address holds the
+jumper as it last was: a tab left open, a bookmark, the browser's history, a
+message it was sent in. *Copy link* and *Share link*, on the jumper's own
+page, hand it over; Settings opens one pasted in, which is the only way where
+there is no address bar.
+
+- **Opened where the jumper is kept**, it is just the jumper's address.
+- **Opened where it is not** - the browser cleared it, or it is someone
+  else's - the jumper is offered to be made again (`Restore`): *Carry on where
+  it was*, which is the jumper itself, its name and its place; or *Start one
+  like it*, begun at the cast-on under an address of its own. That is how a
+  jumper is shared.
+- **Its knitting is made again, not carried** (`src/projects/remake.ts`). A
+  published edition is fetched: frozen copies are never deleted. Knitting of
+  the project's own is planned again as it was, a step at a time, by the same
+  worker that planned it, and what comes of it is named by a hash of itself as
+  every edition is. The link says what that name was. So the knitter gets the
+  pattern they had, stitch for stitch, or is told it can't be had: never one
+  that is nearly it.
+- **It can't be had once the planning has changed**: a link to a recalculated
+  pattern is good for as long as the planner answers as it did. A test holds
+  what it answers now (`src/compiler/fit.test.ts`, "what the planner answers is
+  what a link names"), so a change to it is seen and meant. Where a link's
+  pattern can't be made again the knitter is offered the pattern as written, in
+  the same wool, with their tension kept to recalculate it by; a backup file
+  has the pattern itself, and is the copy that never depends on the planner.
+- **Recalculating gives the jumper another address**, as its pattern is
+  another pattern. The old one still makes the jumper as it was then.
+- **Not in it**: the time spent knitting, which only a backup keeps.
 
 ## Running it
 

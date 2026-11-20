@@ -1,7 +1,7 @@
 import { Overrides } from "../reading/palette";
 import type { Measurements, Placement, Tension } from "../pattern/design";
 import { deleteLog } from "./timing/log";
-import { currentEdition, editionKey } from "../library/editions";
+import { currentEdition, editionKey, editionOf } from "../library/editions";
 import { dropShapesBut } from "../library/settled/own";
 import type { EditionFile } from "../library/editions/format";
 import { dropEditionsBut, keepEdition } from "../library/editions/own";
@@ -51,6 +51,11 @@ export interface Project {
    */
   fit?: ProjectFit;
   /**
+   * How its knitting was made, where that is its own: what it is made again
+   * by, where it was not kept. See Made.
+   */
+  made?: Made;
+  /**
    * The published edition its knitting is up to date with, where that is
    * not the edition it knits: knitting of its own (fitted, or joined to an
    * update part way through), or an older edition whose update changes
@@ -80,6 +85,30 @@ export interface ProjectFit {
   placement?: Placement;
 }
 
+/**
+ * How knitting of a project's own was made (see library/editions/own): the
+ * published edition it began as, and each thing done to it since, in order.
+ *
+ * Knitting of a project's own is held by no published file, and by nothing
+ * but the device it was made on. What made it is small, and says it exactly:
+ * the planning of a pattern is the same every time it is asked the same. So
+ * a project keeps how its knitting was made, and that is what a link to it
+ * carries, to make it again where it is not (see link.ts, and
+ * library/remake).
+ */
+export interface Made {
+  /** The published edition it began as. None, where it is a whole sweater planned from the cast-on, which begins as nothing. */
+  from?: string;
+  steps: Step[];
+}
+
+/** One thing done to a project's knitting to make it its own. */
+export type Step =
+  /** The rest planned for a tension from after a round, one of the design's ways (see library/fit): the whole, from the cast-on, with no round. */
+  | { fit: Tension; round?: number; option?: string }
+  /** The knitter's rounds to the end of one, then a published edition's from the same round in it: see editions/difference. */
+  | { join: string; round: number };
+
 const measures: (keyof Measurements)[] = ["chestCm", "neckCm", "yokeDepthCm", "bodyLengthCm", "upperArmCm", "sleeveLengthCm", "cuffCm"];
 
 /** Whether something read back is a placement: a place from 0 to 1 for each band, and bands for each trim. */
@@ -101,6 +130,72 @@ export const isFit = (value: unknown): value is ProjectFit => {
     (fit.option === undefined || (typeof fit.option === "string" && fit.option.length <= 40)) &&
     (fit.placement === undefined || isPlacement(fit.placement));
 };
+
+const isEditionName = (value: unknown): value is string => typeof value === "string" && /^[0-9a-f]{1,64}$/.test(value);
+const isRound = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0;
+
+/** Whether something read back is how a knitting was made. */
+export const isMade = (value: unknown): value is Made => {
+  const made = value as Partial<Made> | null;
+  return typeof made === "object" && made !== null && (made.from === undefined || isEditionName(made.from)) &&
+    Array.isArray(made.steps) && made.steps.length > 0 && made.steps.length <= 40 &&
+    made.steps.every((step: Partial<{ fit: unknown; join: unknown; round: unknown; option: unknown }> | null) =>
+      typeof step === "object" && step !== null &&
+      ("fit" in step
+        ? isTension(step.fit) && (step.round === undefined || isRound(step.round)) && (step.option === undefined || (typeof step.option === "string" && step.option.length <= 40))
+        : isEditionName(step.join) && isRound(step.round)));
+};
+
+/**
+ * How a project's knitting was made, as far as is known. A project fitted
+ * before the making was kept says only what its last fit was: taken as the
+ * only one, which it nearly always was, and found out where it was not when
+ * what is made again is not the knitting it names (see library/remake).
+ */
+export const madeOf = (project: Pick<Project, "made" | "fit">): Made | undefined =>
+  project.made ??
+  (project.fit
+    ? {
+        ...(project.fit.round !== undefined && project.fit.from ? { from: project.fit.from } : {}),
+        steps: [{ fit: project.fit.tension, ...(project.fit.round === undefined ? {} : { round: project.fit.round }), ...(project.fit.option ? { option: project.fit.option } : {}) }],
+      }
+    : undefined);
+
+/**
+ * A project's making with one thing more done.
+ *
+ * A project that says nothing of how its knitting was made knits a published
+ * edition, and its making begins there. (An edition kept on the device is no
+ * sign that it is the project's own: one the size has moved on from is kept
+ * there too, for the projects still on it - see library/editions.) The one
+ * project this is not so of joined an update before the making was kept; a
+ * link to it names an edition the site never had, and says so when it is
+ * opened: see remake.
+ */
+export const madeWith = (project: Project, step: Step): Made | undefined => {
+  // A whole sweater from the cast-on begins as nothing: whatever was knitted before is no part of it.
+  if ("fit" in step && step.round === undefined) return { steps: [step] };
+  const before = madeOf(project);
+  if (before) return { ...before, steps: [...before.steps, step] };
+  const edition = editionOf(project);
+  return edition ? { from: edition, steps: [step] } : undefined;
+};
+
+/** A project with its making set, or with none. */
+export const withMade = (project: Project, made: Made | undefined): Project => {
+  const { made: was, ...rest } = project;
+  void was;
+  return made ? { ...rest, made } : rest;
+};
+
+/** Whether something read back is wool of a knitter's own, for yarns a design has: each a wool, a name, a shade number and a colour, or some of them. */
+export const isShadesOf = (slots: readonly string[], value: unknown): value is Overrides =>
+  typeof value === "object" && value !== null && !Array.isArray(value) &&
+  Object.entries(value as Record<string, unknown>).every(([slot, shade]) =>
+    slots.includes(slot) && typeof shade === "object" && shade !== null &&
+    Object.keys(shade).every((key) => ["wool", "name", "code", "hex"].includes(key)) &&
+    Object.values(shade).every((said) => typeof said === "string" && said.length <= 200) &&
+    ((shade as { hex?: string }).hex === undefined || /^#[0-9a-f]{6}$/i.test((shade as { hex: string }).hex)));
 
 /** Whether something read back is a tension: two sensible numbers. */
 export const isTension = (value: unknown): value is Tension => {
@@ -171,6 +266,7 @@ const isProject = (value: unknown): value is Project => {
     (candidate.edition !== undefined && typeof candidate.edition !== "string") ||
     (candidate.tension !== undefined && !isTension(candidate.tension)) ||
     (candidate.fit !== undefined && !isFit(candidate.fit)) ||
+    (candidate.made !== undefined && !isMade(candidate.made)) ||
     (candidate.upTo !== undefined && typeof candidate.upTo !== "string") ||
     (candidate.version !== undefined && candidate.version !== currentVersion)) return false;
   if (candidate.shades !== undefined) {
@@ -264,7 +360,7 @@ export const startProject = (
   /** And any trim. */
   trim?: string,
   /** Knitting of its own to begin on, worked out for its knitter before the cast-on (see library/fit), already kept on the device. */
-  own?: Pick<Project, "edition" | "tension" | "fit" | "upTo">,
+  own?: Pick<Project, "edition" | "tension" | "fit" | "made" | "upTo">,
 ): Project => {
   const edition = own?.edition ?? currentEdition(sweaterId, sizeId);
   return writeProject({
@@ -279,6 +375,7 @@ export const startProject = (
     ...(edition ? { edition } : {}),
     ...(own?.tension ? { tension: own.tension } : {}),
     ...(own?.fit ? { fit: own.fit } : {}),
+    ...(own?.made ? { made: own.made } : {}),
     ...(own?.upTo ? { upTo: own.upTo } : {}),
     startedAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
