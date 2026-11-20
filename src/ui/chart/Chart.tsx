@@ -823,30 +823,6 @@ const Chart: React.FC<ChartProps> = ({
         </select></label>
         {showText && <TextRound stitches={stitches} rounds={rounds} round={follow && focusRound ? focusRound : textRound} labels={labels} names={names} palette={palette} pieces={pieces} />}
       </details>}
-      <details className="chart-help">
-        <summary>How to read this chart</summary>
-        <p className="chart-caption">
-        {layout.columns} columns across and {layout.rows} rows. The stitches cast on at
-        an underarm are the bottom of two pieces, the body and a sleeve, so the
-        sweater has more than one chart, chosen by the tabs above it: from the neck,
-        the yoke with the body and both sleeves side by side above it, all but the
-        underarms; the body, with both underarms; and each sleeve, picked up over
-        its underarm. While you knit, the chart is the one the next stitch is in.
-        Read from the bottom right, working right to left; scroll sideways to
-        see a whole round, and pinch to zoom.{onJump && " Tap a stitch to carry on from there."} Every
-        stitch stands over the stitch it was knitted into, so a column is a
-        column of the knitting: a make-one begins a new one, with nothing below
-        it, as do the stitches cast on at the underarms and picked up for the
-        sleeves, and a decrease ends one. A column with no stitch in the rows on
-        screen closes up, so what you see stands side by side as it does on the
-        needles, and parts again when a make-one's row comes into view; so does
-        a row with no stitch in the columns on screen. Above the divide each row holds a round
-        of each piece the chart shows, all numbered on from the yoke's.
-        {turns.length > 0 &&
-          " The chart shows the side you are working on, every stitch as it looks from there, and turns over" +
-            " with the work at a short row."}
-        </p>
-      </details>
     </div>
   );
 };

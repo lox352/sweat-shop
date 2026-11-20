@@ -15,7 +15,9 @@ const TensionForm: React.FC<{
   /** A tension to show in the empty fields, in grey, as an example of what goes in them: the pattern's own. */
   example?: Tension;
   onChange: (tension: Tension | undefined) => void;
-}> = ({ tension, first, example, onChange }) => {
+  /** Leaving the tension as it is, where there is one to leave. */
+  onCancel?: () => void;
+}> = ({ tension, first, example, onChange, onCancel }) => {
   const [stitches, setStitches] = useState(tension ? String(tension.stitchesPer10cm) : "");
   const [stitchesOver, setStitchesOver] = useState("10");
   const [rounds, setRounds] = useState(tension ? String(tension.roundsPer10cm) : "");
@@ -71,6 +73,11 @@ const TensionForm: React.FC<{
             }}
           >
             Clear
+          </Button>
+        )}
+        {onCancel && (
+          <Button variant="quiet" onClick={onCancel}>
+            Cancel
           </Button>
         )}
       </p>

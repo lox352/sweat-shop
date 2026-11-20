@@ -1,6 +1,6 @@
 /*
  * A page with the jumper kept on screen: see StageLayout. The page is as
- * tall as the screen and does not scroll; the panel under the stage does.
+ * tall as the screen and does not scroll; a page under the stage does, by itself, where it is too long for the room.
  */
 .page.stage-layout {
   --foot: 0rem;
@@ -121,25 +121,7 @@
   }
 }
 
-.stage-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 1rem 0 0.5rem;
-}
-
-.stage-scroll .colophon {
-  margin-top: 2rem;
-}
-
-/* A panel begins at its top edge: what is in it brings no heading's margin with it. */
-.stage-panel > .section:first-child,
-.stage-panel > :first-child {
-  margin-top: 0;
-}
-
-/* The one way forward, and what it will do. */
+/* A bar at the foot of a screen, for the one way forward and what it will do: under the chart while it is looked around (see Project's LookBar). */
 .stage-bar {
   flex: none;
   display: flex;
@@ -250,7 +232,7 @@
   }
 }
 
-/* On paper there is no screen to fit: the panels one after another. */
+/* On paper there is no screen to fit: the pages one after another (see Pages). */
 @media print {
   .page.stage-layout {
     display: block;
@@ -259,13 +241,5 @@
 
   .stage {
     display: none;
-  }
-
-  .stage-scroll {
-    overflow: visible;
-  }
-
-  .stage-panel[hidden] {
-    display: block;
   }
 }

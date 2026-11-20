@@ -175,3 +175,18 @@
   height: 100%;
   background: var(--crimson);
 }
+
+/* Said once to a knitter whose browser will clear their jumpers: see Home. */
+.keep-note {
+  margin-top: 1rem;
+  padding: 0.8rem 1rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-size: var(--text-s);
+  line-height: 1.45;
+}
+
+.keep-note p {
+  margin: 0 0 0.5rem;
+}

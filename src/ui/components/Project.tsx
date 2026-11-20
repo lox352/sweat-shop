@@ -10,7 +10,7 @@ import PatternUpdated from "./PatternUpdated";
 import MyTension from "./MyTension";
 import Refit from "./Refit";
 import { type Fitted, mayFit } from "../../library/fit";
-import { asEdition } from "../../library/editions/own";
+import { asEdition, isOwn } from "../../library/editions/own";
 import type { SweaterStitches } from "../../pattern/knitted";
 import { sameTension, yarnPerStitch } from "../../reading/tension";
 import { makeOnesAtMarkers } from "../../reading/marker-routes";
@@ -32,7 +32,13 @@ import {
   deleteProject,
   keepKnitting,
   dropUnknitted,
+  madeWith,
+  withMade,
+  storageKeyFor,
 } from "../../projects/projects";
+import { addressOf, linkOf, linkParam, readLink } from "../../projects/link";
+import { askToKeep } from "../../projects/keeping";
+import Restore from "./Restore";
 import PageLayout from "./ui/PageLayout";
 import StageLayout from "./ui/StageLayout";
 import Dialog from "./ui/Dialog";
@@ -45,13 +51,18 @@ import { KeySheet } from "./KnitKey";
 import { recordProgress } from "../../projects/timing/log";
 import { useKnittingTime, useTimeDetail, useTimeRecording } from "../useKnittingTime";
 import { TimeFigures } from "./KnittingTime";
+import { formatDate } from "../../projects/timing/format";
 import { SpeedsSheet, StatsPanel, StitchTime } from "./StatsView";
 import { statsOverlay, type Layer } from "../chart/timing-overlay";
 import WoolList from "./WoolList";
 import { type Chosen } from "./Shades";
 import ViewTabs from "../chart/ViewTabs";
 import { sceneFor } from "../chart/view-scene";
-import ColourwayChoice from "./ColourwayChoice";
+import { ColourwayGrid } from "./ColourwayChoice";
+import { ColoursAdjust, TrimSheet } from "./ColoursAdjust";
+import { useColourwayChoice } from "../useColourwayChoice";
+import { useTabAddress } from "../useTabAddress";
+import type { PageGroup } from "./ui/Pages";
 import Customise from "./Customise";
 import { Schematic } from "./Schematic";
 import { Measurements } from "./Measurements";
@@ -101,6 +112,46 @@ const LookBar: React.FC<{
 );
 
 /**
+ * A jumper's link, to keep or to send: its address, which says everything
+ * that makes it (see projects/link). Copied, or handed to whatever the
+ * device shares with, where it has that.
+ */
+const JumperLink: React.FC<{ project: SavedProject; title: string }> = ({ project, title }) => {
+  const [said, setSaid] = useState("");
+  // Shown to be copied by hand, where the browser will not copy it.
+  const [shown, setShown] = useState<string>();
+  const copy = async () => {
+    const address = addressOf(project);
+    try {
+      await navigator.clipboard.writeText(address);
+      setSaid("Link copied.");
+    } catch {
+      setShown(address);
+    }
+  };
+  const share = () => {
+    // Put away without sending is no failure, and nothing to say.
+    void navigator.share({ title, url: addressOf(project) }).catch(() => undefined);
+  };
+  return (
+    <div className="jumper-link">
+      <p className="quiet">
+        This jumper is kept in this browser, which may clear it. Its link makes it again anywhere, with its pattern, its wool and your place: keep a copy, or
+        send it to someone to knit one like it.
+      </p>
+      <p className="jumper-manage">
+        <Button onClick={copy}>Copy link</Button>
+        {typeof navigator.share === "function" && <Button onClick={share}>Share link</Button>}
+        <span className="quiet" role="status">
+          {said}
+        </span>
+      </p>
+      {shown && <input className="jumper-link-shown" readOnly aria-label="This jumper's link" value={shown} onFocus={(event) => event.target.select()} />}
+    </div>
+  );
+};
+
+/**
  * A project: one sweater, one knitter, one row counter.
  *
  * Progress is written straight to storage on every change, because the thing
@@ -115,8 +166,18 @@ const undoLimit = 100;
 /** How near the knitting is to a view of the chart, in stitches, for it to be laid out ahead: a round or two of a yoke. */
 const aheadOfView = 1000;
 
-/** The panels of a jumper's page, under its stage. */
-const panels = ["progress", "wool", "fit"] as const;
+/** A value once it has stopped changing for a while: the first at once, and each after when nothing has followed it. */
+const useSettled = <T,>(value: T, ms: number): T => {
+  const [settled, setSettled] = useState(value);
+  useEffect(() => {
+    const waiting = window.setTimeout(() => setSettled(value), ms);
+    return () => window.clearTimeout(waiting);
+  }, [value, ms]);
+  return settled;
+};
+
+/** The tabs of a jumper's page, under its stage: each a few pages side by side. */
+const jumperTabs = ["progress", "wool", "fit"] as const;
 
 const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
   const { projectId } = useParams();
@@ -138,13 +199,58 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
 
   const knitting = params.get(knittingParam) === "1";
   const sweater = project ? sweaterById(project.sweaterId) : undefined;
+  /*
+   * The jumper's link, kept in its address as the jumper changes (see
+   * projects/link), replacing what was there. Whatever holds the address
+   * then holds the jumper as it last was.
+   *
+   * Progress changes a stitch at a time, and writing the address draws the
+   * page again: so it is written once the knitting has paused, not at every
+   * tap, where it would get in the way of the next. And at once as the page
+   * is put away - the phone locked mid-round, the tab left - straight into
+   * the address, as nothing is drawn then; the router is told when the page
+   * is back.
+   */
+  const linkNow = useMemo(() => (project && sweater ? linkOf(project) : undefined), [project, sweater]);
+  const link = useSettled(linkNow, 3000);
+  // An old address that asks for the knitting on the jumper's page is being sent on to the chart (see below), which is where it is written.
+  const sentOn = view === "overview" && knitting;
+  useEffect(() => {
+    if (!link || sentOn || params.get(linkParam) === link) return;
+    const next = new URLSearchParams(params);
+    next.set(linkParam, link);
+    setParams(next, { replace: true });
+  }, [link, sentOn, params, setParams]);
+  useEffect(() => {
+    if (!linkNow || sentOn) return;
+    const putAway = () => {
+      if (document.visibilityState !== "hidden") return;
+      const [path, search = ""] = window.location.hash.split("?");
+      const now = new URLSearchParams(search);
+      if (now.get(linkParam) === linkNow) return;
+      now.set(linkParam, linkNow);
+      window.history.replaceState(window.history.state, "", `${path}?${now}`);
+    };
+    document.addEventListener("visibilitychange", putAway);
+    window.addEventListener("pagehide", putAway);
+    return () => {
+      document.removeEventListener("visibilitychange", putAway);
+      window.removeEventListener("pagehide", putAway);
+    };
+  }, [linkNow, sentOn]);
+  // And the browser asked to keep what it stores, now that there is a jumper to keep.
+  useEffect(() => {
+    if (project) askToKeep();
+  }, [project]);
   // The update taken as published: every stitch knitted is the same in it, so the project's place is where it was. See PatternUpdated.
   const takeUpdate = useCallback(() => {
     change((current) => {
       const edition = currentEdition(current.sweaterId, current.sizeId);
       if (!edition) return current;
-      const { upTo, ...rest } = current;
+      // A published edition again: nothing of its own to say how it was made.
+      const { upTo, made, ...rest } = current;
       void upTo;
+      void made;
       return { ...rest, edition };
     });
     dropUnknitted();
@@ -154,12 +260,15 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
     change((current) => ({ ...current, edition: editionOf(current), upTo: currentEdition(current.sweaterId, current.sizeId) }));
   }, [change]);
   // The update taken from a round: the knitter's rounds to it and the update's from there, knitting of the project's own.
-  const joinUpdate = useCallback(async (knitting: SweaterStitches) => {
+  const joinUpdate = useCallback(async (knitting: SweaterStitches, round: number) => {
     const current = currentProject.current;
     if (!current) return;
     const file = await asEdition(knitting, current.sweaterId, current.sizeId);
     if (!keepKnitting(file)) return;
-    change((now) => ({ ...now, edition: file.edition, upTo: currentEdition(now.sweaterId, now.sizeId) }));
+    change((now) => {
+      const to = currentEdition(now.sweaterId, now.sizeId);
+      return { ...withMade(now, to ? madeWith(now, { join: to, round }) : undefined), edition: file.edition, upTo: to };
+    });
     dropUnknitted();
   }, [change]);
   useTimeRecording(project && sweater && view === "chart" ? project.id : undefined, knitting);
@@ -235,14 +344,14 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
   const takeFit = useCallback((fitted: Fitted) => {
     if (!keepKnitting(fitted.file)) return;
     change((current) => ({
-      ...current,
+      ...withMade(current, madeWith(current, { fit: fitted.tension, ...(fitted.round === undefined ? {} : { round: fitted.round }), ...(fitted.option ? { option: fitted.option } : {}) })),
       edition: fitted.file.edition,
       fit: {
         tension: fitted.tension,
         finished: fitted.finished,
         round: fitted.round,
-        // The published edition it left, through any fit before this one.
-        from: current.fit ? current.fit.from : editionOf(current),
+        // The published edition it left, through any fit before this one: none, where what it left was knitting of its own, which is not kept to go back to.
+        from: current.fit ? current.fit.from : isOwn(current.sweaterId, current.sizeId, editionOf(current) ?? "") ? undefined : editionOf(current),
         ...(fitted.option ? { option: fitted.option } : {}),
         ...(fitted.placement ? { placement: fitted.placement } : {}),
       },
@@ -254,8 +363,10 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
 
   const leaveFit = useCallback(() => {
     change((current) => {
-      const { fit, upTo, ...rest } = current;
+      const { fit, upTo, made, ...rest } = current;
       void upTo;
+      void made;
+      // Back to a published edition: nothing of its own to say how it was made.
       return fit?.from ? { ...rest, edition: fit.from } : current;
     });
     dropUnknitted();
@@ -301,6 +412,9 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
   }, [knitting]);
 
   if (!project || !sweater) {
+    // Its address may say what it is all the same, and it is offered to be made again: see Restore.
+    const linked = readLink(params.get(linkParam));
+    if (linked && projectId && storageKeyFor(projectId) === linked.id) return <Restore linked={linked} />;
     return (
       <PageLayout title="No such project">
         <p>
@@ -364,7 +478,7 @@ const ProjectView: React.FC<{
   setTension: (tension: Tension | undefined) => void;
   takeUpdate: () => void;
   seeUpdate: () => void;
-  joinUpdate: (knitting: SweaterStitches) => void;
+  joinUpdate: (knitting: SweaterStitches, round: number) => void;
   takeFit: (fitted: Fitted) => void;
   leaveFit: () => void;
 }> = ({
@@ -516,33 +630,34 @@ const ProjectView: React.FC<{
     </Link>
   );
   /*
-   * The jumper's page: which panel it shows, and what comes up over it. The
-   * panel is the page's own to know, so that it changes at once; the address
-   * is told after, so that a reload keeps it, and replaces what was there,
-   * so that back leaves the page.
+   * The jumper's page: which tab it shows, and what comes up over it. The
+   * tab is kept in the address (see useTabAddress), and known here as well,
+   * at once, for what the stage shows over it.
    */
   const navigate = useNavigate();
-  const [shownPanel, setShownPanel] = useState(() => panels.find((panel) => panel === params.get("tab")) ?? "progress");
-  const showPanel = (panel: string) => {
-    setShownPanel(panels.find((one) => one === panel) ?? "progress");
-    const next = new URLSearchParams(params);
-    if (panel === "progress") next.delete("tab");
-    else next.set("tab", panel);
-    setParams(next, { replace: true });
-  };
-  /** Whether the colourway's wools are being changed, in a card up from the foot: see Customise. */
-  const [customising, setCustomising] = useState(false);
-  const closeCustomise = useCallback(() => setCustomising(false), []);
+  const { first, onShown: tabShown, pager } = useTabAddress(jumperTabs);
+  const [shownTab, setShownTab] = useState<string>(first);
+  const onShown = useCallback(
+    (tab: string) => {
+      setShownTab(tab);
+      tabShown(tab);
+    },
+    [tabShown],
+  );
+  /** What is up from the foot over the pages, if anything: the trim, or the colourway's wools to change. See Sheet and Customise. */
+  const [sheet, setSheet] = useState<"trim" | "customise">();
+  const closeSheet = useCallback(() => setSheet(undefined), []);
   /** The ball Customise opens on, where a row of the wool list asked for it. */
   const [customiseOn, setCustomiseOn] = useState<SlotId[]>();
   const customiseFrom = useCallback((slots: SlotId[] | undefined) => {
     setCustomiseOn(slots);
-    setCustomising(true);
+    setSheet("customise");
   }, []);
+  // The design's colourways, to start again from: a page a group, as on the design's page.
+  const choice = useColourwayChoice({ colourways: sweater.colourways, colourway, overrides: project.shades ?? noShades, onStartFrom: setColourway });
   /** The yarns lit on the jumper while one of its wools is being changed. */
   const [lighting, setLighting] = useState<SlotId[]>();
   const onStage = useMemo(() => (lighting ? lit(palette, lighting) : palette), [palette, lighting]);
-  const [bases, setBases] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   // Only the wool this size knits: a smaller size leaves the last bands' colours out.
@@ -695,21 +810,27 @@ const ProjectView: React.FC<{
   // What the sweater measures: the size's own, or what the rest was fitted to.
   const worn = fitted ? { ...size, ...fitted } : size;
 
-  const progressPanel = (
-    <>
-      {updated}
+  /*
+   * Where the knitting is: how far, the chart at the needle to say where
+   * that is in the pattern, and the one way forward. The page a jumper opens
+   * on, and all of it in the room there is.
+   */
+  const nowPage = (
+    <div className="jumper-now">
       <p className="jumper-progress">
-        <em>{position.finished ? "100%" : percentKnitted(counts.worked, counts.percent)}</em>{" "}
+        <em>{position.finished ? "100%" : percentKnitted(counts.worked, counts.percent)}</em>
         <span className="quiet jumper-progress-counts">
-          {counts.worked.toLocaleString()} of {counts.total.toLocaleString()} stitches
-          {position.finished ? "" : ` · ${counts.remaining.toLocaleString()} to go`}
+          <span>
+            {counts.worked.toLocaleString()} of {counts.total.toLocaleString()} stitches
+          </span>
+          {!position.finished && <span>{counts.remaining.toLocaleString()} to go</span>}
         </span>
         <span className="jumper-track" aria-hidden="true">
           <span style={{ width: `${counts.percent}%` }} />
         </span>
       </p>
-      {/* The chart where the knitting is, to say where that is in the pattern; the whole of it is a tap away. */}
-      <Link to={chartPath(project.id)} className="chart-window" aria-label="Look around the chart">
+      {/* The whole of the chart is a tap away. */}
+      <Link to={chartPath(project.id)} className="chart-window" aria-label="View chart">
         <div className="chart-fills" {...{ inert: "" }}>
           <section className="chart-page">
             <Chart
@@ -730,31 +851,57 @@ const ProjectView: React.FC<{
         </div>
         <span className="chart-window-label">
           <strong>{position.finished ? "Finished" : whereYouAre(position)}</strong>
-          <span className="quiet">Look around</span>
+          <span className="quiet">View chart</span>
         </span>
       </Link>
-      {time && (
-        <>
-          <dl className="measurements jumper-time">
-            <TimeFigures time={time} finished={position.finished} />
-          </dl>
-          <p>
-            <Link to={`${chartPath(project.id)}?${statsParam}=1`}>See your time on the chart</Link>
-          </p>
-        </>
-      )}
-      <p className="jumper-manage">
-        <Button variant="quiet" onClick={() => setRenaming(true)}>
-          Rename
-        </Button>
-        <Button variant="quiet" onClick={() => setDeleting(true)}>
-          Delete
-        </Button>
+      <Link to={chartPath(project.id, !position.finished)} className="btn btn-primary btn-lg jumper-knit">
+        {position.finished ? "Open the chart" : knitLabel}
+      </Link>
+    </div>
+  );
+
+  const timePage = time && (
+    <>
+      <dl className="measurements jumper-time">
+        <TimeFigures time={time} finished={position.finished} />
+      </dl>
+      <p>
+        <Link to={`${chartPath(project.id)}?${statsParam}=1`}>See your time on the chart</Link>
       </p>
     </>
   );
 
-  const woolPanel = (
+  // The jumper as a thing kept: what it is and since when, naming it, and doing away with it.
+  const keptPage = (
+    <>
+      <p className="jumper-kept">
+        <strong>{sweater.name}</strong>
+        <span className="quiet">
+          Size {size.label} · started {formatDate(project.startedAt)}
+        </span>
+      </p>
+      <p className="jumper-manage">
+        <Button onClick={() => setRenaming(true)}>Rename</Button>
+        <Button onClick={() => setDeleting(true)}>Delete</Button>
+      </p>
+      <JumperLink project={project} title={project.name ?? sweater.name} />
+    </>
+  );
+
+  // Under every page of its wool, what is done to the colourway in use: see ColoursAdjust.
+  const adjust = (
+    <ColoursAdjust
+      trim={sweater.trim}
+      colourway={colourway}
+      given={published}
+      trimChosen={project.trim}
+      own={choice.own}
+      onTrim={() => setSheet("trim")}
+      onWool={() => customiseFrom(undefined)}
+    />
+  );
+
+  const woolPage = (
     <>
       <p className="your-colourway">
         <strong>{colourwayLabel(colourway, project.shades)}</strong>{" "}
@@ -762,27 +909,6 @@ const ProjectView: React.FC<{
           · {balls.length} {balls.length === 1 ? "shade" : "shades"} · {bought} {bought === 1 ? "ball" : "balls"}
         </span>
       </p>
-      <p className="jumper-wool-actions">
-        <Button onClick={() => customiseFrom(undefined)}>Change wool</Button>
-        <Button aria-expanded={bases} onClick={() => setBases((open) => !open)}>
-          Another colourway
-        </Button>
-      </p>
-      {/* The design's colourways, to start again from, and the trim: out of the way until asked for. */}
-      {bases && (
-        <ColourwayChoice
-          colourways={sweater.colourways}
-          colourway={colourway}
-          overrides={project.shades ?? noShades}
-          body={body}
-          onStartFrom={setColourway}
-          trim={sweater.trim}
-          trimChosen={project.trim}
-          onTrim={setTrim}
-          // The line over the buttons has named it already.
-          named={false}
-        />
-      )}
       <WoolList
         colourway={colourway}
         metres={metres}
@@ -790,36 +916,84 @@ const ProjectView: React.FC<{
         overrides={project.shades ?? noShades}
         onPick={customiseFrom}
       />
+      {adjust}
     </>
   );
 
-  const fitPanel = (
-    <>
-      <MyTension key={project.id} size={size} fitted={fitted} tension={project.tension} onChange={setTension}>
-        {/* Where the rest is worked out for this tension already, it says so; where it could be, it offers to. */}
-        {project.tension && (sameTension(fitted ?? size, project.tension) ? !!fitted : mayFit(sweater, built, project.progress)) && (
-          <Refit
-            sweater={sweater}
-            size={size}
-            knitted={built}
-            progress={project.progress}
-            tension={project.tension}
-            fit={project.fit}
-            palette={palette}
-            coloursOn={coloursOn}
-            roundNames={names}
-            onTake={takeFit}
-            onGoBack={leaveFit}
-          />
-        )}
-      </MyTension>
-      <h2>Size {size.label}</h2>
-      <div className="size-figures">
-        <Schematic size={worn} />
-        <Measurements size={worn} />
-      </div>
-    </>
+  // Whether the rest can still be recalculated: the design can, and the whole sweater is still one round on the needles.
+  const canFit = mayFit(sweater, built, project.progress);
+  const tensionPage = (
+    <MyTension key={project.id} size={size} fitted={fitted} tension={project.tension} onChange={setTension} begun recalculates={canFit}>
+      {/* Where the rest is recalculated for this tension already, it says so; where it could be, it offers to; and where it is too late to, it says why nothing is offered. */}
+      {project.tension && !sameTension(fitted ?? size, project.tension) && sweater.fitting && !canFit && (
+        <p className="quiet refit-late">
+          The rest can only be recalculated while the whole yoke is still on the needles. Yours is past that, so the pattern carries on as written.
+        </p>
+      )}
+      {project.tension && (sameTension(fitted ?? size, project.tension) ? !!fitted : canFit) && (
+        <Refit
+          sweater={sweater}
+          size={size}
+          knitted={built}
+          progress={project.progress}
+          tension={project.tension}
+          fit={project.fit}
+          palette={palette}
+          coloursOn={coloursOn}
+          roundNames={names}
+          onTake={takeFit}
+          onGoBack={leaveFit}
+        />
+      )}
+    </MyTension>
   );
+
+  /*
+   * The same three tabs a jumper has always had, each now a few pages side
+   * by side (see Pages). Progress is the way forward, and opens on it: the
+   * button that was in a bar at the foot is on its first page.
+   */
+  const groups: PageGroup[] = [
+    {
+      id: "progress",
+      label: "Progress",
+      forward: true,
+      pages: [
+        // A pattern that has moved on is said before anything else of the knitting.
+        ...(updated ? [{ id: "updated", label: "Pattern updated", content: updated }] : []),
+        { id: "now", label: "Where you are", content: nowPage },
+        ...(timePage ? [{ id: "time", label: "Your time", content: timePage }] : []),
+        { id: "kept", label: "This jumper", content: keptPage },
+      ],
+    },
+    {
+      id: "wool",
+      label: "Wool",
+      pages: [
+        { id: "list", label: "Your wool", content: woolPage },
+        // The design's colourways, to start again from: the same pages its own page has.
+        ...choice.groups.map(([name, options]) => ({
+          id: `group-${name ?? ""}`,
+          label: name ?? "Colourways",
+          content: (
+            <>
+              <ColourwayGrid options={options} chosen={colourway.id} body={body} onChoose={choice.choose} />
+              {adjust}
+            </>
+          ),
+        })),
+      ],
+    },
+    {
+      id: "fit",
+      label: "Fit",
+      pages: [
+        { id: "tension", label: "Your tension", content: tensionPage },
+        { id: "flat", label: `Size ${size.label}, laid flat, to scale`, content: <Schematic size={worn} /> },
+        { id: "measurements", label: `Size ${size.label}, finished`, content: <Measurements size={worn} /> },
+      ],
+    },
+  ];
 
   return (
     <>
@@ -833,31 +1007,18 @@ const ProjectView: React.FC<{
             edition={edition}
             palette={onStage}
             // Over its wool the jumper is drawn whole in it, knitted or not: a colourway chosen there is seen on it at once, as on the design's page. Elsewhere, only as far as it is knitted.
-            progress={shownPanel === "wool" ? (stitches[stitches.length - 1]?.id ?? 0) : project.progress}
+            progress={shownTab === "wool" ? (stitches[stitches.length - 1]?.id ?? 0) : project.progress}
             fill
           />
         }
+        badge={colourwayLabel(colourway, project.shades)}
         tabsLabel="This jumper"
-        panels={[
-          { id: "progress", label: "Progress", content: progressPanel },
-          { id: "wool", label: "Wool", content: woolPanel },
-          { id: "fit", label: "Fit", content: fitPanel },
-        ]}
-        shown={shownPanel}
-        onShow={showPanel}
-        bar={
-          <>
-            <div className="stage-bar-text">
-              <strong>{position.finished ? "Finished" : whereYouAre(position)}</strong>
-              <span className="quiet">{position.finished ? `${counts.total.toLocaleString()} stitches` : `${percentKnitted(counts.worked, counts.percent)} knitted`}</span>
-            </div>
-            <Link to={chartPath(project.id, !position.finished)} className="btn btn-primary">
-              {position.finished ? "Open the chart" : knitLabel}
-            </Link>
-          </>
-        }
+        groups={groups}
+        first={first}
+        onShown={onShown}
+        pages={pager}
         sheet={
-          customising && (
+          sheet === "customise" ? (
             <Customise
               sweater={sweater}
               built={built}
@@ -866,13 +1027,16 @@ const ProjectView: React.FC<{
               metres={metres}
               onChange={setShade}
               onReset={resetShades}
-              onDone={closeCustomise}
+              onDone={closeSheet}
               first={customiseOn}
               onLight={setLighting}
             />
-          )
+          ) : sheet === "trim" ? (
+            <TrimSheet trim={sweater.trim} colourway={colourway} given={published} chosen={project.trim} onTrim={setTrim} onClose={closeSheet} />
+          ) : undefined
         }
       />
+      {choice.confirm}
       {renaming && (
         <NameDialog
           open

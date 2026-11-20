@@ -7,43 +7,6 @@
   font-size: var(--text-s);
 }
 
-.your-colourway-brand {
-  white-space: nowrap;
-}
-
-/* A design's colourways in groups, each a tradition: one group shown at a time. */
-.colourway-families {
-  display: flex;
-  gap: 0.4rem;
-  margin: 0 calc(-1 * var(--gutter)) 0.75rem;
-  padding: 0 var(--gutter);
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.colourway-families::-webkit-scrollbar {
-  display: none;
-}
-
-.colourway-family {
-  flex: none;
-  min-height: 44px;
-  padding: 0.3rem 0.8rem;
-  font: inherit;
-  font-size: var(--text-s);
-  color: var(--ink);
-  background: var(--paper-raised);
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  cursor: pointer;
-}
-
-.colourway-family[aria-pressed="true"] {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
-}
-
 /* The bases, in even columns: a strip of each on the yoke, and its name. */
 .colourway-grid {
   display: grid;

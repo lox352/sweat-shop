@@ -21,9 +21,29 @@
   outline-offset: -2px;
 }
 
-/* Brought up under the panel's tabs when a tension is given, with a little air above it. */
-.my-tension-answer {
-  scroll-margin-top: 0.75rem;
+/* The pattern's tension, said as a pattern says it; and the knitter's, once given, a line with the way to change it. */
+.my-tension-written {
+  margin: 0 0 0.5rem;
+}
+
+.my-tension-yours {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--rule);
+}
+
+.my-tension-answer > p,
+.my-tension-as-written > p {
+  margin-bottom: 0.5rem;
+}
+
+/* While a pattern recalculated is on show, its own table has what the pattern comes out at as written, beside what it comes to: see FitPreview. */
+.my-tension:has(.refit-shown) .my-tension-as-written {
+  display: none;
 }
 
 .my-tension-form input {
@@ -34,6 +54,11 @@
   border-radius: var(--radius);
   background: var(--paper);
   color: inherit;
+}
+
+/* On a page of its own the form is the last thing on it: its buttons clear of the page's foot. */
+.pages-page .my-tension-form {
+  margin-bottom: 0.6rem;
 }
 
 .my-tension-actions {
@@ -71,40 +96,91 @@
   border-top: 1px solid var(--rule);
 }
 
-.refit progress {
+/* On show, it follows the knitter's tension at once: the sweaters over it are what it is about. */
+.refit:has(.refit-shown) {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.refit:has(.refit-shown) > h3 {
+  display: none;
+}
+
+.refit-late {
+  margin-top: 1rem;
+  font-size: var(--text-s);
+}
+
+/* Three columns of figures, where two had a phone's width to spare: closer set, and the one recalculated the one to read. */
+.my-tension-compared {
   width: 100%;
-  max-width: 24rem;
+  margin: 0 0 1rem;
 }
 
-.refit-options {
-  border: 0;
-  padding: 0;
-  margin: 1rem 0;
-  display: grid;
-  gap: 0.5rem;
+.my-tension-compared th,
+.my-tension-compared td {
+  padding-right: 0.6rem;
 }
 
-.refit-options legend {
-  padding: 0;
-  font-family: var(--display);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: var(--text-xs);
-  color: var(--ink-faint);
+.my-tension-compared td:last-child,
+.my-tension-compared th:last-child {
+  padding-right: 0;
 }
 
-.refit-options label {
-  display: flex;
-  gap: 0.5rem;
-  align-items: baseline;
+/*
+ * On a page under a stage, the way on - recalculating, or taking what was
+ * recalculated - stays at the page's foot while what there is to read of it
+ * scrolls over it: a table of measurements is taller than a phone has room
+ * for, and the button under it was a button not seen. So what holds it is no
+ * box of its own there, and the button is held by the whole section.
+ */
+.pages-page .my-tension-more:not([hidden]),
+.pages-page .refit {
+  display: contents;
 }
 
-.refit-written {
-  max-height: 24rem;
-  overflow: auto;
-  padding: 0.75rem;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  font-size: var(--text-xs);
-  white-space: pre-wrap;
+.pages-page .refit > :first-child {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.pages-page .refit:has(.refit-shown) > .refit-shown {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.pages-page .refit-actions,
+.pages-page .refit-working {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin: 1rem calc(-1 * var(--gutter, 1rem)) 0;
+  padding: 0.5rem var(--gutter, 1rem) 0.3rem;
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
+}
+
+.pages-page .refit-actions .btn-primary {
+  flex: 1;
+}
+
+/* How far the recalculating has got, where the button that began it was. */
+.pages-page .refit-working {
+  padding-top: 0.7rem;
+}
+
+.pages-page .refit-working progress {
+  display: block;
+  width: 100%;
+  max-width: none;
+}
+
+.pages-page .refit-working p {
+  margin: 0.4rem 0 0;
+  font-size: var(--text-s);
+  line-height: 1.4;
+  color: var(--ink-soft);
 }

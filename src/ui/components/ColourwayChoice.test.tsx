@@ -4,7 +4,8 @@ import { afterEach, beforeAll, expect, it, vi } from "vitest";
 import { sweaterById } from "../../compiler/designs";
 import { buildSweater } from "../../compiler/engine/engine";
 import { colourwayLabel, type Overrides } from "../../reading/palette";
-import ColourwayChoice from "./ColourwayChoice";
+import { ColourwayGrid } from "./ColourwayChoice";
+import { useColourwayChoice } from "../useColourwayChoice";
 
 const sweater = sweaterById("hamefarin")!;
 const { stitches, rounds } = buildSweater(sweater, "xs");
@@ -17,13 +18,23 @@ beforeAll(() => {
 });
 afterEach(() => { document.body.innerHTML = ""; });
 
+/** The choice as a page of a jumper's colours lays it out: a group's tiles, and the asking that goes with choosing one. */
+const Choice = ({ overrides, onStartFrom }: { overrides: Overrides; onStartFrom: (id: string) => void }) => {
+  const { groups, choose, confirm } = useColourwayChoice({ colourways: sweater.colourways, colourway: vintage, overrides, onStartFrom });
+  return (
+    <>
+      <ColourwayGrid options={groups[0][1]} chosen={vintage.id} body={{ stitches, rounds }} onChoose={choose} />
+      {confirm}
+    </>
+  );
+};
+
 const show = async (overrides: Overrides) => {
   const onStartFrom = vi.fn();
   const host = document.createElement("div");
   document.body.append(host);
   await act(async () => createRoot(host).render(
-    <ColourwayChoice colourways={sweater.colourways} colourway={vintage} overrides={overrides}
-      body={{ stitches, rounds }} onStartFrom={onStartFrom} />,
+    <Choice overrides={overrides} onStartFrom={onStartFrom} />,
   ));
   const tile = (name: string) => [...host.querySelectorAll(".colourway-grid button")].find(b => b.querySelector("strong")?.textContent === name) as HTMLButtonElement;
   return { host, onStartFrom, tile };
@@ -31,7 +42,6 @@ const show = async (overrides: Overrides) => {
 
 it("starts straight from another colourway while none of the wool is your own", async () => {
   const { host, onStartFrom, tile } = await show({});
-  expect(host.querySelector(".your-colourway")?.textContent).toContain(`${vintage.name} as the design gives it`);
   // The base in use is the one marked.
   expect([...host.querySelectorAll(".colourway-grid .is-chosen strong")].map((one) => one.textContent)).toEqual([vintage.name]);
   // The one you're on stays offered, and choosing it again changes nothing.
@@ -43,7 +53,6 @@ it("starts straight from another colourway while none of the wool is your own", 
 
 it("asks before starting again over wool of your own", async () => {
   const { host, onStartFrom, tile } = await show({ D: { name: "Poppy", hex: "#c8323a" } });
-  expect(host.querySelector(".your-colourway")?.textContent).toContain(`${vintage.name} with 1 yarn of your own`);
   await act(async () => tile(kaleyard.name).click());
   expect(onStartFrom).not.toHaveBeenCalled();
   const dialog = host.querySelector("dialog")!;

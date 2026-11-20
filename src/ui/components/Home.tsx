@@ -25,15 +25,10 @@ import Dialog from "./ui/Dialog";
 import NameDialog from "./ui/NameDialog";
 import BodyStrip from "./BodyStrip";
 import { useKnittingTime } from "../useKnittingTime";
-import { timeLine } from "../../projects/timing/format";
+import { formatDate, timeLine } from "../../projects/timing/format";
+import { inSafariTab } from "../../projects/keeping";
+import { updateSettings, useSettings } from "../../projects/settings";
 import "./Home.css";
-
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
 
 /** How far through a project is, and what it is called. */
 const describe = (project: Project, sweater: Design, built: SweaterStitches) => {
@@ -137,6 +132,7 @@ const Home: React.FC = () => {
   const [deleting, setDeleting] = useState<Project>();
 
   const refresh = useCallback(() => setProjects(listProjects()), []);
+  const { homeScreenSaid } = useSettings();
 
   useEffect(() => {
     refresh();
@@ -168,6 +164,21 @@ const Home: React.FC = () => {
               <ProjectCard key={project.id} project={project} onRename={() => setRenaming(project)} onDelete={() => setDeleting(project)} />
             ))}
           </ul>
+          {/* Said once, where it is so: in Safari on a phone, to a knitter with something to lose (see projects/keeping). */}
+          {inSafariTab() && !homeScreenSaid && (
+            <aside className="keep-note" aria-label="Keeping your jumpers">
+              <p>
+                <strong>Safari clears what a site keeps once a week has gone by unopened</strong>, and your jumpers with it. Add Sweat Shop to your Home
+                Screen - Share, then Add to Home Screen - and it is an app of its own, which keeps them.
+              </p>
+              <p className="quiet">
+                A jumper started here is brought across by its link: copy it from the jumper's page here, and open it from Settings there.
+              </p>
+              <Button variant="quiet" onClick={() => updateSettings({ homeScreenSaid: true })}>
+                Understood
+              </Button>
+            </aside>
+          )}
         </section>
       )}
 

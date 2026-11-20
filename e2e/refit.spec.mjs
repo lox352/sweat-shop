@@ -13,6 +13,21 @@ const editions = JSON.parse(readFileSync("src/library/editions/manifest.json", "
 const edition = editions[design].l.current;
 const file = JSON.parse(readFileSync(`public/editions/${design}--l--${edition}.json`, "utf8"));
 /** The last stitch of a round of the published edition, the rounds counted from 1: a round is written as runs of stitches, each its first and how many. */
+/**
+ * The settling, answered at once: that the sweater did not come to rest, so
+ * it is shown laid out. Settling is what the site does slowest - minutes a
+ * sweater - and a recalculated pattern is not shown until every sweater it
+ * is shown with has been settled; so the tests that are of something else
+ * stand this in for the worker that settles (src/physics/settle.worker).
+ * The one below that is of the settling does not.
+ */
+const withoutSettling = (page) =>
+  page.route(/settle\.worker[^/]*\.js/, (route) =>
+    route.fulfill({
+      contentType: "text/javascript",
+      body: 'self.onmessage = () => { self.postMessage({ shape: "not-settled" }); self.postMessage({ positions: new Float32Array(0), rested: false }); };',
+    }));
+
 const endOf = (round) => {
   const runs = file.rounds[round - 1];
   return runs[runs.length - 2] + runs[runs.length - 1] - 1;
@@ -30,14 +45,17 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
       tension: { stitchesPer10cm: 23.3, roundsPer10cm: 25 }, startedAt: now, updatedAt: now,
     }));
   }, { id, design, edition, progress: endOf(68) });
+  // Each way is settled into its shape before it is shown, which for three samplers is many minutes: here they are shown laid out. Hamefarin, below, is settled.
+  await withoutSettling(page);
   await page.goto("#/project/1760000000000?tab=fit");
   const section = page.getByRole("region", { name: "Your tension" });
-  await expect(section.getByRole("heading", { name: "Fit the rest to your tension" })).toBeVisible({ timeout: 20_000 });
+  await expect(section.getByRole("heading", { name: "Recalculate the rest" })).toBeVisible({ timeout: 20_000 });
   // Nothing that can work a pattern out is fetched until it is asked for.
   expect(scripts.filter((url) => url.includes("fit.worker"))).toEqual([]);
 
-  await section.getByRole("button", { name: "Work out the rest", exact: true }).click();
-  await expect(section.getByText("This can take up to a minute")).toBeVisible();
+  // It says how long it may take before it is asked for: while it is at it is too short a while, here, to be sure of seeing.
+  await expect(section).toContainText("which can take several minutes");
+  await section.getByRole("button", { name: "Recalculate the rest", exact: true }).click();
   const shown = section.locator(".refit-shown");
   await expect(shown).toBeVisible({ timeout: 90_000 });
   expect(scripts.filter((url) => url.includes("fit.worker")).length).toBe(1);
@@ -53,11 +71,11 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
   const wide = page.viewportSize().width > 640;
   // On the stage, where the one jumper was.
   const compared = page.locator(".stage .sweater-comparison figcaption");
-  await expect(compared).toHaveText(wide ? ["As the pattern has it", "Every year still to come", "Fewer years, fuller"] : ["As the pattern has it", "Every year still to come"]);
+  await expect(compared).toHaveText(wide ? ["If you keep knitting", "Every year still to come", "Fewer years, fuller"] : ["If you keep knitting", "Every year still to come"]);
   // The other way was worked out with the first: choosing it is at once, and asks for nothing more.
   await shown.getByRole("radio", { name: /Fewer years, fuller/ }).check();
   await expect(shown).toContainText("Left out: 2023 to 2026");
-  if (!wide) await expect(compared).toHaveText(["As the pattern has it", "Fewer years, fuller"]);
+  if (!wide) await expect(compared).toHaveText(["If you keep knitting", "Fewer years, fuller"]);
   await shown.getByRole("radio", { name: /Every year still to come/ }).check();
   await expect(shown).toContainText("The body has 2016 to 2020");
   expect(scripts.filter((url) => url.includes("fit.worker")).length).toBe(1);
@@ -65,7 +83,7 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
   await expect(shown.locator(".refit-written")).toContainText("Divide, in 16D");
 
   await shown.getByRole("button", { name: "Knit the rest this way", exact: true }).click();
-  await expect(section).toContainText("The rest of your pattern is worked out for this tension", { timeout: 20_000 });
+  await expect(section).toContainText("The rest of your pattern is recalculated for this tension", { timeout: 20_000 });
   const project = await page.evaluate((id) => JSON.parse(localStorage.getItem(id)), id);
   expect(project.progress).toBe(endOf(68));
   expect(project.edition).not.toBe(edition);
@@ -94,7 +112,7 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
   // And until the knitting passes the round it was fitted from, the pattern as written can be gone back to.
   await page.goto("#/project/1760000000000?tab=fit");
   await page.getByRole("region", { name: "Your tension" }).getByRole("button", { name: "Go back to the pattern as written", exact: true }).click();
-  await expect(page.getByRole("region", { name: "Your tension" }).getByRole("heading", { name: "Fit the rest to your tension" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Your tension" }).getByRole("heading", { name: "Recalculate the rest" })).toBeVisible();
   const back = await page.evaluate((id) => JSON.parse(localStorage.getItem(id)), id);
   expect(back.edition).toBe(edition);
   expect(back.fit).toBeUndefined();
@@ -102,7 +120,7 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
 });
 
 test("Hamefarin is worked out again from the end of a band: the bands still to come, on the stitches there are", async ({ page }) => {
-  test.setTimeout(420_000);
+  test.setTimeout(600_000);
   const current = editions.hamefarin.m.current;
   const published = JSON.parse(readFileSync(`public/editions/hamefarin--m--${current}.json`, "utf8"));
   // The last round of the Border, the second band of the yoke.
@@ -118,30 +136,34 @@ test("Hamefarin is worked out again from the end of a band: the bands still to c
   }, { id, current, progress });
   await page.goto("#/project/1760000000000?tab=fit");
   const section = page.getByRole("region", { name: "Your tension" });
-  await section.getByRole("button", { name: "Work out the rest", exact: true }).click();
+  await section.getByRole("button", { name: "Recalculate the rest", exact: true }).click();
   const shown = section.locator(".refit-shown");
-  await expect(shown).toBeVisible({ timeout: 90_000 });
+  // Worked out, nothing is shown yet: the pattern as it was and the rest worked out are each settled into their shape first, and the bar goes on to follow that.
+  await expect(section.getByText("Now settling both sweaters into their shape")).toBeVisible({ timeout: 90_000 });
+  await expect(section.getByRole("progressbar")).toBeVisible();
+  await expect(shown).toHaveCount(0);
+  await expect(shown).toBeVisible({ timeout: 420_000 });
+  await expect(page.locator(".stage .sweater-comparison figcaption")).toHaveText(["If you keep knitting", "Recalculated"]);
   await expect(shown).toContainText("From the end of Yoke, round 40.");
   await expect(shown).toContainText("The yoke has Peerie seeds, OXO, Lozenges still to come, and grows from 300 stitches to 372.");
   // One way only: nothing to choose.
   await expect(shown.getByRole("radio")).toHaveCount(0);
   await shown.getByRole("button", { name: "Knit the rest this way", exact: true }).click();
-  await expect(section).toContainText("The rest of your pattern is worked out for this tension");
+  await expect(section).toContainText("The rest of your pattern is recalculated for this tension");
   const project = await page.evaluate((id) => JSON.parse(localStorage.getItem(id)), id);
   expect(project).toMatchObject({ progress, fit: { round: 40, from: current }, upTo: current });
 
-  // Its own knitting has no published shape: it is drawn laid out, settled here with a bar for how far that has got, and the shape kept.
+  // Its own knitting has no published shape, but it was settled before it was shown: taken, it is drawn in that shape at once, with nothing more to settle, and the shape is kept.
   const settling = page.locator(".sweater-settling");
-  await expect(settling).toContainText("Settling your sweater into its shape");
-  await expect(settling.getByRole("progressbar")).toBeVisible();
-  await expect(settling).toHaveCount(0, { timeout: 300_000 });
-  const kept = await page.evaluate(async () => (await (await caches.open("sweat-shop-shapes")).keys()).map((request) => request.url));
-  expect(kept).toEqual([expect.stringContaining(`own-shapes/hamefarin--m--${project.edition}.json`)]);
+  await expect
+    .poll(() => page.evaluate(async () => (await (await caches.open("sweat-shop-shapes")).keys()).map((request) => request.url)), { timeout: 20_000 })
+    .toEqual([expect.stringContaining(`own-shapes/hamefarin--m--${project.edition}.json`)]);
+  await expect(settling).toHaveCount(0);
   // Opened again, it is there already: nothing is settled twice.
   let workers = 0;
   page.on("worker", (worker) => { if (worker.url().includes("settle.worker")) workers++; });
   await page.reload();
-  await expect(page.getByRole("region", { name: "Your tension" })).toContainText("The rest of your pattern is worked out for this tension", { timeout: 20_000 });
+  await expect(page.getByRole("region", { name: "Your tension" })).toContainText("The rest of your pattern is recalculated for this tension", { timeout: 20_000 });
   await page.waitForTimeout(1500);
   await expect(settling).toHaveCount(0);
   expect(workers).toBe(0);
@@ -149,7 +171,11 @@ test("Hamefarin is worked out again from the end of a band: the bands still to c
 
 test("a tension given before starting: the pattern is worked out for it from the cast-on, shown beside the pattern as it is, and begun", async ({ page }) => {
   test.setTimeout(180_000);
+  // Shown laid out: the settling before they are shown is the test above's. The tension is the last page of the size's; an address from when it had a tab of its own still comes to it.
+  await withoutSettling(page);
   await page.goto("#/sweater/hamefarin?size=m&tab=tension");
+  await expect(page.getByRole("tablist", { name: "This design" }).getByRole("tab", { name: "Size", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tablist", { name: "Size: its pages" }).getByRole("tab", { name: "Your tension", exact: true })).toHaveAttribute("aria-selected", "true");
   const section = page.getByRole("region", { name: "Your tension" });
   await expect(section).toContainText("written for 28 stitches and 32 rounds to 10cm", { timeout: 20_000 });
   // The pattern's own tension needs nothing worked out.
@@ -157,29 +183,37 @@ test("a tension given before starting: the pattern is worked out for it from the
   await section.getByLabel("Rounds counted").fill("32");
   await section.getByRole("button", { name: "Compare with the pattern", exact: true }).click();
   await expect(section.getByRole("status")).toContainText("comes out as designed");
-  await expect(section.getByRole("heading", { name: "A pattern for your tension" })).toHaveCount(0);
+  await expect(section.getByRole("heading", { name: "Recalculate the pattern" })).toHaveCount(0);
 
   // A looser one: as written it comes out bigger, and the pattern can be worked out for it.
+  // Given, a tension is a line with the way to change it, and not a form.
+  await expect(section.getByLabel("Stitches counted")).toHaveCount(0);
+  await section.getByRole("button", { name: "Change", exact: true }).click();
   await section.getByLabel("Stitches counted").fill("24");
   await section.getByLabel("Rounds counted").fill("28");
   await section.getByRole("button", { name: "Update", exact: true }).click();
+  await expect(section.getByRole("status").first()).toContainText("Yours is 24 stitches and 28 rounds to 10cm");
   await expect(section.getByRole("row", { name: /Chest/ }).first()).toContainText("123.5cm");
-  await section.getByRole("button", { name: "Work the pattern out", exact: true }).click();
+  await section.getByRole("button", { name: "Recalculate for my tension", exact: true }).click();
   const shown = section.locator(".refit-shown");
   await expect(shown).toBeVisible({ timeout: 90_000 });
   await expect(shown).toContainText("From the cast-on.");
   // They are compared on the stage, where the one jumper was.
-  await expect(page.locator(".stage .sweater-comparison figcaption")).toHaveText(["As the pattern has it", "Worked out for you"]);
+  await expect(page.locator(".stage .sweater-comparison figcaption")).toHaveText(["As designed", "Recalculated"]);
   await expect(shown.getByRole("row", { name: /Chest/ })).toContainText("106.5cm");
   await shown.getByText("The pattern, written out").click();
   await expect(shown.locator(".refit-written")).toContainText("Cast on 112");
   // Nothing is begun by looking.
   expect(await page.evaluate(() => Object.keys(localStorage).filter((key) => key.startsWith("project-")))).toEqual([]);
-  // With it on show, the last tab says that starting starts this one; and back at the tension it is still there.
+  // They are the tension's page's to show: on the size's other pages the one jumper is back.
+  await page.getByRole("tab", { name: "Choose a size", exact: true }).click();
+  await expect(page.locator(".stage .sweater-comparison")).toHaveCount(0);
+  // With it worked out, the last tab says that starting starts this one; and its line for the tension goes back to it, still there.
   await page.getByRole("tab", { name: "Start", exact: true }).click();
-  await expect(page.locator(".ready-choices")).toContainText("Worked out for yours");
-  await page.getByRole("tab", { name: "Tension", exact: true }).click();
+  await expect(page.locator(".ready-choices")).toContainText("Recalculated for yours");
+  await page.locator(".ready-choices").getByRole("button", { name: /Tension/ }).click();
   await expect(shown).toBeVisible();
+  await expect(page.locator(".stage .sweater-comparison figcaption")).toHaveText(["As designed", "Recalculated"]);
 
   await shown.getByRole("button", { name: "Start knitting this", exact: true }).click();
   await expect(page.locator(".knitting-panel")).toContainText("of 112 stitches", { timeout: 30_000 });
@@ -193,21 +227,23 @@ test("a tension given before starting: the pattern is worked out for it from the
   await page.getByRole("link", { name: "Close the chart", exact: true }).click();
   await page.getByRole("tab", { name: "Fit", exact: true }).click();
   const own = page.getByRole("region", { name: "Your tension" });
-  await expect(own).toContainText("Your pattern is worked out for this tension, from the cast-on.", { timeout: 20_000 });
+  await expect(own).toContainText("Your pattern is recalculated for this tension, from the cast-on.", { timeout: 20_000 });
   await own.getByRole("button", { name: "Go back to the pattern as written", exact: true }).click();
-  await expect(own.getByRole("heading", { name: "Fit the rest to your tension" })).toBeVisible();
+  await expect(own.getByRole("heading", { name: "Recalculate the rest" })).toBeVisible();
   expect((await page.evaluate((id) => JSON.parse(localStorage.getItem(id)), started.id)).edition).toBe(current);
 });
 
 test("Each Year Once for a tension given before starting: every year or fewer, fuller, each from the cast-on", async ({ page }) => {
   test.setTimeout(240_000);
+  // Shown laid out, as above: three samplers settled is many minutes.
+  await withoutSettling(page);
   await page.goto(`#/sweater/${design}?size=l&tab=tension`);
   const section = page.getByRole("region", { name: "Your tension" });
   await expect(section).toContainText("written for 32 stitches and 38 rounds to 10cm", { timeout: 20_000 });
   await section.getByLabel("Stitches counted").fill("23.3");
   await section.getByLabel("Rounds counted").fill("25");
   await section.getByRole("button", { name: "Compare with the pattern", exact: true }).click();
-  await section.getByRole("button", { name: "Work the pattern out", exact: true }).click();
+  await section.getByRole("button", { name: "Recalculate for my tension", exact: true }).click();
   const shown = section.locator(".refit-shown");
   await expect(shown).toBeVisible({ timeout: 150_000 });
   await expect(shown).toContainText("From the cast-on.");
@@ -241,5 +277,5 @@ test("a design that can't be worked out again does not offer to be", async ({ pa
   await page.goto("#/project/1760000000000?tab=fit");
   const section = page.getByRole("region", { name: "Your tension" });
   await expect(section.getByRole("table")).toBeVisible();
-  await expect(section.getByRole("heading", { name: "Fit the rest to your tension" })).toHaveCount(0);
+  await expect(section.getByRole("heading", { name: "Recalculate the rest" })).toHaveCount(0);
 });

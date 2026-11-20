@@ -1,4 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { pathIn } from "../../projects/link";
 import { downloadBackup, maxBackupBytes, parseBackup, restoreBackup, type BackupProject } from "../../projects/backups";
 import { getStorageNotice } from "../../projects/projects";
 import { updateSettings, useSettings } from "../../projects/settings";
@@ -93,16 +95,30 @@ const StatisticsSettings: React.FC = () => {
   );
 };
 
-const Backups: React.FC = () => {
+const Backups: React.FC<{ onLeave: () => void }> = ({ onLeave }) => {
   const [pending, setPending] = useState<BackupProject[]>();
   const [message, setMessage] = useState("");
+  const [pasted, setPasted] = useState("");
+  const navigate = useNavigate();
   const inputId = useId();
+  // A jumper's link pasted in: the only way to open one where the site is on a Home Screen, with no address bar.
+  const openLink = (event: React.FormEvent) => {
+    event.preventDefault();
+    const path = pathIn(pasted);
+    if (!path) return setMessage("That is not a jumper's link.");
+    setMessage("");
+    onLeave();
+    navigate(path);
+  };
   return (
     <section className="settings-group" aria-labelledby={`${inputId}-heading`}>
       <h3 id={`${inputId}-heading`}>Your projects</h3>
       <p className="settings-note">
-        Projects live in this browser only. A backup file moves them to
-        another device, or keeps them safe if the browser's data is cleared.
+        Projects live in this browser only, and a browser may clear what it
+        keeps: Safari does after a week unopened, unless the site is on your
+        Home Screen. A jumper's link, on its own page, makes it again
+        anywhere; a backup file keeps every project, and the time spent on
+        each.
       </p>
       <ul>
         <SettingRow title="Save a backup" detail="Every project, as one small file.">
@@ -138,6 +154,24 @@ const Backups: React.FC = () => {
           <label className="btn btn-secondary" htmlFor={inputId} aria-hidden="true">
             Choose file
           </label>
+        </SettingRow>
+        <SettingRow title="Open a jumper's link" detail="Paste a link copied from a jumper's page, here or on another device.">
+          <form className="settings-link" onSubmit={openLink}>
+            <input
+              type="text"
+              inputMode="url"
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              aria-label="A jumper's link"
+              placeholder="Paste a link"
+              value={pasted}
+              onChange={(event) => setPasted(event.target.value)}
+            />
+            <Button type="submit" variant="secondary" disabled={!pasted.trim()}>
+              Open
+            </Button>
+          </form>
         </SettingRow>
       </ul>
       <p className="settings-message" role="status">
@@ -229,7 +263,7 @@ const Settings: React.FC = () => {
             </div>
             <ChartSettings />
             <StatisticsSettings />
-            <Backups />
+            <Backups onLeave={() => setOpen(false)} />
           </div>
         )}
       </dialog>

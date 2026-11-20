@@ -155,6 +155,16 @@ export const joined = (mine: SweaterStitches, theirs: SweaterStitches, round: nu
 };
 
 /**
+ * A knitter's rounds to the end of one of them, joined to another knitting
+ * at the round that is the same in it: what updateFor found to offer, made
+ * again from where it was joined (see library/remake).
+ */
+export const joinedAt = (mine: SweaterStitches, theirs: SweaterStitches, round: number): SweaterStitches | undefined => {
+  const pair = sharedRounds(mine, theirs).find(([ours]) => ours === round);
+  return pair && joined(mine, theirs, round, pair[1]);
+};
+
+/**
  * How `theirs`, the size's knitting now, falls for a knitter of `mine` with
  * `progress` its last stitch worked. `changed` are the rounds that are not
  * the same in both: of mine, for an update behind the knitter, and otherwise

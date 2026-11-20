@@ -24,27 +24,6 @@
   line-height: 1.25;
 }
 
-/* On a page named for it, the tension begins under the page's title, with no section's margin over it, and what is said of it is said small. */
-.pages-page > .my-tension {
-  margin: 0;
-}
-
-.pages-page > .my-tension > .quiet {
-  font-size: var(--text-s);
-  line-height: 1.45;
-}
-
-/* In a panel or on a page named for it, the tension's own heading is for a screen reader. */
-.stage-panel .my-tension > h2,
-.pages-page .my-tension > h2 {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
 /* On a page of its own, sixteen sizes and what is said under them fit without scrolling: the sizes closer set, the saying small. */
 .pages-page > .size-chooser {
   gap: 0.4rem;
@@ -62,110 +41,6 @@
 .pages-page > .size-chooser + .quiet {
   font-size: var(--text-s);
   line-height: 1.4;
-}
-
-/* The schematic fills what is left of its page and no more; the page's title says what it is. */
-.pages-page > .schematic {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.pages-page > .schematic svg {
-  flex: 1;
-  min-height: 0;
-  max-width: none;
-}
-
-.pages-page > .schematic figcaption {
-  display: none;
-}
-
-/* The measurements two abreast. */
-.pages-page > .measurements {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 1rem;
-}
-
-/* A page of colourways: they scroll, where a group has many, over the row at the page's foot. */
-.pages-page > .colourway-grid {
-  margin-bottom: 0.75rem;
-}
-
-/* What is done to the colourway chosen - its trim, its wools - each a card up from the foot. Held at the foot of every page of colourways. */
-.colours-adjust {
-  position: sticky;
-  bottom: 0;
-  z-index: 1;
-  display: flex;
-  gap: 0.5rem;
-  margin: auto calc(-1 * var(--gutter, 1rem)) 0;
-  padding: 0.5rem var(--gutter, 1rem) 0.2rem;
-  background: var(--paper);
-  border-top: 1px solid var(--rule);
-}
-
-/* A phone on its side has room under the stage's column for a row of colourways or for this, not both held at once: it comes after them. */
-@media (orientation: landscape) and (max-height: 32rem) {
-  .colours-adjust {
-    position: static;
-    margin-inline: 0;
-    padding-inline: 0;
-    border-top: 0;
-  }
-}
-
-/* Each a pill on one line: what it is, what it is now, and that it opens. */
-.colours-adjust-one {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-height: 44px;
-  padding: 0.3rem 0.8rem;
-  font: inherit;
-  font-size: var(--text-s);
-  color: inherit;
-  text-align: left;
-  white-space: nowrap;
-  background: var(--paper-raised);
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  cursor: pointer;
-}
-
-.colours-adjust-swatch {
-  flex: none;
-  width: 1.15rem;
-  height: 1.15rem;
-  border-radius: var(--radius-small);
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.25);
-}
-
-.colours-adjust-one strong {
-  flex: none;
-}
-
-.colours-adjust-one .quiet {
-  flex: 0 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: var(--text-xs);
-}
-
-.colours-adjust-go {
-  flex: none;
-  margin-left: auto;
-  color: var(--ink-faint);
-}
-
-@media (hover: hover) {
-  .colours-adjust-one:hover {
-    border-color: var(--ink-faint);
-  }
 }
 
 /* The end of the pages: what was chosen, a line each, and the way forward. */
@@ -231,26 +106,6 @@
 
 .sweater-about .quiet {
   font-size: var(--text-s);
-}
-
-/* A size's schematic beside its measurements, or above them on a phone. */
-.size-figures {
-  display: grid;
-  gap: 1.5rem;
-  align-items: start;
-  margin: 1.25rem 0;
-}
-
-/* The measurements two abreast, where there is room for two: nine in a column is a long way down a phone. */
-.size-figures .measurements {
-  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
-  column-gap: 1rem;
-}
-
-@media (min-width: 52rem) {
-  .size-figures {
-    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-  }
 }
 
 .sweater-settling {

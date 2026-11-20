@@ -1,0 +1,15 @@
+{
+  "name": "Sweat Shop",
+  "short_name": "Sweat Shop",
+  "description": "Knit a top-down Fair Isle yoke sweater, stitch by stitch, with the chart and the sweater following along.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#eae7e4",
+  "theme_color": "#eae7e4",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

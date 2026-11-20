@@ -5,7 +5,7 @@ import type { Fitted } from "../../library/fit";
 import type { ProjectFit } from "../../projects/projects";
 import type { Palette } from "../../reading/palette";
 import { sameTension } from "../../reading/tension";
-import { useFit } from "../useFit";
+import { fitShare, useFit } from "../useFit";
 import FitPreview from "./FitPreview";
 import Button from "./ui/Button";
 
@@ -38,7 +38,7 @@ const Refit: React.FC<{
   lead?: string;
   onTake: (fitted: Fitted) => void;
   onGoBack: () => void;
-}> = ({ sweater, size, knitted, progress, tension, fit, palette, coloursOn, roundNames, title = "Fit the rest to your tension", lead, onTake, onGoBack }) => {
+}> = ({ sweater, size, knitted, progress, tension, fit, palette, coloursOn, roundNames, title = "Recalculate the rest", lead, onTake, onGoBack }) => {
   const { state, ask, reset } = useFit();
   // A tension changed is another question: what was worked out for the last is put away.
   const key = `${tension.stitchesPer10cm} ${tension.roundsPer10cm}`;
@@ -53,10 +53,10 @@ const Refit: React.FC<{
     return (
       <div className="refit">
         {fit.round === undefined ? (
-          <p>Your pattern is worked out for this tension, from the cast-on.</p>
+          <p>Your pattern is recalculated for this tension, from the cast-on.</p>
         ) : (
           <p>
-            The rest of your pattern is worked out for this tension, from the end of <strong>{roundNames[fit.round - 1] ?? `round ${fit.round}`}</strong>.
+            The rest of your pattern is recalculated for this tension, from the end of <strong>{roundNames[fit.round - 1] ?? `round ${fit.round}`}</strong>.
             Every round to there is as the pattern had it.
           </p>
         )}
@@ -78,20 +78,21 @@ const Refit: React.FC<{
         <>
           <p>
             {lead ??
-              "The rest of the pattern can be worked out again from where you are, so that it comes as near the size as it can at your tension. What you have knitted stays as it is."}
+              "The rest of the pattern can be recalculated from where you are, so that it comes as near the size as it can at your tension. What you have knitted stays as it is."}
           </p>
-          <p className="quiet">It is worked out on this device, and can take up to a minute. Nothing changes until you have seen it.</p>
-          <p>
+          <p className="quiet">It is done on this device, and the sweater settled into its shape to show you beside the one you would have if you kept knitting, which can take several minutes. Nothing changes until you have seen it.</p>
+          <p className="my-tension-actions refit-actions">
             <Button variant="primary" onClick={work}>
-              Work out the rest
+              Recalculate the rest
             </Button>
           </p>
         </>
       )}
       {state.at === "working" && (
-        <div role="status">
-          <p>Working out the rest of your sweater. This can take up to a minute.</p>
-          <progress value={state.fraction} max={1} aria-label="How far the working out has got" />
+        <div role="status" className="refit-working">
+          {/* The bar first, and where it stays: what is said under it changes as the work goes on (see FitPreview). */}
+          <progress value={state.fraction * fitShare} max={1} aria-label="How far the working out has got" />
+          <p>Recalculating the rest of your sweater. This can take up to a minute, and settling it to show you several more.</p>
         </div>
       )}
       {state.at === "failed" && (
@@ -105,6 +106,8 @@ const Refit: React.FC<{
       {state.at === "shown" && (
         <FitPreview
           size={size}
+          beside="kept"
+          written={fit ? { finished: fit.finished, ...fit.tension } : undefined}
           knitted={knitted}
           progress={progress}
           tension={tension}

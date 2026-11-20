@@ -22,3 +22,11 @@ export const timeLine = (time: TimeSummary, finished: boolean) =>
   finished
     ? `Knitted in ${duration(time.knitted)}`
     : `${duration(time.knitted)} knitted${time.left ? ` · about ${range(time.left)} to go` : ""}`;
+
+/** A day, as a project says when it was started: "19 Nov 2026". */
+export const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });

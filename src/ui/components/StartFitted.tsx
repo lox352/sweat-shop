@@ -3,7 +3,7 @@ import type { Design, Placement, Shade, SizeAbout, Tension } from "../../pattern
 import type { SweaterStitches } from "../../pattern/knitted";
 import type { Fitted } from "../../library/fit";
 import type { Palette } from "../../reading/palette";
-import { useFit } from "../useFit";
+import { fitShare, useFit } from "../useFit";
 import FitPreview from "./FitPreview";
 import Button from "./ui/Button";
 
@@ -36,25 +36,26 @@ const StartFitted: React.FC<{
 
   return (
     <div className="refit">
-      <h3>A pattern for your tension</h3>
+      <h3>Recalculate the pattern</h3>
       {state.at === "rest" && (
         <>
           <p>
-            The pattern can be worked out for your tension from the cast-on, so that it comes to the size's measurements in your stitches and not the
-            pattern's.
+            The pattern can be recalculated for your tension from the cast-on, so that it comes out at the size's measurements in your stitches and not
+            the pattern's.
           </p>
-          <p className="quiet">It is worked out on this device, and can take up to a minute. Nothing is started until you have seen it.</p>
-          <p>
+          <p className="quiet">It is done on this device, and the sweater settled into its shape to show you beside the design, which can take several minutes. Nothing is started until you have seen it.</p>
+          <p className="my-tension-actions refit-actions">
             <Button variant="primary" onClick={work}>
-              Work the pattern out
+              Recalculate for my tension
             </Button>
           </p>
         </>
       )}
       {state.at === "working" && (
-        <div role="status">
-          <p>Working your pattern out. This can take up to a minute.</p>
-          <progress value={state.fraction} max={1} aria-label="How far the working out has got" />
+        <div role="status" className="refit-working">
+          {/* The bar first, and where it stays: what is said under it changes as the work goes on (see FitPreview). */}
+          <progress value={state.fraction * fitShare} max={1} aria-label="How far the working out has got" />
+          <p>Recalculating your pattern. This can take up to a minute, and settling it to show you several more.</p>
         </div>
       )}
       {state.at === "failed" && (
@@ -68,6 +69,7 @@ const StartFitted: React.FC<{
       {state.at === "shown" && (
         <FitPreview
           size={size}
+          beside="designed"
           knitted={knitted}
           progress={0}
           tension={tension}

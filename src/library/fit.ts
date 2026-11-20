@@ -23,6 +23,13 @@ export interface FitQuestion {
   progress?: number;
   /** The knitter's own tension. */
   tension: Tension;
+  /**
+   * The round the rest is planned from and the one way it is laid out, where
+   * they are known already and not to be found: knitting made again as it
+   * was made (see remake).
+   */
+  round?: number;
+  option?: string;
 }
 
 export interface Fitted {

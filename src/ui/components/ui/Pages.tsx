@@ -20,8 +20,8 @@ export interface PageGroup {
 }
 
 export interface PagesHandle {
-  /** Goes to a tab's first page. */
-  go: (group: string) => void;
+  /** Goes to a tab's first page, or to the page of it named. */
+  go: (group: string, page?: string) => void;
 }
 
 /**
@@ -29,8 +29,8 @@ export interface PagesHandle {
  * there, all of them side by side in one row, swiped between like the pages
  * of a phone's home screen and coming to rest on one, never between two.
  *
- * The tabs over them are where in the row a kind of page begins - a size,
- * its colours, a tension, starting - and a tab tapped goes to the first of
+ * The tabs over them are where in the row a kind of page begins - what a
+ * design is, a size, its colours, starting - and a tab tapped goes to the first of
  * its pages. Swiping on from a tab's last page comes to the next tab's
  * first, so the whole of a design is one row to go along. Under the pages
  * are dots for the pages of the tab shown.
@@ -51,14 +51,15 @@ const Pages = forwardRef<
     groups: PageGroup[];
     /** What the tabs are of, for a screen reader: "This design". */
     label: string;
-    /** The tab it opens on, by its id: the first, unless told. */
+    /** The tab it opens on, by its id: the first, unless told. And the page of it, where that is not its first. */
     first?: string;
+    firstPage?: string;
     /** Told the tab shown, when it changes. */
     onShown?: (group: string) => void;
-    /** Where the pages of the tab shown may draw over the stage: see stage-slot. */
+    /** Where the page shown may draw over the stage: see stage-slot. */
     slot?: HTMLElement | null;
   }
->(({ groups, label, first, onShown, slot = null }, ref) => {
+>(({ groups, label, first, firstPage, onShown, slot = null }, ref) => {
   const track = useRef<HTMLDivElement>(null);
   // Every page in one row, each knowing its tab.
   const flat = useMemo(() => groups.flatMap((group) => group.pages.map((page, within) => ({ group, page, within }))), [groups]);
@@ -70,7 +71,15 @@ const Pages = forwardRef<
     return out;
   }, [flat]);
 
-  const [index, setIndex] = useState(() => starts.get(first ?? "") ?? 0);
+  /** Where in the row a tab begins, or the page of it named is. */
+  const indexOf = useCallback(
+    (group: string, page?: string) => {
+      const named = page === undefined ? -1 : flat.findIndex((one) => one.group.id === group && one.page.id === page);
+      return named >= 0 ? named : (starts.get(group) ?? 0);
+    },
+    [flat, starts],
+  );
+  const [index, setIndex] = useState(() => indexOf(first ?? "", firstPage));
   const shown = Math.min(index, flat.length - 1);
   const at = useRef(shown);
   at.current = shown;
@@ -129,7 +138,7 @@ const Pages = forwardRef<
     box?.scrollTo?.({ left: page * box.clientWidth, behavior: smooth && !reducedMotion() ? "smooth" : "instant" });
   }, []);
   // A tab is gone to at once: gliding there would be a glide past every page between.
-  const go = useCallback((group: string) => to(starts.get(group) ?? 0, false), [starts, to]);
+  const go = useCallback((group: string, page?: string) => to(indexOf(group, page), false), [indexOf, to]);
   useImperativeHandle(ref, () => ({ go }), [go]);
 
   /*
@@ -206,7 +215,8 @@ const Pages = forwardRef<
             <h2 className="pages-title" id={`page-title-${one.group.id}-${one.page.id}`}>
               {one.page.label}
             </h2>
-            {drawn(one.page.id) && <StageSlot.Provider value={one.group.id === group.id ? slot : null}>{one.page.content}</StageSlot.Provider>}
+            {/* Only the page shown draws over the stage: what a page beside it would put there is its own, for when it is come to. */}
+            {drawn(one.page.id) && <StageSlot.Provider value={page === shown ? slot : null}>{one.page.content}</StageSlot.Provider>}
           </div>
         ))}
       </div>

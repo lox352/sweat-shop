@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sweaterById } from "./designs";
 import { buildSweater } from "./engine/engine";
+import { asEdition } from "../library/editions/own";
 import { cutAfter, fit, fitOptions } from "./fit";
 
 const once = "wool-week-strips-once-oldest";
@@ -204,5 +205,34 @@ describe("Each Year Once worked out for a tension from the cast-on", () => {
 
   it("a design that can't be planned says so", () => {
     expect(() => fit({ design: "paul-klee", sizeId: "m", tension: { stitchesPer10cm: 28, roundsPer10cm: 32 } })).toThrow(/can't be planned/);
+  });
+});
+
+/*
+ * A link to a jumper whose pattern was recalculated says how it was made, and
+ * names what came of it; opened where the jumper is not kept, the pattern is
+ * planned again and must be the one named (see projects/remake). So the
+ * planning is the same every time it is asked the same - and a change to
+ * what it answers is a change to every such link made before it, which then
+ * says its pattern can't be made again. That may be worth it, to put a
+ * pattern right. It should not happen unnoticed: these are what the planner
+ * answers now, and a change here is that change.
+ */
+describe("what the planner answers is what a link names", () => {
+  const named = async (design: string, sizeId: string, ask: Partial<Parameters<typeof fit>[0]> = {}) =>
+    (await asEdition(fit({ design, sizeId, tension: { stitchesPer10cm: 24.5, roundsPer10cm: 28 }, ...ask }).knitted, design, sizeId)).edition;
+
+  it("the same, asked again", async () => {
+    expect(await named("hamefarin", "m")).toBe(await named("hamefarin", "m"));
+  });
+
+  it("and what it was when these were written", async () => {
+    const whole = buildSweater(sweaterById("hamefarin")!, "m");
+    expect([
+      await named("hamefarin", "m"),
+      await named("hamefarin", "m", { knitted: whole, round: cutAfter("hamefarin", whole, 1)! }),
+      await named(once, "l", { option: "every" }),
+      await named(once, "l", { option: "fewer" }),
+    ]).toEqual(["38a1e1893ce0", "c85b2bd5451b", "6ebdca8200c3", "f3902201fcdf"]);
   });
 });

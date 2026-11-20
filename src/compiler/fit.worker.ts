@@ -9,19 +9,23 @@ import { cutAfter, fit, fitOptions } from "./fit";
  */
 const scope = self as unknown as { postMessage(answer: FitAnswer): void; onmessage: ((event: MessageEvent<FitQuestion>) => void) | null };
 
-scope.onmessage = async ({ data: { design, sizeId, knitted, progress = 0, tension } }) => {
+scope.onmessage = async ({ data: { design, sizeId, knitted, progress = 0, tension, round: known, option: only } }) => {
   // Part knitted: the round the last stitch worked is in, and the first from there the design can plan on from. Nothing knitted: the whole of it.
   let round: number | undefined;
   if (knitted) {
-    const at = knitted.rounds.findIndex((ids) => ids[ids.length - 1] >= progress) + 1;
+    // Made again as it was made, the round is the one it was planned from then, and no other will do.
+    const at = known ?? knitted.rounds.findIndex((ids) => ids[ids.length - 1] >= progress) + 1;
     round = cutAfter(design, knitted, Math.max(1, at));
+    if (known !== undefined && round !== known) round = undefined;
     if (round === undefined) {
       return scope.postMessage({ cannot: "The rest of this pattern can't be worked out again from where you are: it is too late in the knitting, or this design can't be." });
     }
   }
   // Every way the design can lay the rest out, each said as it is done: one that can't be is no reason to go without the others.
   const options = fitOptions(design).map((option) => option.id);
-  const ways: (string | undefined)[] = options.length > 0 ? options : [undefined];
+  if (only !== undefined && !options.includes(only)) return scope.postMessage({ cannot: "This pattern can't be worked out that way: the design no longer has it." });
+  // Or the one way it was laid out, where it is being made again as it was.
+  const ways: (string | undefined)[] = only !== undefined ? [only] : options.length > 0 ? options : [undefined];
   let found = 0;
   for (const [nth, option] of ways.entries()) {
     try {
