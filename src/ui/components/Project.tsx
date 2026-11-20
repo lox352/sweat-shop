@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { sweaterById } from "../../library/catalogue";
 import type { Placement, SlotId, Tension } from "../../pattern/design";
 import { useSweater } from "../useSweater";
@@ -215,12 +215,29 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
   const link = useSettled(linkNow, 3000);
   // An old address that asks for the knitting on the jumper's page is being sent on to the chart (see below), which is where it is written.
   const sentOn = view === "overview" && knitting;
+  const { pathname } = useLocation();
   useEffect(() => {
     if (!link || sentOn || params.get(linkParam) === link) return;
+    /*
+     * Only into the address this page is the page of. An address changed
+     * from outside the page - typed, or gone back to - is the browser's at
+     * once and the page's a moment after; written in between, the link
+     * would be written over where the knitter was going, and they would
+     * stay where they were. The page is drawn again when it has caught up,
+     * and the link is written then.
+     */
+    const [path, search = ""] = window.location.hash.slice(1).split("?");
+    // All but the link itself, which is written straight into the address as the page is put away (see below).
+    const but = (all: URLSearchParams) => {
+      const rest = new URLSearchParams(all);
+      rest.delete(linkParam);
+      return rest.toString();
+    };
+    if (path !== pathname || but(new URLSearchParams(search)) !== but(params)) return;
     const next = new URLSearchParams(params);
     next.set(linkParam, link);
     setParams(next, { replace: true });
-  }, [link, sentOn, params, setParams]);
+  }, [link, sentOn, pathname, params, setParams]);
   useEffect(() => {
     if (!linkNow || sentOn) return;
     const putAway = () => {
