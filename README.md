@@ -415,8 +415,11 @@ has gone by without the site being opened. Two things are done about that.
 browser round it. There Safari's week does not apply. The browser is also
 asked to keep what the site stores (`navigator.storage.persist()`, in
 `src/projects/keeping.ts`) when a jumper is on screen; what it answers is its
-own business. In Safari on a phone the home page says all this once, to a
-knitter with a jumper to lose. An app on the Home Screen keeps its own
+own business. In Safari the home page says all this once, to a knitter with
+a jumper to lose, as their device does it (`safariTab`): a phone and an iPad
+are told of the Home Screen, from Share; a Mac of the Dock, from the File
+menu - and of the link and a backup first, as nobody says an app in the Dock
+is spared Safari's week. An app on the Home Screen keeps its own
 storage, apart from Safari's: a jumper begun in one is brought to the other by
 its link.
 

@@ -26,9 +26,24 @@ export const askToKeep = () => {
   }
 };
 
+/** The devices Safari's week applies on, each with its own way of making the site an app: see safariTab. */
+export type SafariDevice = "iphone" | "ipad" | "mac";
+
 /**
- * Whether this is a page in Safari on an iPhone or iPad, and not the site
- * opened from the Home Screen: where Safari's week applies, and adding it to
- * the Home Screen is the way out of it. Only Apple's browsers say, either way.
+ * Which device this is, where it is a page in a browser of Apple's and not
+ * the site opened as an app of its own: where Safari's week applies. Nothing,
+ * anywhere else - only Apple's browsers say whether a page stands alone,
+ * either way.
+ *
+ * The device decides what a knitter is told to do about it (see Home): a
+ * phone and an iPad put the site on the Home Screen, from Share; a Mac puts
+ * it in the Dock, from the File menu. An iPad says it is a Mac, and is told
+ * from one by its touch screen.
  */
-export const inSafariTab = (): boolean => (navigator as Navigator & { standalone?: boolean }).standalone === false;
+export const safariTab = (): SafariDevice | undefined => {
+  if ((navigator as Navigator & { standalone?: boolean }).standalone !== false) return undefined;
+  const says = navigator.userAgent;
+  if (/iPhone|iPod/.test(says)) return "iphone";
+  if (/iPad/.test(says) || (/Macintosh/.test(says) && navigator.maxTouchPoints > 1)) return "ipad";
+  return "mac";
+};
