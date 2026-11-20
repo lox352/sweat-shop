@@ -582,9 +582,9 @@ test("Each Year Once knits every hat from 2014 to 2026 once, the yoke's first, t
       await new Promise((done) => setTimeout(done, 200));
       return row.scrollLeft === was ? Math.round((was / row.clientWidth) * 10) / 10 : -1;
     });
-  // The row: what the design is, a size's four pages, the colours' seven, and starting.
-  await expect.poll(atRest).toBe(11);
-  await track.evaluate((row) => row.scrollTo({ left: 12 * row.clientWidth, behavior: "instant" }));
+  // The row: what the design is, a size's three pages, the colours' seven, and starting.
+  await expect.poll(atRest).toBe(10);
+  await track.evaluate((row) => row.scrollTo({ left: 11 * row.clientWidth, behavior: "instant" }));
   await expect(page.getByRole("tablist", { name: "This design" }).getByRole("tab", { selected: true })).toHaveText("Start");
   await page.getByRole("tablist", { name: "This design" }).getByRole("tab", { name: "Colours", exact: true }).click();
   await expect(shownPage.getByRole("heading", { level: 2 })).toHaveText("Shetland and Fair Isle");
