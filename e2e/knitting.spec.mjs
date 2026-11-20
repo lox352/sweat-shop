@@ -1482,3 +1482,19 @@ test("a pinch that pans as it zooms leaves the stitch under the fingers where th
   expect(Math.abs(settled[0] - lifted[0])).toBeLessThan(20);
   expect(Math.abs(settled[1] - lifted[1])).toBeLessThan(20);
 });
+
+test("a tab tapped and left at once for the chart: on a slow device the knitter still gets where they were going", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto("#/sweater/wool-week-strips-lined-oldest?size=m");
+  await expect(page.locator(".size-option").first()).toBeAttached({ timeout: 30_000 });
+  // A device slow enough that the chart is not up before the tab's address would be written: written then, it brought the knitter back to the design.
+  const device = await page.context().newCDPSession(page);
+  await device.send("Emulation.setCPUThrottlingRate", { rate: 6 });
+  await page.getByRole("tab", { name: "Start", exact: true }).click();
+  await page.getByRole("button", { name: "Start knitting", exact: true }).click();
+  await expect(page.locator(".knitting-panel")).toContainText(/of \d+ stitches/, { timeout: 60_000 });
+  // Long enough for the tab's address to have been written, were it going to be.
+  await page.waitForTimeout(2000);
+  await expect(page).toHaveURL(/#\/project\/[^/]+\/chart/);
+  await expect(page.locator(".knitting-panel")).toBeVisible();
+});
