@@ -129,10 +129,11 @@ describe("how a project's knitting was made", () => {
     expect(madeOf({ ...project, fit: { tension: loose, finished, from: published } })).toEqual({ steps: [{ fit: loose }] });
   });
 
-  it("is not known for knitting made its own some other way before it was kept", () => {
+  it("begins at the edition a project knits though that is kept on the device: one the size has moved on from is kept there, and is published all the same", () => {
     const project = { ...startProject("hamefarin", size.id, colourway.id), edition: "0123456789ab" };
     keepEdition({ design: "hamefarin", size: size.id, edition: "0123456789ab" } as EditionFile);
-    expect(madeWith(project, fitStep)).toBeUndefined();
+    expect(madeWith(project, { join: published, round: 50 })).toEqual({ from: "0123456789ab", steps: [{ join: published, round: 50 }] });
+    expect(madeWith(project, fitStep)).toEqual({ from: "0123456789ab", steps: [fitStep] });
   });
 });
 

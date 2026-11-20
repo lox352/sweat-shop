@@ -4,7 +4,7 @@ import { deleteLog } from "./timing/log";
 import { currentEdition, editionKey, editionOf } from "../library/editions";
 import { dropShapesBut } from "../library/settled/own";
 import type { EditionFile } from "../library/editions/format";
-import { dropEditionsBut, isOwn, keepEdition } from "../library/editions/own";
+import { dropEditionsBut, keepEdition } from "../library/editions/own";
 
 /**
  * A project is a sweater you are knitting.
@@ -162,9 +162,15 @@ export const madeOf = (project: Pick<Project, "made" | "fit">): Made | undefined
     : undefined);
 
 /**
- * A project's making with one thing more done. Undefined where what went
- * before is not known: knitting made its own before the making was kept, and
- * not by a fit.
+ * A project's making with one thing more done.
+ *
+ * A project that says nothing of how its knitting was made knits a published
+ * edition, and its making begins there. (An edition kept on the device is no
+ * sign that it is the project's own: one the size has moved on from is kept
+ * there too, for the projects still on it - see library/editions.) The one
+ * project this is not so of joined an update before the making was kept; a
+ * link to it names an edition the site never had, and says so when it is
+ * opened: see remake.
  */
 export const madeWith = (project: Project, step: Step): Made | undefined => {
   // A whole sweater from the cast-on begins as nothing: whatever was knitted before is no part of it.
@@ -172,7 +178,7 @@ export const madeWith = (project: Project, step: Step): Made | undefined => {
   const before = madeOf(project);
   if (before) return { ...before, steps: [...before.steps, step] };
   const edition = editionOf(project);
-  return edition && !isOwn(project.sweaterId, project.sizeId, edition) ? { from: edition, steps: [step] } : undefined;
+  return edition ? { from: edition, steps: [step] } : undefined;
 };
 
 /** A project with its making set, or with none. */

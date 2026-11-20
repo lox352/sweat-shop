@@ -10,7 +10,7 @@ import PatternUpdated from "./PatternUpdated";
 import MyTension from "./MyTension";
 import Refit from "./Refit";
 import { type Fitted, mayFit } from "../../library/fit";
-import { asEdition, isOwn } from "../../library/editions/own";
+import { asEdition } from "../../library/editions/own";
 import type { SweaterStitches } from "../../pattern/knitted";
 import { sameTension, yarnPerStitch } from "../../reading/tension";
 import { makeOnesAtMarkers } from "../../reading/marker-routes";
@@ -212,7 +212,8 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
    * is back.
    */
   const linkNow = useMemo(() => (project && sweater ? linkOf(project) : undefined), [project, sweater]);
-  const link = useSettled(linkNow, 3000);
+  // A jumper that was not here and now is - made again from its link (see Restore) - has waited for nothing: its link is written at once.
+  const link = useSettled(linkNow, 3000) ?? linkNow;
   // An old address that asks for the knitting on the jumper's page is being sent on to the chart (see below), which is where it is written.
   const sentOn = view === "overview" && knitting;
   const { pathname } = useLocation();
@@ -367,8 +368,8 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
         tension: fitted.tension,
         finished: fitted.finished,
         round: fitted.round,
-        // The published edition it left, through any fit before this one: none, where what it left was knitting of its own, which is not kept to go back to.
-        from: current.fit ? current.fit.from : isOwn(current.sweaterId, current.sizeId, editionOf(current) ?? "") ? undefined : editionOf(current),
+        // The published edition it left, through any fit before this one: none, where what it left was knitting of its own - joined to an update - which is not kept to go back to.
+        from: current.fit ? current.fit.from : current.made ? undefined : editionOf(current),
         ...(fitted.option ? { option: fitted.option } : {}),
         ...(fitted.placement ? { placement: fitted.placement } : {}),
       },
