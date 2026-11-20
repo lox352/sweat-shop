@@ -248,6 +248,11 @@ const Chart: React.FC<ChartProps> = ({
   useEffect(() => {
     if (!backable) setAway(undefined);
   }, [backable]);
+  // The way it was last, for the arrow while the way back fades out.
+  const [pointing, setPointing] = useState(0);
+  useEffect(() => {
+    if (away !== undefined) setPointing(away);
+  }, [away]);
 
   /*
    * The whole sweater, every stitch over the stitch it was worked into: the
@@ -799,17 +804,18 @@ const Chart: React.FC<ChartProps> = ({
           </ChartTiles>
         </div>
       </div>
-      {backable && away !== undefined && (
+      {backable && (
         <Button
           variant="secondary"
           className="chart-back"
+          data-shown={away !== undefined}
           onClick={() => {
             setAway(undefined);
             aim(reducedMotion() ? "auto" : "smooth");
           }}
         >
           {/* An arrow drawn pointing right, turned to point the way the stitch is. */}
-          <svg className="chart-back-arrow" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style={{ transform: `rotate(${away}deg)` }}>
+          <svg className="chart-back-arrow" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style={{ transform: `rotate(${away ?? pointing}deg)` }}>
             <path d="M2.5 8h10M8.5 4l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           Back to your stitch
