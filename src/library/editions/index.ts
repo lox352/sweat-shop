@@ -83,12 +83,23 @@ export const editionFailed = (design: string, size: string, edition?: string): b
   return !from || !/^[0-9a-f]+$/.test(from) || failed.has(keyOf(design, size, from));
 };
 
+/**
+ * An edition the site answered for and has not got: no file of that name, or
+ * a file that is not that edition. Asking again will not find it. (A site
+ * that could not be reached, or that failed, may yet have it.)
+ */
+export class NoSuchEdition extends Error {}
+
 const fetchEdition = async (design: string, size: string, edition: string): Promise<EditionFile> => {
   const key = keyOf(design, size, edition);
   const response = await fetch(editionUrl(design, size, edition));
+  if (response.status === 404) throw new NoSuchEdition(`edition ${key}: 404`);
   if (!response.ok) throw new Error(`edition ${key}: ${response.status}`);
-  const file = (await response.json()) as EditionFile;
-  if (file.design !== design || file.size !== size || file.edition !== edition) throw new Error(`edition ${key}: not what was fetched`);
+  const file = (await response.json().catch((error: unknown) => {
+    // Something else served in its place - a page, where a host answers every address with one - is not it; a file cut short on the way is another matter.
+    throw error instanceof SyntaxError ? new NoSuchEdition(`edition ${key}: not an edition`) : error;
+  })) as EditionFile;
+  if (file?.design !== design || file.size !== size || file.edition !== edition) throw new NoSuchEdition(`edition ${key}: not what was fetched`);
   return file;
 };
 

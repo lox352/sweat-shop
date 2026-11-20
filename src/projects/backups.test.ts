@@ -110,3 +110,28 @@ it("carries a fitted project's own knitting with it, and refuses a fit that come
   another.projects[0].knitting.edition = "ffffffffffff";
   expect(() => parseBackup(JSON.stringify(another))).toThrow();
 });
+
+it("carries how a project's own knitting was made, so a restored jumper's link still makes it again; and refuses one that does not read", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { currentEdition } = await import("../library/editions");
+  const { keepEdition } = await import("../library/editions/own");
+  const { writeProject } = await import("./projects");
+  const { linkOf, readLink } = await import("./link");
+  const size = s.sizes[0];
+  const published = currentEdition(s.id, size.id)!;
+  keepEdition({ ...JSON.parse(readFileSync(`public/editions/${s.id}--${size.id}--${published}.json`, "utf8")), edition: "0a0b0c0d0e0f" });
+  const tension = { stitchesPer10cm: 24, roundsPer10cm: 30 };
+  const made = { from: published, steps: [{ join: "ba9876543210", round: 12 }, { fit: tension, round: 40, option: "every" }] };
+  writeProject({ ...startProject(s.id, size.id, s.colourways[0].id), edition: "0a0b0c0d0e0f", fit: { tension, finished: size.finished, round: 40 }, made });
+  const text = backupText();
+  localStorage.clear();
+  const [copy] = restoreBackup(parseBackup(text));
+  expect(copy.made).toEqual(made);
+  expect(readLink(linkOf(copy))).toMatchObject({ id: copy.id, edition: "0a0b0c0d0e0f", made });
+
+  for (const bad of [{ steps: [] }, { steps: [{ fit: { stitchesPer10cm: 1, roundsPer10cm: 30 } }] }, { from: "not hex", steps: [{ fit: tension }] }, { steps: [{ join: published, round: 0 }] }, "made"]) {
+    const broken = JSON.parse(text);
+    broken.projects[0].made = bad;
+    expect(() => parseBackup(JSON.stringify(broken)), JSON.stringify(bad)).toThrow();
+  }
+});

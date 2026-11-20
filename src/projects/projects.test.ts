@@ -60,3 +60,14 @@ it("records the edition of the knitting a project is started on, and keeps it", 
   localStorage.setItem(project.id, JSON.stringify({ ...project, edition: 7 }));
   expect(readProject(project.id)).toBeUndefined();
 });
+
+it("does not take a project whose making does not read, and takes one whose does", () => {
+  const good = startProject("h", "s", "c");
+  const tension = { stitchesPer10cm: 24, roundsPer10cm: 30 };
+  for (const bad of [{ steps: [] }, { steps: [{}] }, { steps: [{ fit: tension, round: -1 }] }, { steps: [{ join: "zz", round: 3 }] }, { from: 7, steps: [{ fit: tension }] }, []]) {
+    localStorage.setItem("project-bad", JSON.stringify({ ...good, made: bad }));
+    expect(listProjects(), JSON.stringify(bad)).toEqual([good]);
+  }
+  localStorage.setItem("project-bad", JSON.stringify({ ...good, id: "project-bad", made: { from: "0123456789ab", steps: [{ join: "ba9876543210", round: 3 }, { fit: tension, round: 9, option: "every" }, { fit: tension }] } }));
+  expect(listProjects()).toHaveLength(2);
+});

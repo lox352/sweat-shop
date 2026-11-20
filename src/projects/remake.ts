@@ -1,4 +1,4 @@
-import { currentEdition, loadEdition } from "../library/editions";
+import { NoSuchEdition, currentEdition, loadEdition } from "../library/editions";
 import { joinedAt } from "../library/editions/difference";
 import { type EditionFile, decodeEdition } from "../library/editions/format";
 import { asEdition } from "../library/editions/own";
@@ -41,7 +41,7 @@ export class NotRemade extends Error {
 const fetched = (linked: Linked, edition: string | undefined) =>
   loadEdition(linked.sweater.id, linked.sizeId, edition).catch((error: unknown) => {
     // The site has every edition it ever published. One it has not got was a project's own, from before a project kept how its knitting was made.
-    if (error instanceof Error && /: 404$/.test(error.message)) {
+    if (error instanceof NoSuchEdition) {
       throw new NotRemade("Its pattern was this jumper's own, made before a link said how: it can't be made again from this one.", true);
     }
     throw new NotRemade("Its pattern could not be fetched. Check your connection and try again.");
