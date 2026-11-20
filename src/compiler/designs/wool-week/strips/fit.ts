@@ -2,7 +2,7 @@ import type { Fitted, Fitting, FitRequest, Measurements, RoundSpec, Section, Sta
 import type { SweaterStitches } from "../../../../pattern/knitted";
 import { yearOf } from "../years";
 import { banded, below, grown, knit, nearest, trimsOf, Writer } from "./knit";
-import { type Gauge, budgets, gauge, ribsAt, type Row } from "./plan";
+import { type Gauge, type Layout, budgets, gauge, planOf, ribsAt, type Row } from "./plan";
 import { laidOut, reachAt } from "./refit";
 import { baseSlot, trimSlot, yearOfSlot } from "./slots";
 
@@ -225,3 +225,50 @@ export const fitting = (prefix: string, lowTrim: () => string): Fitting => {
   };
   return { options, cutAfter, plan };
 };
+
+/**
+ * A lined-up sampler for one knitter: the whole of it from the cast-on, laid
+ * out for the size's measurements at their tension as a published size is at
+ * the pattern's (see plan's lined) - every year a strip of the height the
+ * tension gives it, and the same strips down each sleeve. Its sleeves are its
+ * body's strips over again, round for round, so the rest of one part knitted
+ * can't be planned yet: it has no cutAfter.
+ */
+export const fittingWhole = (prefix: string, layout: Layout): Fitting => ({
+  plan: ({ finished, tension, from }: FitRequest): Fitted => {
+    if (from) throw new Error("a lined-up sampler can only be planned whole, from the cast-on");
+    const g: Gauge = { stitches: tension.stitchesPer10cm / 10, rounds: tension.roundsPer10cm / 10 };
+    // Thirteen strips, each a round of its own yarn and a cut of its hat, want rounds enough between the neck's rib and the hem's.
+    const room = budgets(finished, g);
+    let laid: ReturnType<typeof planOf>;
+    try {
+      laid = planOf(finished, layout, g);
+    } catch (error) {
+      throw new Error(`thirteen strips will not go in the ${rounds(room.yoke + room.body)} the yoke and body have at this tension (${error instanceof Error ? error.message : String(error)})`);
+    }
+    const { sections, charts, checks } = knit(finished, laid, prefix, g);
+    const ribs = ribsAt(g);
+    const fits: Measurements = {
+      chestCm: half(checks.body / g.stitches),
+      neckCm: half(checks.neck / g.stitches),
+      yokeDepthCm: half((ribs.neck + laid.rows.yoke.length + 1) / g.rounds),
+      bodyLengthCm: half((laid.rows.body.length + ribs.hem + 2) / g.rounds),
+      upperArmCm: half(checks["sleeve-left:top"] / g.stitches),
+      sleeveLengthCm: half((laid.rows.sleeve.length + ribs.cuff + 2) / g.rounds),
+      cuffCm: half(checks["sleeve-left:cuff"] / g.stitches),
+    };
+    const yearsOf = (strips: { year: number }[]) => named(strips.map((strip) => strip.year));
+    const heights = [...laid.strips.yoke, ...laid.strips.body].map((strip) => strip.height);
+    const last = laid.strips.sleeve[laid.strips.sleeve.length - 1];
+    return {
+      sections,
+      charts,
+      checks,
+      finished: fits,
+      notes: [
+        `Every year is a strip of ${Math.min(...heights)} to ${Math.max(...heights)} rounds at this tension: ${yearsOf(laid.strips.yoke)} round the yoke, which grows from ${checks.neck} stitches to ${checks.yoke}, and ${yearsOf(laid.strips.body)} down the body.`,
+        `Each sleeve has the body's strips round for round, and ${last.year} ${yearOf(last.year).name} carries on to the cuff in ${rounds(last.height)}.`,
+      ],
+    };
+  },
+});

@@ -260,12 +260,15 @@ The rules every screen keeps, so that none has to be learnt twice:
 - **A design is one row of pages** (`ui/Pages.tsx`). Each page is the size of
   the room under the stage, all of them side by side, swiped along and coming
   to rest on one: *About*, the design's own story, which it opens on; a
-  size's four (choose it, see it laid flat, read its measurements, and the
-  knitter's own tension, which is what it comes out at in their hands); a
-  page for each group of colourways; and at the end *Start*, which says what
+  size's three (choose it and the tension it is to be knitted at, see it
+  laid flat, and read its measurements); a page for each group of
+  colourways; and at the end *Start*, which says what
   was chosen and begins the knitting. The tabs mark where each kind begins, and
   a tab tapped goes to its first page; each page has its title over it and
-  dots under it for the pages of its tab. Nothing is found by scrolling down
+  dots under it for the pages of its tab. What is done to the colourway
+  chosen - its trim, its wools - is no one page's, so it is a bar at the foot
+  of the colours' tab (a tab's `foot`): up while that tab is shown, still
+  while its pages are swiped under it, and down when the tab is left. Nothing is found by scrolling down
   past the rest, and there is no bar at the foot: the way forward is the last
   tab. A jumper's own page is the same row: *Progress* (where the knitting
   is and the way back to it, the time it has taken, and the jumper as a thing
@@ -323,20 +326,15 @@ and the physics.
 ## Fitting a sweater part way through
 
 A pattern comes out at its measurements only at its tension, so that is what
-**Your tension** says first, as a pattern does: a knitter whose swatch
-matches has nothing to do there. One whose doesn't gives theirs - which is
-then a line, with the way to change it, and no longer a form - and is shown
-what the pattern comes out at knitted as written, and, for a design that
-can, offered it recalculated. What that comes to is shown as what the
-knitter is choosing between:
-
-- **Before a sweater is begun**, the design itself: the sweater as designed,
-  at the pattern's tension, beside the one recalculated at theirs, each drawn
-  by the width of its own stitches so that both are their true size. The
-  question there is what recalculating costs the design.
-- **Once it is begun**, the sweater there will be if the knitting carries on
-  as written, in the knitter's own stitches, beside the one there will be if
-  the rest is recalculated from where they are.
+**Your tension**, on a jumper's own page, says first, as a pattern does: a
+knitter whose knitting matches has nothing to do there. One whose doesn't
+gives theirs - which is then a line, with the way to change it, and no
+longer a form - and is shown what the pattern comes out at knitted on as
+written, and, for a design that can, offered the rest recalculated. What that
+comes to is shown as what the knitter is choosing between: the sweater there
+will be if the knitting carries on as written, in the knitter's own
+stitches, beside the one there will be if the rest is recalculated from
+where they are.
 
 Under them, one table has all three: the pattern's measurements, the pattern
 knitted as written at the knitter's tension, and the recalculated one's. The
@@ -371,23 +369,51 @@ The rest recalculated keeps to these:
   shape of the one taken is the project's from then on, and is not settled
   again.
 
-**From the cast-on too.** A plan may start from nothing knitted: on a
-design's page a knitter gives their swatch's tension, sees what the pattern
-comes to as written, and has it worked out for their tension, shown beside
-the pattern as it is, before a stitch is cast on. The project then begins on
-knitting of its own.
+**From the cast-on too.** A plan may start from nothing knitted, and there
+nothing is set beside anything: a size is chosen with the tension it is to
+be knitted at. The first of a size's pages has the sizes and, under them,
+the pattern's own tension filled in (`TensionChoice`); a knitter whose swatch
+measures otherwise changes it, is told in a line what the pattern would then
+come out at as written, and has it recalculated. From then on the design's
+page is that pattern's - the jumper on the stage (drawn laid out at once, and
+settled behind it; its badge says the tension it is for), the size laid flat and its measurements, the colours and
+the wool they take, and what *Start knitting* starts - until the tension or
+the size is changed, which is another question. Where the design can't be
+laid out at the tension it says why, and the pattern stays as written. The
+project then begins on knitting of its own.
 
-Two designs can so far. **Each Year Once** plans from the cast-on, or on
+Every design can from the cast-on, and two can part way too (a design's
+`fitting` has a `cutAfter` only where it can; the catalogue says so as
+`partWay`, and a design's page and a project's say which it is). **Each Year
+Once** plans from the cast-on, or on
 from the last round of a year on its yoke: the years not yet knitted shared
 between the pieces and each cut as its piece has room for, a pattern kept
-whole while it can be, every year or fewer of them fuller. One function
+whole while it can be, every year or fewer of them fuller - a choice only
+part way, where years no longer fit as they were: from the cast-on it has
+every year, and nothing to choose. One function
 lays out a published size, a sweater for a knitter's tension and the rest
 of one part knitted (`laidOut`, in the design's `refit.ts`), so a published
 size is that function at the pattern's tension, to the stitch. **Hamefarin**
 plans from the cast-on, or on from the last round of a band of its yoke:
 the bands still to come graded from the stitches on the needles, one left
-out where the yoke has no depth for it. The lined-up sampler, the feline
-jumpers and Paul Klee can't yet.
+out where the yoke has no depth for it.
+
+The rest plan whole, and not on from part knitted. **Thirteen Strips** is
+laid out for the size's measurements at the tension given by the function
+that lays out its published sizes: every year a strip of the height the
+tension gives it, and the same strips down each sleeve - so it can't be part
+way, and can't be at all at a tension so loose that thirteen strips have not
+the rounds. **The feline jumpers** are knitted to the tension's counts, each
+feline drawn afresh as large as the front then has room for, in stitches as
+much wider than tall as the knitter's; their bands are pictures of a set
+number of stitches, and at some tensions will not go round a size, which is
+said. **Paul Klee** is a bought pattern in sixteen sizes, and none of its
+yokes is worked out afresh: the yoke is that of the size whose stitches come
+nearest the measurements asked for at the knitter's tension, as the pattern
+writes it, with the ribs, body and sleeves as long as the size asked for in
+the knitter's rounds, and the difference in the yoke's depth made up in
+them. Where no size has the stitches, it says so. For each, the published
+size is the plan at the pattern's tension, to the stitch.
 
 **Colours follow the plan.** Some colourways step down the sweater: a year's
 yarns depend on where it sits, so that a body band and the sleeve band level
@@ -415,8 +441,11 @@ has gone by without the site being opened. Two things are done about that.
 browser round it. There Safari's week does not apply. The browser is also
 asked to keep what the site stores (`navigator.storage.persist()`, in
 `src/projects/keeping.ts`) when a jumper is on screen; what it answers is its
-own business. In Safari on a phone the home page says all this once, to a
-knitter with a jumper to lose. An app on the Home Screen keeps its own
+own business. In Safari the home page says all this once, to a knitter with
+a jumper to lose, as their device does it (`safariTab`): a phone and an iPad
+are told of the Home Screen, from Share; a Mac of the Dock, from the File
+menu - and of the link and a backup first, as nobody says an app in the Dock
+is spared Safari's week. An app on the Home Screen keeps its own
 storage, apart from Safari's: a jumper begun in one is brought to the other by
 its link.
 

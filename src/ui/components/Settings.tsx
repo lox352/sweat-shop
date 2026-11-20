@@ -7,6 +7,7 @@ import { updateSettings, useSettings } from "../../projects/settings";
 import Button from "./ui/Button";
 import Dialog from "./ui/Dialog";
 import "./Settings.css";
+import { safariTab } from "../../projects/keeping";
 
 /**
  * One row of the settings sheet: what it is on the left, and the one thing
@@ -101,7 +102,8 @@ const Backups: React.FC<{ onLeave: () => void }> = ({ onLeave }) => {
   const [pasted, setPasted] = useState("");
   const navigate = useNavigate();
   const inputId = useId();
-  // A jumper's link pasted in: the only way to open one where the site is on a Home Screen, with no address bar.
+  // A jumper's link pasted in: the only way to open one where the site is an app of its own, on a Home Screen or in a Dock, with no address bar.
+  const device = safariTab();
   const openLink = (event: React.FormEvent) => {
     event.preventDefault();
     const path = pathIn(pasted);
@@ -115,8 +117,7 @@ const Backups: React.FC<{ onLeave: () => void }> = ({ onLeave }) => {
       <h3 id={`${inputId}-heading`}>Your projects</h3>
       <p className="settings-note">
         Projects live in this browser only, and a browser may clear what it
-        keeps: Safari does after a week unopened, unless the site is on your
-        Home Screen. A jumper's link, on its own page, makes it again
+        keeps: Safari does after a week unopened{device === "mac" ? "" : ", unless the site is on your Home Screen"}. A jumper's link, on its own page, makes it again
         anywhere; a backup file keeps every project, and the time spent on
         each.
       </p>

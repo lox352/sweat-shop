@@ -22,13 +22,12 @@ const SweaterComparison = lazy(() => import("../model/SweaterComparison"));
  * what the knitter should know, and the rest written out. It only shows:
  * asking is useFit's, and taking is whoever shows it's.
  *
- * What it is set beside is what the knitter is choosing between. Before a
- * sweater is begun (`beside` "designed") that is the design itself: the
- * sweater as designed, at the pattern's tension, beside the one recalculated
- * at theirs, each at its true size - the question is what the recalculating
- * costs the design. Once it is begun ("kept") it is the sweater they will
- * have if they keep knitting as written, in their own stitches, beside the
- * one they will have if the rest is recalculated from where they are.
+ * What it is set beside is what the knitter is choosing between: the sweater
+ * they will have if they keep knitting as written, in their own stitches,
+ * beside the one they will have if the rest is recalculated from where they
+ * are. (Before a sweater is begun there is nothing to choose between, and no
+ * preview: the design's page becomes the recalculated pattern's - see
+ * Sweater.)
  *
  * The measurements are all three, side by side: the pattern's, the pattern
  * knitted as written at their tension, and the recalculated one's.
@@ -40,8 +39,6 @@ const SweaterComparison = lazy(() => import("../model/SweaterComparison"));
  */
 const FitPreview: React.FC<{
   size: SizeAbout;
-  /** What it is set beside: the sweater as designed, or the one there will be if the knitting carries on as written. */
-  beside: "designed" | "kept";
   /** What the knitting in hand is written for, where that is not the size's own: a sweater fitted already, being fitted again. */
   written?: { finished: Measurements } & Tension;
   /** The knitting in hand, how far it is knitted, and the tension it is being fitted to. */
@@ -63,28 +60,25 @@ const FitPreview: React.FC<{
   take: string;
   onTake: (fitted: Fitted) => void;
   onLeave: () => void;
-  /** Told the way being shown while it is, and that none is once it is put away: for a page whose own way forward should then be this one. */
-  onChosen?: (fitted: Fitted | undefined) => void;
-}> = ({ size, beside, written = size, knitted, progress, tension, found, unfitted, options, first, palette, coloursOn, roundNames, take, onTake, onLeave, onChosen }) => {
+}> = ({ size, written = size, knitted, progress, tension, found, unfitted, options, first, palette, coloursOn, roundNames, take, onTake, onLeave }) => {
   const [chosen, setChosen] = useState(() => (found.some((one) => one.option === first) ? first : found[0]?.option));
   const fitted = found.find((one) => one.option === chosen) ?? found[0];
   const labelOf = (option: string | undefined) => options.find((one) => one.id === option)?.label ?? "Recalculated";
-  // What it is set beside - the design as it is, or the knitting carried on in the knitter's own stitches - then each way, as the knitting it would be.
+  // What it is set beside - the knitting carried on in the knitter's own stitches - then each way, as the knitting it would be.
   const knittings = useMemo(
-    () => [beside === "designed" ? knitted : atTension(knitted, tension), ...found.map((one) => decodeEdition(one.file))],
+    () => [atTension(knitted, tension), ...found.map((one) => decodeEdition(one.file))],
     // The knitting in hand is the same knitting however often whoever holds it is drawn again (see useSweater), and a tension is its two numbers: they are settled once, not once a drawing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [knitted.knitting, tension.stitchesPer10cm, tension.roundsPer10cm, found, beside],
+    [knitted.knitting, tension.stitchesPer10cm, tension.roundsPer10cm, found],
   );
-  // How wide a stitch of each is, in centimetres: the design's are the pattern's, and the rest the knitter's. Drawn by it, each is its true size beside the others.
-  const ownStitchCm = 10 / tension.stitchesPer10cm;
-  const besideStitchCm = beside === "designed" ? 10 / size.stitchesPer10cm : ownStitchCm;
+  // How wide a stitch of each is, in centimetres: the knitter's. Drawn by it, each is its true size beside the others.
+  const stitchCm = 10 / tension.stitchesPer10cm;
   // Each way is, taken, a project's own knitting, by its edition; the pattern as it was is nobody's.
   const editions = useMemo(() => [undefined, ...found.map((one) => one.file.edition)], [found]);
   const { fraction, shapes } = useShapes(knittings, editions);
   const candidates = useMemo(
     () => [
-      { id: "was", label: beside === "designed" ? "As designed" : "If you keep knitting", knitting: knittings[0], palette, settled: shapes?.[0], stitchCm: besideStitchCm },
+      { id: "was", label: "If you keep knitting", knitting: knittings[0], palette, settled: shapes?.[0], stitchCm },
       // Each in the colourway as it would be on it: a colourway that steps down the garment follows where the years would sit.
       ...found.map((one, at) => ({
         id: one.option ?? "fitted",
@@ -92,19 +86,13 @@ const FitPreview: React.FC<{
         knitting: knittings[at + 1],
         palette: coloursOn(one.placement).palette,
         settled: shapes?.[at + 1],
-        stitchCm: ownStitchCm,
+        stitchCm,
       })),
     ],
     // What a way is called does not change while it is shown.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [knittings, found, palette, coloursOn, shapes, besideStitchCm, ownStitchCm],
+    [knittings, found, palette, coloursOn, shapes, stitchCm],
   );
-  // Shown only once settled: until then no way is being shown.
-  const shown = shapes ? fitted : undefined;
-  useEffect(() => {
-    onChosen?.(shown);
-    return () => onChosen?.(undefined);
-  }, [shown, onChosen]);
   // On a page with a stage, they are compared there, where the one sweater was.
   const stage = useContext(StageSlot);
   /*
@@ -175,7 +163,7 @@ const FitPreview: React.FC<{
               <span className="visually-hidden">Measurement</span>
             </th>
             <th scope="col">Pattern</th>
-            {asWritten && <th scope="col">{beside === "designed" ? "As written" : "Keep knitting"}</th>}
+            {asWritten && <th scope="col">Keep knitting</th>}
             <th scope="col">Recalculated</th>
           </tr>
         </thead>

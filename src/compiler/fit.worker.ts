@@ -21,11 +21,17 @@ scope.onmessage = async ({ data: { design, sizeId, knitted, progress = 0, tensio
       return scope.postMessage({ cannot: "The rest of this pattern can't be worked out again from where you are: it is too late in the knitting, or this design can't be." });
     }
   }
-  // Every way the design can lay the rest out, each said as it is done: one that can't be is no reason to go without the others.
+  /*
+   * Every way the design can lay the rest out, each said as it is done: one
+   * that can't be is no reason to go without the others. They are ways of
+   * laying out the rest of one part knitted - what to do with the years that
+   * no longer fit as they were. From the cast-on there is nothing to make up
+   * for, and one way: the design's own.
+   */
   const options = fitOptions(design).map((option) => option.id);
   if (only !== undefined && !options.includes(only)) return scope.postMessage({ cannot: "This pattern can't be worked out that way: the design no longer has it." });
   // Or the one way it was laid out, where it is being made again as it was.
-  const ways: (string | undefined)[] = only !== undefined ? [only] : options.length > 0 ? options : [undefined];
+  const ways: (string | undefined)[] = only !== undefined ? [only] : knitted && options.length > 0 ? options : [undefined];
   let found = 0;
   for (const [nth, option] of ways.entries()) {
     try {

@@ -906,7 +906,7 @@ const ProjectView: React.FC<{
     </>
   );
 
-  // Under every page of its wool, what is done to the colourway in use: see ColoursAdjust.
+  // At the foot of its wool's tab, what is done to the colourway in use: see ColoursAdjust.
   const adjust = (
     <ColoursAdjust
       trim={sweater.trim}
@@ -934,18 +934,19 @@ const ProjectView: React.FC<{
         overrides={project.shades ?? noShades}
         onPick={customiseFrom}
       />
-      {adjust}
     </>
   );
 
   // Whether the rest can still be recalculated: the design can, and the whole sweater is still one round on the needles.
   const canFit = mayFit(sweater, built, project.progress);
   const tensionPage = (
-    <MyTension key={project.id} size={size} fitted={fitted} tension={project.tension} onChange={setTension} begun recalculates={canFit}>
+    <MyTension key={project.id} size={size} fitted={fitted} tension={project.tension} onChange={setTension} recalculates={canFit}>
       {/* Where the rest is recalculated for this tension already, it says so; where it could be, it offers to; and where it is too late to, it says why nothing is offered. */}
       {project.tension && !sameTension(fitted ?? size, project.tension) && sweater.fitting && !canFit && (
         <p className="quiet refit-late">
-          The rest can only be recalculated while the whole yoke is still on the needles. Yours is past that, so the pattern carries on as written.
+          {sweater.fitting.partWay
+            ? "The rest can only be recalculated while the whole yoke is still on the needles. Yours is past that, so the pattern carries on as written."
+            : "This design can only be recalculated for a tension before it is cast on, so this pattern carries on as written. To knit it at your tension, start another from the design's page and give your tension there."}
         </p>
       )}
       {project.tension && (sameTension(fitted ?? size, project.tension) ? !!fitted : canFit) && (
@@ -987,18 +988,14 @@ const ProjectView: React.FC<{
     {
       id: "wool",
       label: "Wool",
+      foot: adjust,
       pages: [
         { id: "list", label: "Your wool", content: woolPage },
         // The design's colourways, to start again from: the same pages its own page has.
         ...choice.groups.map(([name, options]) => ({
           id: `group-${name ?? ""}`,
           label: name ?? "Colourways",
-          content: (
-            <>
-              <ColourwayGrid options={options} chosen={colourway.id} body={body} onChoose={choice.choose} />
-              {adjust}
-            </>
-          ),
+          content: <ColourwayGrid options={options} chosen={colourway.id} body={body} onChoose={choice.choose} />,
         })),
       ],
     },

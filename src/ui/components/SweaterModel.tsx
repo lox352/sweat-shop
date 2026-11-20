@@ -1,8 +1,9 @@
-import React, { lazy, Suspense } from "react";
+import React, { lazy, Suspense, useMemo } from "react";
+import type { SweaterStitches } from "../../pattern/knitted";
 import { Palette } from "../../reading/palette";
 import { sweaterById } from "../../library/catalogue";
 import { knittingToHand } from "../../library/knitting";
-import { useShape } from "../useShape";
+import { type Shape, useShape, useShapes } from "../useShape";
 import PreviewBoundary from "./PreviewBoundary";
 
 /** How tall the stage is, so nothing on the page moves when it arrives. */
@@ -27,27 +28,14 @@ export interface SweaterModelProps {
   fill?: boolean;
 }
 
-/**
- * The sweater in three dimensions, on the design's page and a project's:
- * which knitting that is, and whether it has a settled shape, are found here,
- * and the stage is handed what it is to draw.
- */
-const SweaterModel: React.FC<SweaterModelProps> = ({
-  sweaterId,
-  sizeId,
-  edition,
-  palette,
-  progress,
-  fill,
-}) => {
-  // The size's knitting as the project knits it, which the page that shows this has to hand already; until it has, nothing is drawn.
-  const knitting = knittingToHand(sweaterById(sweaterId)!, sizeId, edition);
-  const { settled, waiting, settling, unsettled } = useShape(
-    sweaterId,
-    sizeId,
-    edition,
-    knitting,
-  );
+/** The stage, and under it what there is to say of the shape it is drawn in. */
+const Drawn: React.FC<{
+  knitting: SweaterStitches | undefined;
+  palette: Palette;
+  progress: number;
+  fill?: boolean;
+  shape: Shape;
+}> = ({ knitting, palette, progress, fill, shape: { settled, waiting, settling, unsettled } }) => {
   const reducedMotion =
     typeof window !== "undefined" &&
     window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -91,6 +79,46 @@ const SweaterModel: React.FC<SweaterModelProps> = ({
       )}
     </>
   );
+};
+
+/**
+ * The sweater in three dimensions, on the design's page and a project's:
+ * which knitting that is, and whether it has a settled shape, are found here,
+ * and the stage is handed what it is to draw.
+ */
+const SweaterModel: React.FC<SweaterModelProps> = ({
+  sweaterId,
+  sizeId,
+  edition,
+  palette,
+  progress,
+  fill,
+}) => {
+  // The size's knitting as the project knits it, which the page that shows this has to hand already; until it has, nothing is drawn.
+  const knitting = knittingToHand(sweaterById(sweaterId)!, sizeId, edition);
+  const shape = useShape(sweaterId, sizeId, edition, knitting);
+  return <Drawn knitting={knitting} palette={palette} progress={progress} fill={fill} shape={shape} />;
+};
+
+/**
+ * A knitting that is nobody's project yet - a pattern recalculated for a
+ * knitter on the design's page - in three dimensions: drawn laid out at
+ * once, and settled here, off the page's thread, as a project's own is. Its
+ * shape is the project's from the start, once it is one (see useShapes).
+ */
+export const OwnModel: React.FC<{
+  knitting: SweaterStitches;
+  /** The edition it would be as a project's own knitting. */
+  edition: string;
+  palette: Palette;
+  progress: number;
+  fill?: boolean;
+}> = ({ knitting, edition, palette, progress, fill }) => {
+  const knittings = useMemo(() => [knitting], [knitting]);
+  const editions = useMemo(() => [edition], [edition]);
+  const { fraction, shapes } = useShapes(knittings, editions);
+  const shape: Shape = shapes ? (shapes[0] ? { settled: shapes[0], waiting: false } : { waiting: false, unsettled: true }) : { waiting: false, settling: fraction };
+  return <Drawn knitting={knitting} palette={palette} progress={progress} fill={fill} shape={shape} />;
 };
 
 export default SweaterModel;

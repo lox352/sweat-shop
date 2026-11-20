@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import type { PagesHandle } from "./components/ui/Pages";
 
 /**
@@ -17,6 +17,7 @@ import type { PagesHandle } from "./components/ui/Pages";
  */
 export const useTabAddress = <Tab extends string>(tabs: readonly Tab[], renamed: Record<string, readonly [tab: Tab, page: string]> = {}) => {
   const [params, setParams] = useSearchParams();
+  const { pathname } = useLocation();
   const asked = params.get("tab");
   const [movedTo, wantedPage] = (asked ? renamed[asked] : undefined) ?? [];
   const wanted = tabs.find((tab) => tab === (movedTo ?? asked)) ?? tabs[0];
@@ -31,6 +32,14 @@ export const useTabAddress = <Tab extends string>(tabs: readonly Tab[], renamed:
       window.clearTimeout(settling.current);
       settling.current = window.setTimeout(() => {
         if (written.current === tab) return;
+        /*
+         * Not once the knitter is on their way elsewhere - a tab tapped, and
+         * at once the way on from it. The address changes at once and the
+         * page a moment after, longer on a slow device: written in between,
+         * the tab would be written over where they were going, and they
+         * would be brought back here.
+         */
+        if (window.location.hash.slice(1).split("?")[0] !== pathname) return;
         written.current = tab;
         setParams(
           (now) => {
@@ -43,7 +52,7 @@ export const useTabAddress = <Tab extends string>(tabs: readonly Tab[], renamed:
         );
       }, 600);
     },
-    [setParams, home],
+    [setParams, home, pathname],
   );
   useEffect(() => () => window.clearTimeout(settling.current), []);
   const pager = useRef<PagesHandle>(null);

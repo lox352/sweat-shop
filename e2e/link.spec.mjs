@@ -191,14 +191,14 @@ test("a jumper recalculated from the cast-on at one tension, part knitted, and r
   const first = { stitchesPer10cm: 24, roundsPer10cm: 28 };
   const second = { stitchesPer10cm: 22, roundsPer10cm: 26 };
   // Begun on a pattern recalculated for the knitter's tension, before a stitch is cast on.
-  await page.goto("#/sweater/hamefarin?size=m&tab=tension");
-  const given = page.getByRole("region", { name: "Your tension" });
-  await given.getByLabel("Stitches counted").fill("24");
-  await given.getByLabel("Rounds counted").fill("28");
-  await given.getByRole("button", { name: "Compare with the pattern", exact: true }).click();
-  await given.getByRole("button", { name: "Recalculate for my tension", exact: true }).click();
-  await expect(given.locator(".refit-shown")).toBeVisible({ timeout: 90_000 });
-  await given.locator(".refit-shown").getByRole("button", { name: "Start knitting this", exact: true }).click();
+  await page.goto("#/sweater/hamefarin?size=m&tab=size");
+  const given = page.getByRole("region", { name: "Tension", exact: true });
+  await given.getByLabel("Stitches to 10cm").fill("24");
+  await given.getByLabel("Rounds to 10cm").fill("28");
+  await given.getByRole("button", { name: "Recalculate the pattern", exact: true }).click();
+  await expect(given.locator(".size-recalculated")).toBeVisible({ timeout: 90_000 });
+  await page.getByRole("tab", { name: "Start", exact: true }).click();
+  await page.getByRole("button", { name: "Start knitting", exact: true }).click();
   await expect(page.locator(".knitting-panel")).toContainText("of 112 stitches", { timeout: 30_000 });
   const key = await page.evaluate(() => Object.keys(localStorage).find((key) => key.startsWith("project-")));
   const begun = await saved(page, key);

@@ -169,53 +169,61 @@ test("Hamefarin is worked out again from the end of a band: the bands still to c
   expect(workers).toBe(0);
 });
 
-test("a tension given before starting: the pattern is worked out for it from the cast-on, shown beside the pattern as it is, and begun", async ({ page }) => {
+test("a tension chosen with the size: the pattern is recalculated for it from the cast-on, the page becomes that pattern's, and it is begun", async ({ page }) => {
   test.setTimeout(180_000);
-  // Shown laid out: the settling before they are shown is the test above's. The tension is the last page of the size's; an address from when it had a tab of its own still comes to it.
+  // The jumper is drawn laid out: the settling of it is the test above's. The tension is chosen with the size; an address from when it had a tab, or a page, of its own comes there.
   await withoutSettling(page);
   await page.goto("#/sweater/hamefarin?size=m&tab=tension");
   await expect(page.getByRole("tablist", { name: "This design" }).getByRole("tab", { name: "Size", exact: true })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tablist", { name: "Size: its pages" }).getByRole("tab", { name: "Your tension", exact: true })).toHaveAttribute("aria-selected", "true");
-  const section = page.getByRole("region", { name: "Your tension" });
-  await expect(section).toContainText("written for 28 stitches and 32 rounds to 10cm", { timeout: 20_000 });
-  // The pattern's own tension needs nothing worked out.
-  await section.getByLabel("Stitches counted").fill("28");
-  await section.getByLabel("Rounds counted").fill("32");
-  await section.getByRole("button", { name: "Compare with the pattern", exact: true }).click();
-  await expect(section.getByRole("status")).toContainText("comes out as designed");
-  await expect(section.getByRole("heading", { name: "Recalculate the pattern" })).toHaveCount(0);
+  await expect(page.getByRole("tablist", { name: "Size: its pages" }).getByRole("tab", { name: "Size and tension", exact: true })).toHaveAttribute("aria-selected", "true");
+  const section = page.getByRole("region", { name: "Tension", exact: true });
+  // The pattern's own tension is filled in, and needs nothing worked out.
+  await expect(section.getByLabel("Stitches to 10cm")).toHaveValue("28", { timeout: 20_000 });
+  await expect(section.getByLabel("Rounds to 10cm")).toHaveValue("32");
+  await expect(section.getByRole("button", { name: "Recalculate the pattern", exact: true })).toHaveCount(0);
 
-  // A looser one: as written it comes out bigger, and the pattern can be worked out for it.
-  // Given, a tension is a line with the way to change it, and not a form.
-  await expect(section.getByLabel("Stitches counted")).toHaveCount(0);
-  await section.getByRole("button", { name: "Change", exact: true }).click();
-  await section.getByLabel("Stitches counted").fill("24");
-  await section.getByLabel("Rounds counted").fill("28");
-  await section.getByRole("button", { name: "Update", exact: true }).click();
-  await expect(section.getByRole("status").first()).toContainText("Yours is 24 stitches and 28 rounds to 10cm");
-  await expect(section.getByRole("row", { name: /Chest/ }).first()).toContainText("123.5cm");
-  await section.getByRole("button", { name: "Recalculate for my tension", exact: true }).click();
-  const shown = section.locator(".refit-shown");
+  // A looser one: as written it comes out bigger, and the pattern can be recalculated for it.
+  await section.getByLabel("Stitches to 10cm").fill("24");
+  await section.getByLabel("Rounds to 10cm").fill("28");
+  await expect(section.getByRole("status")).toContainText("As written, M would come out 123.5cm round the chest at that tension, not 106cm.");
+  // Until it is, the pattern is as written, and that is what the last tab says would be started.
+  await page.getByRole("tab", { name: "Start", exact: true }).click();
+  await expect(page.locator(".ready-choices")).toContainText("As the pattern");
+  await expect(page.locator(".ready-choices")).toContainText("yours is 24 & 28");
+  await page.locator(".ready-choices").getByRole("button", { name: /Tension/ }).click();
+
+  await section.getByRole("button", { name: "Recalculate the pattern", exact: true }).click();
+  const shown = section.locator(".size-recalculated");
   await expect(shown).toBeVisible({ timeout: 90_000 });
-  await expect(shown).toContainText("From the cast-on.");
-  // They are compared on the stage, where the one jumper was.
-  await expect(page.locator(".stage .sweater-comparison figcaption")).toHaveText(["As designed", "Recalculated"]);
-  await expect(shown.getByRole("row", { name: /Chest/ })).toContainText("106.5cm");
+  // Nothing is set beside anything: the one jumper on the stage is the recalculated one, and its badge says at what tension.
+  await expect(page.locator(".stage-badge")).toContainText("M · 24 sts & 28 rounds · ");
+  await expect(page.locator(".stage .sweater-comparison")).toHaveCount(0);
   await shown.getByText("The pattern, written out").click();
   await expect(shown.locator(".refit-written")).toContainText("Cast on 112");
+  // The pages after are that pattern's: what it measures, at the knitter's tension.
+  await page.getByRole("tab", { name: "Size M at your tension, finished", exact: true }).click();
+  const measurements = page.locator(".pages-page[data-current] .measurements");
+  await expect(measurements).toContainText("106.5cm");
+  await expect(measurements).toContainText("24 sts & 28 rounds to 10cm");
   // Nothing is begun by looking.
   expect(await page.evaluate(() => Object.keys(localStorage).filter((key) => key.startsWith("project-")))).toEqual([]);
-  // They are the tension's page's to show: on the size's other pages the one jumper is back.
-  await page.getByRole("tab", { name: "Choose a size", exact: true }).click();
-  await expect(page.locator(".stage .sweater-comparison")).toHaveCount(0);
-  // With it worked out, the last tab says that starting starts this one; and its line for the tension goes back to it, still there.
+
+  // The pattern's tension put back, the page is the pattern's again; and another tension is another question.
+  await page.getByRole("tab", { name: "Size and tension", exact: true }).click();
+  await shown.getByRole("button", { name: "Back to the pattern as written", exact: true }).click();
+  await expect(shown).toHaveCount(0);
+  await expect(page.locator(".stage-badge")).not.toContainText("rounds");
+  await expect(section.getByLabel("Stitches to 10cm")).toHaveValue("28");
+  await expect(page.getByRole("tab", { name: "Size M, finished", exact: true })).toHaveCount(1);
+  await section.getByLabel("Stitches to 10cm").fill("24");
+  await section.getByLabel("Rounds to 10cm").fill("28");
+  await section.getByRole("button", { name: "Recalculate the pattern", exact: true }).click();
+  await expect(shown).toBeVisible({ timeout: 90_000 });
+
+  // The last tab says that starting starts this one, and does.
   await page.getByRole("tab", { name: "Start", exact: true }).click();
   await expect(page.locator(".ready-choices")).toContainText("Recalculated for yours");
-  await page.locator(".ready-choices").getByRole("button", { name: /Tension/ }).click();
-  await expect(shown).toBeVisible();
-  await expect(page.locator(".stage .sweater-comparison figcaption")).toHaveText(["As designed", "Recalculated"]);
-
-  await shown.getByRole("button", { name: "Start knitting this", exact: true }).click();
+  await page.getByRole("button", { name: "Start knitting", exact: true }).click();
   await expect(page.locator(".knitting-panel")).toContainText("of 112 stitches", { timeout: 30_000 });
   const started = await page.evaluate(() => JSON.parse(localStorage.getItem(Object.keys(localStorage).find((key) => key.startsWith("project-")))));
   const current = editions.hamefarin.m.current;
@@ -233,40 +241,104 @@ test("a tension given before starting: the pattern is worked out for it from the
   expect((await page.evaluate((id) => JSON.parse(localStorage.getItem(id)), started.id)).edition).toBe(current);
 });
 
-test("Each Year Once for a tension given before starting: every year or fewer, fuller, each from the cast-on", async ({ page }) => {
+test("Each Year Once for a tension chosen with the size: every year, from the cast-on, and nothing to choose between", async ({ page }) => {
   test.setTimeout(240_000);
-  // Shown laid out, as above: three samplers settled is many minutes.
   await withoutSettling(page);
-  await page.goto(`#/sweater/${design}?size=l&tab=tension`);
-  const section = page.getByRole("region", { name: "Your tension" });
-  await expect(section).toContainText("written for 32 stitches and 38 rounds to 10cm", { timeout: 20_000 });
-  await section.getByLabel("Stitches counted").fill("23.3");
-  await section.getByLabel("Rounds counted").fill("25");
-  await section.getByRole("button", { name: "Compare with the pattern", exact: true }).click();
-  await section.getByRole("button", { name: "Recalculate for my tension", exact: true }).click();
-  const shown = section.locator(".refit-shown");
+  await page.goto(`#/sweater/${design}?size=l&tab=size`);
+  const section = page.getByRole("region", { name: "Tension", exact: true });
+  await expect(section.getByLabel("Stitches to 10cm")).toHaveValue("32", { timeout: 20_000 });
+  await expect(section.getByLabel("Rounds to 10cm")).toHaveValue("38");
+  await section.getByLabel("Stitches to 10cm").fill("23.3");
+  await section.getByLabel("Rounds to 10cm").fill("25");
+  await section.getByRole("button", { name: "Recalculate the pattern", exact: true }).click();
+  const shown = section.locator(".size-recalculated");
   await expect(shown).toBeVisible({ timeout: 150_000 });
-  await expect(shown).toContainText("From the cast-on.");
   // All thirteen years, from 2014 round the yoke.
   await expect(shown).toContainText(/The yoke has \d+ rounds, 2014 to 20\d\d, and grows from \d+ stitches to \d+\./);
   await expect(shown).not.toContainText("Left out");
-  // Or fewer, each fuller: worked out with the first, and the last years said to be left out.
-  await shown.getByRole("radio", { name: /Fewer years, fuller/ }).check();
-  await expect(shown).toContainText(/Left out: 20\d\d to 2026\./);
+  // Fewer years, each fuller, is a way of laying out the rest of one part knitted: with nothing knitted there is nothing to choose between.
+  await expect(shown.getByRole("radio")).toHaveCount(0);
   await shown.getByText("The pattern, written out").click();
   await expect(shown.locator(".refit-written")).toContainText(/Cast on \d+/);
 
-  await shown.getByRole("button", { name: "Start knitting this", exact: true }).click();
+  await page.getByRole("tab", { name: "Start", exact: true }).click();
+  await page.getByRole("button", { name: "Start knitting", exact: true }).click();
   await expect(page.locator(".knitting-panel")).toContainText(/of \d+ stitches/, { timeout: 30_000 });
   const started = await page.evaluate(() => JSON.parse(localStorage.getItem(Object.keys(localStorage).find((key) => key.startsWith("project-")))));
-  expect(started).toMatchObject({ sizeId: "l", progress: 0, tension: { stitchesPer10cm: 23.3, roundsPer10cm: 25 }, upTo: edition, fit: { from: edition, option: "fewer" } });
+  expect(started).toMatchObject({ sizeId: "l", progress: 0, tension: { stitchesPer10cm: 23.3, roundsPer10cm: 25 }, upTo: edition, fit: { from: edition } });
   expect(started.fit.round).toBeUndefined();
-  // Every year it has is placed, from the neck down, for a colourway that steps down the sweater.
+  expect(started.fit.option).toBeUndefined();
+  expect(started.made).toEqual({ steps: [{ fit: { stitchesPer10cm: 23.3, roundsPer10cm: 25 } }] });
+  // Every year is placed, from the neck down, for a colourway that steps down the sweater.
   expect(Object.keys(started.fit.placement.places)[0]).toBe("2014");
-  expect(Object.keys(started.fit.placement.places).length).toBeLessThan(13);
+  expect(Object.keys(started.fit.placement.places)).toHaveLength(13);
 });
 
-test("a design that can't be worked out again does not offer to be", async ({ page }) => {
+/*
+ * The designs worked out whole, and not on from part knitted: each on its
+ * design's page, from a tension chosen there. What each lays out is the
+ * compiler's (see src/compiler/fit.test.ts); this is that its page offers
+ * it, becomes what it came to and starts it.
+ */
+for (const { design, size, written, swatch, says, casts } of [
+  { design: "paul-klee", size: "m1", written: [22, 34], swatch: [24, 37], says: /The yoke is the pattern's size L, as written: at your tension its 260 stitches round the body come nearest M1's measurements\./, casts: 118 },
+  { design: "wool-week-strips-lined-oldest", size: "m", written: [32, 38], swatch: [28, 34], says: /Every year is a strip of 13 to 16 rounds at this tension/, casts: 128 },
+  { design: "feline-raglan", size: "m", written: [32, 38], swatch: [28, 34], says: /Each feline is drawn afresh for this tension: \d+ stitches wide and \d+ rounds tall/, casts: 128 },
+  { design: "feline-yoke", size: "m", written: [32, 38], swatch: [28, 34], says: /Each feline is drawn afresh for this tension: \d+ stitches wide and \d+ rounds tall/, casts: 128 },
+]) {
+  test(`${design} for a tension chosen with the size: worked out from the cast-on, and only then`, async ({ page }) => {
+    test.setTimeout(240_000);
+    await withoutSettling(page);
+    await page.goto(`#/sweater/${design}?size=${size}&tab=size`);
+    const section = page.getByRole("region", { name: "Tension", exact: true });
+    await expect(section.getByLabel("Stitches to 10cm")).toHaveValue(String(written[0]), { timeout: 30_000 });
+    await expect(section.getByLabel("Rounds to 10cm")).toHaveValue(String(written[1]));
+    await section.getByLabel("Stitches to 10cm").fill(String(swatch[0]));
+    await section.getByLabel("Rounds to 10cm").fill(String(swatch[1]));
+    await section.getByRole("button", { name: "Recalculate the pattern", exact: true }).click();
+    const shown = section.locator(".size-recalculated");
+    await expect(shown).toBeVisible({ timeout: 150_000 });
+    await expect(page.locator(".stage-badge")).toContainText(`${swatch[0]} sts & ${swatch[1]} rounds`);
+    await expect(shown).toContainText(says);
+    await expect(page.locator(".stage .sweater-comparison")).toHaveCount(0);
+    await shown.getByText("The pattern, written out").click();
+    await expect(shown.locator(".refit-written")).toContainText(`Cast on ${casts}`);
+
+    await page.getByRole("tab", { name: "Start", exact: true }).click();
+    await expect(page.locator(".ready-choices")).toContainText("Recalculated for yours");
+    await page.getByRole("button", { name: "Start knitting", exact: true }).click();
+    await expect(page.locator(".knitting-panel")).toContainText(/of \d+ stitches/, { timeout: 30_000 });
+    const started = await page.evaluate(() => JSON.parse(localStorage.getItem(Object.keys(localStorage).find((key) => key.startsWith("project-")))));
+    const current = editions[design][size].current;
+    expect(started).toMatchObject({ sizeId: size, progress: 0, tension: { stitchesPer10cm: swatch[0], roundsPer10cm: swatch[1] }, upTo: current, fit: { from: current }, made: { steps: [{ fit: { stitchesPer10cm: swatch[0], roundsPer10cm: swatch[1] } }] } });
+    expect(started.fit.round).toBeUndefined();
+    expect(started.edition).not.toBe(current);
+    // Its page says it is, and offers nothing more to work out: the rest of one begun can't be.
+    await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+    await page.getByRole("link", { name: "Close the chart", exact: true }).click();
+    await page.getByRole("tab", { name: "Fit", exact: true }).click();
+    const own = page.getByRole("region", { name: "Your tension" });
+    await expect(own).toContainText("Your pattern is recalculated for this tension, from the cast-on.", { timeout: 30_000 });
+    await expect(own.getByRole("heading", { name: "Recalculate the rest" })).toHaveCount(0);
+  });
+}
+
+test("a tension the design can't be laid out at says why, and the pattern stays as written", async ({ page }) => {
+  await page.goto("#/sweater/wool-week-strips-lined-oldest?size=m&tab=size");
+  const section = page.getByRole("region", { name: "Tension", exact: true });
+  await expect(section.getByLabel("Stitches to 10cm")).toHaveValue("32", { timeout: 30_000 });
+  await section.getByLabel("Stitches to 10cm").fill("22");
+  await section.getByLabel("Rounds to 10cm").fill("26");
+  await section.getByRole("button", { name: "Recalculate the pattern", exact: true }).click();
+  const alert = section.getByRole("alert");
+  await expect(alert).toContainText("The pattern can't be recalculated for that tension.", { timeout: 60_000 });
+  await expect(alert).toContainText("thirteen strips will not go in");
+  await expect(section.locator(".size-recalculated")).toHaveCount(0);
+  await page.getByRole("tab", { name: "Start", exact: true }).click();
+  await expect(page.locator(".ready-choices")).toContainText("As the pattern");
+});
+
+test("a design worked out only from the cast-on does not offer to be once it is begun, and says why", async ({ page }) => {
   await page.goto("");
   await page.evaluate((id) => {
     const now = new Date().toISOString();
@@ -278,4 +350,6 @@ test("a design that can't be worked out again does not offer to be", async ({ pa
   const section = page.getByRole("region", { name: "Your tension" });
   await expect(section.getByRole("table")).toBeVisible();
   await expect(section.getByRole("heading", { name: "Recalculate the rest" })).toHaveCount(0);
+  await expect(section).toContainText("This design can only be recalculated for a tension before it is cast on, so this pattern carries on as written.");
+  await expect(section).toContainText("start another from the design's page and give your tension there");
 });

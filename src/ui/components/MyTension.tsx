@@ -14,13 +14,15 @@ const said = (tension: Tension) => `${tension.stitchesPer10cm} stitches and ${te
 /**
  * A pattern's tension, and a knitter's own.
  *
+ * On a jumper's own page: before one is started its tension is chosen with
+ * its size (see TensionChoice, and Sweater).
+ *
  * A pattern only comes out at its measurements at the tension it was written
- * for, so that is said first, as a pattern says it: a knitter whose swatch
- * matches has nothing to do here. One whose swatch doesn't gives theirs, and
- * is shown what the pattern then comes out at knitted as written (see
+ * for, so that is said first, as a pattern says it: a knitter whose knitting
+ * matches has nothing to do here. One whose knitting doesn't gives theirs,
+ * and is shown what the pattern then comes out at knitted as written (see
  * reading/tension) - which is what there is to decide by - and, where the
- * design can, offered the pattern recalculated for it (the children: see
- * StartFitted, before a sweater is begun, and Refit, once it is).
+ * design can, offered the rest recalculated for it (the children: see Refit).
  *
  * Once a tension is given it is a line, with the way to change it, and not a
  * form: what follows from it is what the page is then about.
@@ -31,13 +33,11 @@ const MyTension: React.FC<{
   fitted?: { finished: Measurements } & Tension;
   tension: Tension | undefined;
   onChange: (tension: Tension | undefined) => void;
-  /** Whether the sweater is begun: before it is, a swatch is what is measured, and after, the knitting itself. */
-  begun?: boolean;
-  /** Whether the pattern can be recalculated for a tension, as things are: said before one is given. */
+  /** Whether the rest can be recalculated for a tension, as things are: said before one is given. */
   recalculates?: boolean;
   /** Anything more to say of the tension, below what it comes out at. */
   children?: React.ReactNode;
-}> = ({ size, fitted, tension, onChange, begun = false, recalculates = false, children }) => {
+}> = ({ size, fitted, tension, onChange, recalculates = false, children }) => {
   const written = fitted ?? size;
   const knitted = tension && asKnitted(written.finished, written, tension);
   const same = !!tension && sameTension(written, tension);
@@ -51,13 +51,9 @@ const MyTension: React.FC<{
     if (!tension) setEditing(true);
   }, [tension]);
 
-  const lead = begun
-    ? `If your knitting measures the same, there is nothing to do here. If it doesn't, lay it flat, count what you have over a measured length - the longer the better - and give it here.${
-        recalculates ? " The rest of the pattern can be recalculated for it, while the whole yoke is still on the needles." : ""
-      }`
-    : recalculates
-      ? "If your swatch comes out the same, there is nothing to do here. If it doesn't, give what it measures: the pattern can be recalculated for it before you cast on, or part-way down the yoke if you only find out as you knit."
-      : "If your swatch comes out the same, there is nothing to do here. If it doesn't, give what it measures, to see what the pattern comes out at.";
+  const lead = `If your knitting measures the same, there is nothing to do here. If it doesn't, lay it flat, count what you have over a measured length - the longer the better - and give it here.${
+    recalculates ? " The rest of the pattern can be recalculated for it, while the whole yoke is still on the needles." : ""
+  }`;
 
   return (
     <section className="section my-tension" aria-labelledby="my-tension-heading">
@@ -95,11 +91,7 @@ const MyTension: React.FC<{
             // Put away while a pattern recalculated is on show: its own table has these figures, beside what it comes to (see FitPreview).
             <div className="my-tension-as-written">
               <p>
-                {same
-                  ? "That is the tension the rest is recalculated for. It comes out:"
-                  : begun
-                    ? "If you keep knitting the pattern as written, your sweater comes out:"
-                    : "Knitted as written at your tension, this sweater comes out:"}
+                {same ? "That is the tension the rest is recalculated for. It comes out:" : "If you keep knitting the pattern as written, your sweater comes out:"}
               </p>
               <table className="my-tension-table">
                 <thead>

@@ -218,10 +218,12 @@ export interface Design {
   /**
    * Whether a size can be planned afresh for a knitter whose tension is not
    * the pattern's - whole, from the cast-on, or the rest of one part knitted -
-   * and the ways it can be laid out where the knitter has a choice. See
-   * library/fit.
+   * and the ways the rest of one part knitted can be laid out, where the
+   * knitter has a choice (a whole one is laid out the design's one way). See
+   * library/fit. `partWay` where the rest of one part knitted can be planned
+   * too: a design without it can only be planned whole, before it is begun.
    */
-  fitting?: { options?: FitOption[] };
+  fitting?: { options?: FitOption[]; partWay?: boolean };
   sizes: SizeAbout[];
 }
 

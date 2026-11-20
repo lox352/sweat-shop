@@ -55,12 +55,13 @@ export const fitOptions = (design: string) => fittingOf(design)?.fitting.options
 
 /** The first round, at or after `round`, the rest can be planned from: none where the design can't, or it is too late. */
 export const cutAfter = (design: string, knitted: SweaterStitches, round: number): number | undefined =>
-  fittingOf(design)?.fitting.cutAfter(knitted, round);
+  fittingOf(design)?.fitting.cutAfter?.(knitted, round);
 
 export const fit = (ask: FitAsk, done?: (fraction: number) => void): Fit => {
   const found = fittingOf(ask.design);
   if (!found) throw new Error(`${ask.design} can't be planned on from part knitted`);
   const { pattern, fitting } = found;
+  if (ask.knitted && !fitting.cutAfter) throw new Error(`${ask.design} can only be planned whole, from the cast-on`);
   const size = sizeOf(pattern, ask.sizeId);
   /*
    * What is knitted was knitted at the knitter's tension, whatever the

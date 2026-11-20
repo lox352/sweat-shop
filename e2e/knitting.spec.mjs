@@ -217,11 +217,12 @@ test("the chart is a view over the jumper: folding the knitting away leaves you 
   await customise.getByRole("button", { name: "Close", exact: true }).click();
   await expect(customise).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "Wool", exact: true })).toHaveAttribute("aria-selected", "true");
-  // After its list, the design's colourways, a page a group, and the same row under each for its wools.
+  // After its list, the design's colourways, a page a group; and at the foot of them all, the one bar for the colourway's wools, which is down again once the tab is left.
   await page.getByRole("tab", { name: "Colourways", exact: true }).click();
   await expect(page.locator(".pages-page[data-current] .colourway-option.is-chosen")).toHaveText("Simmer Dim");
-  await expect(page.locator(".pages-page[data-current]").getByRole("button", { name: /^Change wool/ })).toBeVisible();
+  await expect(page.locator(".pages-foot").getByRole("button", { name: /^Change wool/ })).toBeVisible();
   await page.getByRole("tab", { name: "Progress", exact: true }).click();
+  await expect(page.locator(".pages-foot")).toBeHidden();
   await page.locator(".pages-page[data-current]").getByRole("link", { name: "Keep knitting", exact: true }).click();
   await expect(position(page)).toContainText("Yoke, round 2, stitch 1.");
 
@@ -528,7 +529,7 @@ test("a bought design comes in every size it is written for, by its own wool, ev
   await expect(chosen).toContainText("15 shades");
   // Any of them can be changed, each on its own, in a card up from the foot of the colours: the chart and the wools in it, the jumper still over it.
   await panel("Colours").click();
-  await shownPage.getByRole("button", { name: /^Change wool/ }).click();
+  await page.locator(".pages-foot").getByRole("button", { name: /^Change wool/ }).click();
   const customise = page.getByRole("dialog", { name: "Customise the colours" });
   await expect(page.locator(".stage .sweater-canvas")).toBeVisible();
   await expect(customise.locator(".customise-wool")).toHaveCount(15);
@@ -551,7 +552,7 @@ test("a bought design comes in every size it is written for, by its own wool, ev
   await expect(customise).toHaveCount(0);
   await expect(page).toHaveURL(/tab=colours$/);
   await expect(badge).toContainText("Your own, from");
-  await expect(shownPage.getByRole("button", { name: /^Change wool/ })).toContainText("1 your own");
+  await expect(page.locator(".pages-foot").getByRole("button", { name: /^Change wool/ })).toContainText("1 your own");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 });
 
@@ -582,19 +583,38 @@ test("Each Year Once knits every hat from 2014 to 2026 once, the yoke's first, t
       await new Promise((done) => setTimeout(done, 200));
       return row.scrollLeft === was ? Math.round((was / row.clientWidth) * 10) / 10 : -1;
     });
-  // The row: what the design is, a size's four pages, the colours' seven, and starting.
-  await expect.poll(atRest).toBe(11);
-  await track.evaluate((row) => row.scrollTo({ left: 12 * row.clientWidth, behavior: "instant" }));
+  // The row: what the design is, a size's three pages, the colours' seven, and starting.
+  await expect.poll(atRest).toBe(10);
+  await track.evaluate((row) => row.scrollTo({ left: 11 * row.clientWidth, behavior: "instant" }));
   await expect(page.getByRole("tablist", { name: "This design" }).getByRole("tab", { selected: true })).toHaveText("Start");
   await page.getByRole("tablist", { name: "This design" }).getByRole("tab", { name: "Colours", exact: true }).click();
   await expect(shownPage.getByRole("heading", { level: 2 })).toHaveText("Shetland and Fair Isle");
-  // The trim is the chosen colourway's, in a card up from the foot of its pages: the darkest yarn of the hats beside each part to begin with, or any yarn of the palette.
-  await shownPage.getByRole("button", { name: /^Trim/ }).click();
+  // What is done to the colourway chosen is no one page's: a bar at the foot of the colours, in the same place whichever of their pages is shown, and down again when their tab is left.
+  const foot = page.locator(".pages-foot");
+  await expect(foot).toBeVisible();
+  // Where it is, from the left and the foot of the room the pages have: come up, it is at both.
+  const footAt = () =>
+    foot.evaluate((bar) => {
+      const [own, room] = [bar.getBoundingClientRect(), bar.parentElement.getBoundingClientRect()];
+      return [Math.round(own.left - room.left), Math.round(room.bottom - own.bottom)];
+    });
+  await expect.poll(footAt).toEqual([0, 0]);
+  await page.getByRole("tablist", { name: "Colours: its pages" }).getByRole("tab").nth(1).click();
+  await expect(shownPage.getByRole("heading", { level: 2 })).not.toHaveText("Shetland and Fair Isle");
+  await expect(foot).toBeVisible();
+  expect(await footAt()).toEqual([0, 0]);
+  expect(await page.locator(".pages-foot").count()).toBe(1);
+  await page.getByRole("tablist", { name: "This design" }).getByRole("tab", { name: "Size", exact: true }).click();
+  await expect(foot).toBeHidden();
+  await page.getByRole("tablist", { name: "This design" }).getByRole("tab", { name: "Colours", exact: true }).click();
+  await expect(foot).toBeVisible();
+  // The trim is the chosen colourway's, in a card up from the foot: the darkest yarn of the hats beside each part to begin with, or any yarn of the palette.
+  await foot.getByRole("button", { name: /^Trim/ }).click();
   const trim = page.getByRole("dialog", { name: "Trim" }).getByRole("group", { name: "Trim" });
   await expect(trim.getByRole("button", { pressed: true })).toHaveAccessibleName("Darkest beside each");
   await trim.getByRole("button", { name: "Moorit" }).click();
   await expect(trim.getByRole("button", { pressed: true })).toHaveAccessibleName("Moorit");
-  await expect(shownPage.getByRole("button", { name: /^Trim/ })).toContainText("Moorit");
+  await expect(foot.getByRole("button", { name: /^Trim/ })).toContainText("Moorit");
   await trim.getByRole("button", { name: "Darkest beside each" }).click();
   await expect(trim.getByRole("button", { pressed: true })).toHaveAccessibleName("Darkest beside each");
   await page.getByRole("dialog", { name: "Trim" }).getByRole("button", { name: "Close", exact: true }).click();
@@ -1481,4 +1501,20 @@ test("a pinch that pans as it zooms leaves the stitch under the fingers where th
   const settled = await outline();
   expect(Math.abs(settled[0] - lifted[0])).toBeLessThan(20);
   expect(Math.abs(settled[1] - lifted[1])).toBeLessThan(20);
+});
+
+test("a tab tapped and left at once for the chart: on a slow device the knitter still gets where they were going", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto("#/sweater/wool-week-strips-lined-oldest?size=m");
+  await expect(page.locator(".size-option").first()).toBeAttached({ timeout: 30_000 });
+  // A device slow enough that the chart is not up before the tab's address would be written: written then, it brought the knitter back to the design.
+  const device = await page.context().newCDPSession(page);
+  await device.send("Emulation.setCPUThrottlingRate", { rate: 6 });
+  await page.getByRole("tab", { name: "Start", exact: true }).click();
+  await page.getByRole("button", { name: "Start knitting", exact: true }).click();
+  await expect(page.locator(".knitting-panel")).toContainText(/of \d+ stitches/, { timeout: 60_000 });
+  // Long enough for the tab's address to have been written, were it going to be.
+  await page.waitForTimeout(2000);
+  await expect(page).toHaveURL(/#\/project\/[^/]+\/chart/);
+  await expect(page.locator(".knitting-panel")).toBeVisible();
 });
