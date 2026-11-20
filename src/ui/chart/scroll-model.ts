@@ -194,7 +194,7 @@ export const along = (rest: Places, places: Places, part: number, size: number, 
 
 /**
  * The line to hold still for lines that would otherwise shove what is in the
- * box (see TileView.sendLines): the one showing, before and after, nearest
+ * box (see TileView.sendColumns): the one showing, before and after, nearest
  * the point `at` along the lines as they were - the middle of the box.
  */
 export const middleLine = (was: Places, to: Places, at: number): number | undefined => {
@@ -219,13 +219,11 @@ export const middleLine = (was: Places, to: Places, at: number): number | undefi
  * shares out what opens and closes about it, would have it shove whatever
  * is beyond it in the box along at once (see along). At an end of the chart
  * the pivot is the box's edge, and a block opening there shoved everything:
- * scrolled along the top of the chart onto a sleeve, whose rounds go on past
- * the body's, everything went down the box by more than half its height in
- * a moment; along its foot, past the short rows at the back of the neck, the
- * yoke went up and down it. Lines opening here and there, as a yoke's
- * make-ones do a stitch apart, are no block: they open about the pivot, an
- * edge the box is at kept at its own. Nor is one further off, which the
- * pivot leaves the box alone for. See TileView.sendLines.
+ * flung down a raglan from its neck, the columns its increases open beyond
+ * the round's first went by in a frame. Lines opening here and there, as a
+ * yoke's make-ones do a stitch apart, are no block: they open about the
+ * pivot, an edge the box is at kept at its own. Nor is one further off,
+ * which the pivot leaves the box alone for. See TileView.sendColumns.
  */
 export const blockNear = (was: Places, to: Places, from: number, size: number, block: number): boolean => {
   const [near, far] = [from - size / 2, from + size + size / 2];
