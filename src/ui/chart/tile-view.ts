@@ -641,7 +641,8 @@ export class TileView {
    * Where the round numbers are put, if anywhere, rather than painted on the
    * chart: in a strip down the right-hand edge of the box wherever it is
    * along the chart, the strip pinned to the box's edge across, and this,
-   * inside it, moved down with the layer. See placeRuler.
+   * inside it, moved down with the layer; the strip shown only while the box
+   * is at rest. See placeRuler and stillRuler.
    */
   ruler?: HTMLElement;
   /** The numbers in the ruler, each row's; and what they were put there for. */
@@ -684,6 +685,8 @@ export class TileView {
   private away?: number;
   /** A look at whether the stitch is out of sight, once the box comes to rest. */
   private awayLook = 0;
+  /** A look at whether the box has come to rest, to show the round numbers again: see stillRuler. */
+  private rulerLook = 0;
   /** The rest of the tiles to paint ahead, a couple at a time: see warm. */
   private warming = 0;
   /** When the view was made: until the box has had time to be sent to the stitch, it is not out of sight, only not there yet. */
@@ -1513,6 +1516,7 @@ export class TileView {
     this.hud?.frame(time, this.paints, this.paintTime, this.heading, this.past, this.paintedAhead());
     this.placeNext(content);
     this.placeRuler(content);
+    this.stillRuler(time);
     this.lookForFollow(time);
     if (this.columns.moving || this.rows.moving) this.schedule();
     if (moved || rebased || this.toTell) {
@@ -2066,6 +2070,29 @@ export class TileView {
       // Moved, not laid out again: the middle of its row.
       label.style.translate = `0px ${places.start[row] + places.size[row] / 2}px`;
     }
+  }
+
+  /**
+   * The round numbers shown only while the box is at rest: put away the
+   * moment it moves, and shown again once it has come to rest (see
+   * .chart-ruler[data-still]). Moving, they never moved as the chart did:
+   * held at the box's edge, the stitches slid past under them along a
+   * round, and flung up the chart at a slant, they went straight up while
+   * the chart went up and across - one more thing moving, out of step with
+   * the chart, and enough to feel sick at. Nor while the view is new, and
+   * the box yet to be sent to the stitch, so that they come in once, where
+   * it goes.
+   */
+  private stillRuler(time: number) {
+    const strip = this.ruler?.parentElement;
+    if (!strip) return;
+    clearTimeout(this.rulerLook);
+    const easing = this.columns.moving || this.rows.moving;
+    const since = time - Math.max(this.movedAt, this.madeAt);
+    const still = !this.touching && !easing && since >= settling;
+    if (strip.dataset.still !== String(still)) strip.dataset.still = String(still);
+    // Looked at again once the box has had time to come to rest: lines easing look again next frame, and a finger still down as it lifts.
+    if (!still && !easing && !this.touching) this.rulerLook = window.setTimeout(() => this.schedule(), settling - since + 16);
   }
 
   /**
@@ -2721,6 +2748,7 @@ export class TileView {
     if (views?.includes(this)) views.splice(views.indexOf(this), 1);
     cancelAnimationFrame(this.frame);
     clearTimeout(this.awayLook);
+    clearTimeout(this.rulerLook);
     clearTimeout(this.warming);
     // Whatever shows the way back is told there is none, rather than left showing it for a view that is gone.
     this.tellAway(undefined);

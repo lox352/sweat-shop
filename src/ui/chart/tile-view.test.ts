@@ -184,6 +184,66 @@ describe("the chart on tiles", () => {
     view.destroy();
   });
 
+  it("shows the round numbers only while the box is at rest, and by itself once it is", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    let now = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    // Frames are run here, by hand.
+    let frames: FrameRequestCallback[] = [];
+    vi.stubGlobal("requestAnimationFrame", (frame: FrameRequestCallback) => frames.push(frame));
+    vi.stubGlobal("cancelAnimationFrame", () => {});
+    const { scroller, sheet, container } = box(300, 200);
+    const frame = () => {
+      const due = frames;
+      frames = [];
+      for (const run of due) run(now);
+    };
+    /** A while gone by, and what was to be looked at then looked at. */
+    const wait = (ms: number) => {
+      now += ms;
+      vi.advanceTimersByTime(ms);
+      frame();
+    };
+    const touch = (type: string, fingers: number) => {
+      const event = new Event(type);
+      Object.defineProperty(event, "touches", { value: { length: fingers } });
+      scroller.dispatchEvent(event);
+      frame();
+    };
+    const strip = document.createElement("div");
+    const ruler = strip.appendChild(document.createElement("div"));
+    sheet.appendChild(strip);
+    const view = new TileView(container, scroller, sheet);
+    view.ruler = ruler;
+    view.show(content());
+    const still = () => strip.dataset.still;
+    expect(ruler.children.length).toBeGreaterThan(0);
+    // Just made, the box yet to be sent to the stitch; then at rest, with no scroll to say so.
+    expect(still()).toBe("false");
+    wait(200);
+    expect(still()).toBe("true");
+    // Put away the moment the box scrolls, and back once it has stopped.
+    scroller.dispatchEvent(new Event("scroll"));
+    frame();
+    expect(still()).toBe("false");
+    wait(100);
+    expect(still()).toBe("false");
+    wait(100);
+    expect(still()).toBe("true");
+    // A finger on it, however long it is held still, until it lifts and the box has come to rest.
+    touch("touchstart", 1);
+    expect(still()).toBe("false");
+    wait(1000);
+    expect(still()).toBe("false");
+    touch("touchend", 0);
+    expect(still()).toBe("false");
+    wait(200);
+    expect(still()).toBe("true");
+    view.destroy();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
   it("follows the box as it scrolls, keeping the tiles it has painted", () => {
     const { scroller, sheet, container } = box(300, 200);
     const view = new TileView(container, scroller, sheet);

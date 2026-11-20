@@ -449,6 +449,26 @@
   right: 0;
   flex: none;
   width: var(--ruler-width, 22px);
+  opacity: 0;
+  transition: opacity 0.1s linear;
+}
+
+/*
+ * Shown only while the chart is still: faded out the moment it moves, and in
+ * again a third of a second after it last moved - once the box has come to
+ * rest, and a moment more, so that a pause between two swipes does not
+ * bring them back only to put them away again. See TileView.stillRuler.
+ */
+.chart-ruler[data-still="true"] {
+  opacity: 1;
+  transition: opacity 0.2s ease-out 0.18s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-ruler,
+  .chart-ruler[data-still="true"] {
+    transition: none;
+  }
 }
 
 /*
