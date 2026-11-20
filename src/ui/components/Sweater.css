@@ -24,7 +24,7 @@
   line-height: 1.25;
 }
 
-/* On a page of its own, sixteen sizes and what is said under them fit without scrolling: the sizes closer set, the saying small. */
+/* On a page of its own, sixteen sizes and the tension under them fit without scrolling: the sizes closer set. */
 .pages-page > .size-chooser {
   gap: 0.4rem;
   margin-bottom: 0.7rem;
@@ -36,11 +36,6 @@
 
 .pages-page > .size-chooser .size-option strong {
   line-height: 1.2;
-}
-
-.pages-page > .size-chooser + .quiet {
-  font-size: var(--text-s);
-  line-height: 1.4;
 }
 
 /* The end of the pages: what was chosen, a line each, and the way forward. */
@@ -119,4 +114,53 @@
 .sweater-settling progress {
   width: 100%;
   max-width: 24rem;
+}
+
+/* The tension a size is to be knitted at, under the sizes: the pattern's, filled in, to change. See TensionChoice. */
+.size-tension {
+  margin-top: 0.6rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--rule);
+}
+
+.size-tension h3 {
+  margin: 0 0 0.4rem;
+}
+
+/* One line, as a pattern says it: two fields and what each counts. */
+.size-tension .tension-choice p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.4rem;
+}
+
+.size-tension .tension-choice input {
+  width: 3.5rem;
+}
+
+.size-tension [role="status"] > p,
+.size-tension [role="alert"] > p {
+  margin-bottom: 0.5rem;
+}
+
+.size-recalculated ul {
+  margin: 0 0 0.6rem;
+  padding-left: 1.1rem;
+}
+
+.size-recalculated li {
+  margin-bottom: 0.35rem;
+}
+
+.size-working progress {
+  display: block;
+  width: 100%;
+}
+
+.size-working p {
+  margin: 0.4rem 0 0;
+  font-size: var(--text-s);
+  line-height: 1.4;
+  color: var(--ink-soft);
 }

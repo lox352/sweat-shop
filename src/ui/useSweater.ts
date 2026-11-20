@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { Design } from "../pattern/design";
+import type { SweaterStitches } from "../pattern/knitted";
 import { editionFailed, loadEdition } from "../library/editions";
 import { NoKnitting, knittingToHand } from "../library/knitting";
 import { countedAt, yokeRounds } from "../reading/counted";
@@ -21,9 +22,8 @@ export const useKnitting = (pattern: Design, sizeId: string, edition?: string) =
   return knitting;
 };
 
-/** A sweater, and its rounds as the knitter counts them once `progress` stitches are worked: see countedAt. */
-export const useSweater = (pattern: Design, sizeId: string, progress = 0, edition?: string) => {
-  const built = useKnitting(pattern, sizeId, edition);
+/** A knitting to hand, and its rounds as the knitter counts them once `progress` stitches are worked: see countedAt. */
+export const useKnitted = (pattern: Design, built: SweaterStitches, progress = 0) => {
   const { view, index } = countedAt(pattern, built, progress);
   const yoke = useMemo(() => yokeRounds(built), [built]);
   const holds = useMemo(() => holdRegions(built.stitches, built.holds), [built]);
@@ -31,3 +31,7 @@ export const useSweater = (pattern: Design, sizeId: string, progress = 0, editio
   const following = viewFollowedAt(views, built, progress);
   return { ...built, index, yoke, holdRegions: holds, view, views, following };
 };
+
+/** A sweater, and its rounds as the knitter counts them once `progress` stitches are worked. */
+export const useSweater = (pattern: Design, sizeId: string, progress = 0, edition?: string) =>
+  useKnitted(pattern, useKnitting(pattern, sizeId, edition), progress);

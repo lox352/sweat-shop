@@ -260,9 +260,9 @@ The rules every screen keeps, so that none has to be learnt twice:
 - **A design is one row of pages** (`ui/Pages.tsx`). Each page is the size of
   the room under the stage, all of them side by side, swiped along and coming
   to rest on one: *About*, the design's own story, which it opens on; a
-  size's four (choose it, see it laid flat, read its measurements, and the
-  knitter's own tension, which is what it comes out at in their hands); a
-  page for each group of colourways; and at the end *Start*, which says what
+  size's three (choose it and the tension it is to be knitted at, see it
+  laid flat, and read its measurements); a page for each group of
+  colourways; and at the end *Start*, which says what
   was chosen and begins the knitting. The tabs mark where each kind begins, and
   a tab tapped goes to its first page; each page has its title over it and
   dots under it for the pages of its tab. Nothing is found by scrolling down
@@ -323,20 +323,15 @@ and the physics.
 ## Fitting a sweater part way through
 
 A pattern comes out at its measurements only at its tension, so that is what
-**Your tension** says first, as a pattern does: a knitter whose swatch
-matches has nothing to do there. One whose doesn't gives theirs - which is
-then a line, with the way to change it, and no longer a form - and is shown
-what the pattern comes out at knitted as written, and, for a design that
-can, offered it recalculated. What that comes to is shown as what the
-knitter is choosing between:
-
-- **Before a sweater is begun**, the design itself: the sweater as designed,
-  at the pattern's tension, beside the one recalculated at theirs, each drawn
-  by the width of its own stitches so that both are their true size. The
-  question there is what recalculating costs the design.
-- **Once it is begun**, the sweater there will be if the knitting carries on
-  as written, in the knitter's own stitches, beside the one there will be if
-  the rest is recalculated from where they are.
+**Your tension**, on a jumper's own page, says first, as a pattern does: a
+knitter whose knitting matches has nothing to do there. One whose doesn't
+gives theirs - which is then a line, with the way to change it, and no
+longer a form - and is shown what the pattern comes out at knitted on as
+written, and, for a design that can, offered the rest recalculated. What that
+comes to is shown as what the knitter is choosing between: the sweater there
+will be if the knitting carries on as written, in the knitter's own
+stitches, beside the one there will be if the rest is recalculated from
+where they are.
 
 Under them, one table has all three: the pattern's measurements, the pattern
 knitted as written at the knitter's tension, and the recalculated one's. The
@@ -371,11 +366,18 @@ The rest recalculated keeps to these:
   shape of the one taken is the project's from then on, and is not settled
   again.
 
-**From the cast-on too.** A plan may start from nothing knitted: on a
-design's page a knitter gives their swatch's tension, sees what the pattern
-comes to as written, and has it worked out for their tension, shown beside
-the pattern as it is, before a stitch is cast on. The project then begins on
-knitting of its own.
+**From the cast-on too.** A plan may start from nothing knitted, and there
+nothing is set beside anything: a size is chosen with the tension it is to
+be knitted at. The first of a size's pages has the sizes and, under them,
+the pattern's own tension filled in (`TensionChoice`); a knitter whose swatch
+measures otherwise changes it, is told in a line what the pattern would then
+come out at as written, and has it recalculated. From then on the design's
+page is that pattern's - the jumper on the stage (drawn laid out at once, and
+settled behind it; its badge says the tension it is for), the size laid flat and its measurements, the colours and
+the wool they take, and what *Start knitting* starts - until the tension or
+the size is changed, which is another question. Where the design can't be
+laid out at the tension it says why, and the pattern stays as written. The
+project then begins on knitting of its own.
 
 Every design can from the cast-on, and two can part way too (a design's
 `fitting` has a `cutAfter` only where it can; the catalogue says so as
@@ -383,7 +385,9 @@ Every design can from the cast-on, and two can part way too (a design's
 Once** plans from the cast-on, or on
 from the last round of a year on its yoke: the years not yet knitted shared
 between the pieces and each cut as its piece has room for, a pattern kept
-whole while it can be, every year or fewer of them fuller. One function
+whole while it can be, every year or fewer of them fuller - a choice only
+part way, where years no longer fit as they were: from the cast-on it has
+every year, and nothing to choose. One function
 lays out a published size, a sweater for a knitter's tension and the rest
 of one part knitted (`laidOut`, in the design's `refit.ts`), so a published
 size is that function at the pattern's tension, to the stitch. **Hamefarin**

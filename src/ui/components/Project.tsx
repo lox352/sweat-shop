@@ -941,7 +941,7 @@ const ProjectView: React.FC<{
   // Whether the rest can still be recalculated: the design can, and the whole sweater is still one round on the needles.
   const canFit = mayFit(sweater, built, project.progress);
   const tensionPage = (
-    <MyTension key={project.id} size={size} fitted={fitted} tension={project.tension} onChange={setTension} begun recalculates={canFit}>
+    <MyTension key={project.id} size={size} fitted={fitted} tension={project.tension} onChange={setTension} recalculates={canFit}>
       {/* Where the rest is recalculated for this tension already, it says so; where it could be, it offers to; and where it is too late to, it says why nothing is offered. */}
       {project.tension && !sameTension(fitted ?? size, project.tension) && sweater.fitting && !canFit && (
         <p className="quiet refit-late">

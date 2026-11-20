@@ -313,7 +313,7 @@ export interface Fitted {
  * compiler/fit.
  */
 export interface Fitting {
-  /** The ways the rest can be laid out, where the knitter has a choice. */
+  /** The ways the rest of one part knitted can be laid out, where the knitter has a choice. A whole sweater, from the cast-on, is laid out the design's one way. */
   options?: FitOption[];
   /**
    * The first round, at or after `round`, after which the rest can be planned

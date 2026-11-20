@@ -106,7 +106,6 @@ const Refit: React.FC<{
       {state.at === "shown" && (
         <FitPreview
           size={size}
-          beside="kept"
           written={fit ? { finished: fit.finished, ...fit.tension } : undefined}
           knitted={knitted}
           progress={progress}
