@@ -265,7 +265,10 @@ The rules every screen keeps, so that none has to be learnt twice:
   colourways; and at the end *Start*, which says what
   was chosen and begins the knitting. The tabs mark where each kind begins, and
   a tab tapped goes to its first page; each page has its title over it and
-  dots under it for the pages of its tab. Nothing is found by scrolling down
+  dots under it for the pages of its tab. What is done to the colourway
+  chosen - its trim, its wools - is no one page's, so it is a bar at the foot
+  of the colours' tab (a tab's `foot`): up while that tab is shown, still
+  while its pages are swiped under it, and down when the tab is left. Nothing is found by scrolling down
   past the rest, and there is no bar at the foot: the way forward is the last
   tab. A jumper's own page is the same row: *Progress* (where the knitting
   is and the way back to it, the time it has taken, and the jumper as a thing

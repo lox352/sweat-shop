@@ -15,10 +15,11 @@ const chevron = (
 );
 
 /**
- * Under every page of a jumper's colours, what is done to the colourway
- * chosen: its trim and its wools, each a pill that opens a card up from the
- * foot. The same row on each page, held at the page's foot while what is
- * over it scrolls. A design's page and a jumper's own both have it.
+ * What is done to the colourway chosen: its trim and its wools, each a pill
+ * that opens a card up from the foot. They are the colourway's, which is the
+ * same whichever page of colourways is shown, so they are no page's: the bar
+ * at the foot of the colours' tab (see Pages' foot), still while its pages
+ * are swiped. A design's page and a jumper's own both have it.
  */
 export const ColoursAdjust: React.FC<{
   /** The design's trim, where it has one: see Design.trim. */

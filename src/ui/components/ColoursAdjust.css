@@ -1,24 +1,7 @@
-/* What is done to the colourway chosen - its trim, its wools - each a card up from the foot. Held at the foot of every page of a jumper's colours. */
+/* What is done to the colourway chosen - its trim, its wools - each a card up from the foot. In the bar at the foot of a jumper's colours: see Pages' foot. */
 .colours-adjust {
-  position: sticky;
-  bottom: 0;
-  z-index: 1;
   display: flex;
   gap: 0.5rem;
-  margin: auto calc(-1 * var(--gutter, 1rem)) 0;
-  padding: 0.5rem var(--gutter, 1rem) 0.2rem;
-  background: var(--paper);
-  border-top: 1px solid var(--rule);
-}
-
-/* A phone on its side has room under the stage's column for a row of colourways or for this, not both held at once: it comes after them. */
-@media (orientation: landscape) and (max-height: 32rem) {
-  .colours-adjust {
-    position: static;
-    margin-inline: 0;
-    padding-inline: 0;
-    border-top: 0;
-  }
 }
 
 /* Each a pill on one line: what it is, what it is now, and that it opens. */

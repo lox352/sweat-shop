@@ -16,11 +16,21 @@
 }
 
 /* The pages side by side, from edge to edge of a phone, coming to rest on one. */
+.pages-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin: 0 calc(-1 * var(--gutter, 1rem));
+  /* What a tab's bar comes up from, and goes down to, is out of sight. */
+  overflow: hidden;
+}
+
 .pages-track {
   flex: 1;
   min-height: 0;
   display: flex;
-  margin: 0 calc(-1 * var(--gutter, 1rem));
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
@@ -63,6 +73,48 @@
   margin-bottom: 0;
 }
 
+/*
+ * A tab's bar: see PageGroup's foot. A small card up from the foot, as a
+ * sheet is (see Sheet), over the foot of the tab's pages and still while
+ * they are swiped under it; down, and out of the way, while another tab is
+ * shown.
+ */
+.pages-foot {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 2;
+  padding: 0.5rem var(--gutter, 1rem) 0.45rem;
+  background: var(--paper-raised);
+  border-top: 2px solid var(--crimson);
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  box-shadow: 0 -6px 18px rgb(0 0 0 / 0.14);
+  visibility: hidden;
+  transform: translateY(calc(100% + 24px));
+  transition:
+    transform 0.18s ease-in,
+    visibility 0s 0.18s;
+}
+
+.pages-foot[data-shown] {
+  visibility: visible;
+  transform: none;
+  transition: transform 0.2s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pages-foot,
+  .pages-foot[data-shown] {
+    transition: none;
+  }
+}
+
+/* The last of a page under a bar can be scrolled clear of it. */
+.pages-page[data-foot]::after {
+  content: "";
+  flex: none;
+  height: 4.4rem;
+}
+
 /* Which page of the tab, as dots under them: the one shown in crimson. Each has a thumb's room across. */
 .pages-dots {
   flex: none;
@@ -97,18 +149,26 @@
 
 /* Beside the stage - on a wide screen, or a phone on its side - the pages are their column's own width. */
 @media (min-width: 60rem), (orientation: landscape) and (max-height: 32rem) {
-  .pages-track {
+  .pages-body {
     margin: 0;
   }
 
   .pages-page {
     padding-inline: 0.25rem;
   }
+
+  .pages-foot {
+    padding-inline: 0.6rem;
+    border: 1px solid var(--rule);
+    border-top: 2px solid var(--crimson);
+    border-bottom: 0;
+  }
 }
 
 /* On paper, the pages one after another. */
 @media print {
   .pages,
+  .pages-body,
   .pages-track {
     display: block;
     overflow: visible;

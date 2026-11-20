@@ -906,7 +906,7 @@ const ProjectView: React.FC<{
     </>
   );
 
-  // Under every page of its wool, what is done to the colourway in use: see ColoursAdjust.
+  // At the foot of its wool's tab, what is done to the colourway in use: see ColoursAdjust.
   const adjust = (
     <ColoursAdjust
       trim={sweater.trim}
@@ -934,7 +934,6 @@ const ProjectView: React.FC<{
         overrides={project.shades ?? noShades}
         onPick={customiseFrom}
       />
-      {adjust}
     </>
   );
 
@@ -989,18 +988,14 @@ const ProjectView: React.FC<{
     {
       id: "wool",
       label: "Wool",
+      foot: adjust,
       pages: [
         { id: "list", label: "Your wool", content: woolPage },
         // The design's colourways, to start again from: the same pages its own page has.
         ...choice.groups.map(([name, options]) => ({
           id: `group-${name ?? ""}`,
           label: name ?? "Colourways",
-          content: (
-            <>
-              <ColourwayGrid options={options} chosen={colourway.id} body={body} onChoose={choice.choose} />
-              {adjust}
-            </>
-          ),
+          content: <ColourwayGrid options={options} chosen={colourway.id} body={body} onChoose={choice.choose} />,
         })),
       ],
     },

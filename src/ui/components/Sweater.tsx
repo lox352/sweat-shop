@@ -297,7 +297,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
     </>
   );
 
-  // Under every page of colourways, what is done to the one chosen: see ColoursAdjust.
+  // At the foot of the colours' tab, what is done to the colourway chosen: see ColoursAdjust.
   const adjust = (
     <ColoursAdjust
       trim={sweater.trim}
@@ -406,15 +406,11 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
     {
       id: "colours",
       label: "Colours",
+      foot: adjust,
       pages: choice.groups.map(([name, options]) => ({
         id: `group-${name ?? ""}`,
         label: name ?? "Colourways",
-        content: (
-          <>
-            <ColourwayGrid options={options} chosen={colourway.id} body={body} onChoose={choice.choose} />
-            {adjust}
-          </>
-        ),
+        content: <ColourwayGrid options={options} chosen={colourway.id} body={body} onChoose={choice.choose} />,
       })),
     },
     { id: "start", label: "Start", forward: true, pages: [{ id: "ready", label: "Ready to knit", content: ready }] },
