@@ -6,7 +6,7 @@ import { sweaterById } from "../../compiler/designs/index";
 import type { SweaterPattern } from "../../compiler/designs/types";
 import { buildSweater, specEnds } from "../../compiler/engine/engine";
 import type { SweaterStitches } from "../../pattern/knitted";
-import { joined, sharedRounds, updateFor } from "./difference";
+import { joined, joinedAt, sharedRounds, updateFor } from "./difference";
 import { type EditionFile, decodeEdition, encodeEdition } from "./format";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -74,6 +74,20 @@ describe("an update, by where it falls from the knitter's needles", () => {
     expect(update.knitting.knitting.rounds).toEqual(carried.knitting.rounds);
     // And it is an edition like any other.
     expect(decodeEdition(encodeEdition(update.knitting, "hamefarin", "m", "0a0b0c0d0e0f")).stitches).toEqual(update.knitting.stitches);
+  });
+
+  it("joined again at the round it was joined at, it is the same knitting: what a link makes a joined jumper again by", () => {
+    const theirs = buildSweater(redrawn("border", "oxo"), "m");
+    const round = lastOf(mine, "Peerie seeds");
+    const update = updateFor(mine, theirs, endOf(mine, round) - 40);
+    if (update.kind !== "joined") throw new Error("not joined");
+    // Wherever in the round the knitter was then, and with nothing said of where.
+    expect(joinedAt(mine, theirs, update.round)).toEqual(update.knitting);
+    // A round the two do not share - the first of the band redrawn - is no round to join at; nor one past the end.
+    expect(joinedAt(mine, theirs, lastOf(mine, "Border") - 2)).toBeUndefined();
+    expect(joinedAt(mine, theirs, mine.rounds.length + 1)).toBeUndefined();
+    // Nor one where stitches are on hold.
+    expect(joinedAt(mine, mine, mine.roundPieces.indexOf("body") + 1)).toBeUndefined();
   });
 
   it("apart: a size on other counts from the knitter's round on has nothing to join to", () => {

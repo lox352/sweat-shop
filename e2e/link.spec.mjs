@@ -29,7 +29,10 @@ const kept = (page, more = {}) =>
 
 const saved = (page, key = id) => page.evaluate((key) => JSON.parse(localStorage.getItem(key)), key);
 /** What a jumper's address says, read as the site writes it. */
-const said = (url) => JSON.parse(Buffer.from(new URL(url.replace("#", "")).searchParams.get("jumper"), "base64url").toString());
+const said = (url) => {
+  const link = new URL(url.replace("#", "")).searchParams.get("jumper");
+  return link ? JSON.parse(Buffer.from(link, "base64url").toString()) : {};
+};
 const withSaid = (url, change) => url.replace(/jumper=[0-9A-Za-z_-]+/, `jumper=${Buffer.from(JSON.stringify({ ...said(url), ...change })).toString("base64url")}`);
 /** The browser as one that has cleared what it kept, and the address opened in it afresh. */
 const openCleared = async (page, url) => {
@@ -85,6 +88,9 @@ test("a jumper's address carries the jumper: opened where it is not kept, it is 
   await page.getByRole("button", { name: "Carry on where it was", exact: true }).click();
   await expect(page.locator(".pages-page[data-current]")).toContainText("Where you are", { timeout: 20_000 });
   expect(await saved(page)).toMatchObject({ id, name: "Dad's, for Yule", sweaterId: design, sizeId: "l", colourwayId: "night-gentle-dark", edition, progress, startedAt: "2026-10-03T09:00:00.000Z" });
+  // Its link is in its address again at once: it has changed from nothing, and waits for no pause.
+  await expect(page).toHaveURL(/\/project\/1760000000000\?jumper=[0-9A-Za-z_-]+$/, { timeout: 1500 });
+  expect(said(page.url())).toMatchObject({ i: "1760000000000", p: progress });
 
   // Sent to someone else, it is one like it of their own: begun at the cast-on, under its own address.
   await openCleared(page, address);
@@ -145,6 +151,12 @@ test("a jumper whose pattern was recalculated is made again from its address, st
   // Its address says how the pattern was made, and names what came of it.
   await expect.poll(() => said(page.url()).e, { timeout: 10_000 }).toBe(mine.edition);
   expect(said(page.url()).m).toEqual({ f: edition, s: [["f", 23.3, 25, 68, "fewer"]] });
+  // A jumper recalculated before its making was kept says only what its last fit was: its address is made of that, and says the same.
+  await page.evaluate(({ id, project }) => localStorage.setItem(id, JSON.stringify(project)), { id, project: { ...mine, made: undefined } });
+  await page.reload();
+  await expect(page).toHaveURL(/jumper=/);
+  expect((await saved(page)).made).toBeUndefined();
+  expect(said(page.url())).toMatchObject({ e: mine.edition, m: { f: edition, s: [["f", 23.3, 25, 68, "fewer"]] } });
   const address = page.url().replace(/tab=fit&/, "");
 
   // Nothing of it is kept. It is planned again as it was, and is the same pattern: the same name, the same rounds, the same fit.
@@ -171,4 +183,202 @@ test("a jumper whose pattern was recalculated is made again from its address, st
   expect(written).toHaveLength(1);
   expect(written[0]).toMatchObject({ edition, progress: 0, tension: loose });
   expect(written[0].made).toBeUndefined();
+});
+
+test("a jumper recalculated from the cast-on at one tension, part knitted, and recalculated again at another is made again from its address", async ({ page }) => {
+  test.setTimeout(300_000);
+  await withoutSettling(page);
+  const first = { stitchesPer10cm: 24, roundsPer10cm: 28 };
+  const second = { stitchesPer10cm: 22, roundsPer10cm: 26 };
+  // Begun on a pattern recalculated for the knitter's tension, before a stitch is cast on.
+  await page.goto("#/sweater/hamefarin?size=m&tab=tension");
+  const given = page.getByRole("region", { name: "Your tension" });
+  await given.getByLabel("Stitches counted").fill("24");
+  await given.getByLabel("Rounds counted").fill("28");
+  await given.getByRole("button", { name: "Compare with the pattern", exact: true }).click();
+  await given.getByRole("button", { name: "Recalculate for my tension", exact: true }).click();
+  await expect(given.locator(".refit-shown")).toBeVisible({ timeout: 90_000 });
+  await given.locator(".refit-shown").getByRole("button", { name: "Start knitting this", exact: true }).click();
+  await expect(page.locator(".knitting-panel")).toContainText("of 112 stitches", { timeout: 30_000 });
+  const key = await page.evaluate(() => Object.keys(localStorage).find((key) => key.startsWith("project-")));
+  const begun = await saved(page, key);
+  expect(begun.made).toEqual({ steps: [{ fit: first }] });
+
+  // Knitted at that tension to part way down the yoke; then the knitter's tension turns out to be another, and the rest is recalculated for it.
+  const lastOf = (file, round) => {
+    const runs = file.rounds[round - 1];
+    return runs[runs.length - 2] + runs[runs.length - 1] - 1;
+  };
+  const firstPattern = await saved(page, `edition-hamefarin--m--${begun.edition}`);
+  await page.evaluate(({ key, project }) => localStorage.setItem(key, JSON.stringify(project)), {
+    key,
+    project: { ...begun, progress: lastOf(firstPattern, 12), tension: second, updatedAt: new Date().toISOString() },
+  });
+  await page.goto(`#/project/${key.replace("project-", "")}?tab=fit`);
+  await page.reload();
+  const section = page.getByRole("region", { name: "Your tension" });
+  await section.getByRole("button", { name: "Recalculate the rest", exact: true }).click();
+  await expect(section.locator(".refit-shown")).toBeVisible({ timeout: 90_000 });
+  await section.locator(".refit-shown").getByRole("button", { name: "Knit the rest this way", exact: true }).click();
+  await expect(section).toContainText("The rest of your pattern is recalculated for this tension", { timeout: 20_000 });
+  const twice = await saved(page, key);
+  // How it was made is both, in order: the whole at the first tension, then the rest at the second from the end of a band.
+  expect(twice.made.steps).toHaveLength(2);
+  expect(twice.made).toMatchObject({ steps: [{ fit: first }, { fit: second }] });
+  const cut = twice.made.steps[1].round;
+  expect(cut).toBeGreaterThanOrEqual(12);
+  expect(twice.edition).not.toBe(begun.edition);
+  const pattern = await saved(page, `edition-hamefarin--m--${twice.edition}`);
+  // The rounds knitted are as they were knitted.
+  expect(pattern.rounds.slice(0, cut)).toEqual(firstPattern.rounds.slice(0, cut));
+
+  // Knitted on, past where it was recalculated from.
+  const progress = lastOf(pattern, cut + 6);
+  await page.evaluate(({ key, project }) => localStorage.setItem(key, JSON.stringify(project)), { key, project: { ...twice, progress, updatedAt: new Date().toISOString() } });
+  await page.goto(`#/project/${key.replace("project-", "")}`);
+  await page.reload();
+  await expect.poll(() => said(page.url()).p, { timeout: 15_000 }).toBe(progress);
+  expect(said(page.url()).m).toEqual({ s: [["f", 24, 28, 0], ["f", 22, 26, cut]] });
+  const address = page.url();
+  const mine = await saved(page, key);
+
+  // Nothing kept: both recalculations are done again, in order, and come to the same pattern, with the place in it.
+  await openCleared(page, address);
+  await page.getByRole("button", { name: "Carry on where it was", exact: true }).click();
+  await expect(page.locator(".pages-page[data-current]")).toContainText("Where you are", { timeout: 180_000 });
+  const again = await saved(page, key);
+  expect(again).toMatchObject({ edition: mine.edition, progress, made: mine.made, tension: second });
+  expect(again.fit).toEqual({ ...mine.fit, from: again.fit.from });
+  expect(await saved(page, `edition-hamefarin--m--${mine.edition}`)).toEqual(pattern);
+  // The first pattern, which nothing knits now, is not kept.
+  expect(await saved(page, `edition-hamefarin--m--${begun.edition}`)).toBeNull();
+});
+
+/*
+ * No size has been superseded for these to open, so one is made up, as
+ * e2e/editions.spec.mjs makes it: Hamefarin's medium as it is now, under an
+ * older name, with its last two yarns the other way round.
+ */
+const hamefarin = editions.hamefarin.m.current;
+const older = "0123456789ab";
+const hamefarinFile = () => JSON.parse(readFileSync(`public/editions/hamefarin--m--${hamefarin}.json`, "utf8"));
+const olderFile = () => {
+  const file = hamefarinFile();
+  file.edition = older;
+  const slots = file.stitches.slots;
+  [slots[slots.length - 1], slots[slots.length - 2]] = [slots[slots.length - 2], slots[slots.length - 1]];
+  return JSON.stringify(file);
+};
+const servingOlder = (page) => page.route(`**/editions/hamefarin--m--${older}.json`, (route) => route.fulfill({ contentType: "application/json", body: olderFile() }));
+const updated = (page) => page.getByRole("complementary", { name: "This pattern has been updated" });
+
+test("a jumper on an older edition, joined to its update part way and then recalculated, is made again from its address at each of the three", async ({ page }) => {
+  test.setTimeout(300_000);
+  await servingOlder(page);
+  await withoutSettling(page);
+  // Part way round round 50 of the yoke, on the edition before the size's now.
+  const progress = hamefarinFile().rounds[49][0] + 100;
+  await page.goto("");
+  await page.evaluate(({ id, older, progress }) => {
+    const now = new Date().toISOString();
+    localStorage.setItem(id, JSON.stringify({ version: 1, id, sweaterId: "hamefarin", sizeId: "m", colourwayId: "simmer-dim", progress, edition: older, startedAt: now, updatedAt: now }));
+  }, { id, older, progress });
+  await page.goto("#/project/1760000000000");
+  await expect(updated(page)).toContainText("is the same pattern again at Yoke, round 50");
+
+  // On an edition the size has moved on from: its address names that edition, and makes the jumper again on it - not on the size's now.
+  await expect(page).toHaveURL(/jumper=/);
+  expect(said(page.url())).toMatchObject({ e: older, p: progress });
+  expect(said(page.url()).m).toBeUndefined();
+  const onOlder = page.url();
+  await openCleared(page, onOlder);
+  await page.getByRole("button", { name: "Carry on where it was", exact: true }).click();
+  await expect(updated(page)).toContainText("is the same pattern again at Yoke, round 50", { timeout: 20_000 });
+  expect(await saved(page)).toMatchObject({ id, edition: older, progress });
+
+  // Joined to the update from the end of the round in hand: the knitting is the jumper's own, and its address says what it was joined to and where.
+  await updated(page).getByRole("button", { name: "Update from the end of Yoke, round 50", exact: true }).click();
+  await expect(updated(page)).toHaveCount(0);
+  const joined = await saved(page);
+  expect(joined.made).toEqual({ from: older, steps: [{ join: hamefarin, round: 50 }] });
+  const joinedPattern = await saved(page, `edition-hamefarin--m--${joined.edition}`);
+  await expect.poll(() => said(page.url()).e, { timeout: 10_000 }).toBe(joined.edition);
+  expect(said(page.url()).m).toEqual({ f: older, s: [["j", hamefarin, 50]] });
+  const onJoined = page.url();
+  await openCleared(page, onJoined);
+  await page.getByRole("button", { name: "Carry on where it was", exact: true }).click();
+  await expect(page.locator(".pages-page[data-current]")).toContainText("Where you are", { timeout: 30_000 });
+  // The same knitting, by name and by stitch; up to date with the size's, so no update is offered it again.
+  expect(await saved(page)).toMatchObject({ id, edition: joined.edition, progress, made: joined.made, upTo: hamefarin });
+  expect(await saved(page, `edition-hamefarin--m--${joined.edition}`)).toEqual(joinedPattern);
+  await expect(updated(page)).toHaveCount(0);
+
+  // And then the rest recalculated for the knitter's tension: its address says both, in order.
+  const tension = { stitchesPer10cm: 24, roundsPer10cm: 28 };
+  await page.evaluate(({ id, project }) => localStorage.setItem(id, JSON.stringify(project)), { id, project: { ...(await saved(page)), tension, updatedAt: new Date().toISOString() } });
+  await page.goto("#/project/1760000000000?tab=fit");
+  await page.reload();
+  const section = page.getByRole("region", { name: "Your tension" });
+  await section.getByRole("button", { name: "Recalculate the rest", exact: true }).click();
+  await expect(section.locator(".refit-shown")).toBeVisible({ timeout: 90_000 });
+  await section.locator(".refit-shown").getByRole("button", { name: "Knit the rest this way", exact: true }).click();
+  await expect(section).toContainText("The rest of your pattern is recalculated for this tension", { timeout: 20_000 });
+  const fitted = await saved(page);
+  expect(fitted.made).toMatchObject({ from: older, steps: [{ join: hamefarin, round: 50 }, { fit: tension }] });
+  const cut = fitted.made.steps[1].round;
+  expect(cut).toBeGreaterThanOrEqual(50);
+  const fittedPattern = await saved(page, `edition-hamefarin--m--${fitted.edition}`);
+  await expect.poll(() => said(page.url()).e, { timeout: 10_000 }).toBe(fitted.edition);
+  expect(said(page.url()).m).toEqual({ f: older, s: [["j", hamefarin, 50], ["f", 24, 28, cut]] });
+  await openCleared(page, page.url().replace(/tab=fit&/, ""));
+  await page.getByRole("button", { name: "Carry on where it was", exact: true }).click();
+  await expect(page.locator(".pages-page[data-current]")).toContainText("Where you are", { timeout: 120_000 });
+  const again = await saved(page);
+  expect(again).toMatchObject({ id, edition: fitted.edition, progress, made: fitted.made, tension });
+  expect(again.fit).toEqual(fitted.fit);
+  expect(await saved(page, `edition-hamefarin--m--${fitted.edition}`)).toEqual(fittedPattern);
+});
+
+test("where a jumper can't be made again from its address, it says why, and what can be done", async ({ page }) => {
+  test.setTimeout(120_000);
+  const written = (more) => `#/project/1760000000000?jumper=${Buffer.from(JSON.stringify({ v: 1, i: "1760000000000", d: design, s: "l", c: "night-gentle-dark", p: endOf(68), ...more })).toString("base64url")}`;
+  const alert = page.getByRole("alert");
+
+  // Its pattern can't be fetched: asked for again, it can.
+  await page.goto("");
+  await page.goto(written({ e: edition }));
+  await page.reload();
+  await page.route("**/editions/**", (route) => route.abort());
+  await page.getByRole("button", { name: "Carry on where it was", exact: true }).click();
+  await expect(alert).toContainText("Its pattern could not be fetched. Check your connection and try again.");
+  await expect(alert.getByRole("button", { name: "Start on the pattern as written" })).toHaveCount(0);
+  expect(await saved(page)).toBeNull();
+  await page.unroute("**/editions/**");
+  await alert.getByRole("button", { name: "Try again", exact: true }).click();
+  await page.getByRole("button", { name: "Carry on where it was", exact: true }).click();
+  await expect(page.locator(".pages-page[data-current]")).toContainText("Where you are", { timeout: 20_000 });
+  expect(await saved(page)).toMatchObject({ id, edition, progress: endOf(68) });
+
+  // It names an edition the site never published, and does not say how it was made: a jumper's own, from before a link said.
+  await openCleared(page, written({ e: "0123456789ab" }));
+  await page.getByRole("button", { name: "Carry on where it was", exact: true }).click();
+  await expect(alert).toContainText("made before a link said how");
+  await expect(alert.getByRole("button", { name: "Start on the pattern as written", exact: true })).toBeVisible();
+
+  // It says its pattern was recalculated from a round the design can't plan on from, or a way the design has not got: nothing is planned, and nothing kept.
+  for (const [step, why] of [
+    [["f", 23.3, 25, 60, "fewer"], "can't be worked out again from where you are"],
+    [["f", 23.3, 25, 68, "sideways"], "the design no longer has it"],
+  ]) {
+    await openCleared(page, written({ e: "0123456789ab", g: [23.3, 25], m: { f: edition, s: [step] } }));
+    await page.getByRole("button", { name: "Start one like it", exact: true }).click();
+    await expect(alert).toContainText(why, { timeout: 30_000 });
+    expect(await page.evaluate(() => Object.keys(localStorage).filter((key) => /^(project|edition)-/.test(key)))).toEqual([]);
+  }
+  // The pattern as written, in its place, with the tension the link had.
+  await alert.getByRole("button", { name: "Start on the pattern as written", exact: true }).click();
+  await expect(page.locator(".pages-page[data-current]")).toContainText("Where you are", { timeout: 20_000 });
+  const started = await page.evaluate(() => Object.keys(localStorage).filter((key) => key.startsWith("project-")).map((key) => JSON.parse(localStorage.getItem(key))));
+  expect(started).toHaveLength(1);
+  expect(started[0]).toMatchObject({ edition, progress: 0, tension: loose });
 });
