@@ -788,7 +788,7 @@ test("scrolled away from the stitch to look along the chart, a button points the
   await expect(position(page)).not.toHaveText(where);
 });
 
-test("scrolled along a round and up the chart, the round numbers stay down the box's right-hand edge, each beside its row", async ({ page }) => {
+test("scrolled along a round and up the chart, the round numbers stay down the box's right-hand edge, each beside its row, shown only while the chart is still", async ({ page }) => {
   // The chart's own view, to read where it draws each row: see TileView.probe.
   await page.addInitScript(() => {
     window.__chartViews = [];
@@ -829,6 +829,23 @@ test("scrolled along a round and up the chart, the round numbers stay down the b
     return rows;
   };
   const here = await check();
+  /** How much the numbers show: their strip's opacity, as drawn now. */
+  const showing = () => page.locator(".chart-ruler").evaluate((strip) => Number(getComputedStyle(strip).opacity));
+  await expect.poll(showing).toBe(1);
+  // Only while the chart is still: faded out within a few frames of it moving, and back once it rests.
+  const shownMoving = await scroller.evaluate(async (box) => {
+    const frame = () => new Promise((done) => requestAnimationFrame(done));
+    const strip = document.querySelector(".chart-ruler");
+    let shown = 0;
+    for (let step = 0; step < 30; step++) {
+      box.scrollBy(0, -3);
+      await frame();
+      if (step >= 12 && Number(getComputedStyle(strip).opacity) > 0.1) shown++;
+    }
+    return shown;
+  });
+  expect(shownMoving).toBe(0);
+  await expect.poll(showing).toBe(1);
   // Along the round to its far end, and up the chart: the gutter beside column 1 is out of sight, and the numbers are not.
   await scroller.evaluate((box) => box.scrollBy(-100000, -300));
   await rest();
