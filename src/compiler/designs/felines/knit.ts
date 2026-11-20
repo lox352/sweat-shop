@@ -46,9 +46,20 @@ export interface Measured {
   cuffCm: number;
 }
 
-/** Stitches and rounds a centimetre. */
-export const gauge = { stitches: 3.2, rounds: 3.8 };
+/** A tension: stitches and rounds a centimetre. */
+export interface Gauge {
+  stitches: number;
+  rounds: number;
+}
+/** The felines' own: 32 stitches and 38 rounds to 10cm. */
+export const gauge: Gauge = { stitches: 3.2, rounds: 3.8 };
 export const ribs = { neck: 9, hem: 14, cuff: 14 };
+/** The rounds each rib has at a tension: as deep, in centimetres, as at the felines' own. */
+export const ribsAt = (g: Gauge): typeof ribs => ({
+  neck: Math.round((ribs.neck / gauge.rounds) * g.rounds),
+  hem: Math.round((ribs.hem / gauge.rounds) * g.rounds),
+  cuff: Math.round((ribs.cuff / gauge.rounds) * g.rounds),
+});
 /** Which feline goes where: the tunic's left-hand one on the front, its right-hand one on the back. */
 export const felineOn = { front: "left", back: "right" } as const satisfies Record<string, FelineId>;
 
@@ -129,8 +140,9 @@ export interface Counts {
   sleeveRounds: number;
 }
 
-export const countsOf = (size: Measured): Counts => {
-  const g = gauge;
+/** The counts a size is knitted to at a tension: the felines' own, unless another is given. */
+export const countsOf = (size: Measured, g: Gauge = gauge): Counts => {
+  const ribs = ribsAt(g);
   const body = nearest(size.chestCm * g.stitches, 4);
   const underarm = Math.min(24, Math.max(8, nearest(body * 0.04, 2)));
   const upperArm = nearest(size.upperArmCm * g.stitches, 2);
@@ -336,7 +348,7 @@ const reachOf = (grid: number[][]): number[] =>
   });
 
 /** How many rows a feline drawn `width` stitches wide is. */
-const heightOf = (id: FelineId, width: number) => drawFeline(id, width, gauge, true).height;
+const heightOf = (id: FelineId, width: number, g: Gauge) => drawFeline(id, width, g, true).height;
 
 /**
  * The felines as large as fits, each midway between the neck's band and the
@@ -347,19 +359,19 @@ const heightOf = (id: FelineId, width: number) => drawFeline(id, width, gauge, t
  * waist band where that leaves the felines at least BAND_KEEPS of the width
  * they would have without it.
  */
-const place = (c: Counts, yoke: Yoke, construction: Construction): Placed => {
+const place = (c: Counts, yoke: Yoke, construction: Construction, g: Gauge): Placed => {
   const trimEnd = yoke.trim.from + yoke.trim.band.rows.length;
   const fit = (band: boolean): Placed | undefined => {
     const below = c.bodyRounds - (band ? HEM_ROWS : GAP_ABOVE_RIB);
     const span = yoke.counts.length - trimEnd + below;
     const tryWidth = (width: number): Placed | undefined => {
-      const height = heightOf(felineOn.front, width);
+      const height = heightOf(felineOn.front, width, g);
       if (height + 2 * MIN_GAP > span) return undefined;
       const above = Math.floor((span - height) / 2);
       const top = trimEnd + above;
       const inYoke = Math.max(0, yoke.counts.length - top);
-      const front = drawFeline(felineOn.front, width, gauge).grid;
-      const back = drawFeline(felineOn.back, width, gauge).grid;
+      const front = drawFeline(felineOn.front, width, g).grid;
+      const back = drawFeline(felineOn.back, width, g).grid;
       const [rf, rb] = [reachOf(front), reachOf(back)];
       for (let r = 0; r < inYoke; r++) {
         const y = top + r;
@@ -384,7 +396,8 @@ const place = (c: Counts, yoke: Yoke, construction: Construction): Placed => {
     }
     return best;
   };
-  const without = fit(false)!;
+  const without = fit(false);
+  if (!without) throw new Error("the front has no room for a feline between the neck's band and the rib");
   const withBand = fit(true);
   return withBand && withBand.width >= BAND_KEEPS * without.width ? withBand : without;
 };
@@ -643,12 +656,14 @@ export const cuffBandOf = (cuff: number): { count: number; repeats: number; gap:
   return best;
 };
 
-export const knit = (size: Measured, construction: Construction, prefix: string): Knitted => {
-  const graded = countsOf(size);
+/** A size knitted whole, at a tension: the felines' own, unless another is given. */
+export const knit = (size: Measured, construction: Construction, prefix: string, g: Gauge = gauge): Knitted => {
+  const ribs = ribsAt(g);
+  const graded = countsOf(size, g);
   const deeper = construction === "raglan" ? raglanDepth(graded) - graded.yokeRounds : 0;
   const c = { ...graded, yokeRounds: graded.yokeRounds + deeper, bodyRounds: graded.bodyRounds - deeper };
   const yoke = construction === "raglan" ? raglanYoke(c) : circularYoke(c);
-  const placed = place(c, yoke, construction);
+  const placed = place(c, yoke, construction, g);
 
   /* ---------------------------------------------------------------- yoke */
   const yw = new Writer(`${prefix}yoke`, "Yoke");

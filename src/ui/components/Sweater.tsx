@@ -199,7 +199,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
   );
 
   const tensionPanel = (
-    <MyTension key={size.id} size={size} tension={tension} onChange={setTension} recalculates={!!sweater.fitting}>
+    <MyTension key={size.id} size={size} tension={tension} onChange={setTension} recalculates={!!sweater.fitting} partWay={!!sweater.fitting?.partWay}>
       {tension && sweater.fitting && !sameTension(size, tension) && (
         <StartFitted sweater={sweater} size={size} knitted={built} tension={tension} palette={palette} coloursOn={coloursOn} onStart={startFitted} onShown={setShownFit} />
       )}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sweaterById } from "./designs";
+import { sweaterById, sweaters } from "./designs";
 import { buildSweater } from "./engine/engine";
 import { asEdition } from "../library/editions/own";
 import { cutAfter, fit, fitOptions } from "./fit";
@@ -203,8 +203,161 @@ describe("Each Year Once worked out for a tension from the cast-on", () => {
     expect(planned, said.join("\n")).toBeGreaterThan(20);
   }, 900000);
 
-  it("a design that can't be planned says so", () => {
-    expect(() => fit({ design: "paul-klee", sizeId: "m", tension: { stitchesPer10cm: 28, roundsPer10cm: 32 } })).toThrow(/can't be planned/);
+  it("a design the site has not got says so", () => {
+    expect(() => fit({ design: "no-such-design", sizeId: "m", tension: { stitchesPer10cm: 28, roundsPer10cm: 32 } })).toThrow(/can't be planned/);
+  });
+});
+
+/*
+ * The designs that can be planned whole and not part way: each lays its
+ * pattern out over the whole jumper, or is another designer's, a size at a
+ * time. Every design the site has is one or the other.
+ */
+describe("a design planned only from the cast-on", () => {
+  const plain = ({ type, slot, links }: { type: string; slot: string; links: number[] }) => ({ type, slot, links });
+  const lined = "wool-week-strips-lined-oldest";
+  const wholeOnly = [lined, "feline-raglan", "feline-yoke", "paul-klee"];
+  const tensionOf = (design: string, sizeId: string) => {
+    const { stitchesPer10cm, roundsPer10cm } = sweaterById(design)!.sizes.find((size) => size.id === sizeId)!;
+    return { stitchesPer10cm, roundsPer10cm };
+  };
+
+  it("is every design that can't be planned on from part of its yoke, and every design can be planned one way or the other", () => {
+    expect(sweaters.filter((sweater) => sweater.fitting && !sweater.fitting.cutAfter).map((sweater) => sweater.id).sort()).toEqual([...wholeOnly].sort());
+    expect(sweaters.filter((sweater) => !sweater.fitting)).toEqual([]);
+  });
+
+  it("has no round the rest can be planned from, and says so if it is asked for one", () => {
+    for (const design of wholeOnly) {
+      const sizeId = sweaterById(design)!.sizes[2].id;
+      const whole = buildSweater(sweaterById(design)!, sizeId);
+      expect(cutAfter(design, whole, 1), design).toBeUndefined();
+      expect(() => fit({ design, sizeId, knitted: whole, round: 30, tension: tensionOf(design, sizeId) }), design).toThrow(/only be planned whole/);
+    }
+  }, 600000);
+
+  it("at the pattern's own tension is the size as published, to the stitch", () => {
+    for (const [design, sizes] of [[lined, ["m"]], ["feline-raglan", ["s", "xl"]], ["feline-yoke", ["s", "xl"]], ["paul-klee", sweaterById("paul-klee")!.sizes.map((size) => size.id)]] as const) {
+      for (const sizeId of sizes) {
+        const published = buildSweater(sweaterById(design)!, sizeId);
+        const fitted = fit({ design, sizeId, tension: tensionOf(design, sizeId) });
+        expect(fitted.round, `${design} ${sizeId}`).toBeUndefined();
+        expect(fitted.knitted.stitches.map(plain), `${design} ${sizeId}`).toEqual(published.stitches.map(plain));
+        expect(fitted.knitted.checks, `${design} ${sizeId}`).toEqual(published.checks);
+        // And says it measures what the size does, to the stitch nearest.
+        expect(Math.abs(fitted.finished.chestCm - sweaterById(design)!.sizes.find((size) => size.id === sizeId)!.finished.chestCm), `${design} ${sizeId}`).toBeLessThanOrEqual(0.5);
+      }
+    }
+  }, 900000);
+
+  it("Thirteen Strips at a knitter's own: every year a strip of the tension's height, down the body and the sleeves alike; or that thirteen will not go", () => {
+    const fitted = fit({ design: lined, sizeId: "m", tension: { stitchesPer10cm: 28, roundsPer10cm: 34 } });
+    expect(fitted.knitted.roundPieces.at(-1)).toBe("sleeve-right");
+    expect(fitted.finished).toMatchObject({ chestCm: 105.5, neckCm: 45.5, upperArmCm: 33 });
+    expect(Math.abs(fitted.finished.bodyLengthCm - 40.5)).toBeLessThanOrEqual(1.5);
+    expect(fitted.notes.join(" ")).toMatch(/Every year is a strip of 13 to 16 rounds at this tension: 2014 to 2018 round the yoke, which grows from 128 stitches to 432, and 2019 to 2026 down the body\./);
+    expect(fitted.notes.join(" ")).toMatch(/2026 Birsie Beanny carries on to the cuff/);
+    expect(fitted.placement).toBeUndefined();
+    expect(fitted.written).toMatch(/^Yoke \(yoke\)\n {2}Cast on 128/m);
+    // Too loose, and the jumper has too few rounds for thirteen hats.
+    expect(() => fit({ design: lined, sizeId: "m", tension: { stitchesPer10cm: 22, roundsPer10cm: 26 } })).toThrow(/thirteen strips will not go in the \d+ rounds/);
+  }, 600000);
+
+  for (const design of ["feline-raglan", "feline-yoke"]) {
+    it(`${design} at a knitter's own: the size's measurements in their stitches, and each feline drawn afresh as large as the front then has room for`, () => {
+      const size = sweaterById(design)!.sizes.find((one) => one.id === "m")!;
+      const published = (size as unknown as { knitted: () => { placed: { width: number; height: number } } }).knitted().placed;
+      const fitted = fit({ design, sizeId: "m", tension: { stitchesPer10cm: 28, roundsPer10cm: 34 } });
+      expect(fitted.knitted.roundPieces.at(-1)).toBe("sleeve-right");
+      expect(fitted.knitted.checks.body).toBe(296);
+      for (const key of ["chestCm", "neckCm", "upperArmCm", "yokeDepthCm", "bodyLengthCm", "sleeveLengthCm", "cuffCm"] as const) {
+        expect(Math.abs(fitted.finished[key] - size.finished[key]), key).toBeLessThanOrEqual(0.5);
+      }
+      // Fewer, bigger stitches: a feline of fewer of them, and about as large.
+      const drawn = /Each feline is drawn afresh for this tension: (\d+) stitches wide and (\d+) rounds tall/.exec(fitted.notes[0])!;
+      expect(Number(drawn[1])).toBeLessThan(published.width);
+      expect(Math.abs(Number(drawn[1]) / 2.8 - published.width / 3.2)).toBeLessThan(4);
+      expect(Math.abs(Number(drawn[2]) / 3.4 - published.height / 3.8)).toBeLessThan(4);
+      expect(fitted.written).toMatch(/^Yoke \(yoke\)\n {2}Cast on \d+/m);
+    }, 600000);
+
+    it(`${design} for every size at tensions either side of the pattern's, or says why not`, () => {
+      const said: string[] = [];
+      let planned = 0;
+      for (const size of sweaterById(design)!.sizes) {
+        for (const tension of [{ stitchesPer10cm: 26, roundsPer10cm: 32 }, { stitchesPer10cm: 30, roundsPer10cm: 36 }, { stitchesPer10cm: 34, roundsPer10cm: 42 }]) {
+          try {
+            const fitted = fit({ design, sizeId: size.id, tension });
+            expect(fitted.knitted.roundPieces.at(-1)).toBe("sleeve-right");
+            expect(Math.abs(fitted.finished.chestCm - size.finished.chestCm)).toBeLessThan(2);
+            planned++;
+          } catch (error) {
+            said.push(`${size.id} ${tension.stitchesPer10cm}: ${(error as Error).message}`);
+          }
+        }
+      }
+      expect(said.every((one) => /can't be laid out on this size at this tension/.test(one)), said.join("\n")).toBe(true);
+      expect(planned, said.join("\n")).toBeGreaterThanOrEqual(design === "feline-yoke" ? 23 : 18);
+    }, 900000);
+  }
+
+  describe("the Paul Klee Sweater, a bought pattern in sixteen sizes", () => {
+    const pattern = sweaterById("paul-klee")!;
+    const m1 = pattern.sizes.find((size) => size.id === "m1")!;
+    const pieceOf = (knitted: ReturnType<typeof buildSweater>, piece: string) => knitted.roundPieces.filter((one) => one === piece).length;
+
+    it("for a tighter knitter is the yoke of a larger size as the pattern writes it, to the lengths of the size asked for", () => {
+      const [published, larger] = [buildSweater(pattern, "m1"), buildSweater(pattern, "l")];
+      const fitted = fit({ design: "paul-klee", sizeId: "m1", tension: { stitchesPer10cm: 24, roundsPer10cm: 37 } });
+      // L's yoke, stitch for stitch, from its set-up round to its divide: only the neck's rib is M1's, in the knitter's rounds.
+      const yokeOf = (knitted: ReturnType<typeof buildSweater>) => {
+        const from = knitted.roundLabels.findIndex((label, at) => knitted.roundKinds[at] === "round" && !/rib|cast|join/i.test(label) && at > 5);
+        const to = knitted.roundPieces.indexOf("body");
+        return knitted.rounds.slice(from, to).map((ids) => ids.map((id) => knitted.stitches[id].slot + knitted.stitches[id].type).join(" "));
+      };
+      expect(fitted.knitted.checks).toMatchObject({ neck: larger.checks.neck, "colour-11": larger.checks["colour-11"], raglan: larger.checks.raglan, body: 260, "sleeve-left:top": larger.checks["sleeve-left:top"] });
+      expect(yokeOf(fitted.knitted).slice(-40)).toEqual(yokeOf(larger).slice(-40));
+      // M1's cuff, in the knitter's stitches; and M1's lengths, in their rounds - within the yoke's couple of centimetres.
+      expect(fitted.knitted.checks["sleeve-left:cuff"]).toBe(64);
+      expect(Math.abs(pieceOf(fitted.knitted, "body") / 37 - pieceOf(published, "body") / 34)).toBeLessThan(1);
+      expect(Math.abs(pieceOf(fitted.knitted, "sleeve-left") / 37 - pieceOf(published, "sleeve-left") / 34)).toBeLessThan(1);
+      expect(fitted.finished).toMatchObject({ chestCm: 108, upperArmCm: 40, cuffCm: 20 });
+      expect(Math.abs(fitted.finished.yokeDepthCm + fitted.finished.bodyLengthCm - m1.finished.yokeDepthCm - m1.finished.bodyLengthCm)).toBeLessThanOrEqual(0.5);
+      expect(fitted.notes.join(" ")).toMatch(/The yoke is the pattern's size L, as written: at your tension its 260 stitches round the body come nearest M1's measurements\./);
+      expect(fitted.notes.join(" ")).toMatch(/L's yoke has 11 bands of squares where M1's has 9, so it knits more colours: 1 to 11\./);
+      expect(fitted.written).toMatch(/^Neck \(yoke\)\n {2}Cast on 118/m);
+    });
+
+    it("where only the rounds differ is the size's own yoke, its lengths in the knitter's rounds", () => {
+      const published = buildSweater(pattern, "m1");
+      const fitted = fit({ design: "paul-klee", sizeId: "m1", tension: { stitchesPer10cm: 22, roundsPer10cm: 30 } });
+      expect(fitted.knitted.checks).toEqual(published.checks);
+      expect(pieceOf(fitted.knitted, "body")).toBeLessThan(pieceOf(published, "body"));
+      expect(fitted.notes[0]).toMatch(/no other size's counts come nearer than M1's own/);
+      // Its yoke is as many rounds, which are now taller: deeper, and the body and sleeves as much shorter.
+      expect(fitted.finished.yokeDepthCm).toBeGreaterThan(m1.finished.yokeDepthCm + 2);
+      expect(fitted.notes.join(" ")).toMatch(/The yoke comes about [\d.]+cm deeper than M1's, and the body and the sleeves are as much shorter\./);
+    });
+
+    it("for every size at tensions either side of the pattern's: within a size's step of the chest asked for, or that no size has the stitches", () => {
+      const said: string[] = [];
+      let planned = 0;
+      for (const size of pattern.sizes) {
+        for (const tension of [{ stitchesPer10cm: 19, roundsPer10cm: 28 }, { stitchesPer10cm: 20.5, roundsPer10cm: 34 }, { stitchesPer10cm: 24, roundsPer10cm: 34 }, { stitchesPer10cm: 26, roundsPer10cm: 40 }]) {
+          try {
+            const fitted = fit({ design: "paul-klee", sizeId: size.id, tension });
+            expect(fitted.knitted.roundPieces.at(-1)).toBe("sleeve-left");
+            expect(Math.abs(fitted.finished.chestCm - size.finished.chestCm) / size.finished.chestCm, `${size.id} ${tension.stitchesPer10cm}`).toBeLessThan(0.045);
+            expect(Math.abs(fitted.finished.yokeDepthCm + fitted.finished.bodyLengthCm - size.finished.yokeDepthCm - size.finished.bodyLengthCm), `${size.id} ${tension.stitchesPer10cm}`).toBeLessThanOrEqual(1);
+            planned++;
+          } catch (error) {
+            said.push(`${size.id} ${tension.stitchesPer10cm}: ${(error as Error).message}`);
+          }
+        }
+      }
+      expect(said.every((one) => /no size of the pattern has the \d+ stitches round the body/.test(one)), said.join("\n")).toBe(true);
+      expect(planned, said.join("\n")).toBeGreaterThan(54);
+    }, 600000);
   });
 });
 
@@ -235,4 +388,14 @@ describe("what the planner answers is what a link names", () => {
       await named(once, "l", { option: "fewer" }),
     ]).toEqual(["38a1e1893ce0", "c85b2bd5451b", "6ebdca8200c3", "f3902201fcdf"]);
   });
+
+  it("for the designs planned only from the cast-on too", async () => {
+    const tighter = { stitchesPer10cm: 29.5, roundsPer10cm: 35 };
+    expect([
+      await named("wool-week-strips-lined-oldest", "m", { tension: tighter }),
+      await named("feline-raglan", "m", { tension: tighter }),
+      await named("feline-yoke", "m", { tension: tighter }),
+      await named("paul-klee", "m1", { tension: { stitchesPer10cm: 24.5, roundsPer10cm: 36 } }),
+    ]).toEqual(["a0b09230e8fe", "0a1419df7f33", "fcc438cecbc6", "148b674281c5"]);
+  }, 600000);
 });

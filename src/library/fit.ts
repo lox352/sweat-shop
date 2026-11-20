@@ -51,11 +51,12 @@ export interface Fitted {
 
 /**
  * Whether the rest of a knitting might still be worked out again: its design
- * can be, and nothing is on hold yet - the whole sweater is still one round
- * on the needles. The design has the last word, when it is asked.
+ * can be from part knitted, and nothing is on hold yet - the whole sweater
+ * is still one round on the needles. The design has the last word, when it
+ * is asked.
  */
 export const mayFit = (design: Design, knitted: SweaterStitches, progress: number): boolean =>
-  !!design.fitting && !knitted.holds.some((held) => held.heldAt <= progress);
+  !!design.fitting?.partWay && !knitted.holds.some((held) => held.heldAt <= progress);
 
 /**
  * What the worker says back: how far it has got; each of the design's ways

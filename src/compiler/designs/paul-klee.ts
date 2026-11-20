@@ -1,4 +1,4 @@
-import type { Chart, ChartCell, Colourway, RoundSpec, Section, ShapingOp, Size, SweaterPattern } from "./types";
+import type { Chart, ChartCell, Colourway, Fitting, Measurements, RoundSpec, Section, ShapingOp, Size, SweaterPattern } from "./types";
 import { underarmDecrease } from "./writing";
 
 /**
@@ -504,6 +504,116 @@ const checksFor = (size: Listed, at: number): Record<string, number> => {
   };
 };
 
+/* ------------------------------------------------- for a knitter's tension */
+
+/** The pattern's tension in stocking stitch, to the centimetre. */
+const standard = { stitches: 2.2, rounds: 3.4 };
+/** How far a size's body may be from the stitches a tension wants and still be knitted for it: half the widest step between two sizes. */
+const NEAR = 0.04;
+
+/**
+ * How deep a yoke is, in rounds of stocking stitch: the rib, the set-up
+ * round, each band's five rounds a quarter taller than plain ones (see
+ * tensions), the plain rounds, the raglan's set-up round and its increase
+ * rounds with a plain round between each two. The short rows are not rounds.
+ */
+const yokeRounds = (g: Grade): number => g.rib + 1 + bands[g.group].length * 5 * (34 / 27) + g.plain + 1 + (2 * g.increases - 1);
+/** The rounds of a body below its divide, and of a sleeve below its pick-up round. */
+const bodyRounds = (g: Grade): number => g.body + 2 + g.hem;
+const sleeveRounds = ({ sleeve: [each, decreases, tail], cuff }: Grade): number => (each + 1) * decreases + tail + 2 + cuff;
+
+const half = (cm: number) => Math.round(cm * 2) / 2;
+const even = (count: number) => 2 * Math.round(count / 2);
+
+/**
+ * The Paul Klee Sweater for a knitter's tension, from the cast-on.
+ *
+ * A bought pattern in sixteen sizes, and no size's yoke is worked out
+ * afresh: its neck, its set-up round, its short rows, its bands of squares
+ * and its raglan are numbers the designer chose a size at a time, and stay
+ * hers. What a knitter whose stitches are not the pattern's does with such a
+ * pattern is knit another of its sizes - the one whose stitches come out at
+ * the measurements they want - to their own size's lengths. So that is what
+ * is planned: the yoke, the divide and the sleeves' first round of the size
+ * whose body comes nearest the size asked for at the tension given, as the
+ * pattern writes them; and the ribs, the body and the sleeves as long as the
+ * size asked for, in the knitter's rounds, the sleeve tapering to that size's
+ * cuff. A yoke that comes deeper or shallower than the size's, where the
+ * knitter's rounds are not as much bigger as their stitches, is made up in
+ * the body and the sleeves.
+ *
+ * Only whole: the rest of a yoke part knitted is the pattern's own, band by
+ * band, and has nothing to plan afresh.
+ */
+const fitting: Fitting = {
+  plan: ({ finished, tension, from }) => {
+    if (from) throw new Error("the Paul Klee Sweater can only be planned whole, from the cast-on");
+    const [stitches, rounds] = [tension.stitchesPer10cm / 10 / standard.stitches, tension.roundsPer10cm / 10 / standard.rounds];
+    // The size asked for: the one of these measurements, or the nearest round the chest.
+    const nearestTo = <T,>(all: T[], off: (one: T, at: number) => number): number => all.reduce((best, one, at) => (off(one, at) < off(all[best], best) ? at : best), 0);
+    const exact = listed.findIndex((size) => (Object.keys(size.finished) as (keyof Measurements)[]).every((key) => size.finished[key] === finished[key]));
+    const own = exact >= 0 ? exact : nearestTo(listed, (size) => Math.abs(size.finished.chestCm - finished.chestCm));
+    // The size knitted: the one whose body, in the knitter's stitches, comes nearest.
+    const want = stated.body[own] * stitches;
+    const at = nearestTo(stated.body, (count) => Math.abs(count - want));
+    if (Math.abs(stated.body[at] - want) > NEAR * want) {
+      throw new Error(
+        `no size of the pattern has the ${Math.round(want)} stitches round the body that ${listed[own].label} wants at this tension: the ${at === 0 ? "smallest" : "largest"}, ${listed[at].label}, has ${stated.body[at]}`,
+      );
+    }
+    const [mine, theirs] = [grades[listed[own].id], grades[listed[at].id]];
+
+    /* The lengths: the size's own, in the knitter's rounds; and the yoke's depth made up below it. */
+    const rib = Math.round(mine.rib * rounds);
+    const [hem, cuff] = [Math.round(mine.hem * rounds), Math.round(mine.cuff * rounds)];
+    // In rounds of the pattern's own tension: how much deeper the yoke comes than the size's.
+    const deeper = yokeRounds({ ...theirs, rib }) / rounds - yokeRounds(mine);
+    const body = Math.round((bodyRounds(mine) - deeper) * rounds) - 2 - hem;
+    const shaped = Math.round((sleeveRounds(mine) - deeper) * rounds) - 2 - cuff;
+    if (body < 1) throw new Error("the yoke comes as deep as the whole body is long at this tension");
+
+    /* The sleeve: from the top the yoke leaves to the size's own cuff, its decreases spread down it as the pattern spreads them. */
+    const top = stated.top[at];
+    const wrist = Math.min(top, even(stated.cuff[own] * stitches));
+    const decreases = (top - wrist) / 2;
+    const tail = Math.max(1, Math.round(mine.sleeve[2] * rounds));
+    const each = decreases > 0 ? Math.floor((shaped - tail) / decreases) - 1 : 0;
+    if (shaped < 1 || (decreases > 0 && each < 1)) throw new Error(`a sleeve of ${Math.max(0, shaped)} rounds is too short to taper from ${top} stitches to ${wrist}`);
+    const fitted: Grade = { ...theirs, rib, body, hem, cuff, sleeve: [each, decreases, shaped - (each + 1) * decreases] };
+
+    const [size, knitted] = [listed[own], listed[at]];
+    const fits: Measurements = {
+      neckCm: half(knitted.finished.neckCm / stitches),
+      chestCm: half(knitted.finished.chestCm / stitches),
+      upperArmCm: half(knitted.finished.upperArmCm / stitches),
+      yokeDepthCm: half(size.finished.yokeDepthCm + deeper / standard.rounds),
+      bodyLengthCm: half((size.finished.bodyLengthCm * bodyRounds(fitted)) / (bodyRounds(mine) * rounds)),
+      sleeveLengthCm: half((size.finished.sleeveLengthCm * sleeveRounds(fitted)) / (sleeveRounds(mine) * rounds)),
+      cuffCm: half((size.finished.cuffCm * wrist) / (stated.cuff[own] * stitches)),
+    };
+    const [has, had] = [bands[theirs.group].length, bands[mine.group].length];
+    const deeperCm = half(Math.abs(deeper) / standard.rounds);
+    const notes = [
+      at === own
+        ? `Your stitches are near enough the pattern's that no other size's counts come nearer than ${size.label}'s own: its yoke is knitted as written, and the ribs, the body and the sleeves are worked out again for your rounds.`
+        : `The yoke is the pattern's size ${knitted.label}, as written: at your tension its ${stated.body[at]} stitches round the body come nearest ${size.label}'s measurements. ` +
+          `The ribs, the body and the sleeves are as long as ${size.label}'s, in your rounds, and each sleeve tapers to ${size.label}'s cuff.`,
+      `The chest comes to ${fits.chestCm}cm for ${size.finished.chestCm}cm, the upper arm to ${fits.upperArmCm}cm for ${size.finished.upperArmCm}cm, and the neck to ${fits.neckCm}cm for ${size.finished.neckCm}cm.`,
+      ...(has !== had ? [`${knitted.label}'s yoke has ${has} bands of squares where ${size.label}'s has ${had}, so it knits ${has > had ? "more" : "fewer"} colours: 1 to ${has}.`] : []),
+      ...(deeperCm >= 1
+        ? [`The yoke comes about ${deeperCm}cm ${deeper > 0 ? "deeper" : "shallower"} than ${size.label}'s, and the body and the sleeves are as much ${deeper > 0 ? "shorter" : "longer"}.`]
+        : []),
+    ];
+    return {
+      sections: sectionsFor(fitted, at, knitted.colours),
+      charts,
+      checks: { ...checksFor(knitted, at), "sleeve-left:cuff": wrist, "sleeve-right:cuff": wrist },
+      finished: fits,
+      notes,
+    };
+  },
+};
+
 /* -------------------------------------------------------------- the colours */
 
 const spindrift = (slot: string, name: string, code: string, hex: string): Colourway["shades"][number] => ({
@@ -547,6 +657,7 @@ const paulKlee: SweaterPattern = {
     { id: "sleeve-right", label: "Right sleeve" },
     { id: "sleeve-left", label: "Left sleeve" },
   ],
+  fitting,
   slots,
   slotRoles: Object.fromEntries([
     ["MC", "main colour"],

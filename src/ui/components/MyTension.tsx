@@ -35,9 +35,11 @@ const MyTension: React.FC<{
   begun?: boolean;
   /** Whether the pattern can be recalculated for a tension, as things are: said before one is given. */
   recalculates?: boolean;
+  /** Whether it can be part way through too, for a sweater not yet begun: see Design.fitting. */
+  partWay?: boolean;
   /** Anything more to say of the tension, below what it comes out at. */
   children?: React.ReactNode;
-}> = ({ size, fitted, tension, onChange, begun = false, recalculates = false, children }) => {
+}> = ({ size, fitted, tension, onChange, begun = false, recalculates = false, partWay = false, children }) => {
   const written = fitted ?? size;
   const knitted = tension && asKnitted(written.finished, written, tension);
   const same = !!tension && sameTension(written, tension);
@@ -56,7 +58,9 @@ const MyTension: React.FC<{
         recalculates ? " The rest of the pattern can be recalculated for it, while the whole yoke is still on the needles." : ""
       }`
     : recalculates
-      ? "If your swatch comes out the same, there is nothing to do here. If it doesn't, give what it measures: the pattern can be recalculated for it before you cast on, or part-way down the yoke if you only find out as you knit."
+      ? `If your swatch comes out the same, there is nothing to do here. If it doesn't, give what it measures: the pattern can be recalculated for it before you cast on${
+          partWay ? ", or part-way down the yoke if you only find out as you knit" : ". Once it is begun it can't be, so swatch first"
+        }.`
       : "If your swatch comes out the same, there is nothing to do here. If it doesn't, give what it measures, to see what the pattern comes out at.";
 
   return (

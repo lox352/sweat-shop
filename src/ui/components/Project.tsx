@@ -945,7 +945,9 @@ const ProjectView: React.FC<{
       {/* Where the rest is recalculated for this tension already, it says so; where it could be, it offers to; and where it is too late to, it says why nothing is offered. */}
       {project.tension && !sameTension(fitted ?? size, project.tension) && sweater.fitting && !canFit && (
         <p className="quiet refit-late">
-          The rest can only be recalculated while the whole yoke is still on the needles. Yours is past that, so the pattern carries on as written.
+          {sweater.fitting.partWay
+            ? "The rest can only be recalculated while the whole yoke is still on the needles. Yours is past that, so the pattern carries on as written."
+            : "This design can only be recalculated for a tension before it is cast on, so this pattern carries on as written. To knit it at your tension, start another from the design's page and give your tension there."}
         </p>
       )}
       {project.tension && (sameTension(fitted ?? size, project.tension) ? !!fitted : canFit) && (

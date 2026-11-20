@@ -266,7 +266,56 @@ test("Each Year Once for a tension given before starting: every year or fewer, f
   expect(Object.keys(started.fit.placement.places).length).toBeLessThan(13);
 });
 
-test("a design that can't be worked out again does not offer to be", async ({ page }) => {
+/*
+ * The designs worked out whole, and not on from part knitted: each on its
+ * design's page, from a tension given there. What each lays out is the
+ * compiler's (see src/compiler/fit.test.ts); this is that its page offers
+ * it, shows what it came to and starts it.
+ */
+for (const { design, size, written, swatch, says, casts } of [
+  { design: "paul-klee", size: "m1", written: "22 stitches and 34 rounds", swatch: [24, 37], says: /The yoke is the pattern's size L, as written: at your tension its 260 stitches round the body come nearest M1's measurements\./, casts: 118 },
+  { design: "wool-week-strips-lined-oldest", size: "m", written: "32 stitches and 38 rounds", swatch: [28, 34], says: /Every year is a strip of 13 to 16 rounds at this tension/, casts: 128 },
+  { design: "feline-raglan", size: "m", written: "32 stitches and 38 rounds", swatch: [28, 34], says: /Each feline is drawn afresh for this tension: \d+ stitches wide and \d+ rounds tall/, casts: 128 },
+  { design: "feline-yoke", size: "m", written: "32 stitches and 38 rounds", swatch: [28, 34], says: /Each feline is drawn afresh for this tension: \d+ stitches wide and \d+ rounds tall/, casts: 128 },
+]) {
+  test(`${design} for a tension given before starting: worked out from the cast-on, and only then`, async ({ page }) => {
+    test.setTimeout(240_000);
+    await withoutSettling(page);
+    await page.goto(`#/sweater/${design}?size=${size}&tab=tension`);
+    const section = page.getByRole("region", { name: "Your tension" });
+    await expect(section).toContainText(`written for ${written} to 10cm`, { timeout: 30_000 });
+    // It can be before it is cast on, and says that it can't be after.
+    await expect(section).toContainText("the pattern can be recalculated for it before you cast on. Once it is begun it can't be, so swatch first.");
+    await section.getByLabel("Stitches counted").fill(String(swatch[0]));
+    await section.getByLabel("Rounds counted").fill(String(swatch[1]));
+    await section.getByRole("button", { name: "Compare with the pattern", exact: true }).click();
+    await section.getByRole("button", { name: "Recalculate for my tension", exact: true }).click();
+    const shown = section.locator(".refit-shown");
+    await expect(shown).toBeVisible({ timeout: 150_000 });
+    await expect(shown).toContainText("From the cast-on.");
+    await expect(shown).toContainText(says);
+    await expect(page.locator(".stage .sweater-comparison figcaption")).toHaveText(["As designed", "Recalculated"]);
+    await shown.getByText("The pattern, written out").click();
+    await expect(shown.locator(".refit-written")).toContainText(`Cast on ${casts}`);
+
+    await shown.getByRole("button", { name: "Start knitting this", exact: true }).click();
+    await expect(page.locator(".knitting-panel")).toContainText(/of \d+ stitches/, { timeout: 30_000 });
+    const started = await page.evaluate(() => JSON.parse(localStorage.getItem(Object.keys(localStorage).find((key) => key.startsWith("project-")))));
+    const current = editions[design][size].current;
+    expect(started).toMatchObject({ sizeId: size, progress: 0, tension: { stitchesPer10cm: swatch[0], roundsPer10cm: swatch[1] }, upTo: current, fit: { from: current }, made: { steps: [{ fit: { stitchesPer10cm: swatch[0], roundsPer10cm: swatch[1] } }] } });
+    expect(started.fit.round).toBeUndefined();
+    expect(started.edition).not.toBe(current);
+    // Its page says it is, and offers nothing more to work out: the rest of one begun can't be.
+    await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
+    await page.getByRole("link", { name: "Close the chart", exact: true }).click();
+    await page.getByRole("tab", { name: "Fit", exact: true }).click();
+    const own = page.getByRole("region", { name: "Your tension" });
+    await expect(own).toContainText("Your pattern is recalculated for this tension, from the cast-on.", { timeout: 30_000 });
+    await expect(own.getByRole("heading", { name: "Recalculate the rest" })).toHaveCount(0);
+  });
+}
+
+test("a design worked out only from the cast-on does not offer to be once it is begun, and says why", async ({ page }) => {
   await page.goto("");
   await page.evaluate((id) => {
     const now = new Date().toISOString();
@@ -278,4 +327,6 @@ test("a design that can't be worked out again does not offer to be", async ({ pa
   const section = page.getByRole("region", { name: "Your tension" });
   await expect(section.getByRole("table")).toBeVisible();
   await expect(section.getByRole("heading", { name: "Recalculate the rest" })).toHaveCount(0);
+  await expect(section).toContainText("This design can only be recalculated for a tension before it is cast on, so this pattern carries on as written.");
+  await expect(section).toContainText("start another from the design's page and give your tension there");
 });

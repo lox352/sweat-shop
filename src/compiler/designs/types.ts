@@ -315,8 +315,12 @@ export interface Fitted {
 export interface Fitting {
   /** The ways the rest can be laid out, where the knitter has a choice. */
   options?: FitOption[];
-  /** The first round, at or after `round`, after which the rest can be planned afresh; none once it no longer can. */
-  cutAfter(knitted: SweaterStitches, round: number): number | undefined;
+  /**
+   * The first round, at or after `round`, after which the rest can be planned
+   * afresh; none once it no longer can. A design that has none can only be
+   * planned whole, from the cast-on.
+   */
+  cutAfter?(knitted: SweaterStitches, round: number): number | undefined;
   plan(ask: FitRequest): Fitted;
 }
 

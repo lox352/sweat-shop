@@ -1,6 +1,6 @@
-import type { Chart, Colourway, Size, SweaterPattern } from "../types";
+import type { Chart, Colourway, Fitting, Measurements, Size, SweaterPattern } from "../types";
 import { measured } from "../wool-week/strips/design";
-import { type Construction, type Knitted, gauge, knit } from "./knit";
+import { type Construction, type Gauge, type Knitted, countsOf, gauge, knit, ribsAt } from "./knit";
 
 /**
  * A feline jumper: the two large red felines of a Nasca tunic at the
@@ -72,6 +72,60 @@ export interface FelineSweater {
   construction: Construction;
 }
 
+const half = (cm: number) => Math.round(cm * 2) / 2;
+const rounds = (n: number) => `${n} round${n === 1 ? "" : "s"}`;
+
+/**
+ * A feline jumper for one knitter: the whole of it from the cast-on, knitted
+ * for the size's measurements at their tension as a published size is at the
+ * pattern's (see knit) - its counts the tension's, and each feline drawn
+ * afresh as large as the front then has room for, in stitches as much wider
+ * than they are tall as the knitter's are. The felines are a picture laid
+ * out on the whole jumper, so the rest of one part knitted can't be planned:
+ * it has no cutAfter.
+ */
+const fittingOf = (id: string, construction: Construction): Fitting => ({
+  plan: ({ finished, tension, from }) => {
+    if (from) throw new Error("a feline jumper can only be planned whole, from the cast-on");
+    const g: Gauge = { stitches: tension.stitchesPer10cm / 10, rounds: tension.roundsPer10cm / 10 };
+    // The neck's band, the waist's and the cuffs' are pictures of a set number of stitches and rounds, and a feline wants room: a jumper of too few stitches, or too many for its band to go round evenly, can't be laid out.
+    let knitted: Knitted;
+    try {
+      knitted = knit(finished, construction, `${id}-`, g);
+    } catch (error) {
+      throw new Error(`the bands and the felines are pictures of a set number of stitches, and they can't be laid out on this size at this tension (${error instanceof Error ? error.message : String(error)})`);
+    }
+    const { sections, charts, checks, counts: c, placed } = knitted;
+    const ribs = ribsAt(g);
+    const fits: Measurements = {
+      chestCm: half(checks.body / g.stitches),
+      neckCm: half(checks.neck / g.stitches),
+      yokeDepthCm: half((c.yokeRounds + ribs.neck) / g.rounds),
+      bodyLengthCm: half((c.bodyRounds + ribs.hem) / g.rounds),
+      upperArmCm: half(c.upperArm / g.stitches),
+      sleeveLengthCm: half((c.sleeveRounds + ribs.cuff) / g.rounds),
+      cuffCm: half(c.cuff / g.stitches),
+    };
+    // A raglan can only grow at its four lines: where the chest is far more than the neck its yoke is deeper than the size's, and the body as much shorter.
+    const deeper = c.yokeRounds - countsOf(finished, g).yokeRounds;
+    return {
+      sections,
+      charts,
+      checks,
+      finished: fits,
+      notes: [
+        `Each feline is drawn afresh for this tension: ${placed.width} stitches wide and ${rounds(placed.height)} tall, about ${half(placed.width / g.stitches)}cm by ${half(placed.height / g.rounds)}cm` +
+          `${placed.inYoke > 0 ? `, the top ${rounds(placed.inYoke)} of it in the yoke` : ""}.`,
+        placed.band
+          ? "The band of small gold creatures goes round the waist."
+          : "The band of small gold creatures round the waist is left out: with it, the felines would have too little room.",
+        "The bands at the neck and the cuffs and the creatures on the sleeves are as many stitches and rounds as the pattern's, so they come out larger or smaller as your stitches do.",
+        ...(deeper > 0 ? [`The yoke is ${rounds(deeper)} deeper than the size's, so that its four lines can reach the chest, and the body as much shorter.`] : []),
+      ],
+    };
+  },
+});
+
 export const felineSweater = ({ id, name, story, construction }: FelineSweater): SweaterPattern => {
   // Each size is knitted the first time anything asks for it, and kept.
   const knitted = new Map<string, Knitted>();
@@ -106,6 +160,7 @@ export const felineSweater = ({ id, name, story, construction }: FelineSweater):
       { id: "sleeve-left", label: "Left sleeve" },
       { id: "sleeve-right", label: "Right sleeve" },
     ],
+    fitting: fittingOf(id, construction),
     slots: ["A", "B", "C", "D"],
     slotRoles: {
       A: "the ground: the body, yoke and sleeves",

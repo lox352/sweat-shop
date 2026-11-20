@@ -377,7 +377,10 @@ comes to as written, and has it worked out for their tension, shown beside
 the pattern as it is, before a stitch is cast on. The project then begins on
 knitting of its own.
 
-Two designs can so far. **Each Year Once** plans from the cast-on, or on
+Every design can from the cast-on, and two can part way too (a design's
+`fitting` has a `cutAfter` only where it can; the catalogue says so as
+`partWay`, and a design's page and a project's say which it is). **Each Year
+Once** plans from the cast-on, or on
 from the last round of a year on its yoke: the years not yet knitted shared
 between the pieces and each cut as its piece has room for, a pattern kept
 whole while it can be, every year or fewer of them fuller. One function
@@ -386,8 +389,24 @@ of one part knitted (`laidOut`, in the design's `refit.ts`), so a published
 size is that function at the pattern's tension, to the stitch. **Hamefarin**
 plans from the cast-on, or on from the last round of a band of its yoke:
 the bands still to come graded from the stitches on the needles, one left
-out where the yoke has no depth for it. The lined-up sampler, the feline
-jumpers and Paul Klee can't yet.
+out where the yoke has no depth for it.
+
+The rest plan whole, and not on from part knitted. **Thirteen Strips** is
+laid out for the size's measurements at the tension given by the function
+that lays out its published sizes: every year a strip of the height the
+tension gives it, and the same strips down each sleeve - so it can't be part
+way, and can't be at all at a tension so loose that thirteen strips have not
+the rounds. **The feline jumpers** are knitted to the tension's counts, each
+feline drawn afresh as large as the front then has room for, in stitches as
+much wider than tall as the knitter's; their bands are pictures of a set
+number of stitches, and at some tensions will not go round a size, which is
+said. **Paul Klee** is a bought pattern in sixteen sizes, and none of its
+yokes is worked out afresh: the yoke is that of the size whose stitches come
+nearest the measurements asked for at the knitter's tension, as the pattern
+writes it, with the ribs, body and sleeves as long as the size asked for in
+the knitter's rounds, and the difference in the yoke's depth made up in
+them. Where no size has the stitches, it says so. For each, the published
+size is the plan at the pattern's tension, to the stitch.
 
 **Colours follow the plan.** Some colourways step down the sweater: a year's
 yarns depend on where it sits, so that a body band and the sleeve band level
