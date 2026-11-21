@@ -90,6 +90,12 @@
   max-width: none;
 }
 
+/* A word over the sweater and no bar: as wide as what it says. */
+.stage .sweater-note {
+  right: auto;
+  padding-bottom: 0.3rem;
+}
+
 .stage-side {
   /* What a sheet comes up over: see Sheet. */
   position: relative;

@@ -1,16 +1,17 @@
-import React, { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { sweaterById } from "../../library/catalogue";
 import type { SizeAbout, SlotId, Tension } from "../../pattern/design";
 import { defaultSize } from "../../reading/counted";
 import { useKnitted, useKnitting } from "../useSweater";
-import { useFit } from "../useFit";
+import { fitShare, useFit } from "../useFit";
+import { useShapes } from "../useShape";
 import { useColourway } from "../useColourway";
 import { currentEdition } from "../../library/editions";
 import { decodeEdition } from "../../library/editions/format";
 import type { Fitted } from "../../library/fit";
-import { asKnitted, sameTension, yarnPerStitch } from "../../reading/tension";
-import { ballsOf, colourwayLabel, lit, paletteOf, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
+import { sameTension, yarnPerStitch } from "../../reading/tension";
+import { ballsOf, colourwayLabel, lit, paletteOf, trimmed, type Overrides } from "../../reading/palette";
 import { totals } from "../../reading/progress";
 import { metresFor } from "../../reading/yardage";
 import { chartPath, keepKnitting, startProject } from "../../projects/projects";
@@ -43,9 +44,11 @@ import "./Sweater.css";
  * And so is a size at another tension. The pattern's own is filled in beside
  * the sizes; a knitter whose swatch measures otherwise changes it, and has
  * the pattern recalculated for theirs where the design can (see
- * Design.fitting). From then on the page is that pattern's: the jumper on
- * the stage, the size laid flat and its measurements, the colours and the
- * wool they take, and what Start knitting starts.
+ * Design.fitting). While it is, the page stays the pattern's as written, one
+ * bar following the working out and then the settling of it into its shape;
+ * from then on the page is that pattern's: the jumper on the stage, the size
+ * laid flat and its measurements, the colours and the wool they take, and
+ * what Start knitting starts.
  */
 const Sweater: React.FC = () => {
   const { sweaterId } = useParams();
@@ -105,11 +108,23 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
     ask({ design: sweater.id, sizeId: size.id, tension });
   };
   // From the cast-on a design lays a sweater out one way: its ways are of the rest of one part knitted (see Refit).
-  const fitted = answer.at === "shown" ? answer.found[0] : undefined;
+  const worked = answer.at === "shown" ? answer.found[0] : undefined;
+  /*
+   * Worked out, it is not shown yet: it is settled into its shape first, the
+   * sweater as written staying on the stage meanwhile, and the one bar that
+   * followed the working out goes on to follow that. The page becomes the
+   * recalculated pattern's all at once. Its shape is the project's from the
+   * start, once it is one (see useShapes).
+   */
+  const settling = useMemo(() => (worked ? { knittings: [decodeEdition(worked.file)], editions: [worked.file.edition] } : { knittings: [], editions: [] }), [worked]);
+  const { fraction: settledSoFar, shapes } = useShapes(settling.knittings, settling.editions);
+  const fitted = shapes ? worked : undefined;
+  const working = answer.at === "working" || (!!worked && !shapes);
+  const fraction = answer.at === "working" ? fitShare * answer.fraction : fitShare + (1 - fitShare) * settledSoFar;
 
   // The knitting the page is of: the pattern's, or the one recalculated.
   const written = useKnitting(sweater, size.id);
-  const recalculated = useMemo(() => (fitted ? decodeEdition(fitted.file) : undefined), [fitted]);
+  const recalculated = fitted ? settling.knittings[0] : undefined;
   const built = useKnitted(sweater, recalculated ?? written);
   const { stitches, rounds, index, yoke } = built;
   /** The size as it will be knitted: recalculated, at the knitter's tension and what that comes to. */
@@ -126,8 +141,6 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
   const colourway = useMemo(() => trimmed(laid, trim), [laid, trim]);
   const palette = useMemo(() => paletteOf(colourway, own), [colourway, own]);
   const onStage = useMemo(() => (lighting ? lit(palette, lighting) : palette), [palette, lighting]);
-  // What that adds to the wools the design lists.
-  const added = useMemo(() => woolsAdded(trimmed(published, trim), colourway), [published, trim, colourway]);
   // A sweater recalculated is not the one a printed list of wool was for, and its stitches are the knitter's.
   const metres = useMemo(
     () => (fitted ? metresFor({}, stitches, rounds, yarnPerStitch(size, fitted.tension)) : metresFor(size, stitches, rounds)),
@@ -198,19 +211,6 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
     setGiven(undefined);
     setFields((count) => count + 1);
   };
-  // What the pattern comes out at knitted as written at the knitter's tension: what recalculating is instead of.
-  const asWritten = tension && asKnitted(size.finished, size, tension);
-  /*
-   * What a changed tension brings up is under the fields, and on a phone
-   * under the page's foot: it is brought into view as it comes, once, so the
-   * way on is seen and not found by scrolling.
-   */
-  const offered = !!tension && answer.at === "rest";
-  const offer = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (offered) offer.current?.scrollIntoView({ block: "nearest" });
-  }, [offered]);
-
   const choosing = (
     <>
       <div className="size-chooser">
@@ -231,67 +231,34 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
         <h3 id="size-tension-heading">Tension</h3>
         {/* The pattern's tension is the size's: filled in afresh for a size written for another, unless the knitter has given their own. */}
         <TensionChoice key={`${size.stitchesPer10cm} ${size.roundsPer10cm} ${fields}`} pattern={size} tension={given} onChange={setGiven} />
-        {offered && asWritten && (
-          <div role="status" ref={offer}>
-            <p>
-              As written, {size.label} would come out {asWritten.chestCm}cm round the chest at that tension, not {size.finished.chestCm}cm.
-            </p>
-            <p className="my-tension-actions">
-              {sweater.fitting && (
-                <Button variant="primary" onClick={recalculate}>
-                  Recalculate the pattern
-                </Button>
-              )}
-              <Button variant="quiet" onClick={usePatterns}>
-                Use the pattern's
-              </Button>
-            </p>
-          </div>
-        )}
-        {answer.at === "working" && (
+        {/* Always there, and to be pressed only where there is something to recalculate for: a tension that is not the pattern's, not worked out already. */}
+        <p className="my-tension-actions">
+          {sweater.fitting && (
+            <Button variant="primary" disabled={!tension || working || !!fitted} onClick={recalculate}>
+              Recalculate the pattern
+            </Button>
+          )}
+          {tension && (
+            <Button variant="quiet" onClick={usePatterns}>
+              Revert to original
+            </Button>
+          )}
+        </p>
+        {working && (
           <div role="status" className="size-working">
-            <progress value={answer.fraction} max={1} aria-label="How far the working out has got" />
-            <p>Recalculating the pattern. This can take up to a minute.</p>
+            {/* The one bar, and no more words: the stage says what it is of. */}
+            <progress value={fraction} max={1} aria-label="How far recalculating the pattern has got" />
           </div>
         )}
-        {(answer.at === "failed" || (answer.at === "shown" && !fitted)) && (
-          <div role="alert">
-            <p>
-              <strong>The pattern can't be recalculated for that tension.</strong> {answer.at === "failed" ? answer.why : answer.unfitted.map((not) => not.why).join(" ")}
-            </p>
-            <p className="my-tension-actions">
-              <Button variant="quiet" onClick={usePatterns}>
-                Use the pattern's
-              </Button>
-            </p>
-          </div>
+        {(answer.at === "failed" || (answer.at === "shown" && !worked)) && (
+          <p role="alert">
+            <strong>The pattern can't be recalculated for that tension.</strong> {answer.at === "failed" ? answer.why : answer.unfitted.map((not) => not.why).join(" ")}
+          </p>
         )}
         {fitted && (
-          <div role="status" className="size-recalculated">
-            <p>
-              <strong>Recalculated.</strong>
-            </p>
-            <ul>
-              {fitted.notes.map((note) => (
-                <li key={note}>{note}</li>
-              ))}
-              {added.length > 0 && (
-                <li>
-                  This colourway steps down the sweater, so each year takes the yarns for where it now sits. That adds {added.length} {added.length === 1 ? "yarn" : "yarns"} to
-                  what the pattern listed: {added.map((shade) => (shade.code ? `${shade.name} (${shade.code})` : shade.name)).join(", ")}.
-                </li>
-              )}
-            </ul>
-            <details>
-              <summary>The pattern, written out</summary>
-              <pre className="refit-written">{fitted.written}</pre>
-            </details>
-            <p className="my-tension-actions">
-              <Button variant="quiet" onClick={usePatterns}>
-                Back to the pattern as written
-              </Button>
-            </p>
-          </div>
+          <p role="status" className="visually-hidden">
+            The pattern is recalculated for your tension.
+          </p>
         )}
       </section>
     </>
@@ -342,7 +309,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
                   {fitted.tension.stitchesPer10cm} stitches &amp; {fitted.tension.roundsPer10cm} rounds to 10cm
                 </span>
               </>
-            ) : answer.at === "working" ? (
+            ) : working ? (
               <>
                 <strong>Being recalculated for yours</strong>{" "}
                 <span className="quiet">
@@ -362,11 +329,11 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
         </button>
       </div>
       {/* Not while the pattern is being worked out: what would be started is not yet known. */}
-      <Button variant="primary" size="lg" className="ready-start" disabled={answer.at === "working"} onClick={fitted ? () => startFitted(fitted) : start}>
+      <Button variant="primary" size="lg" className="ready-start" disabled={working} onClick={fitted ? () => startFitted(fitted) : start}>
         Start knitting
       </Button>
       <p className="quiet ready-note">
-        {answer.at === "working"
+        {working
           ? "The pattern is still being recalculated for your tension."
           : `${counts.total.toLocaleString()} stitches over ${rounds.length} rounds. Nothing is kept until you start.`}
       </p>
@@ -423,9 +390,16 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
         eyebrow="a design"
         stage={
           recalculated && fitted ? (
-            <OwnModel knitting={recalculated} edition={fitted.file.edition} palette={onStage} progress={stitches[stitches.length - 1]?.id ?? 0} fill />
+            <OwnModel knitting={recalculated} settled={shapes?.[0]} palette={onStage} progress={stitches[stitches.length - 1]?.id ?? 0} fill />
           ) : (
-            <SweaterModel sweaterId={sweater.id} sizeId={size.id} palette={onStage} progress={stitches[stitches.length - 1]?.id ?? 0} fill />
+            <SweaterModel
+              sweaterId={sweater.id}
+              sizeId={size.id}
+              palette={onStage}
+              progress={stitches[stitches.length - 1]?.id ?? 0}
+              fill
+              note={working ? "Pattern being recalculated" : undefined}
+            />
           )
         }
         // What the jumper on the stage is: its size, the tension it is recalculated for where it is, and its colours.

@@ -196,7 +196,7 @@ test("a jumper recalculated from the cast-on at one tension, part knitted, and r
   await given.getByLabel("Stitches to 10cm").fill("24");
   await given.getByLabel("Rounds to 10cm").fill("28");
   await given.getByRole("button", { name: "Recalculate the pattern", exact: true }).click();
-  await expect(given.locator(".size-recalculated")).toBeVisible({ timeout: 90_000 });
+  await expect(page.locator(".stage-badge")).toContainText("24 sts & 28 rounds", { timeout: 90_000 });
   await page.getByRole("tab", { name: "Start", exact: true }).click();
   await page.getByRole("button", { name: "Start knitting", exact: true }).click();
   await expect(page.locator(".knitting-panel")).toContainText("of 112 stitches", { timeout: 30_000 });
