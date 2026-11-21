@@ -372,13 +372,17 @@ The rest recalculated keeps to these:
 **From the cast-on too.** A plan may start from nothing knitted, and there
 nothing is set beside anything: a size is chosen with the tension it is to
 be knitted at. The first of a size's pages has the sizes and, under them,
-the pattern's own tension filled in (`TensionChoice`); a knitter whose swatch
-measures otherwise changes it, is told in a line what the pattern would then
-come out at as written, and has it recalculated. From then on the design's
-page is that pattern's - the jumper on the stage (drawn laid out at once, and
-settled behind it; its badge says the tension it is for), the size laid flat and its measurements, the colours and
+the pattern's own tension filled in (`TensionChoice`) and *Recalculate the
+pattern*, which is always there and can be pressed only once the tension is
+not the pattern's. A knitter whose swatch measures otherwise changes it and
+has the pattern recalculated. While it is, the sweater as written stays on
+the stage under the words *Pattern being recalculated*, and one bar follows
+the working out and then the settling of it into its shape. From then on the
+design's page is that pattern's - the jumper on the stage (its badge says the
+tension it is for), the size laid flat and its measurements, the colours and
 the wool they take, and what *Start knitting* starts - until the tension or
-the size is changed, which is another question. Where the design can't be
+the size is changed, which is another question, or *Revert to original* puts
+the pattern's tension back. Where the design can't be
 laid out at the tension it says why, and the pattern stays as written. The
 project then begins on knitting of its own.
 
