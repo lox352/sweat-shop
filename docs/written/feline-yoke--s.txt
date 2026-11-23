@@ -31,11 +31,13 @@ Body (body)
   Divide, in A: k71, put 88 on hold for sleeve-right, cast on 12, k142, put 88 on hold for sleeve-left, cast on 12, k71. (308 sts)
   Chart feline-yoke-s-body-1, rows 1-91, 1 repeats a round.
   9 rounds of k1 in A.
-  4 rounds of k1 in B.
-  Chart feline-yoke-s-body-2, rows 1-22, 1 repeats a round.
   2 rounds of k1 in B.
+  Chart feline-yoke-s-body-2, rows 1-23, 1 repeats a round.
+  1 round of k1 in B.
   4 rounds of k1 in D.
-  3 rounds of k1 in B.
+  2 rounds of k1 in B.
+  2 rounds of k1 in D.
+  1 round of k1 in B.
   Change to the ribbing needles.
   14 rounds of k1, p1 in B. (308 sts) [rib]
   Bind off in pattern, (k1, p1), in B. [rib]
@@ -52,7 +54,7 @@ Left sleeve (sleeve-left)
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 92 sts.
   6 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 90 sts.
-  6 rounds of k1 in A.
+  5 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 88 sts.
   6 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 86 sts.
@@ -63,7 +65,7 @@ Left sleeve (sleeve-left)
   6 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 80 sts.
   6 rounds of k1 in A.
-  Chart feline-yoke-s-sleeve-1, rows 1-22, 1 repeats a round.
+  Chart feline-yoke-s-sleeve-1, rows 1-23, 1 repeats a round.
   4 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 78 sts.
   5 rounds of k1 in A.
@@ -85,7 +87,7 @@ Right sleeve (sleeve-right)
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 92 sts.
   6 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 90 sts.
-  6 rounds of k1 in A.
+  5 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 88 sts.
   6 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 86 sts.
@@ -96,7 +98,7 @@ Right sleeve (sleeve-right)
   6 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 80 sts.
   6 rounds of k1 in A.
-  Chart feline-yoke-s-sleeve-1, rows 1-22, 1 repeats a round.
+  Chart feline-yoke-s-sleeve-1, rows 1-23, 1 repeats a round.
   4 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 78 sts.
   5 rounds of k1 in A.

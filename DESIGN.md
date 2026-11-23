@@ -460,18 +460,18 @@ Metropolitan Museum of Art: `src/data/sweaters/feline-raglan.ts` and
 `feline-yoke.ts`, each a call to `felineSweater` with a construction; all
 they share is in `src/data/sweaters/felines/`.
 
-- **The felines are a vector model** (`model.json`), traced from a photograph
-  of the tunic, in its pixels. Each corner was placed by eye on the photograph
-  enlarged five to twelve times with a pixel grid, then moved onto the edge
-  between red and ochre the photograph shows: each edge read across every
-  three quarters of a pixel, a straight line fitted through where the colour
-  changes, each corner where its two edges' lines meet. Each feline's body is
-  one polygon, its face a hole and its tail's spiral part of the same
-  outline; its ears' whites triangles, its eyes hexagon rings, its mouth and
-  nose hexagons, its teeth a zigzag; its whiskers straight lines run on into
-  the head, and its claws lines down the middle of each stripe. The right-hand
-  feline's right hand and whiskers are lost under glare in the photograph, and
-  are its left ones mirrored; its right foot is placed by eye.
+- **The felines are a vector model** (`model.json`), each traced from a close
+  photograph of its own (`feline-left.svg` and `feline-right.svg`, each in its
+  photograph's pixels) and put into one frame at one scale. The red yarn is
+  separated from the ground by colour, a straight line fitted to each edge of
+  its outline, and each corner put where two edges' lines meet; every part
+  was then checked against the photograph enlarged. Each feline's body is one
+  polygon, its face a hole and its tail's spiral part of the same outline;
+  its ears' whites polygons, its eyes rings, its mouth and nose hexagons, its
+  teeth a zigzag; its whiskers lines run on into the head, and its claws
+  lines down the middle of each stripe. The right-hand feline's left foot is
+  turned away at the cloth's edge in its photograph, and is drawn out again
+  to its other foot's width.
 - **Drawn as stitches at any size** (`raster.ts`). A feline drawn `w`
   stitches wide is as many rows tall as its picture is at the gauge - a
   stitch is wider than a row is tall. Each stitch takes the colour covering
@@ -484,11 +484,16 @@ they share is in `src/data/sweaters/felines/`.
   claw, so they nest a stitch of cream and one of red. Every claw stitch has
   red round it, as on the cloth.
 - **The small motifs** (`motifs.ts`), drawn stitch by stitch. The hem band's
-  creature, 40 stitches by 35 rows, from the band's seven clear repeats in the
-  photograph lined up and averaged; it repeats every 111.6 of the
-  photograph's pixels, which is what sets the felines' scale on the tunic.
-  The sleeve ends' feline, 30 by 32: the big one in miniature, gold on red,
-  each part placed where the model puts it at that size.
+  creature, 36 stitches by 23 rows, from a trace measured off a close
+  photograph of the band (`hem-creature.svg`): its front feet with three
+  cream claws each, its hind feet with three tipped toes, its tail curled in
+  under its rump. On the tunic its face and the insides of its ears are a
+  grey-brown; here it is gold all through, its eyes and mouth cream, so that
+  no round of the band wants a fourth yarn. The band is 35 rows: the
+  creatures on its red, and under them the tunic's two gold lines - four
+  rounds of gold, two of red, two of gold - then a round of red before the
+  rib. The sleeve ends' feline, 30 by 32: the big one in miniature, gold on
+  red, each part placed where the model puts it at that size.
 - **Laid out** (`knit.ts`), at 32 stitches and 38 rounds to 10cm on the strip
   samplers' measurements, which leave the felines room. The left-hand feline
   goes on the front and the right-hand one on the back, centred, each as wide
@@ -497,16 +502,17 @@ they share is in `src/data/sweaters/felines/`.
   row either way, and eight at least, to stand clear of them - which takes
   it up into the yoke, as far as the yoke has room for it there. The hem band goes round the waist where that still
   leaves the felines at least 72% of the width they would have without it -
-  in every size, as it turns out - its creatures 42 stitches or more apart,
-  one under the middle of the front. A picture is knitted top first from the
+  in every size, as it turns out - its creatures nose to tail as on the tunic,
+  two stitches of red or more between each and the next, one under the middle
+  of the front. A picture is knitted top first from the
   neck down, and each round runs left to right as the jumper is seen from the
   outside, from the middle of the back: so the back's left half ends each
   round and its right half begins it. The divide is a round of the picture
   too: the engine knits a stretch of a dividing round each stitch in its own
   yarn where the pattern gives them.
 - **The neck's band**, under the neck's rib and short rows, as deep as the
-  hem's band, 35 rounds: the hem band's three rounds of red and four of gold
-  nearest the neck, then squared spirals in gold on red - the hem creature's
+  hem's band, 35 rounds: three rounds of red and four of gold nearest the
+  neck, then squared spirals in gold on red - the hem creature's
   tail, alone (`squareSpiral` draws one at any size) - three stitches apart,
   alternate ones mirrored, so that no increase ever comes in one.
   - *On the raglan*, seen from above, the band is a square frame round the
@@ -586,7 +592,7 @@ they share is in `src/data/sweaters/felines/`.
   side; then a round of red gathers it in to the cuff's rib.
 - **The sleeves' creatures.** Above each cuff band two of the hem band's
   creatures, on their own - no band behind them - in red straight on the
-  ground, their eyes and toes cream as on the hem: 36 stitches by 22 rounds,
+  ground, their eyes and toes cream as on the hem: 36 stitches by 23 rounds,
   half a round apart on the front and the back of the arm, so with the arms
   down each sleeve shows one from the front and one from behind. They need 80
   stitches at least, 4 between them at their nearest. A decrease round can't

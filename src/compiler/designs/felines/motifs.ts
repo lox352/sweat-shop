@@ -7,66 +7,77 @@
  */
 
 /**
- * The hem band's creature, 40 stitches by 35 rows: a creature seen from
- * above, running left - a cat's face for a head, its ears out ahead of it,
- * legs splayed to feet with cream toes, a tail curled into a spiral - gold
- * on the red band, over a gold stripe. Drawn from the band's seven clear
- * repeats in a photograph of the tunic, lined up and averaged: it repeats
- * every 111.6 of the photograph's pixels there, which is what sets the
- * scale of the felines (see knit.ts). Its upper half is drawn, its lower half
- * the upper mirrored, then the tail added.
+ * The hem band's creature, 36 stitches by 23 rows: a creature seen from
+ * above, running left - a cat's face for a head, its two ears out ahead of
+ * it, its front feet turned forward with three cream claws each, its hind
+ * feet turned out with three cream-tipped toes, and its tail turned down
+ * under its rump and curled in - gold on the band's red. Drawn stitch by
+ * stitch from a trace measured off a close photograph of the band
+ * (hem-creature.svg, in that photograph's pixels), a stitch to 39.5 of them
+ * across and a row to 35 down; its two halves are no mirror of each other,
+ * and nor are they here. Its lower front foot is a row deeper than on the
+ * cloth, so that each of its claws has a row of red after it, and its
+ * tail's curl a row deeper, so that the red shows between its turns.
+ *
+ * On the tunic its face and the insides of its ears are a grey-brown, its
+ * eyes have red pupils and its claws sit on a grey band. Here it is gold
+ * all through, its eyes and mouth cream, so that no round of the band
+ * wants a fourth yarn.
  */
-const UPPER = [
-  // 0123456789012345678901234567890123456789
-  "........................................", // 1
-  "........................................",
-  "........................................",
-  "........................................",
-  ".......cGGGGGGGGGG.....c.c.c............", // 5  front foot, toes ahead; the hind foot's toes
-  "........GGGGGGGGGG.....GGGGG............",
-  ".......cGGGGGGGGGG.....GGGGG............",
-  "........GGGGGGGGGG....GGGGG.............",
-  ".......cGGGGGGGGGG....GGGG..............",
-  "...............GGG...GGGG...............", // 10 front leg; hind leg, slanting back
-  "..GGGGGGGG.....GGG...GGG................", //    an ear
-  "..GGGGGGGGGGGGGGGGGGGGGGG...............",
-  "...GGGGcGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG..", //    an eye; the body
-  "....GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG..",
-  ".....GGGG.GGGGGGGGGGGGGGGGGGGGGGGGGGGG..", // 15 the mouth
-];
-/** The tail, out of the body's end and curled in: rows 19 to 26, stitches 29 to 37. */
-const TAIL: Record<number, string> = {
-  19: "........G",
-  20: "GGGGGGG.G",
-  21: "G.....G.G",
-  22: "G.GGG.G.G",
-  23: "G.G...G.G",
-  24: "G.GGGGG.G",
-  25: "G.......G",
-  26: "GGGGGGGGG",
-};
-const UNDER = [
-  "........................................", // 27
-  "........................................",
-  "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG", //    the gold stripe under the band
-  "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
-  "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
-  "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
-  "........................................",
-  "........................................",
-  "........................................", // 35
+export const hemCreature: string[] = [
+  // 012345678901234567890123456789012345
+  ".......cGGGGGGGGGGG....c.c.c........", // 1  a front foot, its claws ahead; a hind foot's toes, tipped
+  "........GGGGGGGGGGG....G.G.G........",
+  ".......cGGGGGGGGGGG....G.G.G........",
+  "........GGGGGGGGGGG....GGGGG........",
+  ".......cGGGGGGGGGGG...GGGGGG........", // 5
+  "................GGG..GGGGGG.........", //    the front leg; the hind leg, slanting back
+  "GGGGGGGGG......GGGG..GGGGG..........", //    an ear's tip
+  ".GGGGGGGGGG..GGGGGG..GGG............",
+  "..GGGGGGGGGGGGGGGGG..GGGG...........",
+  "...GGGGcGGGGGGGGGGGGGGGGGGG.........", // 10 an eye
+  "....GGGGGcGGGGGGGGGGGGGGGGGGGGGGGGG.", //    the mouth; the body, on to the tail
+  "....GGGGGcGGGGGGGGGGGGGGGGGGGGGGGGGG",
+  "..GGGGGGGcGGGGGGGGGGGGGGGGGGGGGGGGGG",
+  ".GGGGGGcGGGGGGGGGGGGGGGGGGGGGGGGGGGG", //    the other eye
+  "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG", // 15 the other ear's tip
+  "GGGGGGGGGG..GGGGGG...GGGG.......GGG.", //    the tail turns down under the rump
+  "..............GGGG...GGG......GGG...",
+  "...............GGG...GGGG....G......",
+  ".......cGGGGGGGGGG...GGGGGG..G.GGGGG", //    and curls in
+  "........GGGGGGGGGG....GGGGG..G.G...G", // 20
+  ".......cGGGGGGGGGG....G.G.G..G.GG..G",
+  "........GGGGGGGGGG....G.G.G..GG....G",
+  ".......cGGGGGGGGGG....c.c.c...GGGGG.", // 23
 ];
 
-export const hemCreature: string[] = (() => {
-  // Rows numbered from 1: the upper half 1 to 15, the lower 16 to 26 its mirror about the body's middle (between 15 and 16), then what is under it.
-  const rows = [...UPPER];
-  for (let r = 16; r <= 26; r++) rows.push(UPPER[31 - r - 1] ?? ".".repeat(40));
-  for (const [r, s] of Object.entries(TAIL)) {
-    const row = rows[Number(r) - 1];
-    rows[Number(r) - 1] = row.slice(0, 29) + s + row.slice(29 + s.length);
-  }
-  return [...rows, ...UNDER];
-})();
+/** One row of the hem band: its ground - "G" gold or "." red - and, if one is in it, which of the creature's rows. */
+export interface HemRow {
+  ground: string;
+  creature?: number;
+}
+
+const plain = (g: string, k: number): HemRow[] => Array.from({ length: k }, () => ({ ground: g }));
+
+/**
+ * The hem band, 35 rows, top first: the creatures on the band's red, two
+ * rounds of it above them and one below, and under the band the tunic's two
+ * gold lines - four rounds of gold, two of red, two of gold - then a round
+ * of red before the rib. On the tunic the lines are fringes, the first near
+ * twice as deep as the second.
+ */
+export const hemBand: HemRow[] = [
+  ...plain(".", 2),
+  ...hemCreature.map((_row, creature) => ({ ground: ".", creature })),
+  ...plain(".", 1),
+  ...plain("G", 4),
+  ...plain(".", 2),
+  ...plain("G", 2),
+  ...plain(".", 1),
+];
+
+/** Stitches of red between one creature and the next, at least: on the tunic they run nose to tail, about two stitches apart. */
+export const hemGap = 2;
 
 /**
  * The sleeve ends' feline, 30 stitches by 32 rows: the large feline in
@@ -152,12 +163,12 @@ export interface NeckBand {
 
 const ground = (g: string, k: number): BandRow[] => Array.from({ length: k }, () => ({ ground: g }));
 const tier = (tier: number, h: number): BandRow[] => Array.from({ length: h }, (_, row) => ({ ground: ".", spirals: { tier, row } }));
-// As the hem band's, turned over: three rounds of red and four of gold nearest the neck.
+// Three rounds of red and four of gold nearest the neck: the hem band's first gold line, turned over.
 const stripes = [...ground(".", 3), ...ground("G", 4)];
 
 /**
- * The neck bands, each as deep as the hem's band, 35 rows: the hem band's
- * three rounds of red and four of gold nearest the neck, then two rows of
+ * The neck bands, each as deep as the hem's band, 35 rows: three rounds of
+ * red and four of gold nearest the neck, then two rows of
  * squared spirals turned a quarter clockwise, the same 2-stitch gap
  * everywhere - under the stripe, between spirals, between the rows and
  * after them. A raglan's yoke seen from above is a square frame - four
