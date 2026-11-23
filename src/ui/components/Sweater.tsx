@@ -270,7 +270,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
         {working && (
           <div role="status" className="size-working">
             <progress value={soFar} max={1} aria-label="How far the recalculating has got" />
-            <p>Recalculating the pattern, then settling the sweater into its shape to show you. This can take a few minutes.</p>
+            <p>Recalculating the pattern. This can take a few minutes.</p>
           </div>
         )}
         {(answer.at === "failed" || (answer.at === "shown" && !found)) && (
