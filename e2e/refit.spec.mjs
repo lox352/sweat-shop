@@ -181,13 +181,13 @@ test("a tension chosen with the size: the pattern is recalculated for it from th
   await expect(section.getByLabel("Stitches to 10cm")).toHaveValue("28", { timeout: 20_000 });
   await expect(section.getByLabel("Rounds to 10cm")).toHaveValue("32");
   // What the fields are for is said over them, and the way to recalculate is there from the first, not to be pressed until there is a tension to recalculate for.
-  await expect(section).toContainText("The pattern is written for 28 stitches and 32 rounds to 10cm. If your swatch measures otherwise");
+  await expect(section).toContainText("Swatch measures otherwise? Put yours in and recalculate.");
   await expect(section.getByRole("button", { name: "Recalculate the pattern", exact: true })).toBeDisabled();
 
   // A looser one: as written it comes out bigger, and the pattern can be recalculated for it.
   await section.getByLabel("Stitches to 10cm").fill("24");
   await section.getByLabel("Rounds to 10cm").fill("28");
-  await expect(section.getByRole("status")).toContainText("As written, M would come out 123.5cm round the chest at that tension, not 106cm.");
+  await expect(section.getByRole("button", { name: "Recalculate the pattern", exact: true })).toBeEnabled();
   // Until it is, the pattern is as written, and that is what the last tab says would be started.
   await page.getByRole("tab", { name: "Start", exact: true }).click();
   await expect(page.locator(".ready-choices")).toContainText("As the pattern");

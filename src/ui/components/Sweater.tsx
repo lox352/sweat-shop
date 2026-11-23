@@ -11,7 +11,7 @@ import { useColourway } from "../useColourway";
 import { currentEdition } from "../../library/editions";
 import { decodeEdition } from "../../library/editions/format";
 import type { Fitted } from "../../library/fit";
-import { asKnitted, sameTension, yarnPerStitch } from "../../reading/tension";
+import { sameTension, yarnPerStitch } from "../../reading/tension";
 import { ballsOf, colourwayLabel, lit, paletteOf, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
 import { totals } from "../../reading/progress";
 import { metresFor } from "../../reading/yardage";
@@ -216,12 +216,10 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
     setGiven(undefined);
     setFields((count) => count + 1);
   };
-  // What the pattern comes out at knitted as written at the knitter's tension: what recalculating is instead of.
-  const asWritten = tension && asKnitted(size.finished, size, tension);
   /*
-   * What a changed tension brings up is under the fields, and on a phone
-   * under the page's foot: it is brought into view as it comes, once, so the
-   * way on is seen and not found by scrolling.
+   * The way on from a changed tension is under the fields, and where the
+   * sizes are many under the page's foot: it is brought into view as it can
+   * be taken, once, so it is seen and not found by scrolling.
    */
   const offered = !!tension && answer.at === "rest";
   const offer = useRef<HTMLDivElement>(null);
@@ -248,18 +246,12 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
       <section className="size-tension" aria-labelledby="size-tension-heading">
         <h3 id="size-tension-heading">Tension</h3>
         <p className="quiet size-tension-about">
-          The pattern is written for {size.stitchesPer10cm} stitches and {size.roundsPer10cm} rounds to 10cm.{" "}
           {sweater.fitting
-            ? "If your swatch measures otherwise, put yours in and the pattern can be recalculated to come out the same size."
-            : "If your swatch measures otherwise, put yours in to see what size it would come out."}
+            ? "Swatch measures otherwise? Put yours in and recalculate."
+            : "Swatch measures otherwise? Put yours in, to compare once begun."}
         </p>
         {/* The pattern's tension is the size's: filled in afresh for a size written for another, unless the knitter has given their own. */}
         <TensionChoice key={`${size.stitchesPer10cm} ${size.roundsPer10cm} ${fields}`} pattern={size} tension={given} onChange={setGiven} />
-        {offered && asWritten && (
-          <p role="status">
-            As written, {size.label} would come out {asWritten.chestCm}cm round the chest at that tension, not {size.finished.chestCm}cm.
-          </p>
-        )}
         {/* The way to recalculate is there from the first, where the design can be, and only to be pressed once there is a tension of the knitter's to recalculate for: it is seen before it is wanted. Once it is done, what it came to is in its place. */}
         {!working && !fitted && (sweater.fitting || offered) && (
           <div className="my-tension-actions size-tension-actions" ref={offer}>
