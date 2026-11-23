@@ -212,9 +212,13 @@ test("the chart is a view over the jumper: folding the knitting away leaves you 
   await page.getByRole("tab", { name: "Wool", exact: true }).click();
   await page.locator(".wool-row").first().click();
   const customise = page.getByRole("dialog", { name: "Customise the colours" });
-  await expect(customise.getByRole("region", { name: /^Wool for / })).toBeVisible();
+  // That wool's shades are a second card over the chart's; its cross goes down to the chart, and Done back to the list.
+  const shades = page.getByRole("dialog", { name: /^Wool for / });
+  await expect(shades).toBeVisible();
   await expect(page.locator(".stage .sweater-canvas")).toBeVisible();
-  await customise.getByRole("button", { name: "Close", exact: true }).click();
+  await shades.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(shades).toHaveCount(0);
+  await customise.getByRole("button", { name: "Done", exact: true }).click();
   await expect(customise).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "Wool", exact: true })).toHaveAttribute("aria-selected", "true");
   // After its list, the design's colourways, a page a group; and at the foot of them all, the one bar for the colourway's wools, which is down again once the tab is left.
@@ -533,22 +537,32 @@ test("a bought design comes in every size it is written for, by its own wool, ev
   const customise = page.getByRole("dialog", { name: "Customise the colours" });
   await expect(page.locator(".stage .sweater-canvas")).toBeVisible();
   await expect(customise.locator(".customise-wool")).toHaveCount(15);
-  // A stitch tapped on the chart chooses its wool, and its shades rise from the foot.
+  // A stitch tapped on the chart chooses its wool, and its shades come up in a second card over the first, the chart still showing above it.
   const chart = customise.locator(".chart-scroll");
   await expect(customise.locator(".chart-sheets")).toBeVisible();
   const box = await chart.boundingBox();
   await chart.click({ position: { x: box.width / 2, y: box.height - 40 } });
-  const sheet = customise.getByRole("region", { name: /^Wool for / });
+  const sheet = page.getByRole("dialog", { name: /^Wool for / });
   await expect(sheet).toBeVisible();
+  await expect(sheet).toHaveClass(/\bsheet\b/);
+  await expect(sheet).toContainText("Tap a shade to try it on the jumper.");
+  // A shade is a tile of its own colour, named. Tapped, it is only tried: nothing is the knitter's own until it is taken.
   await sheet.getByLabel("Search the wool").fill("Scarlet");
   await sheet.getByRole("button", { name: /^Scarlet .*Spindrift/ }).click();
-  await expect(customise.getByRole("region", { name: "Wool for Scarlet" })).toBeVisible();
-  await expect(customise).toContainText("yours");
-  // Back at the strip, the wool is among the others; and Done goes back to the design, the colourway now the knitter's own.
-  await customise.getByRole("button", { name: "All wools", exact: true }).click();
+  await expect(badge).not.toContainText("Your own, from");
+  // Let go, nothing is changed.
+  await sheet.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(sheet).toHaveCount(0);
+  await expect(customise.getByRole("button", { name: /^Scarlet/ })).toHaveCount(0);
+  // Tried again and taken, the card goes down to the chart and the strip, the wool among the others; and Done goes back to the design, the colourway now the knitter's own.
+  await customise.locator(".customise-wool").first().click();
+  await sheet.getByLabel("Search the wool").fill("Scarlet");
+  await sheet.getByRole("button", { name: /^Scarlet .*Spindrift/ }).click();
+  await sheet.getByRole("button", { name: /^Use Scarlet/ }).click();
+  await expect(sheet).toHaveCount(0);
   await expect(customise.locator(".customise-wool")).toHaveCount(15);
   await expect(customise.getByRole("button", { name: /^Scarlet/ })).toHaveCount(1);
-  await customise.getByRole("button", { name: "Close", exact: true }).click();
+  await customise.getByRole("button", { name: "Done", exact: true }).click();
   await expect(customise).toHaveCount(0);
   await expect(page).toHaveURL(/tab=colours$/);
   await expect(badge).toContainText("Your own, from");
