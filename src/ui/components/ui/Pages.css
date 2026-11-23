@@ -15,8 +15,10 @@
   color: var(--crimson-dark);
 }
 
-/* The pages side by side, from edge to edge of a phone, coming to rest on one. */
-.pages-body {
+/* Everything under the tabs, from edge to edge of a phone: the pages, their dots, and a tab's bar behind the dots. */
+.pages-under {
+  /* How tall the dots are, which a tab's bar reaches down behind. */
+  --dots: calc(30px + 0.3rem + env(safe-area-inset-bottom, 0px));
   position: relative;
   flex: 1;
   min-height: 0;
@@ -25,6 +27,14 @@
   margin: 0 calc(-1 * var(--gutter, 1rem));
   /* What a tab's bar comes up from, and goes down to, is out of sight. */
   overflow: hidden;
+}
+
+/* The pages side by side, coming to rest on one. */
+.pages-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .pages-track {
@@ -74,16 +84,17 @@
 }
 
 /*
- * A tab's bar: see PageGroup's foot. A small card up from the foot, as a
- * sheet is (see Sheet), over the foot of the tab's pages and still while
- * they are swiped under it; down, and out of the way, while another tab is
- * shown.
+ * A tab's bar: see PageGroup's foot. A small card up from the foot of the
+ * screen, as a sheet is (see Sheet), over the foot of the tab's pages and
+ * still while they are swiped under it; down, and out of the way, while
+ * another tab is shown. The dots do not move for it: it comes up behind
+ * them, and they are then on it.
  */
 .pages-foot {
   position: absolute;
   inset: auto 0 0;
   z-index: 2;
-  padding: 0.5rem var(--gutter, 1rem) 0.45rem;
+  padding: 0.5rem var(--gutter, 1rem) calc(0.3rem + var(--dots));
   background: var(--paper-raised);
   border-top: 2px solid var(--crimson);
   border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
@@ -117,6 +128,8 @@
 
 /* Which page of the tab, as dots under them: the one shown in crimson. Each has a thumb's room across. */
 .pages-dots {
+  position: relative;
+  z-index: 3;
   flex: none;
   display: flex;
   justify-content: center;
@@ -147,9 +160,14 @@
   transform: scale(1.25);
 }
 
+/* On a tab's bar, which is paler than the page, the dots not shown are a little darker to be seen. */
+.pages-under:has(.pages-foot[data-shown]) .pages-dot:not([aria-selected="true"]) span {
+  background: color-mix(in srgb, var(--rule) 60%, var(--ink-faint));
+}
+
 /* Beside the stage - on a wide screen, or a phone on its side - the pages are their column's own width. */
 @media (min-width: 60rem), (orientation: landscape) and (max-height: 32rem) {
-  .pages-body {
+  .pages-under {
     margin: 0;
   }
 
@@ -168,6 +186,7 @@
 /* On paper, the pages one after another. */
 @media print {
   .pages,
+  .pages-under,
   .pages-body,
   .pages-track {
     display: block;
