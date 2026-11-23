@@ -152,12 +152,9 @@ it("shows only a picture down the front as a front", () => {
   expect(frontPicture(buildSweater(hamefarin, "m"))).toBeUndefined();
 });
 
-it("shows a front pixel for pixel where a whole number of pixels a stitch nearly fits", () => {
-  expect(frontScale(320, 154)).toEqual({ shown: 2, painted: 2 });
-  expect(frontScale(308, 154)).toEqual({ shown: 2, painted: 2 });
-  expect(frontScale(300, 154)).toEqual({ shown: 2, painted: 2 });
-  // Too far from either: as large as fits, painted larger and brought down.
-  const { shown, painted } = frontScale(192, 154);
-  expect(shown).toBeCloseTo(192 / 154);
-  expect(painted).toBe(2);
+it("shows the top of a front, a whole number of pixels a stitch", () => {
+  // A phone's card, 96 pixels tall at three screen pixels each, and a desktop's, 160 at one.
+  expect(frontScale(288, 154)).toBe(3);
+  expect(frontScale(160, 154)).toBe(2);
+  expect(frontScale(40, 154)).toBe(1);
 });

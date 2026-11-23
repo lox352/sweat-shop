@@ -602,15 +602,16 @@ they share is in `src/data/sweaters/felines/`.
   night, on Prussian blue.
 - **On a card**, the front and not a strip of the yoke (`frontPicture` in
   `bodyPicture.ts`): from the neck band's first round to a few plain rounds
-  under the feline, the middle of the front in the middle of the card, as
-  large as shows it all. Any design whose yoke's pattern runs on into the
+  under the feline, the middle of the front in the middle of the card. A card
+  is the same shape whatever is on it, so it shows the top two thirds or so:
+  the band and the feline's head, arms and shoulders, at a whole number of
+  screen pixels a stitch, its foot cut off. Any design whose yoke's pattern runs on into the
   body is shown so. The yoke's rounds go where the chart has them where the
   room to grow is along lines, so the raglan's panels of spirals are whole
   with ground between them, and are closed up about the middle of the front
   where it is spread all the way round, as the round yoke's is. A strip paints
   each round from its first stitch, which sheared the raglan's spirals along
-  every line and left only a paw at the card's edge. Seldom a whole number of
-  pixels a stitch, so it is smoothed unless one nearly fits. The colourway
+  every line and left only a paw at the card's edge. The colourway
   tiles are still strips of the yoke: too small for the whole front.
 - **What it asks of a knitter.** A picture, not a band: the felines' reds run
   across the front a hundred stitches and more, and a claw or an eye puts a

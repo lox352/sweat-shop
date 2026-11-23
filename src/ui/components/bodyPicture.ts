@@ -138,7 +138,7 @@ export const usePainting = (body: number[][], stitches: Stitch[], palette: Palet
  * A sweater whose yoke's pattern runs on into the body - a picture down the
  * front, not bands round the yoke - as its card shows it: the front, from the
  * yoke's first patterned round to the picture's last, about the middle of the
- * front.
+ * front. A card shows the top of it: see frontScale.
  *
  * Each row is a round, and says which stitch is at each place across it,
  * counted from the middle of the front the way the chart's columns run, and
@@ -290,27 +290,24 @@ export const frontPicture = (built: SweaterStitches): FrontPicture | undefined =
   return picture ?? undefined;
 };
 
+/** How much of a front's height its strip shows, about: the bands and the head of the picture, enough to know it by. */
+const SHOWN = 0.65;
+
 /**
- * Screen pixels a stitch for a front `rows` rounds tall in a strip `height`
- * screen pixels tall: as shown, and as painted.
+ * Whole screen pixels a stitch for a front `rows` rounds tall in a strip
+ * `height` screen pixels tall.
  *
- * The whole picture is to be seen, so it is as large as fits, which is
- * seldom a whole number of pixels. Where a whole number is near enough it is
- * taken - a few rounds lost off the foot, or a little ground under it - and
- * the picture is shown pixel for pixel, as a strip is. Otherwise it is
- * painted at the next whole number up and left to the browser to bring down,
- * smoothed.
+ * A strip is the same shape on every card, and a front is far taller than
+ * that: shown whole it is small, and never a whole number of pixels a stitch.
+ * So it is shown from the top, pixel for pixel as a strip is, at the whole
+ * number that comes nearest to showing `SHOWN` of it, and its foot is cut
+ * off.
  */
-export const frontScale = (height: number, rows: number): { shown: number; painted: number } => {
-  const exact = height / Math.max(1, rows);
-  const whole = Math.round(exact);
-  if (whole >= 1 && (whole > exact ? (whole - exact) / whole <= 0.04 : (exact - whole) / exact <= 0.12)) return { shown: whole, painted: whole };
-  return { shown: exact, painted: Math.max(1, Math.ceil(exact)) };
-};
+export const frontScale = (height: number, rows: number) => Math.max(1, Math.round(height / (Math.max(1, rows) * SHOWN)));
 
 /**
  * A front painted for a strip `width` by `height` screen pixels, its middle
- * in the middle, and how large to show it; see FrontPicture and frontScale.
+ * in the middle and its top at the top; see FrontPicture and frontScale.
  * Undefined until the strip is measured, and where there is no canvas.
  */
 export const useFrontPainting = (
@@ -330,15 +327,16 @@ export const useFrontPainting = (
       // No canvas here: the plain ground shows instead.
     }
     if (!ctx) return undefined;
-    const { shown, painted } = frontScale(height, picture.rows.length);
+    const painted = frontScale(height, picture.rows.length);
     // An even number of stitches across, to cover the strip with the middle of the front in its middle.
-    const half = Math.ceil(width / shown / 2);
+    const half = Math.ceil(width / painted / 2);
+    const rows = picture.rows.slice(0, Math.ceil(height / painted));
     element.width = 2 * half * painted;
-    element.height = picture.rows.length * painted;
+    element.height = rows.length * painted;
     const ground = yarnFor(palette, picture.ground).hex;
     ctx.fillStyle = ground;
     ctx.fillRect(0, 0, element.width, element.height);
-    picture.rows.forEach((row, y) => {
+    rows.forEach((row, y) => {
       // The chart's columns count from the right, so the places do.
       for (let x = 0; x < 2 * half; x++) {
         const id = row.at[mod(half - 1 - x, row.period)];
@@ -347,11 +345,5 @@ export const useFrontPainting = (
         ctx.fillRect(x * painted, y * painted, painted, painted);
       }
     });
-    return {
-      url: element.toDataURL(),
-      width: 2 * half * shown,
-      height: picture.rows.length * shown,
-      ground,
-      smoothed: shown !== painted,
-    };
+    return { url: element.toDataURL(), width: element.width, height: element.height, ground };
   }, [picture, stitches, palette, width, height]);

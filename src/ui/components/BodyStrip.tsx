@@ -88,14 +88,13 @@ const BodyStrip: React.FC<{
   let picture: React.CSSProperties | undefined;
   if (fronted) {
     const density = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
-    // The neck's end at the top and the middle of the front in the middle; the ground under it wherever it stops short.
+    // The neck's end at the top and the middle of the front in the middle, pinned to whole screen pixels.
     picture = {
       backgroundImage: `url(${fronted.url})`,
       backgroundColor: fronted.ground,
       backgroundSize: `${fronted.width / density}px ${fronted.height / density}px`,
-      backgroundPosition: "center top",
+      backgroundPosition: `${Math.round((deviceWidth - fronted.width) / 2) / density}px 0`,
       backgroundRepeat: "no-repeat",
-      imageRendering: fronted.smoothed ? "auto" : undefined,
     };
   } else if (painted) {
     picture = { backgroundImage: `url(${painted.url})` };
