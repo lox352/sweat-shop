@@ -193,9 +193,11 @@ test("a jumper recalculated from the cast-on at one tension, part knitted, and r
   // Begun on a pattern recalculated for the knitter's tension, before a stitch is cast on.
   await page.goto("#/sweater/hamefarin?size=m&tab=size");
   const given = page.getByRole("region", { name: "Tension", exact: true });
-  await given.getByLabel("Stitches to 10cm").fill("24");
-  await given.getByLabel("Rounds to 10cm").fill("28");
-  await given.getByRole("button", { name: "Recalculate the pattern", exact: true }).click();
+  await given.getByRole("button", { name: "Change", exact: true }).click();
+  const card = page.getByRole("dialog", { name: "Your tension" });
+  await card.getByLabel("Stitches to 10cm").fill("24");
+  await card.getByLabel("Rounds to 10cm").fill("28");
+  await card.getByRole("button", { name: "Recalculate the pattern", exact: true }).click();
   await expect(given.locator(".size-recalculated")).toBeVisible({ timeout: 90_000 });
   await page.getByRole("tab", { name: "Start", exact: true }).click();
   await page.getByRole("button", { name: "Start knitting", exact: true }).click();

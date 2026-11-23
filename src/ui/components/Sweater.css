@@ -27,15 +27,7 @@
 /* On a page of its own, sixteen sizes and the tension under them fit without scrolling: the sizes closer set. */
 .pages-page > .size-chooser {
   gap: 0.4rem;
-  margin-bottom: 0.7rem;
-}
-
-.pages-page > .size-chooser .size-option {
-  padding: 0.3rem 0.5rem;
-}
-
-.pages-page > .size-chooser .size-option strong {
-  line-height: 1.2;
+  margin-bottom: 0.5rem;
 }
 
 /* The end of the pages: what was chosen, a line each, and the way forward. */
@@ -116,7 +108,7 @@
   max-width: 24rem;
 }
 
-/* The tension a size is to be knitted at, under the sizes: the pattern's, filled in, to change. See TensionChoice. */
+/* The tension a size is to be knitted at, under the sizes: what it is and whose, and the way to its card. See TensionSheet. */
 .size-tension {
   margin-top: 0.6rem;
   padding-top: 0.55rem;
@@ -124,32 +116,75 @@
 }
 
 .size-tension h3 {
-  margin: 0 0 0.4rem;
+  margin: 0 0 0.3rem;
 }
 
-/* One line, as a pattern says it: two fields and what each counts. */
-.size-tension .tension-choice p {
+.size-tension-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.size-tension-row p {
+  margin: 0;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.size-tension-row .quiet {
+  display: block;
+  font-size: var(--text-s);
+}
+
+.size-tension-row .btn {
+  flex: none;
+}
+
+.size-tension [role="alert"] {
+  margin: 0.5rem 0 0;
+}
+
+.size-working {
+  margin-top: 0.5rem;
+}
+
+/* In its card: what the fields are for, the fields on one line as a pattern says it, and the way on. */
+.tension-sheet-about {
+  margin: 0 0 0.6rem;
+  font-size: var(--text-s);
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+.tension-sheet .tension-choice p {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem 0.4rem;
+  margin: 0;
 }
 
-.size-tension .tension-choice input {
+.tension-sheet .tension-choice input {
   width: 3.5rem;
 }
 
-.size-tension [role="status"] > p,
-.size-tension [role="alert"] > p {
-  margin-bottom: 0.5rem;
+.tension-sheet-actions {
+  margin: 0.8rem 0 0;
 }
 
-.size-recalculated ul {
-  margin: 0 0 0.6rem;
+.tension-sheet-changed {
+  margin-top: 0.9rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--rule);
+}
+
+.tension-sheet-changed ul {
+  margin: 0.5rem 0 0.6rem;
   padding-left: 1.1rem;
 }
 
-.size-recalculated li {
+.tension-sheet-changed li {
   margin-bottom: 0.35rem;
 }
 
@@ -158,9 +193,3 @@
   width: 100%;
 }
 
-.size-working p {
-  margin: 0.4rem 0 0;
-  font-size: var(--text-s);
-  line-height: 1.4;
-  color: var(--ink-soft);
-}
