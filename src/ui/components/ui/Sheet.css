@@ -26,6 +26,12 @@
   top: 0;
 }
 
+/* Over another card: above it, and lifted off it. */
+.sheet.is-stacked {
+  z-index: 22;
+  box-shadow: 0 -12px 34px rgb(0 0 0 / 0.34);
+}
+
 .sheet:focus {
   outline: none;
 }
