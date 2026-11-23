@@ -48,6 +48,8 @@ export interface PagesHandle {
  *
  * A tab may have a foot (see PageGroup): a bar over the foot of its pages,
  * which is the tab's and not a page's, so it does not go along with them.
+ * It comes up from the foot of the screen, behind the dots, which stay where
+ * they are and are then on it.
  *
  * Which page is shown is this component's own to know, and changes at once:
  * whoever shows it is told after (onShown), to keep the address in step, and
@@ -202,38 +204,40 @@ const Pages = forwardRef<
           </button>
         ))}
       </div>
-      <div className="pages-body">
-        <div
-          className="pages-track"
-          ref={track}
-          onScroll={onScroll}
-          // A finger on the pages takes them over from wherever a tap was sending them.
-          onPointerDown={() => (going.current = undefined)}
-        >
-          {flat.map((one, page) => (
-            <div
-              key={`${one.group.id} ${one.page.id}`}
-              className="pages-page"
-              // A page of its tab, which the dots under it choose between: not a region of the document, which what is on it may be.
-              role="tabpanel"
-              aria-labelledby={`page-title-${one.group.id}-${one.page.id}`}
-              data-group={one.group.id}
-              data-page={one.page.id}
-              data-current={page === shown ? "" : undefined}
-              // Room at its foot for its tab's bar, so the last of it can be scrolled clear.
-              data-foot={one.group.foot ? "" : undefined}
-              // The pages either side are there to be swiped to, not to be tabbed into or read out.
-              {...(page === shown ? {} : { inert: "" })}
-            >
-              <h2 className="pages-title" id={`page-title-${one.group.id}-${one.page.id}`}>
-                {one.page.label}
-              </h2>
-              {/* Only the page shown draws over the stage: what a page beside it would put there is its own, for when it is come to. */}
-              {drawn(one.page.id) && <StageSlot.Provider value={page === shown ? slot : null}>{one.page.content}</StageSlot.Provider>}
-            </div>
-          ))}
+      <div className="pages-under">
+        <div className="pages-body">
+          <div
+            className="pages-track"
+            ref={track}
+            onScroll={onScroll}
+            // A finger on the pages takes them over from wherever a tap was sending them.
+            onPointerDown={() => (going.current = undefined)}
+          >
+            {flat.map((one, page) => (
+              <div
+                key={`${one.group.id} ${one.page.id}`}
+                className="pages-page"
+                // A page of its tab, which the dots under it choose between: not a region of the document, which what is on it may be.
+                role="tabpanel"
+                aria-labelledby={`page-title-${one.group.id}-${one.page.id}`}
+                data-group={one.group.id}
+                data-page={one.page.id}
+                data-current={page === shown ? "" : undefined}
+                // Room at its foot for its tab's bar, so the last of it can be scrolled clear.
+                data-foot={one.group.foot ? "" : undefined}
+                // The pages either side are there to be swiped to, not to be tabbed into or read out.
+                {...(page === shown ? {} : { inert: "" })}
+              >
+                <h2 className="pages-title" id={`page-title-${one.group.id}-${one.page.id}`}>
+                  {one.page.label}
+                </h2>
+                {/* Only the page shown draws over the stage: what a page beside it would put there is its own, for when it is come to. */}
+                {drawn(one.page.id) && <StageSlot.Provider value={page === shown ? slot : null}>{one.page.content}</StageSlot.Provider>}
+              </div>
+            ))}
+          </div>
         </div>
-        {/* Each tab's bar, up while the tab is the one shown: there all along, so it has somewhere to come up from and go down to. */}
+        {/* Each tab's bar, up while the tab is the one shown: there all along, so it has somewhere to come up from and go down to. Not in with the pages but beside the dots, which it comes up behind. */}
         {groups.map(
           (one) =>
             one.foot && (
@@ -242,23 +246,23 @@ const Pages = forwardRef<
               </div>
             ),
         )}
-      </div>
-      {/* Always there, so the pages are one height: a tab of one page has one dot. */}
-      <div className="pages-dots screen-only" role="tablist" aria-label={`${group.label}: its pages`}>
-        {group.pages.map((page, within) => (
-          <button
-            key={page.id}
-            type="button"
-            role="tab"
-            className="pages-dot"
-            aria-selected={within === current.within}
-            aria-label={page.label}
-            title={page.label}
-            onClick={() => to(start + within, true)}
-          >
-            <span aria-hidden="true" />
-          </button>
-        ))}
+        {/* Always there, so the pages are one height: a tab of one page has one dot. */}
+        <div className="pages-dots screen-only" role="tablist" aria-label={`${group.label}: its pages`}>
+          {group.pages.map((page, within) => (
+            <button
+              key={page.id}
+              type="button"
+              role="tab"
+              className="pages-dot"
+              aria-selected={within === current.within}
+              aria-label={page.label}
+              title={page.label}
+              onClick={() => to(start + within, true)}
+            >
+              <span aria-hidden="true" />
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
