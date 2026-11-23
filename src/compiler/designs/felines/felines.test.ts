@@ -74,9 +74,7 @@ describe("the felines, drawn at a size", () => {
             const row = grid[r].slice(Math.min(middle, backX), Math.max(middle, backX) + 1);
             if (row.some((v, i) => v === CREAM && row[i + 1] === CREAM && row[i + 2] === CREAM)) level.push(r);
           }
-          // All five; but the right one's right foot, lost under glare in the photograph and drawn shorter by eye, has room for four when small.
-          if (id === "right" && f === 1) expect(level.length).toBeGreaterThanOrEqual(4);
-          else expect(level.length).toBe(5);
+          expect(level.length, `foot ${f}`).toBe(5);
           level.slice(1).forEach((r, i) => expect(r - level[i]).toBe(2));
         });
       });

@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="540 221 1337 1243" width="1337" height="1243">
+  <title>Feline, after a Nasca tunic</title>
+  <desc>The right-hand large feline of the tunic, traced from a photograph. Coordinates are the photograph's pixels (2576 x 1932). The body is one polygon, the face a hole in it; ears, eyes, nose and mouth are polygons, the pupils and the zigzag of teeth red on the cream; whiskers and claws are stroked lines, their stroke-width the yarn's width in the same pixels.</desc>
+  <g id="feline">
+    <g id="whiskers" fill="none" stroke="#96272e" stroke-linecap="round" stroke-linejoin="round">
+      <polyline id="whisker-left-1" points="948.2,363.9 913.3,425.7" stroke-width="19.2"/>
+      <polyline id="whisker-left-2" points="964.7,393 924.1,464.6" stroke-width="18.2"/>
+      <polyline id="whisker-left-3" points="970.8,438.5 931.8,508.9" stroke-width="17.6"/>
+      <polyline id="whisker-right-1" points="1379,370.4 1387.4,379 1409.3,434.3" stroke-width="14.8"/>
+      <polyline id="whisker-right-2" points="1376.8,426.6 1404.9,474.8" stroke-width="14.3"/>
+      <polyline id="whisker-right-3" points="1358.4,442.1 1402.5,515" stroke-width="14.3"/>
+    </g>
+    <path id="body" fill="#96272e" fill-rule="evenodd" d="M1077 344.8 L1045.7 283.8 L1037.5 234 L1008.5 234 L995 250.2 L986.6 276.1 L933.9 369.6 L951.5 379.5 L958.5 427.5 L963.5 469.5 L971.2 473 L947.6 529.3 L987 672.4 L934.3 667 L902.3 618.6 L801.8 604.7 L781.4 653.2 L725.5 653.1 L713.5 493.7 L702.9 410 L725.8 364.3 L719.7 346.7 L697.1 315.2 L676.2 345 L655.1 315.2 L631.3 344.8 L611.8 312.7 L591 342.7 L568.8 310.2 L552.5 339.5 L562.4 353.3 L556.4 389.5 L570.4 417.4 L592.6 620 L614.4 734.3 L840.6 743.1 L850.5 767.5 L871.5 846.5 L819.5 842.5 L794 809.7 L707.5 809.7 L690 839.5 L704.8 988.3 L665 987 L661.3 951.5 L648 957 L639.5 938.5 L631 945.5 L623.8 931 L613 942.5 L605 935 L591.3 953.5 L585.5 944.5 L574.5 979 L613.5 1080 L615.5 1105.3 L688 1112 L837 1115.5 L881.3 1053.3 L881.3 1023 L867.8 988 L865.5 927.8 L912.8 930 L945.9 1000 L1011.8 1113.4 L1162.5 1262.8 L1210.3 1364.3 L1083.4 1369.9 L1041.5 1267.1 L963.8 1146.8 L753.5 1142.4 L641.3 1133 L618.6 1185 L595.9 1279.6 L627.6 1432 L693.2 1447.8 L818 1451.7 L841.8 1377.8 L894 1304.5 L857.8 1231.8 L684.3 1226 L657.9 1293.2 L677.8 1348.2 L744.8 1352.9 L777.3 1300.1 L738.3 1299.7 L728 1316.1 L707.6 1313.9 L702.3 1293.9 L712.1 1280.8 L796.8 1278 L805 1305.4 L763.3 1374 L661.1 1371 L632 1289.3 L672.5 1202.1 L897.6 1212.3 L919.5 1240.5 L990.7 1368.1 L1001 1442.8 L1309.5 1431.5 L1335 1353.7 L1369.2 1291 L1372.1 1130.4 L1439.1 992.1 L1461.2 935 L1511.5 937 L1512 1008.5 L1498.7 1043.6 L1549.7 1117.3 L1793.5 1116.8 L1864.8 988.3 L1844.5 957.3 L1831.5 957.3 L1828 972 L1803.5 948.5 L1791.5 963 L1771 943.5 L1762.5 962 L1742.5 951 L1737 974.5 L1726 963 L1711.5 965 L1716.8 997.5 L1677.8 997.5 L1687.3 869 L1659.7 822.8 L1575.1 822.9 L1550.5 856.7 L1503 861 L1514.5 788 L1528.6 753.2 L1765.1 744.6 L1757.4 448 L1782.7 372.4 L1753.1 330.4 L1733.3 356.6 L1714.4 331.7 L1695.8 356 L1674.4 331.1 L1657.7 356.6 L1637 329.2 L1614.3 355.4 L1623.9 377.9 L1606.7 403 L1623.7 420.7 L1628.3 670.8 L1581.5 668.5 L1551.5 624.8 L1456.1 626.2 L1424.5 676.1 L1377.7 676.3 L1393.4 538 L1361.5 474 L1368 472 L1367.5 432.5 L1396.4 446 L1372.5 388.5 L1397.6 384.7 L1342.7 287.6 L1330.2 247.8 L1318.5 233 L1296.5 233 L1273.2 302.6 L1249.5 342.3Z M988.4 382.9 L1044.8 560.3 L1296.2 559.5 L1337.5 384.8Z"/>
+    <polygon id="face" fill="#835d35" points="988.4,382.9 1044.8,560.3 1296.2,559.5 1337.5,384.8"/>
+    <g id="ears" fill="#deb88d">
+      <polygon id="ear-left" points="972.8,342.6 1054.6,343.4 1018.7,279.4 1005.2,280.4"/>
+      <polygon id="ear-right" points="1272.8,344.7 1351.2,344.7 1318.4,282 1303.5,284.6"/>
+    </g>
+    <g id="eyes" fill="#deb88d">
+      <polygon id="eye-left" points="1049.8,413.3 1046.2,438.1 1055,453.3 1089.1,453.9 1098.4,433.9 1086.1,411.2"/>
+      <polygon id="eye-right" points="1246.4,419.5 1237.1,438.6 1250.9,455.2 1278.2,456 1292,434.9 1279.8,413.3"/>
+    </g>
+    <g id="pupils" fill="#96272e">
+      <polygon id="pupil-left" points="1061.4,426.5 1058.1,433.8 1063.3,444.5 1079.7,437.7 1076.2,425.5"/>
+      <polygon id="pupil-right" points="1253.4,429.9 1254.1,442 1267.4,446.6 1277.2,438.6 1271,425.8"/>
+    </g>
+    <polygon id="nose" fill="#96272e" points="1139.3,416.5 1148.8,435.9 1140.6,452.2 1200.3,454.7 1190.7,437.3 1199.8,416.9"/>
+    <polygon id="mouth" fill="#deb88d" points="1101.2,486.2 1094.6,509.5 1106.2,530.6 1235.3,533.9 1245.4,502.9 1232.8,486.6"/>
+    <polygon id="teeth" fill="#96272e" points="1109.1,499.2 1120.4,526.4 1132.4,512.8 1141.2,523.1 1152.9,514 1165,522.7 1174.8,511.5 1186.1,522.9 1194.6,511.5 1210.7,525.4 1224.1,500.6 1216,497.2 1208.7,509.5 1196,498.2 1185.4,509 1173.6,498 1162.4,510.7 1151.5,496.9 1142.4,509.5 1129.6,497.2 1121.8,510.5 1114.4,497.4"/>
+    <g id="claws" fill="none" stroke="#deb88d" stroke-linecap="butt" stroke-linejoin="miter">
+      <g id="claws-hand-left">
+        <polyline id="claw-hand-left-1" points="566.4,331.6 581.8,357.5 569.6,387.6" stroke-width="16.2"/>
+        <polyline id="claw-hand-left-2" points="607.4,332.9 622.1,359.3 607.3,388.1" stroke-width="17"/>
+        <polyline id="claw-hand-left-3" points="650,333.9 664.9,361.4 651,389" stroke-width="17.8"/>
+        <polyline id="claw-hand-left-4" points="692.3,335.7 708.3,360.7 692.6,388.4" stroke-width="18.2"/>
+      </g>
+      <g id="claws-hand-right">
+        <polyline id="claw-hand-right-1" points="1629.9,350.6 1646,374.1 1629.5,404.1" stroke-width="18.5"/>
+        <polyline id="claw-hand-right-2" points="1670.9,351.3 1686.8,376.7 1668.9,404.2" stroke-width="15.7"/>
+        <polyline id="claw-hand-right-3" points="1708.6,351.7 1724.8,377.5 1706,403.3" stroke-width="16.3"/>
+        <polyline id="claw-hand-right-4" points="1746.7,351.1 1765.2,376.3 1746.7,404.3" stroke-width="18.2"/>
+      </g>
+      <g id="claws-foot-left">
+        <polyline id="claw-foot-left-1" points="584.8,956.8 581.7,981.9 620.9,1087.5 681.5,1094.3" stroke-width="7.5"/>
+        <polyline id="claw-foot-left-2" points="601,947.8 596.7,982.4 627.9,1066.8 679.8,1071.9" stroke-width="8.8"/>
+        <polyline id="claw-foot-left-3" points="620.9,945.1 612.5,986 636.1,1048.2 681.5,1050.2" stroke-width="9"/>
+        <polyline id="claw-foot-left-4" points="638.4,951.9 628.9,988.8 645.5,1028 682,1028.2" stroke-width="10.4"/>
+        <polyline id="claw-foot-left-5" points="653.5,968.5 647.5,1004.5 682,1008" stroke-width="10.4"/>
+      </g>
+      <g id="claws-foot-right">
+        <polyline id="claw-foot-right-1" points="1840.7,974 1849.8,989.6 1788,1098.8 1703.8,1098.8" stroke-width="12"/>
+        <polyline id="claw-foot-right-2" points="1804.6,963.2 1819.2,994.1 1775.6,1077.6 1703,1079.5" stroke-width="12.4"/>
+        <polyline id="claw-foot-right-3" points="1774.7,960.1 1789.9,998.2 1758.2,1056.6 1702,1058.1" stroke-width="13.2"/>
+        <polyline id="claw-foot-right-4" points="1749,966.1 1763.3,998 1742.1,1036.7 1702.1,1038.3" stroke-width="12.8"/>
+        <polyline id="claw-foot-right-5" points="1721.8,978.1 1739.1,1001.9 1724.5,1016.1 1701.5,1017.6" stroke-width="10.7"/>
+      </g>
+    </g>
+  </g>
+</svg>

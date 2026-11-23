@@ -30,13 +30,12 @@ Yoke (yoke)
   Shaping round in A: k57, kbf, k82, kfb, k114, kbf, k82, kfb, k57, to 400 sts.
   1 round of k1 in A.
   Shaping round in A: k58, kbf, kfb, k80, kbf, kfb, k116, kbf, kfb, k80, kbf, kfb, k58, to 408 sts.
-  Shaping round in A: k59, kbf, k84, kfb, k118, kbf, k84, kfb, k59, to 412 sts.
-  Chart feline-raglan-3xl-yoke-3, rows 1-63, 1 repeats a round. (676 sts)
+  Chart feline-raglan-3xl-yoke-3, rows 1-64, 1 repeats a round. (676 sts)
 
 Body (body)
   Divide, in A: k108, remove marker for the right back raglan line, put 122 on hold for sleeve-right, remove marker for the right front raglan line, cast on 18, k216, remove marker for the left front raglan line, put 122 on hold for sleeve-left, remove marker for the left back raglan line, cast on 18, k108. (468 sts)
-  Chart feline-raglan-3xl-body-1, rows 1-89, 1 repeats a round.
-  13 rounds of k1 in A.
+  Chart feline-raglan-3xl-body-1, rows 1-90, 1 repeats a round.
+  12 rounds of k1 in A.
   4 rounds of k1 in B.
   Chart feline-raglan-3xl-body-2, rows 1-22, 1 repeats a round.
   2 rounds of k1 in B.
