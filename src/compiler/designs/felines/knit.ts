@@ -1,6 +1,6 @@
 import type { Chart, ChartCell, DivideSegment, RoundSpec, Section, ShapingOp } from "../types";
 import { decreaseEvenly, increaseEvenly, underarmDecrease } from "../writing";
-import { type NeckBand, cuffEdges, cuffFeline, hemCreature, neckBands } from "./motifs";
+import { type NeckBand, cuffEdges, cuffFeline, hemBand, hemCreature, hemGap, neckBands } from "./motifs";
 import { type FelineId, GROUND, drawFeline } from "./raster";
 
 /**
@@ -69,9 +69,9 @@ const SLOT_OF = ["A", "B", "C"];
 const MOTIF_SLOT: Record<string, string> = { o: "A", ".": "B", c: "C", G: "D" };
 
 /** The hem band at the waist, and the gap between a feline and the rib where there is none. */
-const HEM_ROWS = hemCreature.length;
-/** The hem's creature alone, for the sleeves - without the band's red, its gold stripe or its blank margins: its rows 5 to 26, stitches 2 to 37. */
-export const SLEEVE_CREATURE = hemCreature.slice(4, 26).map((row) => row.slice(2, 38));
+const HEM_ROWS = hemBand.length;
+/** The hem's creature alone, for the sleeves - without the band's red or its gold lines. */
+export const SLEEVE_CREATURE = hemCreature;
 /** How far apart the sleeve's two creatures may come at least, and how many plain rounds go between them and the cuff band, and above them. */
 const SLEEVE_CREATURE_GAP = 4;
 const ROUNDS_TO_CUFF_BAND = 6;
@@ -817,15 +817,18 @@ export const knit = (size: Measured, construction: Construction, prefix: string,
 };
 
 /**
- * A round of the hem band, `n` stitches: the creatures as many as fit 42
- * stitches apart, spread evenly round, one of them under the middle of the
- * front.
+ * A round of the hem band, `n` stitches: the creatures nose to tail as on
+ * the tunic - as many as go round with hemGap stitches of red at least
+ * between each and the next - spread evenly, one of them under the middle
+ * of the front; and under them the band's two gold lines.
  */
 const hemRow = (r: number, n: number, frontMiddle: number): string[] => {
-  const row = hemCreature[r];
+  const line = hemBand[r];
+  const out: string[] = Array(n).fill(MOTIF_SLOT[line.ground]);
+  if (line.creature === undefined) return out;
+  const row = hemCreature[line.creature];
   const w = row.length;
-  const creatures = Math.floor(n / 42);
-  const out: string[] = Array(n).fill(MOTIF_SLOT[row[0]]);
+  const creatures = Math.floor(n / (w + hemGap));
   for (let k = 0; k < creatures; k++) {
     const start = Math.round(frontMiddle - w / 2 + (k * n) / creatures);
     for (let x = 0; x < w; x++) out[(((start + x) % n) + n) % n] = MOTIF_SLOT[row[x]];
