@@ -7,8 +7,11 @@ import model from "./model.json";
  * Each feline is a vector model, traced vertex by vertex on a photograph of
  * the tunic and fitted to its edges (see model.json, in the photograph's
  * pixels): its body one polygon with its face a hole, its ears' whites
- * triangles, its eyes hexagon rings, its mouth and nose hexagons, its teeth a
- * zigzag, and its whiskers and claws lines. Drawn at a size:
+ * polygons, its eyes rings, its mouth and nose hexagons, its teeth a
+ * zigzag, and its whiskers and claws lines. The left-hand one is measured
+ * off a closer photograph (feline-left.svg, in that photograph's pixels) and
+ * put into the first one's frame, at the right-hand one's scale. Drawn at a
+ * size:
  *
  * - The shapes are sampled: each stitch takes the colour covering most of it,
  *   and the cream where it covers a third, so a thin ring stays unbroken.

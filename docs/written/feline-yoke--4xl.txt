@@ -39,8 +39,8 @@ Yoke (yoke)
 
 Body (body)
   Divide, in A: k115, put 130 on hold for sleeve-right, cast on 20, k230, put 130 on hold for sleeve-left, cast on 20, k115. (500 sts)
-  Chart feline-yoke-4xl-body-1, rows 1-108, 1 repeats a round.
-  15 rounds of k1 in A.
+  Chart feline-yoke-4xl-body-1, rows 1-109, 1 repeats a round.
+  14 rounds of k1 in A.
   4 rounds of k1 in B.
   Chart feline-yoke-4xl-body-2, rows 1-22, 1 repeats a round.
   2 rounds of k1 in B.
