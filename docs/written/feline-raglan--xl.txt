@@ -30,8 +30,8 @@ Yoke (yoke)
 
 Body (body)
   Divide, in A: k93, remove marker for the right back raglan line, put 106 on hold for sleeve-right, remove marker for the right front raglan line, cast on 16, k186, remove marker for the left front raglan line, put 106 on hold for sleeve-left, remove marker for the left back raglan line, cast on 16, k93. (404 sts)
-  Chart feline-raglan-xl-body-1, rows 1-95, 1 repeats a round.
-  10 rounds of k1 in A.
+  Chart feline-raglan-xl-body-1, rows 1-96, 1 repeats a round.
+  9 rounds of k1 in A.
   4 rounds of k1 in B.
   Chart feline-raglan-xl-body-2, rows 1-22, 1 repeats a round.
   2 rounds of k1 in B.
