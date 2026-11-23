@@ -16,8 +16,7 @@
 }
 
 /* The wools at rest: a strip that scrolls sideways. */
-.customise-wools,
-.customise-sheet {
+.customise-wools {
   flex: none;
   background: var(--paper-raised);
   border-top: 1px solid var(--rule);
@@ -63,16 +62,50 @@
   cursor: pointer;
 }
 
-/* A wool chosen: its shades take the card, but for a strip of the chart to see the wool lit on. */
-.customise-sheet {
+/* Under the wools: the way back to the colourway as it was given, where any wool is the knitter's, and the way out. */
+.customise-foot {
   display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
-.is-choosing .customise-chart {
-  flex: 0 0 4.75rem;
+/* What is tried, and the taking of it: at the card's foot, whatever the shades above it scroll to. */
+.customise-take {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 3.4rem;
+  padding: 0.4rem 1rem;
+  border-top: 1px solid var(--rule);
+  font-size: var(--text-s);
+}
+
+.customise-take .btn-primary {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The wool as it is and the shade tried, side by side. */
+.customise-swap {
+  flex: none;
+  display: flex;
+}
+
+.customise-swap span {
+  width: 1.5rem;
+  height: 1.9rem;
+  border: 1px solid rgb(0 0 0 / 0.25);
+}
+
+.customise-swap span:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+  border-right: 0;
+}
+
+.customise-swap span:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
 }
 
 /* The wool chosen, at the card's top. */
@@ -88,28 +121,24 @@
   letter-spacing: 0.06em;
 }
 
-.customise-sheet .yarn-picker-controls {
+.customise-shades .yarn-picker-controls {
   padding: 0.4rem 1rem;
   border-bottom: 0;
 }
 
-.customise-sheet .yarn-picker-controls label:first-child {
+.customise-shades .yarn-picker-controls label:first-child {
   flex: 1 1 55%;
 }
 
-.customise-sheet .yarn-picker-controls label:last-child {
+.customise-shades .yarn-picker-controls label:last-child {
   flex: 1 1 45%;
   min-width: 0;
 }
 
-.customise-sheet .yarn-picker-list {
+.customise-shades .yarn-picker-list {
   min-height: 0;
   padding: 0.25rem 1rem 0.5rem;
 }
 
-/* One line where it can be, so the shades have the sheet. */
-.customise-sheet .yarn-picker-foot {
-  gap: 0 1rem;
-  padding: 0.2rem 1rem;
-}
+
 

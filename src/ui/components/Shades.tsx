@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Wool, WoolId, WoolRange } from "../../pattern/yarns";
+import { inkOn } from "../../reading/palette";
 import Button from "./ui/Button";
 import "./Shades.css";
 
@@ -14,6 +15,12 @@ import "./Shades.css";
  *
  * A shade that is not in the library - or a ball whose band went in the bin -
  * is still knittable: there is a plain colour well at the foot.
+ *
+ * Each shade is a tile of its own colour with its name and number on it,
+ * three across on a phone: a dozen to a screenful, set edge to edge to be
+ * told apart, and still read as a ball band is. A tile tapped is only tried
+ * (see Customise): what shows it says which is being, and keeping it is
+ * whoever shows this's.
  */
 
 export interface Chosen {
@@ -47,8 +54,12 @@ const Shades: React.FC<{
   suggest?: string;
   /** Whether the ball is wool of the knitter's own: only then is there a pattern's wool to go back to. */
   own?: boolean;
-  onChoose: (chosen: Chosen | undefined) => void;
-}> = ({ current, suggest, own = true, onChoose }) => {
+  /** The shade being tried, if one is. */
+  tried?: Chosen;
+  /** A shade tapped, to try; and the pattern's wool asked for back. */
+  onChoose: (chosen: Chosen) => void;
+  onPatterns: () => void;
+}> = ({ current, suggest, own = true, tried, onChoose, onPatterns }) => {
   const [library, setLibrary] = useState<Library>();
   const [query, setQuery] = useState("");
   const [within, setWithin] = useState<string>(suggest ?? "");
@@ -138,18 +149,18 @@ const Shades: React.FC<{
             <li key={wool.id}>
               <button
                 type="button"
-                className={`yarn-option${wool.id === current.wool ? " is-chosen" : ""}`}
-                aria-pressed={wool.id === current.wool}
+                className={`yarn-option${wool.id === current.wool ? " is-chosen" : ""}${tried?.wool === wool.id ? " is-tried" : ""}`}
+                style={{ background: wool.hex, color: inkOn(wool.hex) }}
+                aria-pressed={tried ? tried.wool === wool.id : wool.id === current.wool}
                 onClick={() => onChoose({ wool: wool.id, name: wool.name, code: wool.code, hex: wool.hex })}
               >
-                <span className="yarn-swatch" style={{ background: wool.hex }} />
                 <span className="yarn-option-name">
                   <strong>{wool.name}</strong>
-                  {wool.code ? <span className="quiet"> {wool.code}</span> : null}
+                  {wool.code ? <span className="yarn-option-code"> {wool.code}</span> : null}
                   {oneRange ? (
-                    wool.soldOut && <span className="quiet yarn-option-range">Not in stock</span>
+                    wool.soldOut && <span className="yarn-option-range">Not in stock</span>
                   ) : (
-                    <span className="quiet yarn-option-range">
+                    <span className="yarn-option-range">
                       {wool.spinner} · {wool.range}
                       {wool.soldOut ? " · not in stock" : ""}
                     </span>
@@ -159,19 +170,20 @@ const Shades: React.FC<{
             </li>
           ))}
         </ul>
+        {/* After the shades, whatever they are scrolled to: a colour of the knitter's own, and the pattern's wool back. */}
+        <div className="yarn-picker-foot">
+          <label>
+            <span>Or a colour off the ball in your hands</span>
+            <input type="color" value={current.hex} onChange={(event) => onChoose({ hex: event.target.value, name: "Your own", code: undefined })} />
+          </label>
+          {own && (
+            <Button variant="quiet" onClick={onPatterns}>
+              Back to the pattern's wool
+            </Button>
+          )}
+        </div>
       </div>
 
-      <div className="yarn-picker-foot">
-        <label>
-          <span>Or a colour off the ball in your hands</span>
-          <input type="color" value={current.hex} onChange={(event) => onChoose({ hex: event.target.value, name: "Your own", code: undefined })} />
-        </label>
-        {own && (
-          <Button variant="quiet" onClick={() => onChoose(undefined)}>
-            Back to the pattern's wool
-          </Button>
-        )}
-      </div>
     </>
   );
 };
