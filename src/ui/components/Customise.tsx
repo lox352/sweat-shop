@@ -18,11 +18,10 @@ import "./Customise.css";
  * it stays lit on the chart - and on the jumper, which whoever shows this is
  * told how to draw (onShow) - while the rest go quiet, so where it is
  * knitted is seen at both scales. The shades to change it to come up in a
- * second card over the first (see Sheet's stacked), leaving the chart
- * showing above it.
+ * second card over the whole of the first (see Sheet's stacked): they have
+ * all the room under the stage, and the jumper over them shows the wool.
  *
- * A shade tapped there is only tried: the chart and the jumper are drawn in
- * it, and nothing is changed until it is taken at the card's foot. Taken,
+ * A shade tapped there is only tried: the jumper is drawn in it, and nothing is changed until it is taken at the card's foot. Taken,
  * the second card goes down to the chart again, redrawn, for the next wool.
  * A ball of wool does every yarn of the design it is put in, so changing it
  * changes them together.
@@ -117,8 +116,8 @@ const Customise: React.FC<{
               progress={0}
               follow
               showAt={found}
-              // Up the window a way, so the rounds either side of it are seen too: and with its shades up over the chart, in what is left showing above them.
-              followAt={choosing ? 0.86 : 0.4}
+              // Up the window a way, so the rounds either side of it are seen too.
+              followAt={0.4}
               onPick={pick}
               stitchNotes={sweater.stitchNotes}
               pieces={sweater.pieces}
@@ -165,6 +164,7 @@ const Customise: React.FC<{
       {chosen && picking && (
         <Sheet
           stacked
+          full
           title={nameOf(chosen.yarn)}
           eyebrow={`Replacing · ${
             picking.some((slot) => overrides[slot])

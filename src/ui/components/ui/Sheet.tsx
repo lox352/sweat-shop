@@ -13,9 +13,9 @@ import "./Sheet.css";
  * the browser's history: it opens and closes at once.
  *
  * One card may come up over another - the shades to change a wool to, over
- * the chart the wool was found on. The one over is `stacked`: what is left
- * showing of the card under it is not dimmed, and is still that card's to
- * use. The one `under` leaves Escape to the card over it.
+ * the chart the wool was found on. The one over is `stacked`: it dims
+ * nothing again, and whatever it leaves showing of the card under it is
+ * still that card's to use. The one `under` leaves Escape to the card over it.
  */
 const Sheet: React.FC<{
   /** What it is, at its top; and over that, in small, what it is of. */

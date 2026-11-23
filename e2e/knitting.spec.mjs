@@ -537,7 +537,7 @@ test("a bought design comes in every size it is written for, by its own wool, ev
   const customise = page.getByRole("dialog", { name: "Customise the colours" });
   await expect(page.locator(".stage .sweater-canvas")).toBeVisible();
   await expect(customise.locator(".customise-wool")).toHaveCount(15);
-  // A stitch tapped on the chart chooses its wool, and its shades come up in a second card over the first, the chart still showing above it.
+  // A stitch tapped on the chart chooses its wool, and its shades come up in a second card over the whole of the first, the jumper still on its stage over it.
   const chart = customise.locator(".chart-scroll");
   await expect(customise.locator(".chart-sheets")).toBeVisible();
   const box = await chart.boundingBox();
