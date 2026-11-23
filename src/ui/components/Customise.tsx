@@ -197,11 +197,11 @@ const Customise: React.FC<{
                   <span style={{ background: chosen.yarn.hex }} />
                   <span style={{ background: tried.hex }} />
                 </span>
-                <Button variant="primary" onClick={take}>
-                  Use {nameOf(tried)}
-                </Button>
                 <Button variant="quiet" onClick={() => choose(undefined)}>
                   Cancel
+                </Button>
+                <Button variant="primary" onClick={take}>
+                  Use {nameOf(tried)}
                 </Button>
               </>
             ) : (
