@@ -211,7 +211,7 @@ test("a tension chosen with the size: the pattern is recalculated for it from th
   expect(await page.evaluate(() => Object.keys(localStorage).filter((key) => key.startsWith("project-")))).toEqual([]);
 
   // The pattern's tension put back, the page is the pattern's again; and another tension is another question.
-  await page.getByRole("tab", { name: "Size", exact: true }).click();
+  await page.getByRole("tablist", { name: "Size: its pages" }).getByRole("tab", { name: "Size", exact: true }).click();
   await shown.getByRole("button", { name: "Back to the pattern as written", exact: true }).click();
   await expect(shown).toHaveCount(0);
   await expect(page.locator(".stage-badge")).not.toContainText("rounds");
