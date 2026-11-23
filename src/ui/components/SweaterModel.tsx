@@ -3,7 +3,7 @@ import type { SweaterStitches } from "../../pattern/knitted";
 import { Palette } from "../../reading/palette";
 import { sweaterById } from "../../library/catalogue";
 import { knittingToHand } from "../../library/knitting";
-import { type Shape, useShape, useShapes } from "../useShape";
+import { type Shape, useShape } from "../useShape";
 import PreviewBoundary from "./PreviewBoundary";
 
 /** How tall the stage is, so nothing on the page moves when it arrives. */
@@ -102,22 +102,19 @@ const SweaterModel: React.FC<SweaterModelProps> = ({
 
 /**
  * A knitting that is nobody's project yet - a pattern recalculated for a
- * knitter on the design's page - in three dimensions: drawn laid out at
- * once, and settled here, off the page's thread, as a project's own is. Its
- * shape is the project's from the start, once it is one (see useShapes).
+ * knitter on the design's page - in three dimensions, in the shape it was
+ * settled into before it was shown (see Sweater, and useShapes), or laid out
+ * where it did not come to rest.
  */
 export const OwnModel: React.FC<{
   knitting: SweaterStitches;
-  /** The edition it would be as a project's own knitting. */
-  edition: string;
+  /** Where its fabric came to rest, where it did. */
+  settled: Float32Array | undefined;
   palette: Palette;
   progress: number;
   fill?: boolean;
-}> = ({ knitting, edition, palette, progress, fill }) => {
-  const knittings = useMemo(() => [knitting], [knitting]);
-  const editions = useMemo(() => [edition], [edition]);
-  const { fraction, shapes } = useShapes(knittings, editions);
-  const shape: Shape = shapes ? (shapes[0] ? { settled: shapes[0], waiting: false } : { waiting: false, unsettled: true }) : { waiting: false, settling: fraction };
+}> = ({ knitting, settled, palette, progress, fill }) => {
+  const shape: Shape = useMemo(() => (settled ? { settled, waiting: false } : { waiting: false, unsettled: true }), [settled]);
   return <Drawn knitting={knitting} palette={palette} progress={progress} fill={fill} shape={shape} />;
 };
 

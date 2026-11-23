@@ -127,6 +127,17 @@
   margin: 0 0 0.4rem;
 }
 
+/* What the fields are for, said before them. */
+.size-tension-about {
+  margin: 0 0 0.5rem;
+  font-size: var(--text-s);
+  line-height: 1.4;
+}
+
+.size-tension-actions {
+  margin-top: 0.6rem;
+}
+
 /* One line, as a pattern says it: two fields and what each counts. */
 .size-tension .tension-choice p {
   display: flex;

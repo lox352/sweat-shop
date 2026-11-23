@@ -175,12 +175,14 @@ test("a tension chosen with the size: the pattern is recalculated for it from th
   await withoutSettling(page);
   await page.goto("#/sweater/hamefarin?size=m&tab=tension");
   await expect(page.getByRole("tablist", { name: "This design" }).getByRole("tab", { name: "Size", exact: true })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tablist", { name: "Size: its pages" }).getByRole("tab", { name: "Size and tension", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tablist", { name: "Size: its pages" }).getByRole("tab", { name: "Size", exact: true })).toHaveAttribute("aria-selected", "true");
   const section = page.getByRole("region", { name: "Tension", exact: true });
   // The pattern's own tension is filled in, and needs nothing worked out.
   await expect(section.getByLabel("Stitches to 10cm")).toHaveValue("28", { timeout: 20_000 });
   await expect(section.getByLabel("Rounds to 10cm")).toHaveValue("32");
-  await expect(section.getByRole("button", { name: "Recalculate the pattern", exact: true })).toHaveCount(0);
+  // What the fields are for is said over them, and the way to recalculate is there from the first, not to be pressed until there is a tension to recalculate for.
+  await expect(section).toContainText("The pattern is written for 28 stitches and 32 rounds to 10cm. If your swatch measures otherwise");
+  await expect(section.getByRole("button", { name: "Recalculate the pattern", exact: true })).toBeDisabled();
 
   // A looser one: as written it comes out bigger, and the pattern can be recalculated for it.
   await section.getByLabel("Stitches to 10cm").fill("24");
@@ -209,7 +211,7 @@ test("a tension chosen with the size: the pattern is recalculated for it from th
   expect(await page.evaluate(() => Object.keys(localStorage).filter((key) => key.startsWith("project-")))).toEqual([]);
 
   // The pattern's tension put back, the page is the pattern's again; and another tension is another question.
-  await page.getByRole("tab", { name: "Size and tension", exact: true }).click();
+  await page.getByRole("tab", { name: "Size", exact: true }).click();
   await shown.getByRole("button", { name: "Back to the pattern as written", exact: true }).click();
   await expect(shown).toHaveCount(0);
   await expect(page.locator(".stage-badge")).not.toContainText("rounds");
