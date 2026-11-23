@@ -3,7 +3,9 @@ import paulKlee from "../../compiler/designs/paul-klee";
 import hamefarin from "../../compiler/designs/hamefarin";
 import { buildSweater } from "../../compiler/engine/engine";
 import { isSpacer } from "../../pattern/knitted";
-import { bodyRounds, paintedRows } from "./bodyPicture";
+import { sweaters } from "../../compiler/designs";
+import { worksInto } from "../../pattern/Stitch";
+import { bodyRounds, frontPicture, frontScale, paintedRows } from "./bodyPicture";
 
 describe.each([
   ["Paul Klee, M1", buildSweater(paulKlee, "m1")],
@@ -81,3 +83,81 @@ it("paints a Wool Week band begun on more stitches on its own layout, not in lin
     expect(rows[y + 1]).toHaveLength(rows[y].length);
   }
 }, 60000);
+
+describe.each(["feline-raglan", "feline-yoke"])("the front of %s", (id) => {
+  const built = buildSweater(sweaters.find((sweater) => sweater.id === id)!, "xs");
+  const { stitches, rounds, roundPieces } = built;
+  const picture = frontPicture(built)!;
+  const yokeCount = roundPieces.findIndex((piece) => piece !== roundPieces[0]);
+  /** How many stitches stand side by side from a place, going one way. */
+  const run = (at: Int32Array, from: number, step: 1 | -1) => {
+    let length = 0;
+    while (length < at.length && at[(((from + step * length) % at.length) + at.length) % at.length] >= 0) length++;
+    return length;
+  };
+
+  it("runs from the yoke's first band to a little under the feline", () => {
+    expect(picture.ground).toBe("A");
+    expect(picture.rows.length).toBeGreaterThan(yokeCount);
+    const slots = (row: (typeof picture.rows)[number]) => new Set([...row.at].filter((stitch) => stitch >= 0).map((stitch) => stitches[stitch].slot));
+    expect(slots(picture.rows[0]).size).toBeGreaterThan(1);
+    expect([...slots(picture.rows[picture.rows.length - 1])]).toEqual(["A"]);
+  });
+
+  it("has the middle of the front in the middle of every round", () => {
+    // The yoke's rounds; the body's have the underarm's cast-on stitches on at one end.
+    const first = rounds.indexOf(bodyRounds(rounds.slice(0, yokeCount), stitches)[0]);
+    picture.rows.slice(0, yokeCount - first).forEach((row) => {
+      const right = run(row.at, 0, 1);
+      const left = run(row.at, -1, -1);
+      // A round closed up all the way round has no ends to be the same distance from.
+      if (right + left < row.period) expect(right).toBe(left);
+    });
+    // The feline, which is as far from the front's one edge as the other: its red is.
+    const red = picture.rows.flatMap((row) => [...row.at].flatMap((stitch, place) => (stitch >= 0 && stitches[stitch].slot === "B" ? [place] : [])));
+    const within = red.map((place) => (place > 200 ? place - picture.rows[picture.rows.length - 1].period : place)).filter((place) => Math.abs(place) < 70);
+    expect(Math.abs(Math.max(...within) + Math.min(...within))).toBeLessThanOrEqual(8);
+  });
+
+  it("stands every stitch over the stitch it was worked into, but along a line", () => {
+    let over = 0;
+    let all = 0;
+    picture.rows.forEach((row, y) => {
+      const above = picture.rows[y - 1];
+      if (!above || above.period !== row.period) return;
+      row.at.forEach((stitch, place) => {
+        if (stitch < 0) return;
+        const [into] = worksInto(stitches[stitch]);
+        if (into === undefined) return;
+        all++;
+        if (above.at[place] === into) over++;
+      });
+    });
+    expect(over / all).toBeGreaterThan(id === "feline-raglan" ? 0.97 : 0.99);
+  });
+
+  it("leaves a raglan's panels whole, and closes a round yoke up", () => {
+    const gaps = picture.rows.slice(0, 30).map((row) => [...row.at].filter((stitch, place) => stitch >= 0 && row.at[(place + 1) % row.period] < 0).length);
+    // Four panels, with room between each two; or none, and each round at its own count.
+    if (id === "feline-raglan") expect(new Set(gaps)).toEqual(new Set([4]));
+    else {
+      expect(new Set(gaps)).toEqual(new Set([0]));
+      picture.rows.slice(0, 30).forEach((row, y) => expect(row.period).toBe(rounds[rounds.indexOf(bodyRounds(rounds.slice(0, yokeCount), stitches)[0]) + y].length));
+    }
+  });
+});
+
+it("shows only a picture down the front as a front", () => {
+  expect(frontPicture(buildSweater(paulKlee, "m1"))).toBeUndefined();
+  expect(frontPicture(buildSweater(hamefarin, "m"))).toBeUndefined();
+});
+
+it("shows a front pixel for pixel where a whole number of pixels a stitch nearly fits", () => {
+  expect(frontScale(320, 154)).toEqual({ shown: 2, painted: 2 });
+  expect(frontScale(308, 154)).toEqual({ shown: 2, painted: 2 });
+  expect(frontScale(300, 154)).toEqual({ shown: 2, painted: 2 });
+  // Too far from either: as large as fits, painted larger and brought down.
+  const { shown, painted } = frontScale(192, 154);
+  expect(shown).toBeCloseTo(192 / 154);
+  expect(painted).toBe(2);
+});
