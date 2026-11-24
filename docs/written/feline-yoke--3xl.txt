@@ -82,7 +82,7 @@ Left sleeve (sleeve-left)
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 112 sts.
   4 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 110 sts.
-  Chart feline-yoke-3xl-sleeve-1, rows 1-44, 1 repeats a round.
+  Chart feline-yoke-3xl-sleeve-left-1, rows 1-44, 1 repeats a round.
   3 rounds of k1 in A.
   Chart feline-yoke-3xl-cuff-left, rows 1-37.
   Shaping round in B: k2, [k2tog, [k3, k2tog] x 3, k4] x 2, k2tog, [k3, k2tog] x 4, k4, k2tog, [k3, k2tog] x 3, k4, k2tog, k1, to 76 sts.
@@ -122,7 +122,7 @@ Right sleeve (sleeve-right)
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 112 sts.
   4 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 110 sts.
-  Chart feline-yoke-3xl-sleeve-1, rows 1-44, 1 repeats a round.
+  Chart feline-yoke-3xl-sleeve-right-1, rows 1-44, 1 repeats a round.
   3 rounds of k1 in A.
   Chart feline-yoke-3xl-cuff-right, rows 1-37.
   Shaping round in B: k2, [k2tog, [k3, k2tog] x 3, k4] x 2, k2tog, [k3, k2tog] x 4, k4, k2tog, [k3, k2tog] x 3, k4, k2tog, k1, to 76 sts.

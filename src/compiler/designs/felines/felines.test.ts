@@ -295,29 +295,37 @@ describe.each([raglan, yoke].map((design) => [design.id, design] as const))("%s"
       }
     });
 
-    it("lays two of the small felines across each sleeve just above its cuff band, heads to the top of the arm, each the other's mirror image, the sleeve tapering through them", () => {
+    it("lays two of the small felines across each sleeve just above its cuff band, one following the other round it, the left sleeve's the right one's in a mirror, the sleeve tapering through them", () => {
       const built = buildSweater(design, size.id);
       const { from, count, to, apart } = knitted.sleeveFelines;
       expect(apart).toBeGreaterThanOrEqual(1);
-      // They end at the band's count - or, on the narrowest band, a decrease short of it: there the last would leave their feet no room, and waits for the plain rounds after them.
+      // They end at the band's count - or, on the narrowest band, a decrease short of it: there the last would leave them no room beside the underarm, and waits for the plain rounds after them.
       expect(to - knitted.cuffBand.count === 0 || (to - knitted.cuffBand.count === 2 && to / 2 - apart - sleeveFeline[0].length === 2)).toBe(true);
       const slotOf: Record<string, string> = { o: "A", ".": "B", c: "C" };
       const w = sleeveFeline[0].length;
       const taper = c.sleeveRounds - 1 - cuffBand.length - 1;
+      const roundsOf = (piece: string) => built.rounds.filter((_, i) => built.roundPieces[i] === piece);
       for (const piece of ["sleeve-left", "sleeve-right"]) {
-        const rounds = built.rounds.filter((_, i) => built.roundPieces[i] === piece);
+        const rounds = roundsOf(piece);
         // The pick-up round, then the taper's rounds.
         const at = (r: number) => rounds[1 + from + r].map((id) => built.stitches[id]);
         expect(at(0).length, piece).toBe(count);
         expect(at(sleeveFeline.length - 1).length, piece).toBe(to);
         sleeveFeline.forEach((line, r) => {
+          // The right sleeve's round as it is knitted; the left sleeve's read backwards, which is the right one's: its mirror image.
           const round = at(r).map((stitch) => stitch.slot);
+          if (piece === "sleeve-left") round.reverse();
           const n = round.length;
-          // The one as drawn after the middle of the round, the top of the arm; its mirror image before it.
+          /*
+           * Two of the one as drawn, the same way round: the first after the
+           * middle of the round, the top of the arm, its head towards it -
+           * on the front of the right arm, as on the tunic's - and the second
+           * before the middle, its tail towards it and its head to the underarm.
+           */
           const drawn = [...line].map((ch) => slotOf[ch]).join("");
           expect(round.slice(n / 2 + apart, n / 2 + apart + w).join(""), `${piece} row ${r}`).toBe(drawn);
-          expect(round.slice(n / 2 - apart - w, n / 2 - apart).reverse().join(""), `${piece} row ${r}, mirrored`).toBe(drawn);
-          // Nothing but the ground round them, and the round's decreases - if it has them - beside the underarm, in the ground.
+          expect(round.slice(n / 2 - apart - w, n / 2 - apart).join(""), `${piece} row ${r}, the one following`).toBe(drawn);
+          // Nothing but the ground round them, and the round's decreases - if it has them - beside the underarm, in the ground: a k2tog after its first stitch and an ssk before its last, on both sleeves.
           const rest = [...round.slice(0, n / 2 - apart - w), ...round.slice(n / 2 - apart, n / 2 + apart), ...round.slice(n / 2 + apart + w)];
           expect(new Set(rest), `${piece} row ${r}`).toEqual(new Set(["A"]));
           const taken = at(r).flatMap((stitch, j) => (stitch.type === "k2tog" || stitch.type === "ssk" ? [`${stitch.type} ${j}`] : []));
@@ -333,6 +341,14 @@ describe.each([raglan, yoke].map((design) => [design.id, design] as const))("%s"
         expect(band - 2 - (1 + from + sleeveFeline.length)).toBe(3);
         for (const round of rounds.slice(1 + from + sleeveFeline.length, 1 + taper)) expect(new Set(round.map((id) => built.stitches[id].slot))).toEqual(new Set(["A"]));
       }
+      // The two sleeves are shaped alike, stitch for stitch, and coloured each as the other in a mirror: the felines go round them opposite ways, as the bands' creatures do.
+      const [right, left] = [roundsOf("sleeve-right"), roundsOf("sleeve-left")].map((rounds) => rounds.slice(1, 1 + taper).map((round) => round.map((id) => built.stitches[id])));
+      expect(left.map((round) => round.map((stitch) => stitch.type))).toEqual(right.map((round) => round.map((stitch) => stitch.type)));
+      expect(left.map((round) => round.map((stitch) => stitch.slot))).toEqual(right.map((round) => round.map((stitch) => stitch.slot).reverse()));
+      // And each sleeve has a chart of its own for them.
+      const charts = knitted.charts.map((chart) => chart.name);
+      expect(charts.filter((name) => name === "Right sleeve").length).toBe(1);
+      expect(charts.filter((name) => name === "Left sleeve").length).toBe(1);
     });
 
     it("runs the band's creatures round the two cuffs opposite ways, over the tunic's lines, the left cuff the right one's mirror image", () => {

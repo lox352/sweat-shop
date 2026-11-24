@@ -63,7 +63,7 @@ Left sleeve (sleeve-left)
   9 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 88 sts.
   8 rounds of k1 in A.
-  Chart feline-raglan-s-sleeve-1, rows 1-44, 1 repeats a round.
+  Chart feline-raglan-s-sleeve-left-1, rows 1-44, 1 repeats a round.
   3 rounds of k1 in A.
   Chart feline-raglan-s-cuff-left, rows 1-37.
   Shaping round in B: k1, k2tog, [k3, k2tog] x 7, k2, k2tog, [k3, k2tog] x 7, k1, to 62 sts.
@@ -86,7 +86,7 @@ Right sleeve (sleeve-right)
   9 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 88 sts.
   8 rounds of k1 in A.
-  Chart feline-raglan-s-sleeve-1, rows 1-44, 1 repeats a round.
+  Chart feline-raglan-s-sleeve-right-1, rows 1-44, 1 repeats a round.
   3 rounds of k1 in A.
   Chart feline-raglan-s-cuff-right, rows 1-37.
   Shaping round in B: k1, k2tog, [k3, k2tog] x 7, k2, k2tog, [k3, k2tog] x 7, k1, to 62 sts.

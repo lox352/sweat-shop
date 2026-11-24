@@ -15,9 +15,9 @@ export default felineSweater({
     "between a deep band of squared spirals round the neck - the hem " +
     "creatures' tails, alone - and the tunic's hem band of small gold " +
     "creatures round the " +
-    "waist; the same creatures run round each cuff, and above them each " +
-    "sleeve has two of the tunic's small red felines, lying across it as they " +
-    "do on its own. Knitted " +
+    "waist; the same creatures run round each cuff, and above them two of " +
+    "the tunic's small red felines follow each other round each sleeve, lying " +
+    "across it as they do on its own. Knitted " +
     "from the neck down as a raglan: the yoke grows at four lines, and each " +
     "feline rises into it as far as the front is wide enough.",
   construction: "raglan",

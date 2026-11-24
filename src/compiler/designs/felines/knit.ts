@@ -740,15 +740,19 @@ export const knit = (size: Measured, construction: Construction, prefix: string,
   /*
    * Two of the tunic's small felines round the sleeve, just above the cuff
    * band: one on the front of the arm and one on the back, lying across it
-   * as on the tunic's sleeve - heads to the top of the arm, the middle of
-   * the round, feet to the underarm, each the other's mirror image - and
-   * each in the middle of its half of the round where they end.
+   * as on the tunic's sleeve, and one following the other round it as the
+   * band's creatures do - the one on the front with its head to the top of
+   * the arm, the middle of the round, and its tail to the underarm; the one
+   * on the back with its tail to the top of the arm, after the first one's
+   * head, and its head to the underarm - each in the middle of its half of
+   * the round where they end. The left sleeve's are the right sleeve's in a
+   * mirror, so they go round the two sleeves opposite ways.
    *
    * The sleeve goes on tapering through them, a decrease round in its
    * felines' own yarns: its two decreases are beside the underarm, and take
-   * stitches from between the felines' feet. Only a decrease that would
-   * leave them no room there waits, and is worked in the plain rounds
-   * between the felines and the band.
+   * stitches from between one feline's tail and the other's head. Only a
+   * decrease that would leave them no room there waits, and is worked in
+   * the plain rounds between the felines and the band.
    */
   const [felineRows, felineStitches] = [sleeveFeline.length, sleeveFeline[0].length];
   const apart = Math.floor((band.count / 2 - felineStitches) / 2);
@@ -761,22 +765,30 @@ export const knit = (size: Measured, construction: Construction, prefix: string,
   const taperFrom = Math.min(6, Math.floor(taper / 6));
   if (felinesFrom < taperFrom) throw new Error(`a sleeve of ${c.sleeveRounds} rounds has no room for its felines`);
   const decreaseAt = new Set([...spread(decreases - after, taper, taperFrom, felinesFrom + felineRows), ...Array.from({ length: after }, (_, k) => felinesFrom + felineRows + k)]);
-  const sw = new Writer(`${prefix}sleeve`, "Sleeve");
-  let n = c.upperArm;
-  let [felinesCount, felinesTo] = [n, n];
-  for (let i = 0; i < taper; i++) {
-    const r = i - felinesFrom;
-    const among = r >= 0 && r < felineRows;
-    const decrease = decreaseAt.has(i);
-    if (decrease) n -= 2;
-    if (r === 0) felinesCount = n;
-    if (r === felineRows - 1) felinesTo = n;
-    if (among) sw.row({ slots: sleeveFelinesRound(r, n, apart), ...(decrease ? { taken: { 1: "k2tog", [n - 2]: "ssk" } } : {}) }, n + (decrease ? 2 : 0));
-    else if (decrease) sw.push({ type: "shaping", slot: GROUND_SLOT, ops: underarmDecrease, to: n });
-    else sw.row(plainRow(n), n);
-  }
-  if (n !== band.count) throw new Error(`a sleeve that tapers to ${n}, not its band's ${band.count}`);
-  const taperSpecs = sw.done();
+  let [felinesCount, felinesTo] = [c.upperArm, c.upperArm];
+  // A sleeve's taper: the same rounds and decreases for both, the felines' rounds the right sleeve's or their mirror image.
+  const taperOf = (piece: string, name: string, mirror: boolean): Writer => {
+    const sw = new Writer(`${prefix}${piece}`, name);
+    let n = c.upperArm;
+    for (let i = 0; i < taper; i++) {
+      const r = i - felinesFrom;
+      const among = r >= 0 && r < felineRows;
+      const decrease = decreaseAt.has(i);
+      if (decrease) n -= 2;
+      if (r === 0) felinesCount = n;
+      if (r === felineRows - 1) felinesTo = n;
+      if (among) sw.row({ slots: sleeveFelinesRound(r, n, apart, mirror), ...(decrease ? { taken: { 1: "k2tog", [n - 2]: "ssk" } } : {}) }, n + (decrease ? 2 : 0));
+      else if (decrease) sw.push({ type: "shaping", slot: GROUND_SLOT, ops: underarmDecrease, to: n });
+      else sw.row(plainRow(n), n);
+    }
+    if (n !== band.count) throw new Error(`a sleeve that tapers to ${n}, not its band's ${band.count}`);
+    sw.done();
+    return sw;
+  };
+  const tapers: Record<string, Writer> = {
+    "sleeve-right": taperOf("sleeve-right", "Right sleeve", false),
+    "sleeve-left": taperOf("sleeve-left", "Left sleeve", true),
+  };
   // The cuff's band: the right sleeve's as on the tunic's sleeve, the left one's its mirror image, so the creatures go round the two cuffs opposite ways.
   const cuffCharts: Record<string, Chart> = {
     "sleeve-right": { id: `${prefix}cuff-right`, name: "Right cuff band", rows: cuffRows(band.gap, false) },
@@ -789,7 +801,7 @@ export const knit = (size: Measured, construction: Construction, prefix: string,
         ? { type: "shaping", slot: RED_SLOT, ops: increaseEvenly(band.count, c.cuff), to: c.cuff }
         : { type: "rounds", count: 1, slot: RED_SLOT };
   const sleeveSection = (piece: string, label: string): Section => {
-    const [firstRound, ...rest] = taperSpecs;
+    const [firstRound, ...rest] = tapers[piece].specs;
     if (firstRound.type !== "rounds" && firstRound.type !== "shaping") throw new Error("a sleeve's second round is a round of stitches");
     return {
       label,
@@ -817,7 +829,7 @@ export const knit = (size: Measured, construction: Construction, prefix: string,
       sleeveSection("sleeve-left", "Left sleeve"),
       sleeveSection("sleeve-right", "Right sleeve"),
     ],
-    charts: [...yw.charts, ...bw.charts, ...sw.charts, cuffCharts["sleeve-left"], cuffCharts["sleeve-right"]],
+    charts: [...yw.charts, ...bw.charts, ...tapers["sleeve-left"].charts, cuffCharts["sleeve-left"], ...tapers["sleeve-right"].charts, cuffCharts["sleeve-right"]],
     checks: {
       neck: yoke.neck,
       yoke: 2 * c.half + 2 * c.held,
@@ -857,20 +869,22 @@ const hemRow = (r: number, n: number, frontMiddle: number): string[] => {
 };
 
 /**
- * A round of the sleeve's felines, `n` stitches from the underarm: the one
- * as drawn after the middle of the round, the top of the arm, `apart`
- * stitches from it, its head towards it; and its mirror image before the
- * middle, as far from it. On the right sleeve the one as drawn is on the
- * front of the arm, as on the tunic's; on the left sleeve its mirror image
- * is.
+ * A round of the sleeve's felines, `n` stitches from the underarm: two of
+ * the one as drawn, one following the other round the sleeve. The first is
+ * after the middle of the round, the top of the arm, `apart` stitches from
+ * it with its head towards it; the second before the middle, its tail as
+ * far from it and its head towards the underarm. That is the right sleeve's
+ * round, the feline on the front of the arm as on the tunic's; the left
+ * sleeve's is its mirror image.
  */
-const sleeveFelinesRound = (r: number, n: number, apart: number): string[] => {
+const sleeveFelinesRound = (r: number, n: number, apart: number, mirror: boolean): string[] => {
   const out: string[] = Array(n).fill(GROUND_SLOT);
+  const w = sleeveFeline[r].length;
   [...sleeveFeline[r]].forEach((ch, x) => {
     if (ch === "o") return;
-    out[n / 2 + apart + x] = out[n / 2 - apart - 1 - x] = MOTIF_SLOT[ch];
+    out[n / 2 + apart + x] = out[n / 2 - apart - w + x] = MOTIF_SLOT[ch];
   });
-  return out;
+  return mirror ? out.reverse() : out;
 };
 
 /**

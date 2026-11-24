@@ -606,14 +606,20 @@ they share is in `src/data/sweaters/felines/`.
   its mirror image, so they go round the two cuffs opposite ways.
 - **The sleeves' felines.** Three plain rounds above each cuff band, two of
   the small felines: one on the front of the arm and one on the back, lying
-  across it with their heads to the top of the arm and their feet to the
-  underarm, each the other's mirror image, and each in the middle of its
-  half of the round where they end. With the arms held out they stand, as
-  on the tunic. The sleeve goes on tapering through their 44 rounds: a
-  decrease round there is worked in the felines' own yarns, a chart row with
-  a k2tog and an ssk beside the underarm, between their feet. Only XS, whose
+  across it, and one following the other round it as the band's creatures
+  do. The one on the front is as on the tunic's sleeve, its head to the top
+  of the arm and its tail to the underarm; the one on the back comes after
+  it, its tail to the top of the arm and its head to the underarm. Each is
+  in the middle of its half of the round where they end. The left sleeve's
+  are the right sleeve's in a mirror, so they go round the two sleeves
+  opposite ways, as the bands' creatures do, and each sleeve has a chart of
+  its own for them. With the arms held out the one on the front stands, as
+  on the tunic, and the one on the back is on its head. The sleeve goes on
+  tapering through their 44 rounds: a decrease round there is worked in the
+  felines' own yarns, a chart row with a k2tog and an ssk beside the
+  underarm, between one feline's tail and the other's head. Only XS, whose
   band is 76 - two felines and four stitches - has a decrease that would
-  leave their feet no room, and works it in the plain rounds after them.
+  leave them no room there, and works it in the plain rounds after them.
 - **Ribs** in the red, k1 p1: nine rounds at the neck, fourteen at the hem and
   cuffs.
 - **Colours.** A the ground, B red, C cream, D gold, in three colourways of
