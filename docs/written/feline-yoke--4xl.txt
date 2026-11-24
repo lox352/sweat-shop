@@ -6,7 +6,7 @@ Yoke (yoke)
   Join to work in the round.
   9 rounds of k1, p1 in B. Markers: after 0, place for the start of the round. [rib]
   Change to the main needles.
-  German short rows in A: 3 pairs, the first 26 sts past the beginning of the round, each 8 further.
+  German short rows in B: 3 pairs, the first 26 sts past the beginning of the round, each 8 further.
   Shaping round in B: k6, [m1, k10] x 7, m1, k12, [m1, k10] x 7, m1, k6, to 180 sts.
   1 round of k1 in B.
   Shaping round in B: k5, [m1, k10] x 17, m1, k5, to 198 sts.
@@ -87,7 +87,7 @@ Left sleeve (sleeve-left)
   4 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 118 sts.
   1 round of k1 in A.
-  Chart feline-yoke-4xl-sleeve-1, rows 1-44, 1 repeats a round.
+  Chart feline-yoke-4xl-sleeve-left-1, rows 1-44, 1 repeats a round.
   3 rounds of k1 in A.
   Chart feline-yoke-4xl-cuff-left, rows 1-37.
   Shaping round in B: k2, k2tog, [k3, k2tog] x 19, k1, to 80 sts.
@@ -130,7 +130,7 @@ Right sleeve (sleeve-right)
   4 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 118 sts.
   1 round of k1 in A.
-  Chart feline-yoke-4xl-sleeve-1, rows 1-44, 1 repeats a round.
+  Chart feline-yoke-4xl-sleeve-right-1, rows 1-44, 1 repeats a round.
   3 rounds of k1 in A.
   Chart feline-yoke-4xl-cuff-right, rows 1-37.
   Shaping round in B: k2, k2tog, [k3, k2tog] x 19, k1, to 80 sts.

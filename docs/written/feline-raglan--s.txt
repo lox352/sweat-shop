@@ -6,7 +6,7 @@ Yoke (yoke)
   Join to work in the round.
   9 rounds of k1, p1 in B. Markers: after 0, place for the start of the round; after 24, place for the right back raglan line; after 48, place for the right front raglan line; after 96, place for the left front raglan line; after 120, place for the left back raglan line. [rib]
   Change to the main needles.
-  German short rows in A: 3 pairs, the first 23 sts past the beginning of the round, each 7 further.
+  German short rows in B: 3 pairs, the first 23 sts past the beginning of the round, each 7 further.
   1 round of k1 in B.
   Shaping round in B: k23, kbf, kfb, k22, kbf, kfb, k46, kbf, kfb, k22, kbf, kfb, k23, to 152 sts.
   1 round of k1 in B.
@@ -63,7 +63,7 @@ Left sleeve (sleeve-left)
   9 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 88 sts.
   8 rounds of k1 in A.
-  Chart feline-raglan-s-sleeve-1, rows 1-44, 1 repeats a round.
+  Chart feline-raglan-s-sleeve-left-1, rows 1-44, 1 repeats a round.
   3 rounds of k1 in A.
   Chart feline-raglan-s-cuff-left, rows 1-37.
   Shaping round in B: k1, k2tog, [k3, k2tog] x 7, k2, k2tog, [k3, k2tog] x 7, k1, to 62 sts.
@@ -86,7 +86,7 @@ Right sleeve (sleeve-right)
   9 rounds of k1 in A.
   Shaping round in A: k1, k2tog, [k1] to last 3 sts, ssk, k1, to 88 sts.
   8 rounds of k1 in A.
-  Chart feline-raglan-s-sleeve-1, rows 1-44, 1 repeats a round.
+  Chart feline-raglan-s-sleeve-right-1, rows 1-44, 1 repeats a round.
   3 rounds of k1 in A.
   Chart feline-raglan-s-cuff-right, rows 1-37.
   Shaping round in B: k1, k2tog, [k3, k2tog] x 7, k2, k2tog, [k3, k2tog] x 7, k1, to 62 sts.
