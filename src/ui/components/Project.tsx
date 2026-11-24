@@ -632,7 +632,7 @@ const ProjectView: React.FC<{
     setSpeedsOpen(false);
   };
 
-  // The yoke's bands, for the strips that show the wool being chosen: placed, where a strip would shear them.
+  // The yoke's bands, for the strips that show the wool being chosen: placed, where a strip would not do. See yokePicture.
   const placed = yokePicture(built);
   const body = useMemo(() => ({ stitches, rounds: yoke, front: placed }), [stitches, yoke, placed]);
 

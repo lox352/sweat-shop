@@ -6,6 +6,6 @@ import "./ColourPreview.css";
 export interface Body {
   stitches: Stitch[];
   rounds: number[][];
-  /** The yoke placed about the middle of the front, where a strip of it would shear its bands: see yokePicture. */
+  /** The yoke placed about the middle of the front, where a strip of it would shear its bands or begin a picture at the middle of the back: see yokePicture. */
   front?: FrontPicture;
 }

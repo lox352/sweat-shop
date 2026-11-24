@@ -163,9 +163,9 @@ export interface FrontPicture {
   /** The yarn most of it is knitted in, for wherever there is no stitch. */
   ground: SlotId;
   /**
-   * How much of it a strip shows: the top of a front, which is far taller
-   * than a strip (see frontScale), or all of a yoke's bands, as a strip of
-   * them is shown.
+   * How a strip shows it: the top of a front, which is far taller than a
+   * strip (see frontScale); or a yoke's bands at a strip's own scale (see
+   * stitchScale), all of them where they fit.
    */
   shown: "top" | "all";
 }
@@ -258,7 +258,8 @@ const panelsIn = (at: Int32Array): Lined => {
 
 /**
  * A band's rounds drawn at one width: every panel moved toward the front by
- * the room the band has where it is narrowest, the same for all its rounds.
+ * the least room the band has at each line - what its last round has, the
+ * round with most stitches - and by the same for all its rounds.
  */
 const closeUp = (run: Lined[]): Lined[] => {
   const least = run[0].room.map((_, index) => Math.min(...run.map((row) => row.room[index])));
@@ -286,9 +287,10 @@ const closeUp = (run: Lined[]): Lined[] => {
  * spirals - is whole. The corner is drawn from both its panels' sides, so it
  * is there twice along the band, the second a quarter turn from the first.
  *
- * Only that slope lies flat. Where a line gains stitches more slowly, the
- * room takes the line's own stitch, drawn as wide as the room: the end stitch
- * of the panel on its side of where the two panels come to meet.
+ * Only that slope lies flat. Where a line gains stitches more slowly at any
+ * round the room spans, all of that room takes the line's own stitch, drawn
+ * as wide as the room: the end stitch of the panel on its side of where the
+ * two panels come to meet.
  */
 const fold = (run: Lined[]): (Int32Array | undefined)[] =>
   run.map((row, y) => {
@@ -310,12 +312,14 @@ const fold = (run: Lined[]): (Int32Array | undefined)[] =>
         }
         return true;
       };
+      // The whole of the room or none of it: a line that is a mitre all the way to where its panels meet.
+      const folds = mitred(Math.max(meet - edge, edge + width - meet));
       for (let n = 0; n < width; n++) {
         const before = edge + n < meet;
         const k = before ? n + 1 : width - n;
         const own = before ? row.panels[index].ids : row.panels[next].ids;
         let from: number | undefined = before ? own[own.length - 1] : own[0];
-        if (mitred(k)) {
+        if (folds) {
           const round = run[y + k].panels[before ? next : index].ids;
           from = (before ? round[k] : round[round.length - 1 - k]) ?? from;
         }
@@ -342,17 +346,19 @@ const asRow = (row: Lined, lent?: Int32Array): FrontRow => {
  *
  * Where it is in a few places - along a raglan's lines - each panel is kept
  * whole, widening about its own middle, and the panels are closed up a band
- * at a time: every round of a band is drawn at the width the band has where
- * it is narrowest, its last round, so that nothing in the band is sheared by
- * the lines growing through it. A band is the rounds of two colours or more
- * that follow one another; a round all of one colour is closed up on its own,
- * having nothing to shear. What room a band's rounds still have at a line is
- * the corner, folded out: see `fold`. Closed up a round at a time instead, as
- * a strip is, a raglan's bands are sheared along every line; left where the
- * chart has them, they are cut apart by wedges of ground.
+ * at a time: every round of a band is drawn at the width of its last round,
+ * where it has most stitches and least room, so that nothing in the band is
+ * sheared by the lines growing through it. A band is the rounds of two
+ * colours or more that follow one another on the same panels, to the last of
+ * them, the rounds that have grown to fill the chart included; a round all
+ * of one colour is closed up on its own, having nothing to shear. What room
+ * a band's rounds still have at a line is the corner, folded out: see
+ * `fold`. Closed up a round at a time instead, as a strip is, a raglan's
+ * bands are sheared along every line; left where the chart has them, they
+ * are cut apart by wedges of ground.
  *
- * `leaning` says whether any band was closed up as one: whether a strip, a
- * round at a time, would have sheared it.
+ * `leaning` says whether any band had room that changed within it: whether a
+ * strip, a round at a time, would have sheared it.
  */
 const placeYoke = (built: SweaterStitches, rounds: number[][]) => {
   const { stitches, roundPieces, knitting } = built;
@@ -386,7 +392,26 @@ const placeYoke = (built: SweaterStitches, rounds: number[][]) => {
     return { period: round.length, at: Int32Array.from(round, (_, place) => round[(from + place) % round.length]) };
   };
 
-  const manyYarns = (round: number[]) => new Set(round.map((id) => stitches[id]?.slot)).size > 1;
+  /**
+   * A round that has grown to fill the chart, as the panels of the round of
+   * its band before it: each grown into its side of the room it had there,
+   * and no room left. So a band's last rounds, at the foot of a raglan's
+   * yoke, are of the band, and it is closed up to them.
+   */
+  const filled = (round: number[], before: Lined): Lined | undefined => {
+    if (round.length !== chart.columns || before.period !== chart.columns) return undefined;
+    const at = new Int32Array(chart.columns).fill(-1);
+    for (const id of round) at[mod(Math.floor(across(id)), chart.columns)] = id;
+    if (at.some((id) => id < 0)) return undefined;
+    const count = before.panels.length;
+    const cuts = before.panels.map((_, index) => endOf(before, index) + Math.ceil(before.room[index] / 2));
+    const panels = cuts.map((end, index) => {
+      const begins = index === 0 ? cuts[count - 1] - before.period : cuts[index - 1];
+      return { begins, ids: Array.from({ length: end - begins }, (_, n) => at[mod(begins + n, before.period)]) };
+    });
+    return { panels, room: panels.map(() => 0), period: before.period };
+  };
+
   const rows: FrontRow[] = [];
   let leaning = false;
   let run: Lined[] = [];
@@ -400,20 +425,23 @@ const placeYoke = (built: SweaterStitches, rounds: number[][]) => {
     run = [];
   };
   for (const round of rounds) {
-    const placed = placeRound(round);
+    const many = manyYarns(stitches, round);
+    let placed = placeRound(round);
+    if ("at" in placed && run.length && banded && many) placed = filled(round, run[run.length - 1]) ?? placed;
     if ("at" in placed) {
       finish();
       rows.push(placed);
       continue;
     }
-    const many = manyYarns(round);
     if (run.length && !(banded && many && run[0].panels.length === placed.panels.length)) finish();
     run.push(placed);
     banded = many;
   }
   finish();
-  return { rows, leaning, yokeCount };
+  return { rows, leaning };
 };
+
+const manyYarns = (stitches: Stitch[], round: number[]) => new Set(round.map((id) => stitches[id]?.slot)).size > 1;
 
 const groundOf = (rounds: number[][], stitches: Stitch[]): SlotId => {
   const counts = new Map<SlotId, number>();
@@ -491,6 +519,8 @@ export const frontPicture = once(front);
  * strip would begin at the middle of the back, with half a feline at each
  * end. A round yoke's bands, and a band between lines that do not grow in
  * it, are a strip's to paint.
+ *
+ * A strip shows it at its own scale, from the top: see useFrontPainting.
  */
 const yoke = (built: SweaterStitches): FrontPicture | undefined => {
   const { stitches, rounds, roundPieces } = built;
@@ -498,12 +528,20 @@ const yoke = (built: SweaterStitches): FrontPicture | undefined => {
   if (yokeCount <= 0) return undefined;
   const body = bodyRounds(rounds.slice(0, yokeCount), stitches);
   if (body.length === 0 || !isPatterned(body[0], stitches)) return undefined;
+  const fronted = frontPicture(built);
+  // A band can only lean where a round of it grows at a few lines - a stitch either side of each - and not all the way
+  // round: with no such round, and no front, there is nothing to lay the chart out for.
+  const mayLean = body.some((round, y) => {
+    const gain = y > 0 && manyYarns(stitches, round) ? round.length - body[y - 1].length : 0;
+    return gain > 0 && gain <= LINES;
+  });
+  if (!fronted && !mayLean) return undefined;
   const placed = placeYoke(built, body);
-  if (!placed || !(placed.leaning || frontPicture(built))) return undefined;
+  if (!placed || !(placed.leaning || fronted)) return undefined;
   return { rows: placed.rows, ground: groundOf(body, stitches), shown: "all" };
 };
 
-/** A sweater's yoke placed about the middle of the front, where a strip of it would shear its bands: see `yoke`. */
+/** A sweater's yoke placed about the middle of the front, where a strip of it would shear its bands or begin a picture at the middle of the back: see `yoke`. */
 export const yokePicture = once(yoke);
 
 /** What a sweater's card shows in a strip's place, if anything: its front, or its yoke placed. */
@@ -535,9 +573,11 @@ export const stitchAcross = (row: FrontRow, x: number, half: number) => stitchAt
 /**
  * A front, or a yoke placed, painted for a strip `width` by `height` screen
  * pixels, its middle in the middle; see FrontPicture. A front's top is at the
- * top, at frontScale; a yoke is shown whole, at stitchScale, for the strip to
- * centre up and down. Undefined until the strip is measured, and where there
- * is no canvas.
+ * top, at frontScale. A yoke is painted whole, at stitchScale, for the strip
+ * to centre up and down where it is the shorter, and to show from the top
+ * where it is the taller, its foot cut off: the neck's band is what a yoke
+ * is known by. Undefined until the strip is measured, and where there is no
+ * canvas.
  */
 export const useFrontPainting = (
   picture: FrontPicture | undefined,

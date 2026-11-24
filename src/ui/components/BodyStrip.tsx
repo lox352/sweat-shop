@@ -67,7 +67,8 @@ const BodyStrip: React.FC<{
    * What to show in the strip's place, about the middle of the front: the
    * sweater's front, where it is a picture down the front, which is not to be
    * seen in a strip of the yoke; or its yoke placed, where a strip would shear
-   * a raglan's bands. See frontPicture and yokePicture.
+   * a raglan's bands or begin a picture at the middle of the back. See
+   * frontPicture and yokePicture.
    */
   front?: FrontPicture;
   className?: string;
@@ -90,11 +91,14 @@ const BodyStrip: React.FC<{
   let picture: React.CSSProperties | undefined;
   if (fronted) {
     const density = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
-    // The middle of the front in the middle, pinned to whole screen pixels; a front's top at the top, a yoke centred up and down as a strip of it is.
-    const top = fronted.whole ? Math.round((deviceHeight - fronted.height) / 2) : 0;
+    // The middle of the front in the middle, pinned to whole screen pixels. A front's top is at the top; a yoke is
+    // centred up and down as a strip is, or where it is taller than the strip, shown from the top.
+    const top = fronted.whole ? Math.max(0, Math.round((deviceHeight - fronted.height) / 2)) : 0;
     picture = {
       backgroundImage: `url(${fronted.url})`,
       backgroundColor: fronted.ground,
+      // Measured from the box the strip was measured by, its border's: or a border all round puts the middle out by its width.
+      backgroundOrigin: "border-box",
       backgroundSize: `${fronted.width / density}px ${fronted.height / density}px`,
       backgroundPosition: `${Math.round((deviceWidth - fronted.width) / 2) / density}px ${top / density}px`,
       backgroundRepeat: "no-repeat",

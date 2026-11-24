@@ -621,15 +621,19 @@ they share is in `src/data/sweaters/felines/`.
   twice, once from each panel's side and a quarter turn apart. Only that
   slope lies flat; where a line is slower the room takes the line's own
   stitch drawn wide, which under the felines' band is ground on ground. A
+  band runs to its last round of two colours, the rounds at the yoke's foot
+  that have grown to fill the chart included. A
   motif not drawn to turn the corner would show a turned copy of its
   neighbour for a few stitches at each line. Closed up a round at a time, as
   a strip is, the raglan's spirals were sheared along every line; left where
   the chart has them, they were cut apart by wedges of ground.
 - **The colourway tiles** show the yoke by the same rule (`yokePicture`),
-  all of its patterned rounds, about the middle of the front: for the raglan
-  because a strip sheared it, and for the round yoke because a strip begins
-  at the middle of the back, with half a feline at each end. Every other
-  design's yoke is still a strip, on its card and its tiles.
+  its patterned rounds about the middle of the front, at a strip's own
+  scale: for the raglan because a strip sheared it, and for the round yoke
+  because a strip begins at the middle of the back, with half a feline at
+  each end. Where they are taller than the tile it shows them from the top,
+  the neck's band whole and the foot cut off. Every other design's yoke is
+  still a strip, on its card and its tiles.
 - **What it asks of a knitter.** A picture, not a band: the felines' reds run
   across the front a hundred stitches and more, and a claw or an eye puts a
   third colour in a round. The long floats are caught behind the work.

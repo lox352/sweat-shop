@@ -200,7 +200,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
     navigate(chartPath(project.id, true));
   };
 
-  // The yoke's bands, for the strips that show each colourway: placed, where a strip would shear them.
+  // The yoke's bands, for the strips that show each colourway: placed, where a strip would not do. See yokePicture.
   const placed = yokePicture(built);
   const body = useMemo(() => ({ stitches, rounds: yoke, front: placed }), [stitches, yoke, placed]);
   const bought = balls.reduce((total, ball) => total + ball.balls, 0);
