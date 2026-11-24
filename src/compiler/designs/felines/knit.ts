@@ -688,7 +688,8 @@ export const knit = (size: Measured, construction: Construction, prefix: string,
       markers: [{ after: 0, place: startOfRound }, ...(yoke.lines ?? []).map((after, k) => ({ after, place: raglanLines[k] }))],
     },
     { type: "needles", to: "main" },
-    { type: "shortRows", first: Math.round(yoke.neck * 0.16), extend: Math.round(yoke.neck * 0.05), pairs: 3, slot: GROUND_SLOT },
+    // The back neck's short rows in the red of the band's first rounds, which they run on into: the back of the neck rises in the band's own red, not in a wedge of the ground between it and the rib.
+    { type: "shortRows", first: Math.round(yoke.neck * 0.16), extend: Math.round(yoke.neck * 0.05), pairs: 3, slot: RED_SLOT },
     ...yw.done(),
   ];
   yokeSpecs[yokeSpecs.length - 1] = { ...yokeSpecs[yokeSpecs.length - 1], check: "yoke" };

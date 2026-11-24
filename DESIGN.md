@@ -525,7 +525,10 @@ they share is in `src/data/sweaters/felines/`.
   hem's band, 35 rounds: three rounds of red and four of gold nearest the
   neck, then squared spirals in gold on red - the hem creature's
   tail, alone (`squareSpiral` draws one at any size) - three stitches apart,
-  alternate ones mirrored, so that no increase ever comes in one.
+  alternate ones mirrored, so that no increase ever comes in one. The back
+  neck's German short rows, between the rib and the band, are knitted in the
+  band's red: they run on into its first rounds, and the back of the neck
+  rises in that red, not in a wedge of the ground.
   - *On the raglan*, seen from above, the band is a square frame round the
     neck: its sides the four panels, its corners the lines. It holds two rows
     of spirals, each 11 stitches by 11 rows and turned a quarter clockwise,

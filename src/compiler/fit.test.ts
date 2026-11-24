@@ -396,6 +396,6 @@ describe("what the planner answers is what a link names", () => {
       await named("feline-raglan", "m", { tension: tighter }),
       await named("feline-yoke", "m", { tension: tighter }),
       await named("paul-klee", "m1", { tension: { stitchesPer10cm: 24.5, roundsPer10cm: 36 } }),
-    ]).toEqual(["a0b09230e8fe", "8b3110bcb590", "de90ffd1c094", "148b674281c5"]);
+    ]).toEqual(["a0b09230e8fe", "550074b996a9", "45f34976ebd6", "148b674281c5"]);
   }, 600000);
 });

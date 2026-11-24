@@ -235,6 +235,24 @@ describe.each([raglan, yoke].map((design) => [design.id, design] as const))("%s"
       expect(placed.above).toBeGreaterThanOrEqual(2);
     });
 
+    it("raises the back of the neck with short rows in the red of the band's first rounds, which they run on into", () => {
+      const built = buildSweater(design, size.id);
+      const yokeRounds = built.rounds.flatMap((round, i) => (built.roundPieces[i] === "yoke" ? [{ round, kind: built.roundKinds[i] }] : []));
+      // The yoke's only rows that are not rounds: three pairs of short rows and the row that knits on to the end of the round.
+      const rows = yokeRounds.filter(({ kind }) => kind !== "round");
+      expect(rows.length).toBe(7);
+      const slots = (round: number[]) => new Set(round.map((id) => built.stitches[id].slot));
+      for (const { round } of rows) expect(slots(round)).toEqual(new Set(["B"]));
+      // Above them the rib, and under them the band's first three rounds, in the same red; then the band's gold.
+      const last = yokeRounds.lastIndexOf(rows[rows.length - 1]);
+      const first = yokeRounds.indexOf(rows[0]);
+      expect(slots(yokeRounds[first - 1].round)).toEqual(new Set(["B"]));
+      expect(knitted.trim.from).toBe(0);
+      expect(knitted.trim.band.rows.slice(0, 4).map((row) => row.ground).join("")).toBe("...G");
+      for (const { round } of yokeRounds.slice(last + 1, last + 4)) expect(slots(round)).toEqual(new Set(["B"]));
+      expect(slots(yokeRounds[last + 4].round)).toEqual(new Set(["D"]));
+    });
+
     it("runs a band of squared spirals round the neck as deep as the waist's, every spiral whole in every round of it", () => {
       const band = knitted.trim.band;
       expect(band).toBe(neckBands[design.id === yoke.id ? "yoke" : "raglan"]);

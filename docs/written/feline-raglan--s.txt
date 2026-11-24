@@ -6,7 +6,7 @@ Yoke (yoke)
   Join to work in the round.
   9 rounds of k1, p1 in B. Markers: after 0, place for the start of the round; after 24, place for the right back raglan line; after 48, place for the right front raglan line; after 96, place for the left front raglan line; after 120, place for the left back raglan line. [rib]
   Change to the main needles.
-  German short rows in A: 3 pairs, the first 23 sts past the beginning of the round, each 7 further.
+  German short rows in B: 3 pairs, the first 23 sts past the beginning of the round, each 7 further.
   1 round of k1 in B.
   Shaping round in B: k23, kbf, kfb, k22, kbf, kfb, k46, kbf, kfb, k22, kbf, kfb, k23, to 152 sts.
   1 round of k1 in B.

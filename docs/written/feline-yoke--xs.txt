@@ -6,7 +6,7 @@ Yoke (yoke)
   Join to work in the round.
   9 rounds of k1, p1 in B. Markers: after 0, place for the start of the round. [rib]
   Change to the main needles.
-  German short rows in A: 3 pairs, the first 22 sts past the beginning of the round, each 7 further.
+  German short rows in B: 3 pairs, the first 22 sts past the beginning of the round, each 7 further.
   Shaping round in B: k5, [m1, k10] x 13, m1, k5, to 154 sts.
   1 round of k1 in B.
   Shaping round in B: k6, [m1, k11] x 3, m1, k10, [m1, k11] x 2, m1, k12, [m1, k11] x 2, m1, k10, [m1, k11] x 3, m1, k6, to 168 sts.
