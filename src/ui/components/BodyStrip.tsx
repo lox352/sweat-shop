@@ -3,7 +3,7 @@ import { SlotId } from "../../pattern/design";
 import { Stitch } from "../../pattern/Stitch";
 import { Palette } from "../../reading/palette";
 import "./ColourPreview.css";
-import { bodyRounds, stitchScale, usePainting } from "./bodyPicture";
+import { type FrontPicture, bodyRounds, stitchScale, useFrontPainting, usePainting } from "./bodyPicture";
 
 /**
  * The yoke as worn: its bands, stacked, in the wool being chosen.
@@ -21,13 +21,19 @@ import { bodyRounds, stitchScale, usePainting } from "./bodyPicture";
  * a desktop, notably), it is smoothed into a blur.
  */
 
-/** The height an element is drawn at, in screen pixels; 0 until it is known. */
-const useDeviceHeight = (ref: React.RefObject<HTMLElement>) => {
-  const [height, setHeight] = useState(0);
+/** The size an element is drawn at, in screen pixels; 0 until it is known. */
+const useDeviceSize = (ref: React.RefObject<HTMLElement>) => {
+  const [size, setSize] = useState({ width: 0, height: 0 });
   useEffect(() => {
     const element = ref.current;
     if (!element || typeof ResizeObserver === "undefined") return;
-    const measure = () => setHeight(element.getBoundingClientRect().height * (window.devicePixelRatio || 1));
+    const measure = () => {
+      const box = element.getBoundingClientRect();
+      const density = window.devicePixelRatio || 1;
+      const width = box.width * density;
+      const height = box.height * density;
+      setSize((was) => (was.width === width && was.height === height ? was : { width, height }));
+    };
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     // Zooming, or moving the window to a screen of another density.
@@ -48,7 +54,7 @@ const useDeviceHeight = (ref: React.RefObject<HTMLElement>) => {
       density?.removeEventListener("change", onDensity);
     };
   }, [ref]);
-  return height;
+  return size;
 };
 
 const BodyStrip: React.FC<{
@@ -57,11 +63,20 @@ const BodyStrip: React.FC<{
   palette: Palette;
   /** Fade every stitch but these yarns', to show where they are knitted. */
   highlight?: SlotId[];
+  /**
+   * What to show in the strip's place, about the middle of the front: the
+   * sweater's front, where it is a picture down the front, which is not to be
+   * seen in a strip of the yoke; or its yoke placed, where a strip would shear
+   * a raglan's bands or begin a picture at the middle of the back. See
+   * frontPicture and yokePicture.
+   */
+  front?: FrontPicture;
   className?: string;
-}> = ({ stitches, rounds, palette, highlight, className }) => {
+}> = ({ stitches, rounds, palette, highlight, front, className }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const deviceHeight = useDeviceHeight(ref);
-  const body = useMemo(() => bodyRounds(rounds, stitches), [rounds, stitches]);
+  const { width: deviceWidth, height: deviceHeight } = useDeviceSize(ref);
+  const body = useMemo(() => (front ? [] : bodyRounds(rounds, stitches)), [front, rounds, stitches]);
+  const fronted = useFrontPainting(front, stitches, palette, deviceWidth, deviceHeight);
 
   /*
    * Painted once per change of wool, a pixel a stitch, and used
@@ -74,7 +89,21 @@ const BodyStrip: React.FC<{
   const painted = usePainting(body, stitches, palette, scale, highlight);
 
   let picture: React.CSSProperties | undefined;
-  if (painted) {
+  if (fronted) {
+    const density = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
+    // The middle of the front in the middle, pinned to whole screen pixels. A front's top is at the top; a yoke is
+    // centred up and down as a strip is, or where it is taller than the strip, shown from the top.
+    const top = fronted.whole ? Math.max(0, Math.round((deviceHeight - fronted.height) / 2)) : 0;
+    picture = {
+      backgroundImage: `url(${fronted.url})`,
+      backgroundColor: fronted.ground,
+      // Measured from the box the strip was measured by, its border's: or a border all round puts the middle out by its width.
+      backgroundOrigin: "border-box",
+      backgroundSize: `${fronted.width / density}px ${fronted.height / density}px`,
+      backgroundPosition: `${Math.round((deviceWidth - fronted.width) / 2) / density}px ${top / density}px`,
+      backgroundRepeat: "no-repeat",
+    };
+  } else if (painted) {
     picture = { backgroundImage: `url(${painted.url})` };
     if (deviceHeight > 0) {
       const density = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;

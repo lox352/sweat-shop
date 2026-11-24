@@ -59,6 +59,7 @@ import { type Chosen } from "./Shades";
 import ViewTabs from "../chart/ViewTabs";
 import { sceneFor } from "../chart/view-scene";
 import { ColourwayGrid } from "./ColourwayChoice";
+import { yokePicture } from "./bodyPicture";
 import { ColoursAdjust, TrimSheet } from "./ColoursAdjust";
 import { useColourwayChoice } from "../useColourwayChoice";
 import { useTabAddress } from "../useTabAddress";
@@ -631,8 +632,9 @@ const ProjectView: React.FC<{
     setSpeedsOpen(false);
   };
 
-  // The yoke's bands, for the strips that show the wool being chosen.
-  const body = useMemo(() => ({ stitches, rounds: yoke }), [stitches, yoke]);
+  // The yoke's bands, for the strips that show the wool being chosen: placed, where a strip would not do. See yokePicture.
+  const placed = yokePicture(built);
+  const body = useMemo(() => ({ stitches, rounds: yoke, front: placed }), [stitches, yoke, placed]);
 
   // The full key, over the lower part of the screen while knitting.
   const [keyOpen, setKeyOpen] = useState(false);

@@ -51,11 +51,14 @@ const kb = 1024;
  * being knitted, the round numbers kept beside the box, a block of columns
  * opening or closing round the box held off the screen, and a pinch carried
  * along with the fingers - brings it to 221KB: 230KB. Rows left whole, never
- * closed up, take it back to 220KB.
+ * closed up, take it back to 220KB. The felines redrawn from closer traces,
+ * with their sleeves' and cuffs' creatures, bring it to 228KB; and a card
+ * that shows a front, a raglan's bands closed up with their corners folded
+ * out, to 231KB: 240KB.
  */
 // A frozen edition of the largest size is 19KB.
 // The fitting worker is 78KB: every design's planner and charts, and the engine.
-const budgets = { page: 230 * kb, stage: 260 * kb, settled: 300 * kb, edition: 40 * kb, fitting: 100 * kb, settling: 20 * kb };
+const budgets = { page: 240 * kb, stage: 260 * kb, settled: 300 * kb, edition: 40 * kb, fitting: 100 * kb, settling: 20 * kb };
 
 const files = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
