@@ -17,8 +17,8 @@ const published: Record<string, { split: string; rounds: [number, number, number
     split: "3/5/5",
     rounds: [72, 126, 147],
     yoke: ["2014 Chart C between peeries (21)", "2015 Sheep, 8 sky and 4 field rows off (13)", "2016 Three strips (29)"],
-    body: ["2017 Two bands (14)", "2018 Dancers and plusses (21)", "2019 Sheep and boat, a round between (24)", "2020 Both star bands (30)", "2021 With its borders (31)"],
-    sleeve: ["2022 Anchors and waves (27)", "2023 Flowers (25)", "2024 Rams between zigzags (29)", "2025 Twice, dotted strip between (29)", "2026 Cropped to 28 (28)"],
+    body: ["2017 Two bands (14)", "2018 Dancers between two plus rows (17)", "2019 Sheep and boat, a round between (24)", "2020 Both star bands (30)", "2021 With its borders (31)"],
+    sleeve: ["2022 Anchors and waves (27)", "2023 Flowers (25)", "2024 Rams between zigzags (29)", "2025 Twice, dotted strip between (29)", "2026 Cropped to 24 (24)"],
   },
   s: {
     split: "3/5/5",
@@ -38,36 +38,36 @@ const published: Record<string, { split: string; rounds: [number, number, number
     split: "3/5/5",
     rounds: [80, 141, 159],
     yoke: ["2014 Chart C between peeries (21)", "2015 Sheep, 2 sky and 1 field rows off (22)", "2016 Three strips (29)"],
-    body: ["2017 Three bands (21)", "2018 Dancers and plusses (21)", "2019 Sheep and boat, a round between (24)", "2020 As the hat (38)", "2021 With its borders (31)"],
-    sleeve: ["2022 Anchors and waves (27)", "2023 Flowers between peeries (33)", "2024 Rams between zigzags (29)", "2025 Twice, dotted strip between (29)", "2026 Cropped to 28 (28)"],
+    body: ["2017 Three bands (21)", "2018 Dancers between two plus rows (17)", "2019 Sheep and boat, a round between (24)", "2020 As the hat (38)", "2021 With its borders (31)"],
+    sleeve: ["2022 Anchors and waves (27)", "2023 Flowers (25)", "2024 As the hat (38)", "2025 Twice, dotted strip between (29)", "2026 Cropped to 28 (28)"],
   },
   xl: {
     split: "3/5/5",
     rounds: [84, 146, 163],
     yoke: ["2014 Chart C between peeries (21)", "2015 As the hat, all the sky (25)", "2016 Three strips (29)"],
     body: ["2017 Three bands (21)", "2018 Dancers and plusses (21)", "2019 Sheep and boat, a round between (24)", "2020 As the hat (38)", "2021 With its borders (31)"],
-    sleeve: ["2022 Anchors and waves (27)", "2023 Flowers between peeries (33)", "2024 Rams between zigzags (29)", "2025 Twice, dotted strip between (29)", "2026 Cropped to 32 (32)"],
+    sleeve: ["2022 Anchors and waves (27)", "2023 Flowers between peeries (33)", "2024 Rams between zigzags (29)", "2025 Twice, dotted strip between (29)", "2026 Cropped to 28 (28)"],
   },
   "2xl": {
     split: "3/5/5",
     rounds: [87, 149, 163],
     yoke: ["2014 Chart C between peeries (21)", "2015 As the hat, all the sky (25)", "2016 Three strips with seed borders (33)"],
-    body: ["2017 Four bands (28)", "2018 Dancers and plusses (21)", "2019 Sheep and boat, a round between (24)", "2020 As the hat (38)", "2021 With its borders (31)"],
-    sleeve: ["2022 Anchors and waves (27)", "2023 Flowers between peeries (33)", "2024 Rams between zigzags (29)", "2025 Twice, dotted strip between (29)", "2026 Cropped to 32 (32)"],
+    body: ["2017 Three bands (21)", "2018 Dancers and plusses (21)", "2019 Sheep and boat, a round between (24)", "2020 As the hat (38)", "2021 With its borders (31)"],
+    sleeve: ["2022 Anchors and waves (27)", "2023 Flowers between peeries (33)", "2024 Rams between zigzags (29)", "2025 Twice, dotted strip between (29)", "2026 Cropped to 28 (28)"],
   },
   "3xl": {
     split: "3/5/5",
     rounds: [90, 155, 166],
     yoke: ["2014 Chart C between peeries (21)", "2015 As the hat, all the sky (25)", "2016 Three strips with seed borders (33)"],
     body: ["2017 Three bands (21)", "2018 Dancers, plusses, dancers (31)", "2019 Sheep and boat, a round between (24)", "2020 As the hat (38)", "2021 With its borders (31)"],
-    sleeve: ["2022 Anchors and waves (27)", "2023 Flowers between peeries (33)", "2024 Rams between zigzags (29)", "2025 Twice, dotted strip between (29)", "2026 Cropped to 36 (36)"],
+    sleeve: ["2022 Anchors and waves (27)", "2023 Flowers between peeries (33)", "2024 Rams between zigzags (29)", "2025 Twice, dotted strip between (29)", "2026 Cropped to 32 (32)"],
   },
   "4xl": {
     split: "3/5/5",
     rounds: [94, 158, 166],
     yoke: ["2014 Both stars, peerie between (30)", "2015 As the hat, all the sky (25)", "2016 Three strips with seed borders (33)"],
-    body: ["2017 Four bands (28)", "2018 Dancers, plusses, dancers (31)", "2019 Sheep and boat, a round between (24)", "2020 As the hat (38)", "2021 With its borders (31)"],
-    sleeve: ["2022 Anchors and waves (27)", "2023 Flowers between peeries (33)", "2024 Rams between zigzags (29)", "2025 Twice, dotted strip between (29)", "2026 Cropped to 36 (36)"],
+    body: ["2017 Three bands (21)", "2018 Dancers, plusses, dancers (31)", "2019 Sheep and boat, a round between (24)", "2020 As the hat (38)", "2021 With its borders (31)"],
+    sleeve: ["2022 Anchors and waves (27)", "2023 Flowers between peeries (33)", "2024 Rams between zigzags (29)", "2025 Twice, dotted strip between (29)", "2026 Cropped to 32 (32)"],
   },
 };
 
@@ -113,7 +113,7 @@ describe("a pattern kept whole while it can be", () => {
     expect(cutInto(2018, [["B", 1, 17]])).toBe(false);
   });
 
-  it("2017 and 2018 are never cut into, and 2018 keeps a plain round of its own at each end, in any size from the cast-on, however few rounds the knitter's tension leaves", () => {
+  it("2017 and 2018 are never cut into, and every band begins and ends with a plain round of its own, in any size from the cast-on, however few rounds the knitter's tension leaves", () => {
     const years = Array.from({ length: 13 }, (_, i) => 2014 + i);
     for (const size of measured) {
       for (let rounds = 23; rounds <= 41; rounds += 3) {
@@ -124,13 +124,14 @@ describe("a pattern kept whole while it can be", () => {
           for (const p of piece.placed) {
             if (p.year === 2017 || p.year === 2018) expect(cutInto(p.year, p.state.parts), `${size.id} at ${rounds} rounds: ${p.year} ${p.state.label}`).toBe(false);
           }
-          for (const frame of piece.frames.filter((one) => one.year === 2018)) {
-            expect(Math.min(frame.above, frame.below), `${size.id} at ${rounds} rounds: 2018's plain rounds`).toBeGreaterThanOrEqual(1);
-          }
-          // The first and the last of 2018's rounds are plain, in its own yarn or its pattern's own plain rows.
-          const own = piece.rows.filter((row) => row.year === 2018);
-          for (const row of own.length ? [own[0], own[own.length - 1]] : []) {
-            expect("plain" in row || new Set(lettersOf(2018, row.chart)[row.row - 1]).size === 1, `${size.id} at ${rounds} rounds: 2018 begins and ends plain`).toBe(true);
+          // Every quantum has a plain round of its own above it and below it.
+          for (const frame of piece.frames) expect(Math.min(frame.above, frame.below), `${size.id} at ${rounds} rounds: ${frame.year}'s plain rounds`).toBeGreaterThanOrEqual(1);
+          // So every year's first and last rounds are plain, in its own yarn or its pattern's own plain rows.
+          for (const year of new Set(piece.rows.map((row) => row.year))) {
+            const own = piece.rows.filter((row) => row.year === year);
+            for (const row of [own[0], own[own.length - 1]]) {
+              expect("plain" in row || new Set(lettersOf(year, row.chart)[row.row - 1]).size === 1, `${size.id} at ${rounds} rounds: ${year} begins and ends plain`).toBe(true);
+            }
           }
         }
       }
@@ -145,9 +146,9 @@ describe("a pattern kept whole while it can be", () => {
     const laid = laidOut(Array.from({ length: 11 }, (_, i) => 2016 + i), { yoke: -1, body, sleeve }, reachAt(g))!;
     expect(cuts(laid.yoke)).toEqual([]);
     expect(cuts(laid.body)).toEqual(["2016 Two strips (19)", "2017 Two bands (14)", "2018 Dancers and plusses (21)", "2019 Sheep with their one-colour rounds (16)", "2020 First stars with their peeries (17)"]);
-    expect(cuts(laid.sleeve)).toEqual(["2021 Centre with one-colour rounds (21)", "2022 Anchors (13)", "2023 Flowers, cropped to 15 (15)", "2024 Rams (15)", "2025 With the dotted strip (16)", "2026 Cropped to 22 (22)"]);
-    // Every band of the body begins and ends with a plain round of its own.
-    for (const frame of laid.body.frames) expect(Math.min(frame.above, frame.below), String(frame.year)).toBeGreaterThanOrEqual(1);
+    expect(cuts(laid.sleeve)).toEqual(["2021 Centre with one-colour rounds (21)", "2022 Anchors (13)", "2023 Flowers, cropped to 15 (15)", "2024 Rams (15)", "2025 With the dotted strip (16)", "2026 Cropped to 20 (20)"]);
+    // Every band of the body and of the sleeves begins and ends with a plain round of its own.
+    for (const frame of [...laid.body.frames, ...laid.sleeve.frames]) expect(Math.min(frame.above, frame.below), String(frame.year)).toBeGreaterThanOrEqual(1);
   });
 
   it("2018's dancers between two rows of plusses, which have no plain row at either end, are given one", () => {
@@ -159,9 +160,10 @@ describe("a pattern kept whole while it can be", () => {
     expect(own.map((row) => ("plain" in row ? "plain" : `${row.chart}${row.row}`))).toEqual(["plain", ...Array.from({ length: 17 }, (_, i) => `B${17 - i}`), "plain"]);
   });
 
-  it("two bands of 2017 where three will not go: XS's body and S's, 2018's dancers and plusses whole beside them", () => {
-    for (const id of ["xs", "s"]) {
-      expect(chosen(measured.find((size) => size.id === id)!.finished).body.slice(0, 2)).toEqual(["2017 Two bands (14)", "2018 Dancers and plusses (21)"]);
-    }
+  it("two bands of 2017 where three will not go: XS's body and S's; and XS's and L's with 2018's dancers between two rows of plusses, so no neighbour gives up its trimmings", () => {
+    const body = (id: string) => chosen(measured.find((size) => size.id === id)!.finished).body;
+    expect(body("xs").slice(0, 2)).toEqual(["2017 Two bands (14)", "2018 Dancers between two plus rows (17)"]);
+    expect(body("s").slice(0, 2)).toEqual(["2017 Two bands (14)", "2018 Dancers and plusses (21)"]);
+    expect(body("l").slice(0, 4)).toEqual(["2017 Three bands (21)", "2018 Dancers between two plus rows (17)", "2019 Sheep and boat, a round between (24)", "2020 As the hat (38)"]);
   });
 });

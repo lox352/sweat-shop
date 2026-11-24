@@ -266,6 +266,12 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     2014's peeries and stars, its two stars where a cut parts them, 2019's
     boat and sheep, 2023's peeries and flowers. Each run of rows that go
     together is then laid out as a quantum of its own.
+  - Every quantum begins and ends with a plain round of its own, one where
+    it can be and not more: a round between two bands that is its
+    neighbour's does not count, so 2019's boat has a round of its own sky
+    under 2018's last plain row, and 2023's peeries one of theirs beside
+    2022's and 2024's. More than one comes only of rounds left over once
+    the fullest cuts that fit are in.
   - Every quantum is framed alike: as many plain rounds above it as below -
     its own plain edge rows, the round between it and a neighbour where
     that is its own, and its padding - each in the background beside it. In
@@ -290,7 +296,8 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     in that order until it fits: on the yoke 2014's one star between its
     peeries for its two, 2016's seed borders, then the sheep's sky and
     field, two rows to one; on the body 2017's three bands for four, 2018's
-    third band, 2020's outer peeries, then 2017's two bands for three. A step a later,
+    third band, its dancers between two rows of plusses for its dancers and
+    plusses, 2020's outer peeries, then 2017's two bands for three. A step a later,
     bigger one has made room for again is taken back. Below the cuts chosen
     for the published sizes a year's ladder goes on through every other cut
     it has, for a piece with fewer rounds: a knitter's bigger stitches, or
@@ -299,8 +306,7 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     it whole. 2017's zigzags go a band at a time, never a row off each
     side: where three will not go there are two, which turn about each
     other still (XS's and S's bodies). 2018's dancers and plusses give way
-    to its dancers between two rows of plusses, or alone, and its bands
-    keep a plain round of their own at each end whatever their cut.
+    to its dancers between two rows of plusses, or alone.
     Only 2023's flowers have nothing shorter than themselves, and are
     cropped evenly about their centre, after every step that keeps the
     patterns whole.

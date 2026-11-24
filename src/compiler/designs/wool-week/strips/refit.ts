@@ -28,7 +28,8 @@ import { background } from "./quanta";
  *    below, patterned quanta first, up to two pairs each, strongest
  *    background first; past that to any. An odd round over is left out: the
  *    piece is a round shorter.
- * 7. Every quantum is framed alike: as many plain rounds above it as below -
+ * 7. Every quantum is framed, and alike: a plain round of its own above it
+ *    and below it at the least, and as many above as below -
  *    its own plain edge rows, the round between it and its neighbour where
  *    that is its own, and its padding. Where one side has more, rounds go on
  *    the other. So 2014's two stars each have a round of their own
@@ -76,14 +77,13 @@ const st = (label: string, parts: Part[]): State => ({ label, parts });
  * - **A piece is balanced.** Otherwise a year gives up a trimming before its
  *   neighbour gives up two: the sheep's sky two rows at a time, the sleeves'
  *   years turn about.
- * - **A band begins and ends plain.** 2018's bands keep a plain round of
- *   their own at each end (EDGED): its plain edge rows are not a step to
- *   take, and a cut of it that has none - its dancers between two rows of
- *   plusses - is given one above and one below.
+ * - **A band begins and ends plain.** Every quantum has a plain round of its
+ *   own at each end, one if it can be and not more (see layout): so 2018's
+ *   plain edge rows are no step to take, and its dancers between two rows of
+ *   plusses, two rounds shorter than its dancers and plusses, are taken
+ *   before a neighbour gives up its trimmings and has rounds to spare.
  */
 const CUT = 30;
-/** The years whose bands keep a plain round of their own at each end. */
-const EDGED = new Set([2018]);
 type Rung = [rank: number, state: State];
 const ladders: Record<number, Rung[]> = {
   2014: [
@@ -107,6 +107,7 @@ const ladders: Record<number, Rung[]> = {
   2018: [
     [0, st("Dancers, plusses, dancers", [["B", 4, 34]])],
     [6, st("Dancers and plusses", [["B", 4, 24]])],
+    [10, st("Dancers between two plus rows", [["B", 1, 17]])],
   ],
   2019: [[0, st("Sheep and boat, a round between", [["C", 3, 14], ["E", 1, 12]])]],
   2020: [
@@ -258,9 +259,10 @@ const layout = (strips: Placed[], total: number, ends: Ends, mode: Mode = STRICT
     const below = framedBy(gaps, spots, k + 1, k, share) + leading([...block(sp)].reverse());
     return { top: Math.max(0, below - above), bottom: Math.max(0, above - below), framed: Math.max(above, below) };
   });
-  // A band that keeps a plain round of its own at each end: one above and one below where its cut has none.
-  spots.forEach((sp, k) => {
-    if (EDGED.has(strips[sp.i].year) && framing[k].framed === 0) framing[k] = { top: 1, bottom: 1, framed: 1 };
+  // Every quantum begins and ends with a plain round of its own: one above and one below where it has none - its cut's edge rows are
+  // patterned, and the rounds beside it are its neighbours'.
+  spots.forEach((_, k) => {
+    if (framing[k].framed === 0) framing[k] = { top: 1, bottom: 1, framed: 1 };
   });
   // The quanta either side of a core framed alike: the less framed given rounds above and below to match the other.
   if (mode.mirror) {

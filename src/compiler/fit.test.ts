@@ -395,7 +395,7 @@ describe("what the planner answers is what a link names", () => {
       await named("hamefarin", "m", { knitted: whole, round: cutAfter("hamefarin", whole, 1)! }),
       await named(once, "l", { option: "every" }),
       await named(once, "l", { option: "fewer" }),
-    ]).toEqual(["38a1e1893ce0", "c85b2bd5451b", "ac1ea7bf16fd", "f3902201fcdf"]);
+    ]).toEqual(["38a1e1893ce0", "c85b2bd5451b", "ac1ea7bf16fd", "f3a0f35c2180"]);
   });
 
   it("for the designs planned only from the cast-on too", async () => {
