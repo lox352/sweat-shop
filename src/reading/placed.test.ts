@@ -54,7 +54,9 @@ describe("a colourway that steps down the sweater, placed on one laid out for on
       expect([...end(body[body.length - 1]), ...end(sleeve[sleeve.length - 1])]).toContain(yarnOf(on, trim));
       // Every shaded variant of a slot goes with it.
       expect(yarnOf(on, "16E/g0")).toBe(yarnOf(on, "16E"));
-      expect(woolsAdded(colourway, on).length).toBeGreaterThan(0);
+      // Every year placed takes the yarns for where it sits, which the pattern may not have listed. With fewer years, as they are now laid out, those are all yarns it lists already.
+      if (option === "every") expect(woolsAdded(colourway, on).length).toBeGreaterThan(0);
+      else expect(woolsAdded(colourway, on)).toEqual([]);
       expect(woolsAdded(colourway, colourway)).toEqual([]);
     });
   }
