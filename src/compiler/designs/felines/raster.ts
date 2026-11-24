@@ -7,8 +7,12 @@ import model from "./model.json";
  * Each feline is a vector model, traced vertex by vertex on a photograph of
  * the tunic and fitted to its edges (see model.json, in the photograph's
  * pixels): its body one polygon with its face a hole, its ears' whites
- * triangles, its eyes hexagon rings, its mouth and nose hexagons, its teeth a
- * zigzag, and its whiskers and claws lines. Drawn at a size:
+ * polygons, its eyes rings, its mouth and nose hexagons, its teeth a
+ * zigzag, and its whiskers and claws lines. Each is measured off a closer
+ * photograph of its own (feline-left.svg and feline-right.svg, each in its
+ * photograph's pixels) and put into one frame at one scale; the right-hand
+ * one's left foot, turned away at the cloth's edge in its photograph, is
+ * drawn out again to its other foot's width. Drawn at a size:
  *
  * - The shapes are sampled: each stitch takes the colour covering most of it,
  *   and the cream where it covers a third, so a thin ring stays unbroken.
@@ -89,12 +93,16 @@ const cellsAlong = ([x1, y1]: Point, [x2, y2]: Point): Point[] => {
  */
 const rowwise = (line: Point[]): Point[] => {
   const out: Point[] = [];
+  // The row an arm ends in is the row the next begins in: it has the one stitch, the first arm's.
+  const steepRows = new Set<number>();
   for (let i = 0; i + 1 < line.length; i++) {
     const [x1, y1] = line[i];
     const [x2, y2] = line[i + 1];
     if (Math.abs(y2 - y1) >= 0.6 * Math.abs(x2 - x1) && Math.abs(y2 - y1) > 0.3) {
       const [ra, rb] = [Math.min(y1, y2), Math.max(y1, y2)];
       for (let r = Math.floor(ra); r <= Math.floor(rb); r++) {
+        if (steepRows.has(r)) continue;
+        steepRows.add(r);
         const yc = Math.min(Math.max(r + 0.5, ra), rb);
         out.push([Math.floor(x1 + ((yc - y1) / (y2 - y1)) * (x2 - x1)), r]);
       }

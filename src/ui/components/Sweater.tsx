@@ -12,7 +12,7 @@ import { currentEdition } from "../../library/editions";
 import { decodeEdition } from "../../library/editions/format";
 import type { Fitted } from "../../library/fit";
 import { sameTension, yarnPerStitch } from "../../reading/tension";
-import { ballsOf, colourwayLabel, lit, paletteOf, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
+import { ballsOf, colourwayLabel, paletteOf, trimmed, woolsAdded, type Overrides, type Palette } from "../../reading/palette";
 import { totals } from "../../reading/progress";
 import { metresFor } from "../../reading/yardage";
 import { chartPath, keepKnitting, startProject } from "../../projects/projects";
@@ -128,15 +128,15 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
   /** What is up from the foot over the pages, if anything: the trim, or the colourway's wools to change. See Sheet. */
   const [sheet, setSheet] = useState<"trim" | "customise" | "tension">();
   const closeSheet = useCallback(() => setSheet(undefined), []);
-  /** The yarns lit on the jumper while one of its wools is being changed: see Customise. */
-  const [lighting, setLighting] = useState<SlotId[]>();
+  /** The wools the jumper is drawn in while one of them is being changed - that one lit, in the shade being tried: see Customise. */
+  const [showing, setShowing] = useState<Palette>();
 
   const published = useMemo(() => sweater.colourways.find((c) => c.id === colourwayId) ?? sweater.colourways[0], [sweater, colourwayId]);
   // A colourway that steps down the garment follows where a sweater recalculated puts its bands.
   const { colourway: laid } = useColourway(published, fitted?.placement);
   const colourway = useMemo(() => trimmed(laid, trim), [laid, trim]);
   const palette = useMemo(() => paletteOf(colourway, own), [colourway, own]);
-  const onStage = useMemo(() => (lighting ? lit(palette, lighting) : palette), [palette, lighting]);
+  const onStage = showing ?? palette;
   // What that adds to the wools the design lists.
   const added = useMemo(() => woolsAdded(trimmed(published, trim), colourway), [published, trim, colourway]);
   // A sweater recalculated is not the one a printed list of wool was for, and its stitches are the knitter's.
@@ -435,7 +435,7 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
               onChange={choose}
               onReset={resetOwn}
               onDone={closeSheet}
-              onLight={setLighting}
+              onShow={setShowing}
             />
           ) : sheet === "tension" ? (
             <TensionSheet size={size} tension={tension} fitted={fitted} fitting={!!sweater.fitting} added={addedNote} onTake={take} onPatterns={usePatterns} onClose={closeSheet} />

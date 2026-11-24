@@ -15,7 +15,7 @@ import type { SweaterStitches } from "../../pattern/knitted";
 import { sameTension, yarnPerStitch } from "../../reading/tension";
 import { makeOnesAtMarkers } from "../../reading/marker-routes";
 import type { ChartView } from "../../reading/views";
-import { ballsOf, colourwayLabel, lit, paletteOf, trimmed, woolsAdded, type Overrides } from "../../reading/palette";
+import { ballsOf, colourwayLabel, paletteOf, trimmed, woolsAdded, type Overrides, type Palette } from "../../reading/palette";
 import { totals, positionOf, currentRun, whereYouAre, roundNames, roundWhats } from "../../reading/progress";
 import { keyEntryAt } from "../../reading/stitch-key";
 import { faceAfter, holdsIn, needleChangesIn, turnsIn } from "../chart/chart-marks";
@@ -675,9 +675,9 @@ const ProjectView: React.FC<{
   }, []);
   // The design's colourways, to start again from: a page a group, as on the design's page.
   const choice = useColourwayChoice({ colourways: sweater.colourways, colourway, overrides: project.shades ?? noShades, onStartFrom: setColourway });
-  /** The yarns lit on the jumper while one of its wools is being changed. */
-  const [lighting, setLighting] = useState<SlotId[]>();
-  const onStage = useMemo(() => (lighting ? lit(palette, lighting) : palette), [palette, lighting]);
+  /** The wools the jumper is drawn in while one of them is being changed - that one lit, in the shade being tried: see Customise. */
+  const [showing, setShowing] = useState<Palette>();
+  const onStage = showing ?? palette;
   const [renaming, setRenaming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   // Only the wool this size knits: a smaller size leaves the last bands' colours out.
@@ -1046,7 +1046,7 @@ const ProjectView: React.FC<{
               onReset={resetShades}
               onDone={closeSheet}
               first={customiseOn}
-              onLight={setLighting}
+              onShow={setShowing}
             />
           ) : sheet === "trim" ? (
             <TrimSheet trim={sweater.trim} colourway={colourway} given={published} chosen={project.trim} onTrim={setTrim} onClose={closeSheet} />

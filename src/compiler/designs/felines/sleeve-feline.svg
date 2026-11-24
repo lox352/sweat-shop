@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1164 484 1161 1119" width="1161" height="1119">
+  <title>Sleeve feline, after a Nasca tunic</title>
+  <desc>The small feline embroidered on the tunic's sleeve beside its band, traced from a photograph, the sleeve lying level and its end to the left. Coordinates are the photograph's pixels (2576 x 1932). The body is one polygon, the face a hole in it; ears, eyes, nose and mouth are polygons; the cream stripes of the lobes beside its head and of its feet, and its hands' claws, are stroked lines, their stroke-width the yarn's width in the same pixels.</desc>
+  <g id="feline">
+    <path id="body" fill="#7b1f27" fill-rule="evenodd" d="M1848.7 496 L1832.2 500.6 L1803.4 545.2 L1772.2 547 L1757.8 543.1 L1735.5 518.5 L1707.1 497.6 L1658.3 496.3 L1643.7 516.6 L1632.4 543.8 L1523.2 716.8 L1510.6 753.7 L1534.8 780 L1586.5 781.2 L1628.9 684.8 L1662 693.3 L1669.6 754.8 L1724.6 814.4 L1748.2 857.9 L1724.9 892.9 L1677.5 891.5 L1671.2 813.9 L1566.3 818.7 L1568.9 970.8 L1752.7 967.4 L1739.1 1011 L1652.4 1019.3 L1605.2 1104.9 L1475.3 1105.6 L1442.2 1088.9 L1387.6 1089.3 L1366.5 1108.3 L1440.4 1240.4 L1613.8 1238.2 L1708.9 1074.1 L1731.5 1049 L1782.5 1056 L1784.9 1306.5 L1774.9 1533.3 L1761.8 1545.3 L1725.7 1549 L1515.9 1303.4 L1279.4 1297.9 L1262.8 1344.6 L1243.1 1369.1 L1214 1433.9 L1176.4 1470.5 L1270.9 1573.1 L1279 1590.8 L1447.9 1589.3 L1538.6 1499.6 L1528.8 1467.9 L1476.4 1405 L1335.3 1407 L1339.2 1513 L1424.4 1512.6 L1430.7 1458.1 L1469.2 1460.1 L1494.2 1499.8 L1445.7 1550.3 L1284.6 1552 L1231.4 1473.3 L1310.6 1360.5 L1498.3 1359 L1616.2 1523.9 L1653 1544.8 L1665.7 1580.5 L1885.8 1587.8 L1957.7 1512.5 L1948.7 1065.9 L1959.6 1046.9 L1987.1 1057.4 L2045 1168.6 L2092.2 1242.2 L2250.2 1244.4 L2312.9 1144.2 L2292.6 1110.8 L2237.2 1084.8 L2214.2 1084.7 L2179.1 1100.4 L2093.4 1099.3 L2066.3 1044.1 L2040.7 1012.3 L1955.5 1008.7 L1952.1 961.6 L2130.8 964.2 L2120.1 805 L1959 808.1 L1959.1 888.7 L1908 883.5 L1892.1 849.5 L1909 811 L1941.4 758 L1939.2 682.9 L1964.4 677.8 L2021.1 768.7 L2079.1 772.7 L2089.1 741.5 L1901.9 496.6Z M1715.5 594.6 L1687.6 632.3 L1710.4 766.7 L1763.7 775.4 L1891.2 771.5 L1893 597.4Z"/>
+    <polygon id="face" fill="#735433" points="1715.5,594.6 1687.6,632.3 1710.4,766.7 1763.7,775.4 1891.2,771.5 1893,597.4"/>
+    <g id="ears" fill="#dab898">
+      <polygon id="ear-left" points="1709.9,546.9 1667.7,576.8 1695.5,580 1739.6,571"/>
+      <polygon id="ear-right" points="1835.5,552.4 1828.4,574.2 1888,579.8 1855.4,542.7"/>
+    </g>
+    <g id="eyes" fill="#dab898">
+      <polygon id="eye-left" points="1753.2,624.9 1737,637 1742.4,668.8 1779.6,661.2 1769.1,627"/>
+      <polygon id="eye-right" points="1845.3,624.5 1832.8,634.2 1835.8,662.9 1856.2,663.8 1868.5,657.4 1858.2,624.5"/>
+    </g>
+    <polygon id="pupil-left" fill="#735433" points="1740,643 1772,643 1772,647 1740,647"/>
+    <polygon id="pupil-right" fill="#7b1f27" points="1842,636 1859,636 1859,643 1842,643"/>
+    <polygon id="nose" fill="#7b1f27" points="1797,620 1813,622 1817,658 1811,663 1792,657"/>
+    <path id="mouth" fill="#dab898" fill-rule="evenodd" d="M1758 687 L1852 685 L1855 743 L1770 745 L1741 737 L1741 703Z M1766 694 L1791 703 L1790 717 L1769 717Z M1807 698 L1840 697 L1839 711 L1827 720 L1811 716Z"/>
+    <g id="stripes" fill="none" stroke="#dab898" stroke-linecap="butt" stroke-linejoin="miter">
+      <polyline id="stripe-lobe-left" points="1598.4,675.9 1542.7,763.7" stroke-width="26.7"/>
+      <polyline id="stripe-lobe-right" points="1990.9,668.2 2049.4,745.4" stroke-width="21.8"/>
+      <polyline id="claw-hand-left-1" points="1585.9,819 1584.8,848" stroke-width="11.3"/>
+      <polyline id="claw-hand-left-2" points="1616.3,819 1613.8,846" stroke-width="13.2"/>
+      <polyline id="claw-hand-left-3" points="1651,816 1646.5,842" stroke-width="12.6"/>
+      <polyline id="claw-hand-right-1" points="1998.7,809 1997.5,843" stroke-width="29.2"/>
+      <polyline id="claw-hand-right-2" points="2041.2,806 2045.8,837" stroke-width="21.5"/>
+      <polyline id="claw-hand-right-3" points="2087.3,806 2088.4,838" stroke-width="22.4"/>
+      <polyline id="stripe-foot-left-1" points="1408.6,1112.1 1478.6,1148.7 1574.6,1144.4" stroke-width="22.5"/>
+      <polyline id="stripe-foot-left-2" points="1458.5,1197.4 1582.3,1194.3 1635.6,1133.9" stroke-width="19.8"/>
+      <polyline id="stripe-foot-right-1" points="2077.4,1141.4 2204.4,1143.7 2243.3,1103.4" stroke-width="22"/>
+      <polyline id="stripe-foot-right-2" points="2106.5,1195.6 2230.2,1198 2279.6,1135.4" stroke-width="24.7"/>
+    </g>
+  </g>
+</svg>

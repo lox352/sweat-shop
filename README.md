@@ -125,8 +125,8 @@ without them.
   back, traced vertex by vertex from a photograph and drawn as stitches as
   large as each size has room for, midway between a deep neck band of the hem
   creatures' squared spiral tails and the tunic's hem band of small gold
-  creatures at the waist, with its sleeve ends' small gold felines at the
-  cuffs.
+  creatures at the waist; the same band round each cuff, and above it the
+  small red felines of the tunic's sleeves.
   One is a raglan, the other a round yoke; both in eight sizes from 86 to
   156cm finished chest.
 

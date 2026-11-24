@@ -460,18 +460,18 @@ Metropolitan Museum of Art: `src/data/sweaters/feline-raglan.ts` and
 `feline-yoke.ts`, each a call to `felineSweater` with a construction; all
 they share is in `src/data/sweaters/felines/`.
 
-- **The felines are a vector model** (`model.json`), traced from a photograph
-  of the tunic, in its pixels. Each corner was placed by eye on the photograph
-  enlarged five to twelve times with a pixel grid, then moved onto the edge
-  between red and ochre the photograph shows: each edge read across every
-  three quarters of a pixel, a straight line fitted through where the colour
-  changes, each corner where its two edges' lines meet. Each feline's body is
-  one polygon, its face a hole and its tail's spiral part of the same
-  outline; its ears' whites triangles, its eyes hexagon rings, its mouth and
-  nose hexagons, its teeth a zigzag; its whiskers straight lines run on into
-  the head, and its claws lines down the middle of each stripe. The right-hand
-  feline's right hand and whiskers are lost under glare in the photograph, and
-  are its left ones mirrored; its right foot is placed by eye.
+- **The felines are a vector model** (`model.json`), each traced from a close
+  photograph of its own (`feline-left.svg` and `feline-right.svg`, each in its
+  photograph's pixels) and put into one frame at one scale. The red yarn is
+  separated from the ground by colour, a straight line fitted to each edge of
+  its outline, and each corner put where two edges' lines meet; every part
+  was then checked against the photograph enlarged. Each feline's body is one
+  polygon, its face a hole and its tail's spiral part of the same outline;
+  its ears' whites polygons, its eyes rings, its mouth and nose hexagons, its
+  teeth a zigzag; its whiskers lines run on into the head, and its claws
+  lines down the middle of each stripe. The right-hand feline's left foot is
+  turned away at the cloth's edge in its photograph, and is drawn out again
+  to its other foot's width.
 - **Drawn as stitches at any size** (`raster.ts`). A feline drawn `w`
   stitches wide is as many rows tall as its picture is at the gauge - a
   stitch is wider than a row is tall. Each stitch takes the colour covering
@@ -484,11 +484,27 @@ they share is in `src/data/sweaters/felines/`.
   claw, so they nest a stitch of cream and one of red. Every claw stitch has
   red round it, as on the cloth.
 - **The small motifs** (`motifs.ts`), drawn stitch by stitch. The hem band's
-  creature, 40 stitches by 35 rows, from the band's seven clear repeats in the
-  photograph lined up and averaged; it repeats every 111.6 of the
-  photograph's pixels, which is what sets the felines' scale on the tunic.
-  The sleeve ends' feline, 30 by 32: the big one in miniature, gold on red,
-  each part placed where the model puts it at that size.
+  creature, 36 stitches by 23 rows, from a trace measured off a close
+  photograph of the band (`hem-creature.svg`): its front feet with three
+  cream claws each, its hind feet with three tipped toes, its tail curled in
+  under its rump. On the tunic its face and the insides of its ears are a
+  grey-brown; here it is gold all through, its eyes and mouth cream, so that
+  no round of the band wants a fourth yarn. The band is 35 rows: the
+  creatures on its red, and under them the tunic's two gold lines - four
+  rounds of gold, two of red, two of gold - then a round of red before the
+  rib. The band at the tunic's sleeve ends is the same band turned half
+  round, and its creature the same creature, traced there too
+  (`cuff-creature.svg`) and found the hem's part for part: the one drawing
+  is knitted in both, turned for the cuffs. The cuff band is 37 rows: the
+  creature on the red, then the lines as they are at the sleeve's end -
+  four rounds of gold, three of red, four of gold - and the red rib for the
+  fringe. The sleeves' feline, 36 stitches by 44 rows, is the small red
+  feline embroidered on the tunic's sleeve beside its band, from a trace of
+  the same photograph (`sleeve-feline.svg`): the large felines in little,
+  with a striped lobe either side of its head where they have whiskers,
+  three claws to a hand and two stripes to a foot. It is drawn lying
+  across the sleeve, as it does on the tunic's, where the sleeve lies level
+  and it stands.
 - **Laid out** (`knit.ts`), at 32 stitches and 38 rounds to 10cm on the strip
   samplers' measurements, which leave the felines room. The left-hand feline
   goes on the front and the right-hand one on the back, centred, each as wide
@@ -497,18 +513,22 @@ they share is in `src/data/sweaters/felines/`.
   row either way, and eight at least, to stand clear of them - which takes
   it up into the yoke, as far as the yoke has room for it there. The hem band goes round the waist where that still
   leaves the felines at least 72% of the width they would have without it -
-  in every size, as it turns out - its creatures 42 stitches or more apart,
-  one under the middle of the front. A picture is knitted top first from the
+  in every size, as it turns out - its creatures nose to tail as on the tunic,
+  two stitches of red or more between each and the next, one under the middle
+  of the front. A picture is knitted top first from the
   neck down, and each round runs left to right as the jumper is seen from the
   outside, from the middle of the back: so the back's left half ends each
   round and its right half begins it. The divide is a round of the picture
   too: the engine knits a stretch of a dividing round each stitch in its own
   yarn where the pattern gives them.
 - **The neck's band**, under the neck's rib and short rows, as deep as the
-  hem's band, 35 rounds: the hem band's three rounds of red and four of gold
-  nearest the neck, then squared spirals in gold on red - the hem creature's
+  hem's band, 35 rounds: three rounds of red and four of gold nearest the
+  neck, then squared spirals in gold on red - the hem creature's
   tail, alone (`squareSpiral` draws one at any size) - three stitches apart,
-  alternate ones mirrored, so that no increase ever comes in one.
+  alternate ones mirrored, so that no increase ever comes in one. The back
+  neck's German short rows, between the rib and the band, are knitted in the
+  band's red: they run on into its first rounds, and the back of the neck
+  rises in that red, not in a wedge of the ground.
   - *On the raglan*, seen from above, the band is a square frame round the
     neck: its sides the four panels, its corners the lines. It holds two rows
     of spirals, each 11 stitches by 11 rows and turned a quarter clockwise,
@@ -580,20 +600,29 @@ they share is in `src/data/sweaters/felines/`.
   increase where a feline is: increases kept clear of the felines would keep
   the fabric over each at its width while the yoke grew round it, a cone
   with two flat panels in it.
-- **Sleeves.** Plain, decreasing at the underarm to the cuff band: whole
-  repeats of the small feline with a few stitches of red between, at about a
-  quarter more than the cuff, between two rounds of gold and two of red each
-  side; then a round of red gathers it in to the cuff's rib.
-- **The sleeves' creatures.** Above each cuff band two of the hem band's
-  creatures, on their own - no band behind them - in red straight on the
-  ground, their eyes and toes cream as on the hem: 36 stitches by 22 rounds,
-  half a round apart on the front and the back of the arm, so with the arms
-  down each sleeve shows one from the front and one from behind. They need 80
-  stitches at least, 4 between them at their nearest. A decrease round can't
-  carry a picture, so the taper pauses through their rounds: they sit six
-  rounds above the band where the sleeve is wide enough there (M and up), and
-  in XS, whose band is 74, as much higher as its last three decreases need,
-  one every fourth round below them.
+- **Sleeves.** Decreasing at the underarm to the cuff band: two of the
+  band's creatures, as it happens, with from two to fourteen stitches of red
+  between them, at about a quarter more than the cuff; then a round of red
+  gathers it in to the cuff's rib. The right sleeve's band is as on the
+  tunic's sleeve - the creatures run down the front of the arm, towards the
+  underarm, their tails' curls towards the sleeve - and the left sleeve's is
+  its mirror image, so they go round the two cuffs opposite ways.
+- **The sleeves' felines.** Three plain rounds above each cuff band, two of
+  the small felines: one on the front of the arm and one on the back, lying
+  across it, and one following the other round it as the band's creatures
+  do. The one on the front is as on the tunic's sleeve, its head to the top
+  of the arm and its tail to the underarm; the one on the back comes after
+  it, its tail to the top of the arm and its head to the underarm. Each is
+  in the middle of its half of the round where they end. The left sleeve's
+  are the right sleeve's in a mirror, so they go round the two sleeves
+  opposite ways, as the bands' creatures do, and each sleeve has a chart of
+  its own for them. With the arms held out the one on the front stands, as
+  on the tunic, and the one on the back is on its head. The sleeve goes on
+  tapering through their 44 rounds: a decrease round there is worked in the
+  felines' own yarns, a chart row with a k2tog and an ssk beside the
+  underarm, between one feline's tail and the other's head. Only XS, whose
+  band is 76 - two felines and four stitches - has a decrease that would
+  leave them no room there, and works it in the plain rounds after them.
 - **Ribs** in the red, k1 p1: nine rounds at the neck, fourteen at the hem and
   cuffs.
 - **Colours.** A the ground, B red, C cream, D gold, in three colourways of
