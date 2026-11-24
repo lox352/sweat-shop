@@ -1,6 +1,7 @@
 /**
- * The tunic's two small motifs, drawn stitch by stitch: the creature that
- * runs round its hem band, and the feline of its sleeve ends.
+ * The tunic's small motifs, drawn stitch by stitch: the creature that runs
+ * round its bands, at the hem and at the sleeves' ends, and the small feline
+ * of its sleeves.
  *
  * Codes: "o" the body's ground, "." red, "c" cream, "G" gold. Rows top first
  * as worn, each left to right as seen from the outside.
@@ -51,7 +52,7 @@ export const hemCreature: string[] = [
   ".......cGGGGGGGGGG....c.c.c...GGGGG.", // 23
 ];
 
-/** One row of the hem band: its ground - "G" gold or "." red - and, if one is in it, which of the creature's rows. */
+/** One row of the hem's band or a cuff's: its ground - "G" gold or "." red - and, if one is in it, which of the creature's rows. */
 export interface HemRow {
   ground: string;
   creature?: number;
@@ -80,47 +81,100 @@ export const hemBand: HemRow[] = [
 export const hemGap = 2;
 
 /**
- * The sleeve ends' feline, 30 stitches by 32 rows: the large feline in
- * miniature, gold on red as on the tunic's sleeve bands, each part placed
- * where the large one's model puts it at this size - arms raised with cream
- * claws, ears with their cream whites, a face with eyes, a nose and a mouth,
- * knees, feet with cream claws, and the tail running from the body's foot up
- * into a squared spiral.
+ * The sleeves' feline, 36 stitches by 44 rows: the small red feline
+ * embroidered on the tunic's sleeve beside its band - the large felines in
+ * little: two ears with their whites, a face of the ground's colour with
+ * eyes, a nose and a mouth of teeth, a lobe with a cream stripe hanging
+ * either side of its head where the large ones have whiskers, arms out to
+ * raised hands of three claws, legs out to feet of two stripes each, and
+ * the tail from the body's foot into a six-sided spiral.
+ *
+ * Drawn stitch by stitch from a trace measured off a close photograph of
+ * the sleeve (sleeve-feline.svg, in that photograph's pixels), a stitch to
+ * 30.4 of them and a row to 25.8, which are as a knitted stitch and row
+ * are to each other. On the tunic the sleeve lies level and the feline
+ * stands on it, its head to the fold along the top of the arm: so on a
+ * sleeve knitted from the shoulder down it lies across, and this is how it
+ * lies on the front of the right sleeve - its head to the left, at the top
+ * of the arm, its feet to the underarm, its tail's spiral to the cuff. Its
+ * hands are a row or two wider than on the cloth, so that each has its
+ * three claws with a row of red between them.
  */
-export const cuffFeline: string[] = [
-  // 012345678901234567890123456789
-  "........GG........GG..........", // ear tips
-  ".......GGGG......GGGG.........",
-  "......GGcGGG....GGGcGG........", // ear whites
-  ".cGc..GGGGGGGGGGGGGGGG...cGc..", // claws; the head's top
-  ".GGG..GGG..........GGG...GGG..", // the face
-  ".GGG..GGG..c.GG.c..GGG...GGG..", // eyes, nose
-  ".GGG..GGG..........GGG...GGG..",
-  ".GGG..GGGG.cccccc.GGGG...GGG..", // mouth
-  ".GGG..GGGGG......GGGGG...GGG..",
-  ".GGG..GGGGGGGGGGGGGGGG...GGG..",
-  ".GGG..GGGGGGGGGGGGGGGG...GGG..",
-  ".GGGGGGGGGGGGGGGGGGGGGGGGGGG..", // shoulders
-  ".GGGGGGGGGGGGGGGGGGGGGGGGGGG..",
-  ".......GGGGGGGGGGGGGG.........",
-  "...GGGGGGGGGGGGGGGGGGGGGG.....", // knees
-  "...GGGGGGGGGGGGGGGGGGGGGG.....",
-  "...GGGGG.GGGGGGGGGGGG.GGGG....",
-  ".cGGGGGG.GGGGGGGGGGGG.GGGGGGc.", // feet, claws ahead
-  "..GGGGGG.GGGGGGGGGGGG.GGGGGG..",
-  ".cGGGGGG.GGGGGGGGGGGG.GGGGGGc.",
-  "..GGGGGG..GGGGGGGGGGG.GGGGGG..",
-  "..........GGGGGGGGGGG.........",
-  "GGGGGGGG...GGGGGGGGGGG........", // the spiral's top runs into the tail
-  "G......GG..GGGGGGGGGGG........",
-  "G.GGGGG.GG.GGGGGGGGGGG........",
-  "G.G...G.GG..GGGGGGGGGG........",
-  "G.G.G.G..G..GGGGGGGGGG........",
-  "G.G.G.G..GG..GGGGGGGGG........",
-  "G.G.G.G...G..GGGGGGGG.........",
-  "G.GGG.G...GG..GGGGGGG.........",
-  "G.....G....G..GGGGGG..........",
-  "GGGGGGG....GGGGGGGGG..........", // tail and body meet at the foot
+export const sleeveFeline: string[] = [
+  // 012345678901234567890123456789012345
+  "ooooooooooooooooooooo..ooooooooooooo", // 1  a foot's outer end
+  "oooooooooooooooooooo.c..oooooooooooo",
+  "ooooooooooooooooooo...c..ooooooooooo",
+  "ooooooooooooooooooo.c..c.ooooooooooo",
+  "ooooooooooooooooooo..c.c.ooooooooooo", // 5
+  "oooooooooooooooooooo.c.c.ooooooooooo",
+  "oooooooooooooooooooo.c.c.ooooooooooo",
+  "oooooooooo......oooo.c.c.ooooooooooo", // 8  the right hand's side
+  "oooooooo.oc.....oooo.c...ooooooooooo", // 9  its three claws, a row of red between them
+  "ooooooo..o......oo.....ooooooooooooo", // 10
+  "oooooo.c.oc.....o.....oooooooooooooo",
+  "ooooo.c.oo......o...oooooooooooooooo",
+  "oooo...oooc.....o..ooooooooooooooooo",
+  "ooo....ooo......o.oooooooooooooooooo",
+  "oo.......oooo.....................oo", // 15  the body, its six rows: here an ear and the face's side too
+  "o..oooooo.ooo......................o",
+  ".c.ocoooo...........................", // 17  an ear's white, two rows; an eye, two rows
+  ".c.ococco...........................", //     and the mouth: a tooth, and its lip
+  "o..ooooco...........................",
+  "oo.o.occo...........................", // 20  the nose
+  "oo.ooooco..........oooooooooooooo...",
+  "oo.ococco.........oooooooooooooooo..", // 22  the other eye
+  "o..ocoooo..oo...o.ooooooooooooooooo.",
+  ".c.oooooo.ooo...o...oooooooooooooo..",
+  ".c.......oc.....o....oooooooooooo...", // 25  the other ear's white; the left hand's claws
+  "o......ooo......o.....oooooooooo...o",
+  "oo.....oooc.....ooo..c..ooooooo...oo", // 27  a foot's stripes begin
+  "ooo...c.oo......oooo..c..ooooo...ooo",
+  "oooo...c.oc.....oooo...c.oooo...oooo",
+  "oooooo...ooooooooooo.c.c.ooo...ooooo", // 30  the tail, down from the body's foot
+  "ooooooo..ooooooooooo.c.c.oo...oo..oo",
+  "oooooooooooooooooooo.c.c.oo..oo...oo",
+  "oooooooooooooooooooo.c.c.oo..o..oo.o",
+  "ooooooooooooooooooo.c....oo..o..ooo.",
+  "ooooooooooooooooooo.c..oooo..o....o.", // 35  the tail's spiral
+  "ooooooooooooooooooo...ooooo..o....o.",
+  "ooooooooooooooooooooooooooo..o....o.",
+  "ooooooooooooooooooooooooooo..o....o.",
+  "ooooooooooooooooooooooooooo..oooooo.",
+  "ooooooooooooooooooooooooooo..oooooo.", // 40
+  "oooooooooooooooooooooooooooo...ooo..",
+  "ooooooooooooooooooooooooooooo......o",
+  "ooooooooooooooooooooooooooooooo...oo",
+  "oooooooooooooooooooooooooooooooo.ooo", // 44  the spiral's tip, nearest the cuff
+];
+
+/** A drawing seen in a mirror: each row read from its other end. */
+export const mirrored = (grid: string[]): string[] => grid.map((row) => [...row].reverse().join(""));
+
+/**
+ * The creature as it runs in the band at the tunic's sleeve end, which is
+ * the hem's band turned half round: to the right with the cuff below, its
+ * tail's curl towards the sleeve. Traced there too (cuff-creature.svg) and
+ * found the hem's creature part for part - a face with eyes and a mouth,
+ * two ears ahead, front feet turned forward with three claws, hind feet
+ * turned out with three tipped toes, a tail curled in under the rump - so
+ * the one drawing is knitted in both bands.
+ */
+export const cuffCreature: string[] = mirrored([...hemCreature].reverse());
+
+/**
+ * The cuff band, 37 rows, top first: two rounds of the band's red, the
+ * creature, a round of red, and towards the cuff the tunic's lines as they
+ * are at its sleeve end - four rounds of gold, three of red, four of gold.
+ * The cuff's red rib is the fringe after them.
+ */
+export const cuffBand: HemRow[] = [
+  ...plain(".", 2),
+  ...cuffCreature.map((_row, creature) => ({ ground: ".", creature })),
+  ...plain(".", 1),
+  ...plain("G", 4),
+  ...plain(".", 3),
+  ...plain("G", 4),
 ];
 
 /**
@@ -183,6 +237,3 @@ export const neckBands: Record<"raglan" | "yoke", NeckBand> = {
   raglan: { spirals: [spiral(11), spiral(11)], gap: 2, rows: [...stripes, ...ground(".", 2), ...tier(0, 11), ...ground(".", 2), ...tier(1, 11), ...ground(".", 2)] },
   yoke: { spirals: [spiral(9), spiral(13)], gap: 2, rows: [...stripes, ...ground(".", 2), ...tier(0, 9), ...ground(".", 2), ...tier(1, 13), ...ground(".", 2)] },
 };
-
-/** The cuff band: two rounds of gold and two of red each side of the felines. */
-export const cuffEdges = { gold: 2, red: 2 };

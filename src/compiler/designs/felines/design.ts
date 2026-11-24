@@ -6,8 +6,9 @@ import { type Construction, type Gauge, type Knitted, countsOf, gauge, knit, rib
  * A feline jumper: the two large red felines of a Nasca tunic at the
  * Metropolitan Museum of Art, one on the front and one on the back, each as
  * large as its piece has room for; the tunic's hem band of small gold
- * creatures round the waist where there is room; and the sleeve ends' small
- * gold felines round each cuff. Each design is a call to this with a
+ * creatures round the waist where there is room; the same band round each
+ * cuff; and above each cuff two of its sleeves' small red felines. Each
+ * design is a call to this with a
  * construction; see knit.ts for the knitting, raster.ts for how the felines
  * are drawn at a size, and motifs.ts for the small motifs.
  */
@@ -119,7 +120,7 @@ const fittingOf = (id: string, construction: Construction): Fitting => ({
         placed.band
           ? "The band of small gold creatures goes round the waist."
           : "The band of small gold creatures round the waist is left out: with it, the felines would have too little room.",
-        "The bands at the neck and the cuffs and the creatures on the sleeves are as many stitches and rounds as the pattern's, so they come out larger or smaller as your stitches do.",
+        "The bands at the neck and the cuffs and the small felines on the sleeves are as many stitches and rounds as the pattern's, so they come out larger or smaller as your stitches do.",
         ...(deeper > 0 ? [`The yoke is ${rounds(deeper)} deeper than the size's, so that its four lines can reach the chest, and the body as much shorter.`] : []),
       ],
     };
