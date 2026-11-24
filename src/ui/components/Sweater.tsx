@@ -30,6 +30,7 @@ import { useTabAddress } from "../useTabAddress";
 import TensionSheet from "./TensionSheet";
 import { Schematic } from "./Schematic";
 import { Measurements } from "./Measurements";
+import { yokePicture } from "./bodyPicture";
 import "./Sweater.css";
 
 /**
@@ -199,8 +200,9 @@ const SweaterPage: React.FC<{ sweaterId: string }> = ({ sweaterId }) => {
     navigate(chartPath(project.id, true));
   };
 
-  // The yoke's bands, for the strips that show each colourway.
-  const body = useMemo(() => ({ stitches, rounds: yoke }), [stitches, yoke]);
+  // The yoke's bands, for the strips that show each colourway: placed, where a strip would shear them.
+  const placed = yokePicture(built);
+  const body = useMemo(() => ({ stitches, rounds: yoke, front: placed }), [stitches, yoke, placed]);
   const bought = balls.reduce((total, ball) => total + ball.balls, 0);
   const changed = choice.own;
 

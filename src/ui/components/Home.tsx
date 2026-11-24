@@ -24,7 +24,7 @@ import Button from "./ui/Button";
 import Dialog from "./ui/Dialog";
 import NameDialog from "./ui/NameDialog";
 import BodyStrip from "./BodyStrip";
-import { frontPicture } from "./bodyPicture";
+import { cardPicture } from "./bodyPicture";
 import { useKnittingTime } from "../useKnittingTime";
 import { formatDate, timeLine } from "../../projects/timing/format";
 import { safariTab } from "../../projects/keeping";
@@ -82,7 +82,7 @@ const KnownProjectCard: React.FC<CardProps & { sweater: Design }> = ({ project, 
     <li className="project-card">
       <Link to={overviewPath(id)} className="project-card-body">
         <span className="project-card-picture">
-          <BodyStrip stitches={stitches} rounds={yoke} palette={palette} front={frontPicture(built)} className="design-card-body" />
+          <BodyStrip stitches={stitches} rounds={yoke} palette={palette} front={cardPicture(built)} className="design-card-body" />
           <span className="project-card-bar" aria-hidden="true">
             <span style={{ width: `${counts.percent}%` }} />
           </span>
@@ -120,11 +120,11 @@ const KnownProjectCard: React.FC<CardProps & { sweater: Design }> = ({ project, 
   );
 };
 
-/** A design's yoke, in its first colourway, across its card - or its front, where it is a picture down the front. */
+/** A design's yoke, in its first colourway, across its card - or its front, where it is a picture down the front: see cardPicture. */
 const DesignStrip: React.FC<{ sweater: Design }> = ({ sweater }) => {
   const built = useKnitting(sweater, sweater.sizes[0].id);
   const palette = useMemo(() => paletteOf(sweater.colourways[0]), [sweater]);
-  return <BodyStrip stitches={built.stitches} rounds={yokeRounds(built)} palette={palette} front={frontPicture(built)} className="design-card-body" />;
+  return <BodyStrip stitches={built.stitches} rounds={yokeRounds(built)} palette={palette} front={cardPicture(built)} className="design-card-body" />;
 };
 
 const Home: React.FC = () => {

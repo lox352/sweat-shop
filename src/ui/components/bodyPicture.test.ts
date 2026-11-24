@@ -5,7 +5,7 @@ import { buildSweater } from "../../compiler/engine/engine";
 import { isSpacer } from "../../pattern/knitted";
 import { sweaters } from "../../compiler/designs";
 import { worksInto } from "../../pattern/Stitch";
-import { bodyRounds, frontPicture, frontScale, paintedRows } from "./bodyPicture";
+import { bodyRounds, cardPicture, frontPicture, frontScale, paintedRows, stitchAcross, stitchAt, yokePicture } from "./bodyPicture";
 
 describe.each([
   ["Paul Klee, M1", buildSweater(paulKlee, "m1")],
@@ -136,20 +136,127 @@ describe.each(["feline-raglan", "feline-yoke"])("the front of %s", (id) => {
     expect(over / all).toBeGreaterThan(id === "feline-raglan" ? 0.97 : 0.99);
   });
 
-  it("leaves a raglan's panels whole, and closes a round yoke up", () => {
-    const gaps = picture.rows.slice(0, 30).map((row) => [...row.at].filter((stitch, place) => stitch >= 0 && row.at[(place + 1) % row.period] < 0).length);
-    // Four panels, with room between each two; or none, and each round at its own count.
-    if (id === "feline-raglan") expect(new Set(gaps)).toEqual(new Set([4]));
-    else {
-      expect(new Set(gaps)).toEqual(new Set([0]));
-      picture.rows.slice(0, 30).forEach((row, y) => expect(row.period).toBe(rounds[rounds.indexOf(bodyRounds(rounds.slice(0, yokeCount), stitches)[0]) + y].length));
+  /** The yoke's first patterned round, which is the picture's first row. */
+  const first = rounds.indexOf(bodyRounds(rounds.slice(0, yokeCount), stitches)[0]);
+
+  it("closes a raglan's band up to one width with nothing between its panels, and a round yoke up round by round", () => {
+    const band = picture.rows.slice(0, 30);
+    if (id === "feline-raglan") {
+      // The first row of spirals: eleven rounds, each a stitch wider at each side of each line, drawn at the last's width.
+      const spirals = picture.rows.slice(0, 11);
+      expect(new Set(spirals.map((row) => row.period))).toEqual(new Set([rounds[first + 10].length]));
+      expect(rounds[first + 10].length - rounds[first].length).toBe(80);
+      // And no place in the band is left to the ground: each holds its round's stitch, or one lent to it.
+      for (const row of band) for (let place = 0; place < row.period; place++) expect(stitchAt(row, place)).toBeGreaterThanOrEqual(0);
+      expect(spirals[0].lent).toBeDefined();
+      expect(spirals[10].lent).toBeUndefined();
+    } else {
+      // Each round at its own count, and nothing lent.
+      band.forEach((row, y) => {
+        expect(row.period).toBe(rounds[first + y].length);
+        expect(row.lent).toBeUndefined();
+        expect([...row.at].every((stitch) => stitch >= 0)).toBe(true);
+      });
     }
   });
+
+  it("runs left to right across the front, as worn", () => {
+    // A round is knitted left to right as the jumper is seen from outside, so the stitches of a round come in its order across the picture.
+    // Twenty stitches either side of the middle: within the front's panel in every round.
+    const half = 20;
+    picture.rows.slice(0, yokeCount - first).forEach((row, y) => {
+      const order = Array.from({ length: 2 * half }, (_, x) => rounds[first + y].indexOf(stitchAcross(row, x, half)));
+      expect(order.every((at, x) => x === 0 || at === order[x - 1] + 1)).toBe(true);
+    });
+  });
 });
+
+describe("a raglan's line, folded out", () => {
+  const built = buildSweater(sweaters.find((sweater) => sweater.id === "feline-raglan")!, "xs");
+  const { stitches, rounds, roundPieces } = built;
+  const picture = frontPicture(built)!;
+  const yokeCount = roundPieces.findIndex((piece) => piece !== roundPieces[0]);
+  const first = rounds.indexOf(bodyRounds(rounds.slice(0, yokeCount), stitches)[0]);
+  /**
+   * Where the front's panel ends in a row of the first band, going right from
+   * the middle, and where the sleeve's begins: the front is a stitch wider at
+   * each end every round, and the band's eleventh round has no room left.
+   */
+  const widest = (() => {
+    const { at } = picture.rows[0];
+    let end = 0;
+    while (at[end] >= 0) end++;
+    return end;
+  })();
+  const frontEnds = (y: number) => ({ end: widest + y, next: widest + y + 2 * (10 - y) });
+
+  it("fills the room beyond a panel with the stitches knitted round the corner", () => {
+    // The place k beyond the front's end is knitted by the sleeve, k rounds further down and k stitches in from the line.
+    for (const y of [0, 3, 7]) {
+      const { end, next } = frontEnds(y);
+      const { at, lent } = picture.rows[y];
+      // The room is where the round has no stitch, and nowhere else.
+      for (let place = end - 3; place < next + 3; place++) expect(at[place] < 0).toBe(place >= end && place < next);
+      for (let k = 1; k <= (next - end) / 2; k++) {
+        const below = picture.rows[y + k];
+        expect(lent![end + k - 1]).toBe(below.at[frontEnds(y + k).next + k]);
+        expect(rounds[first + y + k]).toContain(lent![end + k - 1]);
+        // And from the sleeve's side, the front's: k stitches in from the line, k rounds down.
+        expect(lent![next - k]).toBe(below.at[frontEnds(y + k).end - 1 - k]);
+      }
+    }
+  });
+
+  it("draws the line's own stitch wide where the line is too slow to fold, which on the feline is ground on ground", () => {
+    const under = picture.rows.slice(24, yokeCount - first);
+    const lent = under.flatMap((row) => (row.lent ? [...row.lent].filter((stitch) => stitch >= 0) : []));
+    expect(lent.length).toBeGreaterThan(0);
+    expect(new Set(lent.map((stitch) => stitches[stitch].slot))).toEqual(new Set([picture.ground]));
+    // Each is a stitch of its own round: nothing is brought up from the rounds below.
+    under.forEach((row, y) => row.lent?.forEach((stitch) => stitch >= 0 && expect(rounds[first + 24 + y]).toContain(stitch)));
+  });
+
+  it("is what a strip of its yoke shows too, all of it", () => {
+    const strip = yokePicture(built)!;
+    expect(strip.shown).toBe("all");
+    expect(picture.shown).toBe("top");
+    expect(strip.rows).toHaveLength(yokeCount - first);
+    strip.rows.forEach((row, y) => {
+      expect(row.period).toBe(picture.rows[y].period);
+      expect([...row.at]).toEqual([...picture.rows[y].at]);
+    });
+    expect(cardPicture(built)).toBe(picture);
+  });
+});
+
+it("places the yoke of a picture down the front about its middle too, though nothing in it leans", () => {
+  const built = buildSweater(sweaters.find((sweater) => sweater.id === "feline-yoke")!, "xs");
+  const strip = yokePicture(built)!;
+  const whole = frontPicture(built)!;
+  expect(strip.shown).toBe("all");
+  // The front's own rows, as far as the yoke goes: every round closed up at its own count from the middle of the front.
+  expect(strip.rows.length).toBeLessThan(whole.rows.length);
+  strip.rows.forEach((row, y) => {
+    expect(row.lent).toBeUndefined();
+    expect([...row.at]).toEqual([...whole.rows[y].at]);
+  });
+});
+
+it("leaves a yoke with no band that grows along lines to its strip", async () => {
+  // A round yoke's bands; and Paul Klee's last, between lines that do not grow in it.
+  expect(yokePicture(buildSweater(paulKlee, "m1"))).toBeUndefined();
+  expect(yokePicture(buildSweater(paulKlee, "k1"))).toBeUndefined();
+  expect(yokePicture(buildSweater(hamefarin, "m"))).toBeUndefined();
+  for (const name of ["wool-week-strips-once-oldest", "wool-week-strips-lined-oldest"]) {
+    const sweater = sweaters.find((each) => each.id === name)!;
+    for (const size of [sweater.sizes[0].id, "m"]) expect(yokePicture(buildSweater(sweater, size))).toBeUndefined();
+  }
+}, 120000);
 
 it("shows only a picture down the front as a front", () => {
   expect(frontPicture(buildSweater(paulKlee, "m1"))).toBeUndefined();
   expect(frontPicture(buildSweater(hamefarin, "m"))).toBeUndefined();
+  expect(cardPicture(buildSweater(hamefarin, "m"))).toBeUndefined();
 });
 
 it("shows the top of a front, a whole number of pixels a stitch", () => {
