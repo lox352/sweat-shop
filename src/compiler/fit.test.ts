@@ -50,11 +50,11 @@ describe("a sweater fitted to its knitter, part way through", () => {
 
   it("size L from the end of 2015 at 26 stitches and 26 rounds: 2017's bands are whole, each knitted in all seven of its rounds", () => {
     const fitted = fit({ design: once, sizeId: "l", knitted: whole, round: second, tension: { stitchesPer10cm: 26, roundsPer10cm: 26 }, option: "every" });
-    // The rounds a zigzag is knitted in, each by the zigzag's yarn: a band of blue, of teal and of blue, where a row was once off the first and the last.
+    // The rounds a zigzag is knitted in, each by the zigzag's yarn: a band of teal and a band of blue, where there were three with a row off the first and the last.
     const yarns = fitted.knitted.rounds.map((ids) => new Set(ids.map((id) => fitted.knitted.stitches[id].slot.split("/")[0])));
-    expect(yarns.flatMap((slots) => (slots.has("17B") ? ["B"] : slots.has("17C") ? ["C"] : [])).join("")).toBe("BBBBBBBCCCCCCCBBBBBBB");
-    // And 2018's dancers between two rows of plusses, as the hat begins: seventeen rounds, none taken off a figure.
-    expect(fitted.written).toMatch(/Chart \S+-18B17-1\S*, rows 1-17\./);
+    expect(yarns.flatMap((slots) => (slots.has("17B") ? ["B"] : slots.has("17C") ? ["C"] : [])).join("")).toBe("CCCCCCCBBBBBBB");
+    // And 2018's dancers and plusses from plain row to plain row.
+    expect(fitted.written).toMatch(/Chart \S+-18B24-4\S*, rows 1-21\./);
   });
 
   it("at the pattern's own tension, the yoke goes on to the count the size divides at", () => {
@@ -395,7 +395,7 @@ describe("what the planner answers is what a link names", () => {
       await named("hamefarin", "m", { knitted: whole, round: cutAfter("hamefarin", whole, 1)! }),
       await named(once, "l", { option: "every" }),
       await named(once, "l", { option: "fewer" }),
-    ]).toEqual(["38a1e1893ce0", "c85b2bd5451b", "5247bcb7713d", "f3902201fcdf"]);
+    ]).toEqual(["38a1e1893ce0", "c85b2bd5451b", "ac1ea7bf16fd", "f3902201fcdf"]);
   });
 
   it("for the designs planned only from the cast-on too", async () => {

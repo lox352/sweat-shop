@@ -69,19 +69,21 @@ const st = (label: string, parts: Part[]): State => ({ label, parts });
  * - **Twice is company, four times is dull.** 2017's band is one motif,
  *   turned about row by row: three of it before four, the first step taken;
  *   and where three will not go, two whole, which turn about each other
- *   still - the last step that cuts nothing (LAST).
+ *   still - the last step that cuts nothing, and no great loss.
  * - **A core wants its trimmings.** 2014's one star between two peeries
  *   before its two stars side by side; and 2020's two stars each framed
- *   either side (as the hat) kept longest of the steps a piece takes freely.
+ *   either side (as the hat) kept longer than any step but that.
  * - **A piece is balanced.** Otherwise a year gives up a trimming before its
  *   neighbour gives up two: the sheep's sky two rows at a time, the sleeves'
  *   years turn about.
- * - **A last resort waits.** A step ranked LAST or more - 2017 down to two
- *   bands, the flowers cropped - is taken only where the steps before it
- *   will not go however the piece is framed (see fit).
+ * - **A band begins and ends plain.** 2018's bands keep a plain round of
+ *   their own at each end (EDGED): its plain edge rows are not a step to
+ *   take, and a cut of it that has none - its dancers between two rows of
+ *   plusses - is given one above and one below.
  */
-const LAST = 25;
 const CUT = 30;
+/** The years whose bands keep a plain round of their own at each end. */
+const EDGED = new Set([2018]);
 type Rung = [rank: number, state: State];
 const ladders: Record<number, Rung[]> = {
   2014: [
@@ -100,13 +102,11 @@ const ladders: Record<number, Rung[]> = {
   2017: [
     [0, st("Four bands", [["A", 1, 14], ["A", 1, 14]])],
     [1, st("Three bands", [["A", 1, 14], ["A", 1, 7]])],
-    [LAST, st("Two bands", [["A", 1, 14]])],
+    [25, st("Two bands", [["A", 1, 14]])],
   ],
   2018: [
     [0, st("Dancers, plusses, dancers", [["B", 4, 34]])],
-    [2, st("Dancers, plusses, dancers, plain edges off", [["B", 5, 33]])],
     [6, st("Dancers and plusses", [["B", 4, 24]])],
-    [8, st("Dancers and plusses, plain edges off", [["B", 5, 23]])],
   ],
   2019: [[0, st("Sheep and boat, a round between", [["C", 3, 14], ["E", 1, 12]])]],
   2020: [
@@ -258,6 +258,10 @@ const layout = (strips: Placed[], total: number, ends: Ends, mode: Mode = STRICT
     const below = framedBy(gaps, spots, k + 1, k, share) + leading([...block(sp)].reverse());
     return { top: Math.max(0, below - above), bottom: Math.max(0, above - below), framed: Math.max(above, below) };
   });
+  // A band that keeps a plain round of its own at each end: one above and one below where its cut has none.
+  spots.forEach((sp, k) => {
+    if (EDGED.has(strips[sp.i].year) && framing[k].framed === 0) framing[k] = { top: 1, bottom: 1, framed: 1 };
+  });
   // The quanta either side of a core framed alike: the less framed given rounds above and below to match the other.
   if (mode.mirror) {
     spots.forEach((sp, k) => {
@@ -392,16 +396,13 @@ const wholeOf = (year: number): Rung[] => {
  * Rule 6: these years, in order, cut to go in so many rounds. Each starts at
  * the top of its ladder; the step least missed is taken until the piece
  * fits; and then any step taken before the last, of another year, is taken
- * back where that leaves `slack` rounds spare. By the rungs short of a last
- * resort, however the piece has to be framed to take them; then by all the
- * rungs; and only where they will not go at all, by the cuts below them.
- * None where the years will not go at all.
+ * back where that leaves `slack` rounds spare. By the rungs alone, however
+ * the piece has to be framed to take them; and only where they will not go
+ * at all, by the cuts below them. None where the years will not go at all.
  */
 const fit = (years: number[], total: number, ends: Ends, slack: number): { placed: Placed[]; mode: Mode } | null => {
-  const tiers = [years.map((year) => ladders[year].filter(([rank]) => rank < LAST)), years.map((year) => ladders[year]), years.map(wholeOf)];
-  for (const [nth, own] of tiers.entries()) {
-    // The same ladders as the tier before, where these years have nothing more: they have been tried.
-    if (nth > 0 && own.every((ladder, i) => ladder.length === tiers[nth - 1][i].length)) continue;
+  for (const all of [ladders, Object.fromEntries(years.map((year) => [year, wholeOf(year)]))]) {
+    const own = years.map((year) => all[year]);
     for (const mode of [STRICT, { mirror: true, share: true }, { mirror: false, share: true }]) {
       const at = years.map(() => 0);
       const placed = () => own.map((ladder, i) => place(years[i], ladder[at[i]][1]));

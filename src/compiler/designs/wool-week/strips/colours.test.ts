@@ -118,7 +118,8 @@ describe.each([eachYearOnce, thirteenStrips])("the colourways of $name", (design
     // The yoke's first year is 2014 in every size; the body ends in 2021 or 2026, the sleeves in 2026.
     const low = design.id.includes("once") ? "trim/21+26" : "trim/26";
     expect(new Set(ribs)).toEqual(new Set(["trim/14", low]));
-  });
+    // Every size is knitted for it: a couple of seconds here, and past the usual five on a busy machine.
+  }, 30000);
 
   it("knits the back neck's short rows in the first band's background, not the trim, so that only the ribbing stands out", () => {
     for (const size of design.sizes) {
