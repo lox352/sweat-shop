@@ -1,6 +1,6 @@
 import type { Chart, ChartCell, DivideSegment, RoundSpec, Section, ShapingOp } from "../types";
 import { decreaseEvenly, increaseEvenly, underarmDecrease } from "../writing";
-import { type NeckBand, cuffEdges, cuffFeline, hemBand, hemCreature, hemGap, neckBands } from "./motifs";
+import { type NeckBand, cuffBand, cuffCreature, hemBand, hemCreature, hemGap, mirrored, neckBands, sleeveFeline } from "./motifs";
 import { type FelineId, GROUND, drawFeline } from "./raster";
 
 /**
@@ -8,9 +8,10 @@ import { type FelineId, GROUND, drawFeline } from "./raster";
  * the front, the other on the back, each as large as its piece has room for
  * and midway between a band of squared spirals round the neck and the
  * tunic's hem band round the waist, where there is room for the band too;
- * the sleeve ends' felines round each cuff; and above each cuff's band two of
- * the hem band's creatures, red on the ground. See motifs.ts for the neck's
- * band on each construction.
+ * the band's creatures round each cuff too, over the tunic's lines there, the
+ * two cuffs' running opposite ways; and above each cuff's band two of the
+ * tunic's small felines, lying across the sleeve as they do on its own. See
+ * motifs.ts for the neck's band on each construction.
  *
  * Two constructions:
  * - **Raglan.** The yoke grows at four raglan lines, each a marker with an
@@ -70,14 +71,10 @@ const MOTIF_SLOT: Record<string, string> = { o: "A", ".": "B", c: "C", G: "D" };
 
 /** The hem band at the waist, and the gap between a feline and the rib where there is none. */
 const HEM_ROWS = hemBand.length;
-/** The hem's creature alone, for the sleeves - without the band's red or its gold lines. */
-export const SLEEVE_CREATURE = hemCreature;
-/** How far apart the sleeve's two creatures may come at least, and how many plain rounds go between them and the cuff band, and above them. */
-const SLEEVE_CREATURE_GAP = 4;
-const ROUNDS_TO_CUFF_BAND = 6;
-const ROUNDS_ABOVE_CREATURES = 3;
-/** Where the sleeve has to taper below its creatures - a narrow size's cuff band is less than they need - a decrease every this many rounds. */
-const TAPER_BELOW_EVERY = 4;
+/** Plain rounds between a sleeve's felines and its cuff band: on the tunic the tail's spiral all but touches the band. */
+const ROUNDS_TO_CUFF_BAND = 3;
+/** The stitches a sleeve's decrease round works at each end of it, beside the underarm: k1, k2tog there, and ssk, k1 here. A feline keeps clear of them. */
+const DECREASE_ENDS = 2;
 const GAP_ABOVE_RIB = 6;
 /** Stitches left plain either side of a feline, at the narrowest its piece is beside it. */
 const MARGIN = 2;
@@ -119,10 +116,12 @@ interface Row {
    * whose new stitch stands to the right of it on the chart.
    */
   twice?: { kbf: boolean[] };
+  /** A sleeve's round that takes two stitches out as it goes, in its own yarns: which of the stitches it leaves is a k2tog or an ssk. */
+  taken?: Record<number, "k2tog" | "ssk">;
 }
 
 const plainRow = (n: number, slot = GROUND_SLOT): Row => ({ slots: Array(n).fill(slot) });
-const isPlain = (row: Row) => !row.made?.some(Boolean) && row.slots.every((s) => s === row.slots[0]);
+const isPlain = (row: Row) => !row.made?.some(Boolean) && !row.taken && row.slots.every((s) => s === row.slots[0]);
 
 /** The counts a size is knitted to. */
 export interface Counts {
@@ -556,7 +555,7 @@ const withFelines = (slots: string[], placed: Placed, r: number) => {
 
 /** A chart's cells, one object for each yarn and symbol, shared: a jumper's charts have hundreds of thousands. */
 const cells = new Map<string, ChartCell>();
-const cellOf = (slot: string, symbol?: "m1" | "kfb" | "kbf"): ChartCell => {
+const cellOf = (slot: string, symbol?: "m1" | "kfb" | "kbf" | "k2tog" | "ssk"): ChartCell => {
   const key = `${slot}${symbol ?? ""}`;
   let cell = cells.get(key);
   if (!cell) cells.set(key, (cell = Object.freeze(symbol ? { slot, symbol } : { slot })));
@@ -580,7 +579,7 @@ class Writer {
     if (!this.run.length) return;
     const id = `${this.id}-${this.charts.length + 1}`;
     const rows: ChartCell[][] = this.run.map((r) =>
-      r.slots.map((slot, j) => cellOf(slot, r.made?.[j] ? "m1" : r.twice && r.made?.[j + 1] ? forkOf(r, j + 1) : undefined)),
+      r.slots.map((slot, j) => cellOf(slot, r.taken?.[j] ?? (r.made?.[j] ? "m1" : r.twice && r.made?.[j + 1] ? forkOf(r, j + 1) : undefined))),
     );
     this.charts.push({ id, name: this.name, rows });
     this.specs.push({ type: "chart", chart: id, rows: [1, rows.length], repeats: 1 });
@@ -594,7 +593,7 @@ class Writer {
       const last = this.specs[this.specs.length - 1];
       if (last?.type === "rounds" && last.slot === r.slots[0] && !last.sequence) this.specs[this.specs.length - 1] = { ...last, count: last.count + 1 };
       else this.specs.push({ type: "rounds", count: 1, slot: r.slots[0] });
-    } else if (r.slots.every((s) => s === r.slots[0])) {
+    } else if (!r.taken && r.slots.every((s) => s === r.slots[0])) {
       this.flush();
       const ops: ShapingOp[] = [];
       let run = 0;
@@ -637,18 +636,22 @@ export interface Knitted {
   placed: Omit<Placed, "front" | "back">;
   counts: Counts;
   cuffBand: { count: number; repeats: number };
-  /** The sleeve's creatures: the taper's round their first row is knitted in, and the sleeve's count there. */
-  sleeveCreatures: { from: number; count: number };
+  /** The sleeve's felines: the taper's round their first row is knitted in, the sleeve's count there and after their last, and how many stitches each stands from the middle of the round, the top of the arm. */
+  sleeveFelines: { from: number; count: number; to: number; apart: number };
   /** The neck's band, and the yoke row after the short rows it begins in. */
   trim: Yoke["trim"];
 }
 
-/** The cuff band's count: whole repeats of the feline and a few stitches either side, near a quarter more than the cuff, an even number. */
+/**
+ * The cuff band's count: whole repeats of the creature and the red between
+ * it and the next - two stitches at least, as at the hem, and no more than
+ * fourteen - near a quarter more than the cuff, an even number.
+ */
 export const cuffBandOf = (cuff: number): { count: number; repeats: number; gap: number } => {
-  const w = cuffFeline[0].length;
+  const w = cuffCreature[0].length;
   let best = { count: 0, repeats: 0, gap: 0 };
   for (const repeats of [2, 3, 4])
-    for (let gap = 2; gap <= 10; gap++) {
+    for (let gap = hemGap; gap <= 14; gap++) {
       const count = repeats * (w + gap);
       if (count % 2) continue;
       if (!best.count || Math.abs(count - cuff * 1.25) < Math.abs(best.count - cuff * 1.25)) best = { count, repeats, gap };
@@ -730,48 +733,63 @@ export const knit = (size: Measured, construction: Construction, prefix: string,
 
   /* ------------------------------------------------------------- sleeves */
   const band = cuffBandOf(c.cuff);
-  const bandRows = cuffFeline.length + 2 * (cuffEdges.gold + cuffEdges.red);
   // After the pick-up round: the taper, the cuff band, and a round of red that gathers it in to the cuff's rib.
-  const taper = c.sleeveRounds - 1 - bandRows - 1;
+  const taper = c.sleeveRounds - 1 - cuffBand.length - 1;
   const decreases = (c.upperArm - band.count) / 2;
   if (!Number.isInteger(decreases) || decreases < 0) throw new Error(`a sleeve of ${c.upperArm} cannot taper to a band of ${band.count}`);
   /*
-   * Two of the hem's creatures round the sleeve, half a round apart on the
-   * front and the back of the arm, as low as they go: ROUNDS_TO_CUFF_BAND
-   * above the cuff band where the sleeve is wide enough there for both and
-   * their gaps, and otherwise as much higher as its last few decreases need,
-   * one every TAPER_BELOW_EVERY rounds below them. A decrease round can't carry
-   * a picture, so the taper pauses through their rows and goes on either side.
+   * Two of the tunic's small felines round the sleeve, just above the cuff
+   * band: one on the front of the arm and one on the back, lying across it
+   * as on the tunic's sleeve - heads to the top of the arm, the middle of
+   * the round, feet to the underarm, each the other's mirror image - and
+   * each in the middle of its half of the round where they end.
+   *
+   * The sleeve goes on tapering through them, a decrease round in its
+   * felines' own yarns: its two decreases are beside the underarm, and take
+   * stitches from between the felines' feet. Only a decrease that would
+   * leave them no room there waits, and is worked in the plain rounds
+   * between the felines and the band.
    */
-  const creatureRows = SLEEVE_CREATURE.length;
-  const creaturesCount = Math.max(band.count, 2 * (SLEEVE_CREATURE[0].length + SLEEVE_CREATURE_GAP));
-  const below = (creaturesCount - band.count) / 2;
-  const creaturesFrom = taper - ROUNDS_TO_CUFF_BAND - creatureRows - TAPER_BELOW_EVERY * below;
+  const [felineRows, felineStitches] = [sleeveFeline.length, sleeveFeline[0].length];
+  const apart = Math.floor((band.count / 2 - felineStitches) / 2);
+  if (apart < 1) throw new Error(`a sleeve's band of ${band.count} has no room for its two felines`);
+  const felinesFrom = taper - ROUNDS_TO_CUFF_BAND - felineRows;
+  // The count a decrease round among the felines must leave at least: each feline, its place from the top of the arm, and the decrease's own stitches.
+  const roomAt = 2 * (felineStitches + apart + DECREASE_ENDS);
+  const after = Math.min(decreases, Math.max(0, (roomAt - band.count) / 2));
+  if (after > ROUNDS_TO_CUFF_BAND - 1) throw new Error(`a sleeve whose band of ${band.count} wants ${after} decreases between its felines and it`);
   const taperFrom = Math.min(6, Math.floor(taper / 6));
-  const belowFrom = creaturesFrom + creatureRows + 2;
-  const decreaseAt = new Set([
-    ...spread(decreases - below, creaturesFrom - ROUNDS_ABOVE_CREATURES, taperFrom),
-    ...(below ? spread(below, belowFrom + TAPER_BELOW_EVERY * below, belowFrom) : []),
-  ]);
+  if (felinesFrom < taperFrom) throw new Error(`a sleeve of ${c.sleeveRounds} rounds has no room for its felines`);
+  const decreaseAt = new Set([...spread(decreases - after, taper, taperFrom, felinesFrom + felineRows), ...Array.from({ length: after }, (_, k) => felinesFrom + felineRows + k)]);
   const sw = new Writer(`${prefix}sleeve`, "Sleeve");
   let n = c.upperArm;
+  let [felinesCount, felinesTo] = [n, n];
   for (let i = 0; i < taper; i++) {
-    const r = i - creaturesFrom;
-    if (decreaseAt.has(i)) {
-      n -= 2;
-      sw.push({ type: "shaping", slot: GROUND_SLOT, ops: underarmDecrease, to: n });
-    } else if (r >= 0 && r < creatureRows) sw.row({ slots: sleeveCreaturesRound(r, n) }, n);
+    const r = i - felinesFrom;
+    const among = r >= 0 && r < felineRows;
+    const decrease = decreaseAt.has(i);
+    if (decrease) n -= 2;
+    if (r === 0) felinesCount = n;
+    if (r === felineRows - 1) felinesTo = n;
+    if (among) sw.row({ slots: sleeveFelinesRound(r, n, apart), ...(decrease ? { taken: { 1: "k2tog", [n - 2]: "ssk" } } : {}) }, n + (decrease ? 2 : 0));
+    else if (decrease) sw.push({ type: "shaping", slot: GROUND_SLOT, ops: underarmDecrease, to: n });
     else sw.row(plainRow(n), n);
   }
   if (n !== band.count) throw new Error(`a sleeve that tapers to ${n}, not its band's ${band.count}`);
-  const cuffChart: Chart = { id: `${prefix}cuff`, name: "Cuff band", rows: cuffRows(band.gap) };
-  sw.push({ type: "chart", chart: cuffChart.id, rows: [1, cuffChart.rows.length] });
-  if (band.count > c.cuff) sw.push({ type: "shaping", slot: RED_SLOT, ops: decreaseEvenly(band.count, c.cuff), to: c.cuff });
-  else if (band.count < c.cuff) sw.push({ type: "shaping", slot: RED_SLOT, ops: increaseEvenly(band.count, c.cuff), to: c.cuff });
-  else sw.push({ type: "rounds", count: 1, slot: RED_SLOT });
-  const sleeveSpecs = sw.done();
+  const taperSpecs = sw.done();
+  // The cuff's band: the right sleeve's as on the tunic's sleeve, the left one's its mirror image, so the creatures go round the two cuffs opposite ways.
+  const cuffCharts: Record<string, Chart> = {
+    "sleeve-right": { id: `${prefix}cuff-right`, name: "Right cuff band", rows: cuffRows(band.gap, false) },
+    "sleeve-left": { id: `${prefix}cuff-left`, name: "Left cuff band", rows: cuffRows(band.gap, true) },
+  };
+  const gather: RoundSpec =
+    band.count > c.cuff
+      ? { type: "shaping", slot: RED_SLOT, ops: decreaseEvenly(band.count, c.cuff), to: c.cuff }
+      : band.count < c.cuff
+        ? { type: "shaping", slot: RED_SLOT, ops: increaseEvenly(band.count, c.cuff), to: c.cuff }
+        : { type: "rounds", count: 1, slot: RED_SLOT };
   const sleeveSection = (piece: string, label: string): Section => {
-    const [firstRound, ...rest] = sleeveSpecs;
+    const [firstRound, ...rest] = taperSpecs;
     if (firstRound.type !== "rounds" && firstRound.type !== "shaping") throw new Error("a sleeve's second round is a round of stitches");
     return {
       label,
@@ -780,6 +798,8 @@ export const knit = (size: Measured, construction: Construction, prefix: string,
         { type: "piece", held: piece, before: c.underarm / 2, after: c.underarm / 2, slot: GROUND_SLOT, check: `${piece}:top` },
         { ...firstRound, markers: [{ after: 0, place: sleeveStart(piece) }] },
         ...rest,
+        { type: "chart", chart: cuffCharts[piece].id, rows: [1, cuffCharts[piece].rows.length] },
+        gather,
         { type: "needles", to: "rib" },
         { type: "rounds", count: ribs.cuff, slot: RED_SLOT, sequence: ["k", "p"], fabric: "rib", check: `${piece}:cuff` },
         { type: "bindOff", slot: RED_SLOT, fabric: "rib", sequence: ["k", "p"] },
@@ -797,7 +817,7 @@ export const knit = (size: Measured, construction: Construction, prefix: string,
       sleeveSection("sleeve-left", "Left sleeve"),
       sleeveSection("sleeve-right", "Right sleeve"),
     ],
-    charts: [...yw.charts, ...bw.charts, ...sw.charts, cuffChart],
+    charts: [...yw.charts, ...bw.charts, ...sw.charts, cuffCharts["sleeve-left"], cuffCharts["sleeve-right"]],
     checks: {
       neck: yoke.neck,
       yoke: 2 * c.half + 2 * c.held,
@@ -811,7 +831,7 @@ export const knit = (size: Measured, construction: Construction, prefix: string,
     placed: summary,
     counts: c,
     cuffBand: { count: band.count, repeats: band.repeats },
-    sleeveCreatures: { from: creaturesFrom, count: creaturesCount },
+    sleeveFelines: { from: felinesFrom, count: felinesCount, to: felinesTo, apart },
     trim: yoke.trim,
   };
 };
@@ -837,29 +857,30 @@ const hemRow = (r: number, n: number, frontMiddle: number): string[] => {
 };
 
 /**
- * A round of the sleeve's creatures, `n` stitches from the underarm: one on
- * the front of the arm and one on the back, a quarter of the way round from
- * the underarm each way, in red with their eyes and toes in cream as on the
- * hem, on the ground.
+ * A round of the sleeve's felines, `n` stitches from the underarm: the one
+ * as drawn after the middle of the round, the top of the arm, `apart`
+ * stitches from it, its head towards it; and its mirror image before the
+ * middle, as far from it. On the right sleeve the one as drawn is on the
+ * front of the arm, as on the tunic's; on the left sleeve its mirror image
+ * is.
  */
-const sleeveCreaturesRound = (r: number, n: number): string[] => {
-  const row = SLEEVE_CREATURE[r];
+const sleeveFelinesRound = (r: number, n: number, apart: number): string[] => {
   const out: string[] = Array(n).fill(GROUND_SLOT);
-  for (const centre of [n / 4, (3 * n) / 4]) {
-    const start = Math.round(centre - row.length / 2);
-    [...row].forEach((ch, x) => {
-      if (ch !== ".") out[start + x] = ch === "c" ? "C" : RED_SLOT;
-    });
-  }
+  [...sleeveFeline[r]].forEach((ch, x) => {
+    if (ch === "o") return;
+    out[n / 2 + apart + x] = out[n / 2 - apart - 1 - x] = MOTIF_SLOT[ch];
+  });
   return out;
 };
 
-/** The cuff band's rows, one repeat: the feline with `gap` stitches of red shared either side, between stripes of red and gold. */
-const cuffRows = (gap: number): ChartCell[][] => {
-  const w = cuffFeline[0].length + gap;
-  const left = Math.floor(gap / 2);
-  const solid = (slot: string, k: number) => Array.from({ length: k }, () => Array.from({ length: w }, () => cellOf(slot)));
-  const feline = cuffFeline.map((line) => Array.from({ length: w }, (_, x) => cellOf(MOTIF_SLOT[line[x - left] ?? "."])));
-  return [...solid("D", cuffEdges.gold), ...solid("B", cuffEdges.red), ...feline, ...solid("B", cuffEdges.red), ...solid("D", cuffEdges.gold)];
+/**
+ * A cuff band's rows, one repeat: the creature with `gap` stitches of the
+ * band's red shared either side of it, and the tunic's lines under it. As
+ * on the tunic's sleeve, or its mirror image for the other one.
+ */
+const cuffRows = (gap: number, mirror: boolean): ChartCell[][] => {
+  const creature = mirror ? mirrored(cuffCreature) : cuffCreature;
+  const w = creature[0].length + gap;
+  const left = mirror ? Math.ceil(gap / 2) : Math.floor(gap / 2);
+  return cuffBand.map((line) => Array.from({ length: w }, (_, x) => cellOf(MOTIF_SLOT[line.creature === undefined ? line.ground : (creature[line.creature][x - left] ?? line.ground)])));
 };
-

@@ -15,7 +15,9 @@ export default felineSweater({
     "between a deep band of squared spirals round the neck - the hem " +
     "creatures' tails, alone - and the tunic's hem band of small gold " +
     "creatures round the " +
-    "waist; and the sleeves end in its band of small gold felines. Knitted " +
+    "waist; the same creatures run round each cuff, and above them each " +
+    "sleeve has two of the tunic's small red felines, lying across it as they " +
+    "do on its own. Knitted " +
     "from the neck down with a round yoke, as the Wool Week samplers are: " +
     "the yoke grows in plain rounds to half way down and then goes straight, " +
     "and each feline rises into that straight half.",

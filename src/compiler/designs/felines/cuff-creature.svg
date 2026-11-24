@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="349 580 789 868" width="789" height="868">
+  <title>Sleeve band creature, after a Nasca tunic</title>
+  <desc>A length of the band at the tunic's sleeve end, traced from a photograph, the sleeve lying level and its end to the left: a gold creature seen from above on the band's red, running down, and the two gold lines between the band and the fringe. Coordinates are the photograph's pixels (2576 x 1932). Every shape is a polygon; the band and its lines are levelled to their middle places along the creature.</desc>
+  <g id="band">
+    <rect id="band-red" fill="#611319" x="349" y="580" width="789" height="868"/>
+    <rect id="band-line-1" fill="#977243" x="349" y="580" width="88" height="868"/>
+    <rect id="band-line-2" fill="#977243" x="505" y="580" width="99" height="868"/>
+  </g>
+  <g id="creature">
+    <polygon id="body" fill="#977243" points="967.8,895.3 921.7,898.3 900.8,856.6 901.7,671.9 927.6,671.6 960.3,751.8 1054.5,750.6 1092.2,676.7 1091.3,644.9 1060.1,600.5 997.9,603.6 971.2,657.8 990.7,705.9 1012.7,705.4 1036.7,663.8 1016.1,661.3 1012,675.2 994.1,678 992.9,660.5 1004.1,636.6 1052.5,633.7 1065.9,660.8 1029.8,729.1 977.5,727.4 956.8,678.3 912.4,605.7 827,611 792.6,685.4 790.3,872.8 776.3,902.5 761.3,904.3 759,887.2 714.5,840.5 714,831 625,831 625,845 690,845 690,859 625,859 625,871 691,871 691,887 627,887 627,901 697,899 698.9,969.4 816,968 781.8,1026.2 657,1028.4 641,1259.2 659.9,1275.6 674,1254 692.2,1274.9 708,1254 731,1277 735.8,1239.3 728.8,1224.4 729,1090 766,1090 764.9,1110.1 799.9,1165.6 769,1220.4 770.4,1292.3 781.7,1399.2 794.9,1430.7 808.4,1429.8 874.4,1339.3 903,1346 964.7,1394.6 983.8,1419.6 995.9,1417.5 992.5,1280.5 999.9,1222.2 950.7,1163.9 977.7,1116.9 985.9,1080.9 1022.1,1069.5 1029.3,1211 1016.7,1233 1019.9,1243.8 1030.8,1253.3 1049.5,1241 1065.3,1251.8 1082,1241 1096.5,1255.1 1111.7,1239.1 1103.3,1219.4 1095.1,1031 1080.5,1007.7 958.4,1016.7 923,963 1045,952 1044,875 1103,875 1103,858 1043,858 1043,843 1103,843 1103,828 1042,828 1042,812 1103,812 1103,793 1023,795"/>
+    <g id="grey" fill="#5d3d21">
+      <polygon id="face" points="809.5,1210.7 798.4,1231 794,1302 894.5,1304.5 960,1296.3 972.5,1288.4 971,1233.8 957.4,1228.1 955.1,1202.3"/>
+      <polygon id="ear-left" points="798.7,1330.3 801.4,1384.6 815.8,1388.5 853.8,1331.3"/>
+      <polygon id="ear-right" points="915,1330 968,1321 979,1375 962,1391"/>
+      <polygon id="claw-band-front-left" points="641.4,1254 674,1254 708,1254 733.9,1254 735.8,1239.3 735.2,1238 642.5,1238"/>
+      <polygon id="claw-band-front-right" points="1016.7,1233 1019.1,1241 1049.5,1241 1082,1241 1109.9,1241 1111.7,1239.1 1103.6,1220 1024.1,1220"/>
+      <polygon id="claw-band-hind-left-1" points="638,831 638,845 659,845 659,831"/>
+      <polygon id="claw-band-hind-left-2" points="638,859 638,871 659,871 659,859"/>
+      <polygon id="claw-band-hind-left-3" points="638,887 638,900.7 659,900.1 659,887"/>
+      <polygon id="claw-band-hind-right-1" points="1092,812 1092,793.3 1074,793.7 1074,812"/>
+      <polygon id="claw-band-hind-right-2" points="1092,843 1092,828 1074,828 1074,843"/>
+      <polygon id="claw-band-hind-right-3" points="1092,875 1092,858 1074,858 1074,875"/>
+    </g>
+    <g id="cream" fill="#b68c6a">
+      <polygon id="eye-left" points="827,1257 863,1257 863,1283 827,1283"/>
+      <polygon id="eye-right" points="898,1250 934,1250 934,1280 898,1280"/>
+      <polygon id="mouth" points="849,1227 912,1227 912,1240 849,1240"/>
+      <polygon id="claw-front-left-1" points="641,1259.2 659.9,1275.6 674,1254 641.4,1254"/>
+      <polygon id="claw-front-left-2" points="692.2,1274.9 708,1254 674,1254"/>
+      <polygon id="claw-front-left-3" points="731,1277 733.9,1254 708,1254"/>
+      <polygon id="claw-front-right-1" points="1019.9,1243.8 1030.8,1253.3 1049.4,1241 1019.1,1241"/>
+      <polygon id="claw-front-right-2" points="1065.3,1251.8 1081.9,1241 1049.6,1241"/>
+      <polygon id="claw-front-right-3" points="1096.5,1255.1 1109.8,1241 1082.1,1241"/>
+      <polygon id="claw-hind-left-1" points="625,831 625,845 638,845 638,831"/>
+      <polygon id="claw-hind-left-2" points="625,859 625,871 638,871 638,859"/>
+      <polygon id="claw-hind-left-3" points="627,887 627,901 638,900.7 638,887"/>
+      <polygon id="claw-hind-right-1" points="1103,812 1103,793 1092,793.3 1092,812"/>
+      <polygon id="claw-hind-right-2" points="1103,843 1103,828 1092,828 1092,843"/>
+      <polygon id="claw-hind-right-3" points="1103,875 1103,858 1092,858 1092,875"/>
+    </g>
+    <g id="pupils" fill="#611319">
+      <polygon id="pupil-left" points="833,1264 856,1264 856,1275 833,1275"/>
+      <polygon id="pupil-right" points="906,1258 931,1258 931,1275 906,1275"/>
+    </g>
+  </g>
+</svg>

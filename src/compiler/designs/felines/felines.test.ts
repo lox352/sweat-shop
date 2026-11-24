@@ -4,8 +4,8 @@ import { kinds } from "../../../pattern/kinds";
 import raglan from "../feline-raglan";
 import yoke from "../feline-yoke";
 import { measured } from "../wool-week/strips/design";
-import { type Knitted, SLEEVE_CREATURE, countsOf, cuffBandOf, felineOn, gauge, knit } from "./knit";
-import { cuffFeline, hemBand, hemCreature, hemGap, neckBands } from "./motifs";
+import { type Knitted, countsOf, cuffBandOf, felineOn, gauge, knit } from "./knit";
+import { cuffBand, cuffCreature, hemBand, hemCreature, hemGap, mirrored, neckBands, sleeveFeline } from "./motifs";
 import { CREAM, GROUND, RED, drawFeline } from "./raster";
 import model from "./model.json";
 
@@ -141,18 +141,72 @@ describe("the small motifs", () => {
     expect(hemBand.slice(first + hemCreature.length).every((row) => row.creature === undefined)).toBe(true);
   });
 
-  it("draws the cuff's feline 30 stitches by 32 rows", () => {
-    expect(cuffFeline.length).toBe(32);
-    expect(cuffFeline.every((row) => row.length === 30)).toBe(true);
+  it("draws the sleeves' feline 36 stitches by 44 rows, red and cream on the ground, lying with its head to the left", () => {
+    expect(sleeveFeline.length).toBe(44);
+    expect(sleeveFeline.every((row) => row.length === 36)).toBe(true);
+    expect(new Set(sleeveFeline.join(""))).toEqual(new Set(["o", ".", "c"]));
+    // It fills its picture: red in its first stitch and its last, its first row and its last.
+    const column = (x: number) => sleeveFeline.map((row) => row[x]).join("");
+    expect(column(0)).toContain(".");
+    expect(column(35)).toContain(".");
+    expect(sleeveFeline[0]).toContain(".");
+    expect(sleeveFeline[43]).toContain(".");
+    // Its head is at the left: its ears' whites in its second stitch, two rows each, and nothing but its head and the lobes beside it in its first nine.
+    expect([...column(1)].flatMap((ch, r) => (ch === "c" ? [r] : []))).toEqual([16, 17, 23, 24]);
+    for (let x = 0; x < 9; x++) expect(column(x).slice(0, 7) + column(x).slice(31), `stitch ${x}`).toBe("o".repeat(20));
+    // Its body runs the length of it, from the chin to the foot: its four middle rows whole.
+    for (const r of [16, 17, 18, 19]) expect(sleeveFeline[r].slice(9, 36), `row ${r}`).toBe(".".repeat(27));
   });
 
-  it("goes round a cuff in whole repeats of the feline and its gap, near a quarter more than the cuff", () => {
+  it("gives the sleeves' feline three claws to a hand, a row of red between them, and two stripes to a foot", () => {
+    const column = (x: number) => sleeveFeline.map((row) => row[x]).join("");
+    // The hands' tops are its eleventh stitch: a claw in every other row of each hand.
+    expect([...column(10)].flatMap((ch, r) => (ch === "c" ? [r] : []))).toEqual([8, 10, 12, 24, 26, 28]);
+    for (const r of [9, 11, 25, 27]) expect(sleeveFeline[r][10], `row ${r}`).toBe(".");
+    // A foot's stripes run with the sleeve, one stitch of cream each and a stitch of red between: stitches 22 and 24, counted from 1.
+    for (const [from, to] of [[4, 8], [29, 33]]) {
+      for (let r = from; r < to; r++) expect(sleeveFeline[r].slice(20, 25), `row ${r}`).toBe(".c.c.");
+    }
+  });
+
+  it("gives the sleeves' feline a face of the ground's colour: two eyes, a nose between them, and a mouth of teeth", () => {
+    // The face is stitches 4 to 9, rows 16 to 24, counted from 1 - nine rows by six stitches of ground, but for these.
+    const face = sleeveFeline.slice(15, 24).map((row) => row.slice(3, 9));
+    expect(face).toEqual([
+      "oooooo",
+      "ocoooo", // an eye, two rows
+      "ococco", // and the mouth's end: a tooth, and its lip
+      "ooooco",
+      "o.occo", // the nose, a tooth
+      "ooooco",
+      "ococco", // the other eye; a tooth
+      "ocoooo",
+      "oooooo",
+    ]);
+  });
+
+  it("turns the hem's creature half round for the cuffs, and lays the cuff band 37 rows deep over the tunic's lines there", () => {
+    expect(cuffCreature).toEqual(mirrored([...hemCreature].reverse()));
+    expect(mirrored(mirrored(cuffCreature))).toEqual(cuffCreature);
+    // It runs to the right, its tail's curl above it.
+    expect(cuffCreature[0].slice(0, 7)).toBe(".GGGGG.");
+    expect(cuffBand.length).toBe(37);
+    const first = cuffBand.findIndex((row) => row.creature !== undefined);
+    expect(cuffBand.slice(0, first).map((row) => row.ground).join("")).toBe("..");
+    expect(cuffBand.slice(first, first + cuffCreature.length).map((row) => `${row.ground}${row.creature}`)).toEqual(cuffCreature.map((_row, r) => `.${r}`));
+    // A round of red, four of gold, three of red, four of gold; the red rib is next.
+    expect(cuffBand.slice(first + cuffCreature.length).map((row) => row.ground).join("")).toBe(".GGGG...GGGG");
+  });
+
+  it("goes round a cuff in whole repeats of the creature and the red between it and the next, near a quarter more than the cuff", () => {
     for (const size of measured) {
       const cuff = countsOf(size.finished).cuff;
       const band = cuffBandOf(cuff);
       expect(band.count % band.repeats).toBe(0);
-      expect(band.count / band.repeats - cuffFeline[0].length).toBeGreaterThanOrEqual(2);
+      expect(band.count / band.repeats - cuffCreature[0].length).toBeGreaterThanOrEqual(hemGap);
       expect(Math.abs(band.count - cuff * 1.25)).toBeLessThan(10);
+      // And leaves each of the sleeve's two felines room in its half of the round.
+      expect(band.count / 2 - sleeveFeline[0].length).toBeGreaterThanOrEqual(2);
     }
   });
 });
@@ -241,30 +295,74 @@ describe.each([raglan, yoke].map((design) => [design.id, design] as const))("%s"
       }
     });
 
-    it("puts two of the hem's creatures round each sleeve, red on the ground, front and back, just above the cuff band", () => {
+    it("lays two of the small felines across each sleeve just above its cuff band, heads to the top of the arm, each the other's mirror image, the sleeve tapering through them", () => {
       const built = buildSweater(design, size.id);
-      const { from, count } = knitted.sleeveCreatures;
-      expect(count).toBeGreaterThanOrEqual(2 * (SLEEVE_CREATURE[0].length + 4));
-      const slotOf: Record<string, string> = { ".": "A", G: "B", c: "C" };
+      const { from, count, to, apart } = knitted.sleeveFelines;
+      expect(apart).toBeGreaterThanOrEqual(1);
+      // They end at the band's count - or, on the narrowest band, a decrease short of it: there the last would leave their feet no room, and waits for the plain rounds after them.
+      expect(to - knitted.cuffBand.count === 0 || (to - knitted.cuffBand.count === 2 && to / 2 - apart - sleeveFeline[0].length === 2)).toBe(true);
+      const slotOf: Record<string, string> = { o: "A", ".": "B", c: "C" };
+      const w = sleeveFeline[0].length;
+      const taper = c.sleeveRounds - 1 - cuffBand.length - 1;
       for (const piece of ["sleeve-left", "sleeve-right"]) {
         const rounds = built.rounds.filter((_, i) => built.roundPieces[i] === piece);
         // The pick-up round, then the taper's rounds.
-        const at = (r: number) => rounds[1 + from + r].map((id) => built.stitches[id].slot);
-        SLEEVE_CREATURE.forEach((line, r) => {
-          const round = at(r);
-          expect(round.length, `${piece} row ${r}`).toBe(count);
-          // A quarter of the way round from the underarm either way: the front of the arm and the back.
-          for (const centre of [count / 4, (3 * count) / 4]) {
-            const start = Math.round(centre - line.length / 2);
-            expect(round.slice(start, start + line.length).join(""), `${piece} row ${r}`).toBe([...line].map((ch) => slotOf[ch]).join(""));
-          }
+        const at = (r: number) => rounds[1 + from + r].map((id) => built.stitches[id]);
+        expect(at(0).length, piece).toBe(count);
+        expect(at(sleeveFeline.length - 1).length, piece).toBe(to);
+        sleeveFeline.forEach((line, r) => {
+          const round = at(r).map((stitch) => stitch.slot);
+          const n = round.length;
+          // The one as drawn after the middle of the round, the top of the arm; its mirror image before it.
+          const drawn = [...line].map((ch) => slotOf[ch]).join("");
+          expect(round.slice(n / 2 + apart, n / 2 + apart + w).join(""), `${piece} row ${r}`).toBe(drawn);
+          expect(round.slice(n / 2 - apart - w, n / 2 - apart).reverse().join(""), `${piece} row ${r}, mirrored`).toBe(drawn);
+          // Nothing but the ground round them, and the round's decreases - if it has them - beside the underarm, in the ground.
+          const rest = [...round.slice(0, n / 2 - apart - w), ...round.slice(n / 2 - apart, n / 2 + apart), ...round.slice(n / 2 + apart + w)];
+          expect(new Set(rest), `${piece} row ${r}`).toEqual(new Set(["A"]));
+          const taken = at(r).flatMap((stitch, j) => (stitch.type === "k2tog" || stitch.type === "ssk" ? [`${stitch.type} ${j}`] : []));
+          if (taken.length) expect(taken, `${piece} row ${r}`).toEqual(["k2tog 1", `ssk ${n - 2}`]);
+          expect(n === (r ? at(r - 1).length : n) || taken.length === 2, `${piece} row ${r}`).toBe(true);
         });
-        // Plain ground either side of them, and the cuff band a few rounds below: six in all but the narrowest sizes.
+        // The sleeve never widens on its way down, and comes to its band's count by the band.
+        const counts = rounds.slice(1, 1 + taper).map((round) => round.length);
+        counts.forEach((n, i) => expect(n, `${piece} round ${i}`).toBeLessThanOrEqual(counts[i - 1] ?? c.upperArm));
+        expect(counts[counts.length - 1]).toBe(knitted.cuffBand.count);
+        // Three plain rounds of the ground between the felines and the band - one of them the last decrease, where the felines left it no room.
         const band = rounds.findIndex((round) => round.some((id) => built.stitches[id].slot === "D"));
-        const gap = band - (1 + from + SLEEVE_CREATURE.length);
-        expect(gap).toBeGreaterThanOrEqual(6);
-        if (knitted.cuffBand.count >= count) expect(gap).toBe(6);
+        expect(band - 2 - (1 + from + sleeveFeline.length)).toBe(3);
+        for (const round of rounds.slice(1 + from + sleeveFeline.length, 1 + taper)) expect(new Set(round.map((id) => built.stitches[id].slot))).toEqual(new Set(["A"]));
       }
+    });
+
+    it("runs the band's creatures round the two cuffs opposite ways, over the tunic's lines, the left cuff the right one's mirror image", () => {
+      const built = buildSweater(design, size.id);
+      const taper = c.sleeveRounds - 1 - cuffBand.length - 1;
+      const bandOf = (piece: string) =>
+        built.rounds
+          .filter((_, i) => built.roundPieces[i] === piece)
+          .slice(1 + taper, 1 + taper + cuffBand.length)
+          .map((round) => round.map((id) => built.stitches[id].slot));
+      const [right, left] = [bandOf("sleeve-right"), bandOf("sleeve-left")];
+      const { count, repeats } = knitted.cuffBand;
+      const slotOf: Record<string, string> = { ".": "B", G: "D", c: "C" };
+      const w = cuffCreature[0].length;
+      const gap = count / repeats - w;
+      expect(right.every((round) => round.length === count)).toBe(true);
+      expect(left).toEqual(right.map((round) => [...round].reverse()));
+      cuffBand.forEach((line, r) => {
+        if (line.creature === undefined) {
+          expect(new Set(right[r]), `row ${r}`).toEqual(new Set([slotOf[line.ground]]));
+          return;
+        }
+        // On the right sleeve as on the tunic's: each creature whole, running to the right, the band's red shared either side of it.
+        const drawn = [...cuffCreature[line.creature]].map((ch) => slotOf[ch]).join("");
+        const repeat = "B".repeat(Math.floor(gap / 2)) + drawn + "B".repeat(Math.ceil(gap / 2));
+        expect(right[r].join(""), `row ${r}`).toBe(repeat.repeat(repeats));
+      });
+      // Then a round of red gathers the band in to the cuff, and the rib is red.
+      const after = built.rounds.filter((_, i) => built.roundPieces[i] === "sleeve-right").slice(1 + taper + cuffBand.length);
+      expect(new Set(after.flat().map((id) => built.stitches[id].slot))).toEqual(new Set(["B"]));
     });
 
     it("runs the hem's creatures round the waist nose to tail, every one whole, one under the middle of the front, over the two gold lines", () => {

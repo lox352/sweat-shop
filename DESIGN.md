@@ -492,8 +492,19 @@ they share is in `src/data/sweaters/felines/`.
   no round of the band wants a fourth yarn. The band is 35 rows: the
   creatures on its red, and under them the tunic's two gold lines - four
   rounds of gold, two of red, two of gold - then a round of red before the
-  rib. The sleeve ends' feline, 30 by 32: the big one in miniature, gold on
-  red, each part placed where the model puts it at that size.
+  rib. The band at the tunic's sleeve ends is the same band turned half
+  round, and its creature the same creature, traced there too
+  (`cuff-creature.svg`) and found the hem's part for part: the one drawing
+  is knitted in both, turned for the cuffs. The cuff band is 37 rows: the
+  creature on the red, then the lines as they are at the sleeve's end -
+  four rounds of gold, three of red, four of gold - and the red rib for the
+  fringe. The sleeves' feline, 36 stitches by 44 rows, is the small red
+  feline embroidered on the tunic's sleeve beside its band, from a trace of
+  the same photograph (`sleeve-feline.svg`): the large felines in little,
+  with a striped lobe either side of its head where they have whiskers,
+  three claws to a hand and two stripes to a foot. It is drawn lying
+  across the sleeve, as it does on the tunic's, where the sleeve lies level
+  and it stands.
 - **Laid out** (`knit.ts`), at 32 stitches and 38 rounds to 10cm on the strip
   samplers' measurements, which leave the felines room. The left-hand feline
   goes on the front and the right-hand one on the back, centred, each as wide
@@ -586,20 +597,23 @@ they share is in `src/data/sweaters/felines/`.
   increase where a feline is: increases kept clear of the felines would keep
   the fabric over each at its width while the yoke grew round it, a cone
   with two flat panels in it.
-- **Sleeves.** Plain, decreasing at the underarm to the cuff band: whole
-  repeats of the small feline with a few stitches of red between, at about a
-  quarter more than the cuff, between two rounds of gold and two of red each
-  side; then a round of red gathers it in to the cuff's rib.
-- **The sleeves' creatures.** Above each cuff band two of the hem band's
-  creatures, on their own - no band behind them - in red straight on the
-  ground, their eyes and toes cream as on the hem: 36 stitches by 23 rounds,
-  half a round apart on the front and the back of the arm, so with the arms
-  down each sleeve shows one from the front and one from behind. They need 80
-  stitches at least, 4 between them at their nearest. A decrease round can't
-  carry a picture, so the taper pauses through their rounds: they sit six
-  rounds above the band where the sleeve is wide enough there (M and up), and
-  in XS, whose band is 74, as much higher as its last three decreases need,
-  one every fourth round below them.
+- **Sleeves.** Decreasing at the underarm to the cuff band: two of the
+  band's creatures, as it happens, with from two to fourteen stitches of red
+  between them, at about a quarter more than the cuff; then a round of red
+  gathers it in to the cuff's rib. The right sleeve's band is as on the
+  tunic's sleeve - the creatures run down the front of the arm, towards the
+  underarm, their tails' curls towards the sleeve - and the left sleeve's is
+  its mirror image, so they go round the two cuffs opposite ways.
+- **The sleeves' felines.** Three plain rounds above each cuff band, two of
+  the small felines: one on the front of the arm and one on the back, lying
+  across it with their heads to the top of the arm and their feet to the
+  underarm, each the other's mirror image, and each in the middle of its
+  half of the round where they end. With the arms held out they stand, as
+  on the tunic. The sleeve goes on tapering through their 44 rounds: a
+  decrease round there is worked in the felines' own yarns, a chart row with
+  a k2tog and an ssk beside the underarm, between their feet. Only XS, whose
+  band is 76 - two felines and four stitches - has a decrease that would
+  leave their feet no room, and works it in the plain rounds after them.
 - **Ribs** in the red, k1 p1: nine rounds at the neck, fourteen at the hem and
   cuffs.
 - **Colours.** A the ground, B red, C cream, D gold, in three colourways of
