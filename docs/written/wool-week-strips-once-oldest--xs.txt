@@ -47,11 +47,9 @@ Yoke (yoke)
 Body (body)
   Divide, in 17A: k63, put 80 on hold for sleeve-right, cast on 12, k126, put 80 on hold for sleeve-left, cast on 12, k63. (276 sts)
   1 round of k1 in 17A.
-  Chart wool-week-strips-once-oldest-17A5-1w4b02320, rows 1-5.
-  Chart wool-week-strips-once-oldest-17A14-3w4b0123c21002320, rows 1-12.
+  Chart wool-week-strips-once-oldest-17A14-1w4b0123c2100123c210, rows 1-14.
   1 round of k1 in 17A.
-  Chart wool-week-strips-once-oldest-18B22-6w12b01233c210001233c210, rows 1-17.
-  1 round of k1 in 19D.
+  Chart wool-week-strips-once-oldest-18B24-4w12b001223c2210001223c22100, rows 1-21.
   Chart wool-week-strips-once-oldest-19E12-1w12b00001223c2210, rows 1-12.
   Shaping round in 19G: k35, m1, [k69, m1] x 3, k34, to 280 sts.
   Chart wool-week-strips-once-oldest-19C14-3w28b0112233c22110, rows 1-12.

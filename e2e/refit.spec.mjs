@@ -75,7 +75,7 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
   await expect(shown).toBeVisible({ timeout: 90_000 });
   expect(scripts.filter((url) => url.includes("fit.worker")).length).toBe(1);
   // The colourway steps down the sweater: each way is drawn in the yarns for where its years would sit, and says what that adds to the wool.
-  await expect(shown).toContainText("This colourway steps down the sweater, so the years still to come take the yarns for where they now sit. That adds 2 yarns to what the pattern listed: Cloud (764), Bramble (155).");
+  await expect(shown).toContainText("This colourway steps down the sweater, so the years still to come take the yarns for where they now sit. That adds 1 yarn to what the pattern listed: Bramble (155).");
   await expect(shown).toContainText("420 stitches round the yoke, 24 more than this tension wants");
   await expect(shown).toContainText("The body has 2016 to 2020");
   await expect(shown.getByRole("row", { name: /Chest/ })).toContainText("123.5cm");

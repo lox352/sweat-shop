@@ -282,15 +282,27 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     the quanta either side of a core together; an odd one over is left out,
     the piece a round shorter. A piece too tight for all this frames each
     quantum alone, and then lets the one round between two quanta of a
-    year frame both (XS's body, round 2019's boat and sheep). A cut that
+    year frame both (S's body, round 2019's boat and sheep). A cut that
     would open a piece itself, with no plain round above for its first
     shaping, is passed over.
-  - Each year's cuts are a ladder from fullest down, and a piece takes the
-    trims in a set order until it fits: on the yoke 2014's outer rows, then
-    the sheep's sky and field, two rows to one; on the body 2020's outer
-    peeries, 2018's plain rows, then a row off each side of 2017 and of 2018.
-    A trim a later one has made room for again is given back. The sleeves
-    start mid-ladder and spend their spare rounds upwards.
+  - Each year's cuts are a ladder from fullest down, each step down it
+    ranked by how readily it is taken, and a piece takes its years' steps
+    in that order until it fits: on the yoke 2014's one star between its
+    peeries for its two, 2016's seed borders, then the sheep's sky and
+    field, two rows to one; on the body 2017's three bands for four, 2018's
+    plain rows and its third band, 2020's outer peeries. A step a later,
+    bigger one has made room for again is taken back. Below the cuts chosen
+    for the published sizes a year's ladder goes on through every other cut
+    it has, for a piece with fewer rounds: a knitter's bigger stitches, or
+    more years to it.
+  - A pattern is not cut into while its year has a shorter cut that keeps
+    it whole. 2017's zigzags go a band at a time, never a row off each
+    side: where three will not go, however the piece is framed, there are
+    two, which turn about each other still (XS's body). 2018's dancers and
+    plusses give way to its dancers between two rows of plusses, or alone.
+    Only 2023's flowers have nothing shorter than themselves, and are
+    cropped evenly about their centre, after every step that keeps the
+    patterns whole.
 - **Quanta** (`quanta.ts`). Each hat's pattern is cut into quanta, the
   pieces that go together and whose foreground is never altered, only
   spaced: a band of stars, a row of sheep, a peerie. A *free* quantum can

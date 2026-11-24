@@ -40,6 +40,8 @@ import { background } from "./quanta";
  *    ladder has a rank, how readily it is taken (see ladders). A piece starts
  *    each of its years at the top, takes their steps in rank order until it
  *    fits, and takes back any that a later, bigger step made room for again.
+ *    A pattern is cut into only where its year has no shorter cut that keeps
+ *    it whole.
  *
  * How many years each piece has, and where the yoke divides, is whatever
  * keeps a year most nearly the same height on all three (see laidOut).
@@ -55,20 +57,30 @@ const st = (label: string, parts: Part[]): State => ({ label, parts });
  * Rule 6: each year's ladder, the fullest cut first, each with its rank - how
  * readily a piece steps down to it, the least missed first. The order is its
  * knitter's, who looks for these in a cut:
- * - **A pattern is not cut into.** A step that takes rows off a pattern -
- *   "a row off each side" - is ranked after every step that keeps the
- *   patterns whole (CUT), so it is taken only when those have all been.
- *   (Rows of sky over the sheep are not the sheep; a plain edge is no
+ * - **A pattern is not cut into.** No step takes rows off a pattern whose
+ *   year has a shorter cut that keeps it whole. 2017's zigzags go a band at a
+ *   time, and below 2018's dancers and plusses stand its dancers between two
+ *   rows of plusses, and its dancers alone (see wholeOf): neither is had
+ *   with "a row off each side". Only 2023's flowers have nothing shorter
+ *   than themselves, and are cropped; that is ranked after every step that
+ *   keeps the patterns whole (CUT), so it is taken only when those have all
+ *   been. (Rows of sky over the sheep are not the sheep; a plain edge is no
  *   pattern; the lattice is cropped where its frames end.)
  * - **Twice is company, four times is dull.** 2017's band is one motif,
- *   turned about row by row: three of it before four, the first step taken.
+ *   turned about row by row: three of it before four, the first step taken;
+ *   and where three will not go, two whole, which turn about each other
+ *   still - the last step that cuts nothing (LAST).
  * - **A core wants its trimmings.** 2014's one star between two peeries
  *   before its two stars side by side; and 2020's two stars each framed
- *   either side (as the hat) kept longest of the steps that cut nothing.
+ *   either side (as the hat) kept longest of the steps a piece takes freely.
  * - **A piece is balanced.** Otherwise a year gives up a trimming before its
  *   neighbour gives up two: the sheep's sky two rows at a time, the sleeves'
  *   years turn about.
+ * - **A last resort waits.** A step ranked LAST or more - 2017 down to two
+ *   bands, the flowers cropped - is taken only where the steps before it
+ *   will not go however the piece is framed (see fit).
  */
+const LAST = 25;
 const CUT = 30;
 type Rung = [rank: number, state: State];
 const ladders: Record<number, Rung[]> = {
@@ -88,16 +100,13 @@ const ladders: Record<number, Rung[]> = {
   2017: [
     [0, st("Four bands", [["A", 1, 14], ["A", 1, 14]])],
     [1, st("Three bands", [["A", 1, 14], ["A", 1, 7]])],
-    [CUT + 9, st("Three bands, 1 row off each side", [["A", 2, 14], ["A", 1, 6]])],
-    [CUT + 11, st("Three bands, 2 rows off each side", [["A", 3, 14], ["A", 1, 5]])],
+    [LAST, st("Two bands", [["A", 1, 14]])],
   ],
-  // Its three bands with a row off each side stand taller than its two whole: a ladder only goes down, so there is no such rung.
   2018: [
     [0, st("Dancers, plusses, dancers", [["B", 4, 34]])],
     [2, st("Dancers, plusses, dancers, plain edges off", [["B", 5, 33]])],
     [6, st("Dancers and plusses", [["B", 4, 24]])],
     [8, st("Dancers and plusses, plain edges off", [["B", 5, 23]])],
-    [CUT + 10, st("Dancers and plusses, a row off each side", [["B", 6, 22]])],
   ],
   2019: [[0, st("Sheep and boat, a round between", [["C", 3, 14], ["E", 1, 12]])]],
   2020: [
@@ -383,13 +392,16 @@ const wholeOf = (year: number): Rung[] => {
  * Rule 6: these years, in order, cut to go in so many rounds. Each starts at
  * the top of its ladder; the step least missed is taken until the piece
  * fits; and then any step taken before the last, of another year, is taken
- * back where that leaves `slack` rounds spare. By the rungs alone, however
- * the piece has to be framed to take them; and only where they will not go
- * at all, by the cuts below them. None where the years will not go at all.
+ * back where that leaves `slack` rounds spare. By the rungs short of a last
+ * resort, however the piece has to be framed to take them; then by all the
+ * rungs; and only where they will not go at all, by the cuts below them.
+ * None where the years will not go at all.
  */
 const fit = (years: number[], total: number, ends: Ends, slack: number): { placed: Placed[]; mode: Mode } | null => {
-  for (const all of [ladders, Object.fromEntries(years.map((year) => [year, wholeOf(year)]))]) {
-    const own = years.map((year) => all[year]);
+  const tiers = [years.map((year) => ladders[year].filter(([rank]) => rank < LAST)), years.map((year) => ladders[year]), years.map(wholeOf)];
+  for (const [nth, own] of tiers.entries()) {
+    // The same ladders as the tier before, where these years have nothing more: they have been tried.
+    if (nth > 0 && own.every((ladder, i) => ladder.length === tiers[nth - 1][i].length)) continue;
     for (const mode of [STRICT, { mirror: true, share: true }, { mirror: false, share: true }]) {
       const at = years.map(() => 0);
       const placed = () => own.map((ladder, i) => place(years[i], ladder[at[i]][1]));
