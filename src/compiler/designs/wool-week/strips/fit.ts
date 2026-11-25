@@ -85,7 +85,7 @@ export const fitting = (prefix: string, lowTrim: () => string): Fitting => {
   /** A whole sweater from the cast-on, as a published size is knitted (see knit): the ribs in the design's own trims. */
   const whole = (pieces: Pieces, finished: Measurements, g: Gauge): Made => {
     if (pieces.yoke.length === 0) throw new Error("the yoke has no room for a year at this tension");
-    const knitted = knit(finished, { rows: pieces }, prefix, g, lowTrim());
+    const knitted = knit(finished, { rows: pieces, opened: true }, prefix, g, lowTrim());
     return { ...knitted, neck: knitted.checks.neck, count: knitted.checks.neck, yokeEnd: knitted.checks.yoke };
   };
 
@@ -118,7 +118,7 @@ export const fitting = (prefix: string, lowTrim: () => string): Fitting => {
     const body = shared ? nearest((chest * yokeEnd) / yokeTotal, 4) : chest;
     const held = (yokeEnd - (body - 2 * underarm)) / 2;
     if (held < 2) throw new Error("the yoke has too few stitches for sleeves");
-    const low = below({ body: banded(pieces.body), sleeve: banded(pieces.sleeve) }, { body, underarm, held, cuff }, lowTrim(), prefix, ribsAt(g));
+    const low = below({ body: banded(pieces.body), sleeve: banded(pieces.sleeve) }, { body, underarm, held, cuff }, lowTrim(), prefix, ribsAt(g), true);
     sections.push({ label: "Body", piece: "body", rounds: low.body }, ...low.sleeves);
     return {
       sections,
@@ -169,9 +169,10 @@ export const fitting = (prefix: string, lowTrim: () => string): Fitting => {
       chestCm: half(checks.body / g.stitches),
       neckCm: half(made.neck / g.stitches),
       yokeDepthCm: half(yokeRounds / g.rounds),
-      bodyLengthCm: half((pieces.body.length + ribs.hem + 2) / g.rounds),
+      // The body's first row is the dividing round, and the sleeve's the round it is taken up in (see Plan's opened).
+      bodyLengthCm: half((pieces.body.length + ribs.hem + 1) / g.rounds),
       upperArmCm: half(checks["sleeve-left:top"] / g.stitches),
-      sleeveLengthCm: half((pieces.sleeve.length + ribs.cuff + 2) / g.rounds),
+      sleeveLengthCm: half((pieces.sleeve.length + ribs.cuff + 1) / g.rounds),
       cuffCm: half(checks["sleeve-left:cuff"] / g.stitches),
     };
     const notes: string[] = [];

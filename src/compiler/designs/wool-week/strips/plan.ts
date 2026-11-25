@@ -75,6 +75,11 @@ export interface Plan {
   rows: { yoke: Row[]; body: Row[]; sleeve: Row[] };
   /** Rounds of colourwork on each piece. */
   depth: { yoke: number; body: number; sleeve: number };
+  /**
+   * For Each Year Once: the body's first row is the dividing round itself, and the sleeve's the round its stitches are taken up in, so the plain
+   * round that opens each is its first band's own and no round goes before it.
+   */
+  opened?: boolean;
   /** For Each Year Once: each piece's quanta, in order, and how they are framed. */
   frames?: { yoke: Frame[]; body: Frame[]; sleeve: Frame[] };
   /** For a lined-up layout: how the last year carries on down the sleeve. */

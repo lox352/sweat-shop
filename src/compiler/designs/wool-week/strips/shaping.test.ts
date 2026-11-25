@@ -75,8 +75,9 @@ describe("a yoke grown by its quanta", () => {
       count = s.count;
     });
     expect(count).toBe(end);
-    // The site's yoke fell a fifth behind before it grew by its quanta; it falls up to 14% behind with no increase inside 2014's stars.
-    expect(lag).toBeLessThan(0.15);
+    // The site's yoke fell a fifth behind before it grew by its quanta; it falls up to 15.3% behind with no increase inside 2014's stars - most in
+    // 4XL, both of whose stars come before its first plain round but one, now that no band has a round more than its own above and below.
+    expect(lag).toBeLessThan(0.16);
   });
 
   it.each(cases)("keeps its increase rounds apart: $kind, $label", ({ finished, layout }) => {

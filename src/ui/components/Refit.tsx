@@ -28,6 +28,8 @@ const Refit: React.FC<{
   progress: number;
   tension: Tension;
   fit: ProjectFit | undefined;
+  /** What the fit left, where it is kept to go back to: the tension it was for, and whether it was knitting of the project's own (see projects' fitTaken). */
+  back?: { tension: Tension; own: boolean };
   palette: Palette;
   /** The colourway as it would be on a sweater planned otherwise, and the wools that would add: see useColourway. */
   coloursOn: (placement: Placement | undefined) => { palette: Palette; added: Shade[] };
@@ -38,7 +40,7 @@ const Refit: React.FC<{
   lead?: string;
   onTake: (fitted: Fitted) => void;
   onGoBack: () => void;
-}> = ({ sweater, size, knitted, progress, tension, fit, palette, coloursOn, roundNames, title = "Recalculate the rest", lead, onTake, onGoBack }) => {
+}> = ({ sweater, size, knitted, progress, tension, fit, back, palette, coloursOn, roundNames, title = "Recalculate the rest", lead, onTake, onGoBack }) => {
   const { state, ask, reset } = useFit();
   // A tension changed is another question: what was worked out for the last is put away.
   const key = `${tension.stitchesPer10cm} ${tension.roundsPer10cm}`;
@@ -46,8 +48,28 @@ const Refit: React.FC<{
   const work = () => ask({ design: sweater.id, sizeId: size.id, knitted, progress, tension });
 
   const fittedNow = fit && sameTension(fit.tension, tension);
-  // Every round to the one it was fitted from is as the pattern had it: until the knitting passes it, the pattern as written can be gone back to.
-  const canGoBack = fit?.from !== undefined && progress <= (fit.round === undefined ? 0 : (knitted.rounds[fit.round - 1]?.at(-1) ?? -1));
+  // Every round to the one it was fitted from is as the pattern had it: until the knitting passes it, the pattern as it was can be gone back to.
+  const canGoBack = fit !== undefined && back !== undefined && progress <= (fit.round === undefined ? 0 : (knitted.rounds[fit.round - 1]?.at(-1) ?? -1));
+  const goBack = back?.own ? "Go back to the pattern as it was" : "Go back to the pattern as written";
+
+  // The tension the pattern was for before the rest was recalculated, and none of that rest knitted: the pattern it was is the answer, exactly, and
+  // nothing is worked out. Planned again from here it need not come to the same.
+  if (!fittedNow && canGoBack && sameTension(back.tension, tension) && state.at === "rest") {
+    return (
+      <div className="refit">
+        <h3>{title}</h3>
+        <p>
+          This is the tension your pattern was {back.own ? "worked out for" : "written for"} before the rest was recalculated, and none of the recalculated rest is knitted yet. You can go back
+          to that pattern exactly as it was.
+        </p>
+        <p className="my-tension-actions refit-actions">
+          <Button variant="primary" onClick={onGoBack}>
+            {goBack}
+          </Button>
+        </p>
+      </div>
+    );
+  }
 
   if (fittedNow && state.at === "rest") {
     return (
@@ -63,7 +85,7 @@ const Refit: React.FC<{
         {canGoBack && (
           <p>
             <Button variant="quiet" onClick={onGoBack}>
-              Go back to the pattern as written
+              {goBack}
             </Button>
           </p>
         )}

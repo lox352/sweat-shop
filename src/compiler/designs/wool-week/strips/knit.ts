@@ -494,7 +494,16 @@ interface Counts {
  * counts they are knitted to - a size's own, or what a yoke already knitted
  * leaves (see continued).
  */
-export const below = (plan: { body: Row[]; sleeve: Row[] }, { body, underarm, held, cuff }: Counts, lowTrim: string, prefix: string, ribs: ReturnType<typeof ribsAt>) => {
+export const below = (
+  plan: { body: Row[]; sleeve: Row[] },
+  { body, underarm, held, cuff }: Counts,
+  lowTrim: string,
+  prefix: string,
+  ribs: ReturnType<typeof ribsAt>,
+  opened = false,
+) => {
+  // Where a plan's pieces are opened by their own first rows (see Plan), the dividing round and the round a sleeve is taken up in are those rows.
+  const after = (rows: Row[]) => (opened ? rows.slice(1) : rows);
   // The sleeves take what the body leaves: each sleeve's held stitches, and the underarm cast on beside them.
   const top = held + underarm;
   const half = (body - 2 * underarm) / 2;
@@ -502,7 +511,7 @@ export const below = (plan: { body: Row[]; sleeve: Row[] }, { body, underarm, he
   /* ---------------------------------------------------------------- body */
   const bodyWriter = new Writer(prefix);
   const hemCount = nearest(body, 4);
-  tiled(bodyWriter, plan.body, body, () => body, false, () => hemCount);
+  tiled(bodyWriter, after(plan.body), body, () => body, false, () => hemCount);
   const bodySpecs: RoundSpec[] = [
     {
       type: "divide",
@@ -523,7 +532,7 @@ export const below = (plan: { body: Row[]; sleeve: Row[] }, { body, underarm, he
   ];
 
   /* ------------------------------------------------------------- sleeves */
-  const rows = plan.sleeve;
+  const rows = after(plan.sleeve);
   const L = rows.length;
   // A straight taper from the upper arm to the cuff, the first few rounds left at their count. Where that would seam a band, the taper reaches the
   // cuff's count half way down the last year's band, or where that band begins, and goes straight on from there, so the band can go round on fewer
@@ -570,7 +579,7 @@ export const below = (plan: { body: Row[]; sleeve: Row[] }, { body, underarm, he
     label,
     piece,
     rounds: [
-      { type: "piece", held: piece, before: underarm / 2, after: underarm / 2, slot: slotOfRound(rows[0]), check: `${piece}:top` },
+      { type: "piece", held: piece, before: underarm / 2, after: underarm / 2, slot: slotOfRound(plan.sleeve[0]), check: `${piece}:top` },
       ...sleeveRounds(piece),
       { type: "needles", to: "rib" },
       { type: "rounds", count: ribs.cuff, slot: lowTrim, sequence: ["k", "k", "p", "p"], fabric: "rib", check: `${piece}:cuff` },
@@ -594,7 +603,7 @@ export const below = (plan: { body: Row[]; sleeve: Row[] }, { body, underarm, he
 };
 
 /** A size knitted whole from its plan's rows, at a tension: its waist and wrists ribbed in the trim given, or else the one its last years give. */
-export const knit = (size: Measured, given: Pick<Plan, "rows">, prefix: string, g: Gauge = gauge, lowTrimGiven?: string): Knitted => {
+export const knit = (size: Measured, given: Pick<Plan, "rows" | "opened">, prefix: string, g: Gauge = gauge, lowTrimGiven?: string): Knitted => {
   const plan = { ...given, rows: { yoke: banded(given.rows.yoke), body: banded(given.rows.body), sleeve: banded(given.rows.sleeve) } };
   const ribs = ribsAt(g);
   const neck = nearest(size.neckCm * g.stitches, 4);
@@ -624,7 +633,7 @@ export const knit = (size: Measured, given: Pick<Plan, "rows">, prefix: string, 
     ...yoke.done(),
   ];
   yokeSpecs[yokeSpecs.length - 1] = { ...yokeSpecs[yokeSpecs.length - 1], check: "yoke" };
-  const low = below(plan.rows, { body, underarm, held: (yokeEnd - (body - 2 * underarm)) / 2, cuff }, lowTrim, prefix, ribs);
+  const low = below(plan.rows, { body, underarm, held: (yokeEnd - (body - 2 * underarm)) / 2, cuff }, lowTrim, prefix, ribs, given.opened);
   return {
     sections: [{ label: "Yoke", piece: "yoke", rounds: yokeSpecs }, { label: "Body", piece: "body", rounds: low.body }, ...low.sleeves],
     charts: [...yoke.charts.values(), ...low.charts],

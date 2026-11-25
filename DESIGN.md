@@ -258,7 +258,13 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     other's.
   - A pattern's own plain first or last row is its increase round, so no
     round goes beside it. Where neither neighbour has one, one plain round
-    goes between them.
+    goes between them. A piece begins with one plain round, and the body
+    and sleeves end with one: the band's own plain row, or a round beside
+    it where it has none, never both. The body's first is the dividing
+    round itself, and a sleeve's the round its stitches are taken up in,
+    so the first band below the divide has one round above it as it has
+    one below. (Where that band wants another count of stitches, its first
+    patterned round takes the change: there is no plain round before it.)
   - A cut's plain edge rows are kept or dropped in pairs, so a band is
     framed alike top and bottom: the houses, 2018's dancers, 2020's stars.
   - Where two quanta meet that don't go together, a plain round goes
@@ -270,8 +276,9 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     it can be and not more: a round between two bands that is its
     neighbour's does not count, so 2019's boat has a round of its own sky
     under 2018's last plain row, and 2023's peeries one of theirs beside
-    2022's and 2024's. More than one comes only of rounds left over once
-    the fullest cuts that fit are in.
+    2022's and 2024's. More than one comes only of rounds no cut of the
+    piece's years can take, and the planner leaves as few as it can: in the
+    published sizes, none.
   - Every quantum is framed alike: as many plain rounds above it as below -
     its own plain edge rows, the round between it and a neighbour where
     that is its own, and its padding - each in the background beside it. In
@@ -283,10 +290,12 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     peeries round its flowers. In M each peerie has a round of its own
     background above and below, the sheep giving up a row of sky and of
     field to make room.
-  - Spare rounds go to quanta a pair at a time, one above and one below,
-    patterned quanta first, the least framed first, up to two pairs each,
-    the quanta either side of a core together; an odd one over is left out,
-    the piece a round shorter. A piece too tight for all this frames each
+  - Rounds left over go to quanta a pair at a time, one above and one
+    below, up to two pairs each, the quanta either side of a core together:
+    where that makes the fewest gaps deeper than two rounds - the last
+    quantum of a piece, above its rib, before one between two others - then
+    patterned quanta, the least framed. An odd one over is left out, the
+    piece a round shorter. A piece too tight for all this frames each
     quantum alone, and then lets the one round between two quanta of a
     year frame both. A cut that
     would open a piece itself, with no plain round above for its first
@@ -297,16 +306,34 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     peeries for its two, 2016's seed borders, then the sheep's sky and
     field, two rows to one; on the body 2017's three bands for four, 2018's
     third band, its dancers between two rows of plusses for its dancers and
-    plusses, 2020's outer peeries, then 2017's two bands for three. A step a later,
-    bigger one has made room for again is taken back. Below the cuts chosen
+    plusses, 2020's outer peeries, then 2017's two bands for three. Then, of
+    every way of cutting its years no deeper than that - or than each
+    year's last step that cuts into nothing - it takes the one that leaves
+    the fewest rounds over, and of those the least missed: rounds go into
+    pattern before they go between patterns, and one year steps down for
+    another to step up where that fills the piece. Bands come out less
+    alike in height for it. The yoke divides, within its reach, where its
+    pieces then have the fewest plain rounds. Below the cuts chosen
     for the published sizes a year's ladder goes on through every other cut
     it has, for a piece with fewer rounds: a knitter's bigger stitches, or
     more years to it.
+  - Where a pair of trimmings will not go, one does, below the core: a
+    peerie under 2020's stars or 2023's flowers, a seed border under 2016's
+    houses, a border under 2022's anchors or 2024's rams. It is ranked just
+    after the cut without either. 2025's dotted strip is the exception: on
+    both sides of its motif or neither, while anything else whole will do.
+  - No cut has two plain rows at an edge, which would want two at its
+    other: the sheep's sky comes off to a plain row of the hat's own each
+    time.
   - A pattern is not cut into while its year has a shorter cut that keeps
     it whole. 2017's zigzags go a band at a time, never a row off each
     side: where three will not go there are two, which turn about each
     other still (XS's and S's bodies). 2018's dancers and plusses give way
-    to its dancers between two rows of plusses, or alone.
+    to its dancers between two rows of plusses, or alone. 2019 gives up
+    its boat and keeps its sheep, never the boat without them. 2026's
+    lattice gives up its bands of blobs, four rounds each and whole, one at
+    a time and readily; 2021 its borders, last of the steps that cut into
+    nothing.
     Only 2023's flowers have nothing shorter than themselves, and are
     cropped evenly about their centre, after every step that keeps the
     patterns whole.
