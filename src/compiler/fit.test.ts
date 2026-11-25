@@ -209,17 +209,19 @@ describe("Each Year Once, shaped: planned on from anywhere along a plan, the pla
     }
   }, 600000);
 
-  it("a tension changed, and changed back before anything more is knitted, leaves the pattern as it was", () => {
+  it("a tension changed, and changed back before anything more is knitted, leaves the pattern as it was: the same edition", async () => {
+    const named = async (knitted: typeof whole) => (await asEdition(knitted, shaped, "l")).edition;
     for (const [round, other] of [[cuts[0], tight], [cuts[1], loose]] as const) {
       const away = fit({ design: shaped, sizeId: "l", knitted: whole, round, tension: other });
       expect(said(away.knitted)).not.toEqual(said(whole));
       const back = fit({ design: shaped, sizeId: "l", knitted: away.knitted, round, tension: own });
       expect(back.knitted.rounds).toEqual(whole.rounds);
       expect(said(back.knitted)).toEqual(said(whole));
+      expect(await named(back.knitted)).toBe(await named(whole));
     }
   }, 600000);
 
-  it("a plan made for another tension, followed to a later year's end and planned again at that tension, is itself", () => {
+  it("a plan made for another tension, followed to a later year's end and planned again at that tension, is itself, counts and all", () => {
     const away = fit({ design: shaped, sizeId: "l", knitted: whole, round: cuts[0], tension: tight });
     const later = cutAfter(shaped, away.knitted, cuts[0] + 1)!;
     expect(later).toBeGreaterThan(cuts[0]);
@@ -227,6 +229,7 @@ describe("Each Year Once, shaped: planned on from anywhere along a plan, the pla
     const again = fit({ design: shaped, sizeId: "l", knitted: away.knitted, round: later, tension: tight });
     expect(again.knitted.rounds).toEqual(away.knitted.rounds);
     expect(said(again.knitted)).toEqual(said(away.knitted));
+    expect(again.knitted.checks).toEqual(away.knitted.checks);
     // Planned from there at any other tension it is a plan of its own, from where the knitting is.
     const other = fit({ design: shaped, sizeId: "l", knitted: away.knitted, round: later, tension: loose });
     expect(other.notes[0]).not.toMatch(/the rest of that pattern/);
@@ -475,6 +478,25 @@ describe("what the planner answers is what a link names", () => {
       await named(once, "l", { option: "fewer" }),
     ]).toEqual(["38a1e1893ce0", "c85b2bd5451b", "db9c907bc563", "7a9bc7774f5e"]);
   }, 60000);
+
+  /*
+   * The shaped sampler's answer is its bodies' too: the table its increases
+   * are placed by, and how they are placed. From the cast-on at a knitter's
+   * own tension; from a year's end at another, which no earlier plan
+   * explains, so planned from there; and from a year's end at the pattern's
+   * own, which is the published size's own edition, counts and all - a
+   * jumper recalculated back to its pattern is on its pattern again.
+   */
+  it("and for a yoke shaped to the body", async () => {
+    const shaped = "wool-week-strips-once-oldest-shaped";
+    const whole = buildSweater(sweaterById(shaped)!, "l");
+    const first = cutAfter(shaped, whole, 1)!;
+    expect([
+      await named(shaped, "l", { tension: { stitchesPer10cm: 34, roundsPer10cm: 42 } }),
+      await named(shaped, "l", { knitted: whole, round: first, tension: { stitchesPer10cm: 30, roundsPer10cm: 36 } }),
+      await named(shaped, "l", { knitted: whole, round: first, tension: { stitchesPer10cm: 32, roundsPer10cm: 38 } }),
+    ]).toEqual(["c1c29c6adecd", "f79a0885fb8d", (await asEdition(whole, shaped, "l")).edition]);
+  }, 120000);
 
   it("for the designs planned only from the cast-on too", async () => {
     const tighter = { stitchesPer10cm: 29.5, roundsPer10cm: 35 };
