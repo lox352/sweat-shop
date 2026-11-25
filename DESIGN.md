@@ -216,8 +216,42 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
 | File | Layout |
 | --- | --- |
 | `wool-week-strips-once-oldest.ts` | **Each Year Once.** 2014 to 2016 round the yoke, 2017 to 2021 down the body, 2022 to 2026 down both sleeves, each year as full as its piece has room for (`refit.ts`) |
+| `wool-week-strips-once-oldest-shaped.ts` | **Each Year Once, shaped.** Each Year Once round for round, with every round's increases on the yoke put where bodies of the size have room for them and not evenly round (`body.ts`, below) |
 | `wool-week-strips-lined-oldest.ts` | **Thirteen Strips.** All thirteen years from the neck to the hem, each in a strip of about the same height; the sleeves knit the body's strips round for round and carry 2026 on to the cuff (`lined` in `plan.ts`) |
 
+- **A yoke shaped to the body** (`body.ts`; `shaped` in a sampler's file).
+  A round yoke that increases evenly has too many stitches down the middle
+  of the back and too few over the shoulders. A shaped
+  sampler makes the same number of stitches in the same rounds, and puts
+  them where bodies have the room: for each size, three men and a woman as
+  big round the chest as the size is to fit (bodies of Anny, an open body
+  model; `scripts/bodies` makes the table of them, `bodies.json`, and says
+  what was measured to decide each thing).
+  - Each round's increases go to the parts of the round shortest of
+    stitches for their room, spaced evenly in each, and the same either side
+    of the line from the middle of the back to the middle of the front: a
+    shaping round reads the same from either end. Each band's own doubled
+    columns stay as they are, the same in every repeat.
+  - No round leans its stitches far (`LEAN`): up to any place round it, a
+    round has no more than four new stitches more, nor fewer, than it would
+    have made evenly, so no column of the pattern is carried further than
+    that to one side in a round. What a place is still short of is left to
+    the rounds below. Uncapped, a round could make ten stitches in the
+    thirty across the middle of the front; the cap costs about a hundredth
+    of unevenness and nothing is pulled sideways off what it was worked into.
+  - Where they go is decided by the stitches above them alone - which were
+    made, round by round - with the tension and the size. So the rest of a
+    yoke planned from part of it knitted places its increases as that yoke
+    planned whole would.
+  - **Planned on from anywhere along a plan, the plan is itself**
+    (`Fitting.consistent`, `compiler/fit.ts`). The rest of a shaped sampler
+    part knitted is the rest of the earliest plan that explains what is
+    knitted: the whole sweater's from the cast-on at the tension asked for,
+    where the knitting is the beginning of that, or else the plan from the
+    earliest year's end whose rounds since are the knitting's. A plan
+    followed to a later year's end and planned again at its tension is the
+    same plan; a tension changed, and changed back before anything more is
+    knitted, leaves the pattern as it was.
 - **Turned, so every picture stands up.** Knitted from the neck down, a
   hat's chart is read from its top row: the sheep, houses, boat and ram stand
   the right way up on the jumper as worn, and the lettering reads.

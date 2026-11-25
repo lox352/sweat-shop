@@ -4,7 +4,8 @@ import { yearOf } from "../years";
 import { lettersOf, solid } from "./cuts";
 import { type Gauge, gauge, ribsAt, type Measured, type Plan, type Row } from "./plan";
 import { quantumOf } from "./quanta";
-import { added, growing, increasesOf, narrowing, type Step, tileOf, unitsOf } from "./shaping";
+import { type Body, Shaper, type ShortRows } from "./body";
+import { growing, increasesOf, madeIn, narrowing, type Placer, type Step, tileOf, unitsOf } from "./shaping";
 import { letterOf, plainSlot, trimOf } from "./slots";
 
 /**
@@ -243,20 +244,7 @@ export class Writer {
   double(r: ChartRow, before: number[], after: number[], below?: string[]) {
     this.flush();
     const tile = tileOf(r);
-    const fresh = added(before, after);
-    if (below) {
-      const w = below.length;
-      const unlike = (j: number) => below[(((j - 1) % w) + w) % w] !== below[((j % w) + w) % w];
-      let c = 0;
-      for (const q of [...fresh].sort((a, b) => a - b)) {
-        // The bar a make-one at q picks up is between the round below's stitches q - c - 1 and q - c.
-        if (unlike(q - c) && !fresh.has(q - 1) && !unlike(q - 1 - c)) {
-          fresh.delete(q);
-          fresh.add(q - 1);
-        }
-        c++;
-      }
-    }
+    const fresh = madeIn(before, after, below);
     // The make-one is the copy that only spaces the pattern out, whichever side of its twin.
     const cells: ChartCell[] = after.map((x, q) =>
       fresh.has(q) ? { slot: tile[x], spacer: true, symbol: "m1" } : fresh.has(q - 1) && after[q - 1] === x ? { slot: tile[x] } : cellOf(tile[x], after, q),
@@ -412,7 +400,7 @@ const tiled = (w: Writer, rows: Row[], start: number, want: (i: number) => numbe
  * The yoke's rounds as its quanta grow it (see shaping): from the neck to
  * `to`, near the target. Returns the count it leaves.
  */
-export const grown = (w: Writer, rows: Row[], from: number, to: number, want: (i: number) => number): number => {
+export const grown = (w: Writer, rows: Row[], from: number, to: number, want: (i: number) => number, placer?: Placer): number => {
   const steps = growing(rows, { from, to, want });
   // Each round's yarns, stitch by stitch, as it is knitted (see Writer): for its make-ones to be put between two of one yarn where they can.
   const yarnsOf = (i: number): string[] => {
@@ -421,7 +409,7 @@ export const grown = (w: Writer, rows: Row[], from: number, to: number, want: (i
     const tile = s.map.map((x) => tileOf(r as ChartRow)[x]);
     return Array.from({ length: s.count }, (_, j) => tile[j % tile.length]);
   };
-  const places = increasesOf(steps, from, (i) => (i > 0 ? yarnsOf(i - 1) : undefined));
+  const places = increasesOf(steps, from, (i) => (i > 0 ? yarnsOf(i - 1) : undefined), placer);
   let count = from;
   let map: number[] | undefined;
   steps.forEach((s, i) => {
@@ -602,34 +590,65 @@ export const below = (
   };
 };
 
-/** A size knitted whole from its plan's rows, at a tension: its waist and wrists ribbed in the trim given, or else the one its last years give. */
-export const knit = (size: Measured, given: Pick<Plan, "rows" | "opened">, prefix: string, g: Gauge = gauge, lowTrimGiven?: string): Knitted => {
-  const plan = { ...given, rows: { yoke: banded(given.rows.yoke), body: banded(given.rows.body), sleeve: banded(given.rows.sleeve) } };
-  const ribs = ribsAt(g);
+/** The back neck's short rows, for a neck of so many stitches: three pairs, the first turning about a sixth of the way round either side of the middle of the back. */
+export const shortRowsOf = (neck: number): ShortRows => ({ first: Math.round(neck * 0.16), extend: Math.round(neck * 0.05), pairs: 3 });
+
+/**
+ * A yoke grown from its neck's stitches to a multiple of four nearest what
+ * the divide wants, following a target straight from a quarter more than the
+ * neck to it, four rounds before the end. With `bodies`, shaped: its
+ * increases go where its size's bodies have room (see body.ts), its Shaper
+ * told the cast-on and the ribbing first, then every round as it is planned.
+ */
+const yokeOf = (rows: Row[], neck: number, yokeTotal: number, prefix: string, g: Gauge, bodies?: Body) => {
+  const yoke = new Writer(prefix);
+  const first = Math.round(neck * 1.25);
+  const n = rows.length;
+  const target = (i: number) => first + (yokeTotal - first) * Math.min(1, (i + 4) / n);
+  const shortRows = shortRowsOf(neck);
+  const shaper = bodies && new Shaper({ body: bodies, neck, roundsPerCm: g.rounds, shortRows });
+  if (shaper) for (let r = 0; r <= ribsAt(g).neck; r++) shaper.knitAt(neck, []);
+  const yokeEnd = grown(yoke, rows, neck, nearest(yokeTotal, 4), target, shaper);
+  return { yoke, yokeEnd, shortRows, shaper };
+};
+
+/** What the divide wants of a size's yoke at a tension, and its neck's stitches. */
+const yokeCounts = (size: Measured, g: Gauge) => {
   const neck = nearest(size.neckCm * g.stitches, 4);
   const body = nearest(size.chestCm * g.stitches, 4);
   const underarm = Math.min(24, Math.max(8, nearest(body * 0.04, 2)));
   const upperArm = nearest(size.upperArmCm * g.stitches, 2);
+  return { neck, body, underarm, upperArm, yokeTotal: body - 2 * underarm + 2 * (upperArm - underarm) };
+};
+
+/**
+ * A shaped size's Shaper as planning its yoke leaves it, every round told:
+ * for checking against one read from the knitting (see body.ts's shaperFrom).
+ */
+export const shaperOf = (size: Measured, yoke: Row[], bodies: Body, g: Gauge = gauge): Shaper => {
+  const { neck, yokeTotal } = yokeCounts(size, g);
+  return yokeOf(banded(yoke), neck, yokeTotal, "", g, bodies).shaper!;
+};
+
+/** A size knitted whole from its plan's rows, at a tension: its waist and wrists ribbed in the trim given, or else the one its last years give. */
+export const knit = (size: Measured, given: Pick<Plan, "rows" | "opened">, prefix: string, g: Gauge = gauge, lowTrimGiven?: string, bodies?: Body): Knitted => {
+  const plan = { ...given, rows: { yoke: banded(given.rows.yoke), body: banded(given.rows.body), sleeve: banded(given.rows.sleeve) } };
+  const ribs = ribsAt(g);
+  const { neck, body, underarm, yokeTotal } = yokeCounts(size, g);
   const cuff = nearest(size.cuffCm * g.stitches, 4);
-  const yokeTotal = body - 2 * underarm + 2 * (upperArm - underarm);
   // The ribs in the trim (see colours): the neck's beside the yoke's first year, the waist's and the wrists' beside the last of the body and the sleeves.
   const { neck: neckTrim, low: lowTrim } = { ...trimsOf(plan.rows), ...(lowTrimGiven ? { low: lowTrimGiven } : {}) };
   // And the back neck's short rows in the first band's background, into which they run on.
   const shortRowSlot = firstGround(plan.rows.yoke);
 
   /* ---------------------------------------------------------------- yoke */
-  const yoke = new Writer(prefix);
-  const first = Math.round(neck * 1.25);
-  const n = plan.rows.yoke.length;
-  // The yoke from the neck to a multiple of four nearest what the divide wants, following a target straight from a quarter more than the neck to it, four rounds before the end.
-  const target = (i: number) => first + (yokeTotal - first) * Math.min(1, (i + 4) / n);
-  const yokeEnd = grown(yoke, plan.rows.yoke, neck, nearest(yokeTotal, 4), target);
+  const { yoke, yokeEnd, shortRows } = yokeOf(plan.rows.yoke, neck, yokeTotal, prefix, g, bodies);
   const yokeSpecs: RoundSpec[] = [
     { type: "castOn", count: neck, slot: neckTrim, fabric: "rib", check: "neck" },
     { type: "join" },
     { type: "rounds", count: ribs.neck, slot: neckTrim, sequence: ["k", "p"], fabric: "rib", markers: [{ after: 0, place: startOfRound }] },
     { type: "needles", to: "main" },
-    { type: "shortRows", first: Math.round(neck * 0.16), extend: Math.round(neck * 0.05), pairs: 3, slot: shortRowSlot },
+    { type: "shortRows", ...shortRows, slot: shortRowSlot },
     ...yoke.done(),
   ];
   yokeSpecs[yokeSpecs.length - 1] = { ...yokeSpecs[yokeSpecs.length - 1], check: "yoke" };

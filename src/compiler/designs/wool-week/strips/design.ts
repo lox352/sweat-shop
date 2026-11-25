@@ -1,5 +1,6 @@
 import type { Chart, Colourway, Size, SweaterPattern } from "../../types";
 import { yearOf, years } from "../years";
+import { bodyFor } from "./body";
 import { colourways, steps } from "./colours";
 import { fitting, fittingWhole } from "./fit";
 import { knit, type Knitted, trimsOf } from "./knit";
@@ -48,6 +49,8 @@ export interface StripSampler {
   name: string;
   story: string;
   layout: Layout;
+  /** Its yoke's increases go where bodies of each size have room for them, in place of evenly round: see body.ts. */
+  shaped?: boolean;
 }
 
 /** What each trim is for, by the part of the ribbing it is and the years beside it. */
@@ -56,12 +59,12 @@ const trimRole = (trim: string, part: string): string => {
   return `${part}, by default in the darkest yarn of ${years.join(" or ")}`;
 };
 
-export const stripSampler = ({ id, name, story, layout }: StripSampler): SweaterPattern => {
+export const stripSampler = ({ id, name, story, layout, shaped = false }: StripSampler): SweaterPattern => {
   // Each size is planned and knitted the first time anything asks for it, and kept.
   const knitted = new Map<string, Knitted>();
   const knittedOf = (size: (typeof measured)[number]): Knitted => {
     let found = knitted.get(size.id);
-    if (!found) knitted.set(size.id, (found = knit(size.finished, planOf(size.finished, layout), `${id}-`)));
+    if (!found) knitted.set(size.id, (found = knit(size.finished, planOf(size.finished, layout), `${id}-`, gauge, undefined, shaped ? bodyFor(size.finished.chestCm) : undefined)));
     return found;
   };
   const sizes: Size[] = measured.map((size) => ({
@@ -119,7 +122,7 @@ export const stripSampler = ({ id, name, story, layout }: StripSampler): Sweater
     slotsVaryBySize: true,
     steps,
     // Each Year Once can be planned on from a year's end on its yoke. A lined-up layout, whose sleeves are its body's strips over again, can't yet: only whole, from the cast-on.
-    fitting: layout.kind === "refit" ? fitting(`${id}-`, () => trimsNow().low) : fittingWhole(`${id}-`, layout),
+    fitting: layout.kind === "refit" ? fitting(`${id}-`, () => trimsNow().low, shaped) : fittingWhole(`${id}-`, layout),
     // Other people's charts, knitted as they drew them: floats as long as they come, caught behind the work, and every round in two yarns.
     rules: { colours: 2, float: Infinity },
     tensions: { rib: { stitch: 0.9 } },
