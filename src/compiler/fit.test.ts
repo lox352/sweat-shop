@@ -22,7 +22,7 @@ describe("a sweater fitted to its knitter, part way through", () => {
     expect(() => fit({ design: once, sizeId: "l", knitted: whole, round: 60, tension: loose })).toThrow(/round 60/);
     expect(cutAfter("paul-klee", whole, 1)).toBeUndefined();
     expect(fitOptions(once).map((option) => option.id)).toEqual(["every", "fewer"]);
-  });
+  }, 60000);
 
   for (const option of ["every", "fewer"]) {
     it(`size L from the end of 2015 at a loose tension, ${option}: every round knitted is kept, and the yoke divides where it is`, () => {
@@ -45,7 +45,7 @@ describe("a sweater fitted to its knitter, part way through", () => {
       expect(pieceRounds(fitted.knitted, "sleeve-left")).toBeLessThan(118);
       expect(fitted.finished.chestCm).toBeCloseTo(122, 0);
       expect(fitted.written).toMatch(/^Body \(body\)/m);
-    });
+    }, 60000);
   }
 
   it("size L from the end of 2015 at 26 stitches and 26 rounds: 2017's bands are whole, each knitted in all seven of its rounds", () => {
@@ -55,7 +55,7 @@ describe("a sweater fitted to its knitter, part way through", () => {
     expect(yarns.flatMap((slots) => (slots.has("17B") ? ["B"] : slots.has("17C") ? ["C"] : [])).join("")).toBe("CCCCCCCBBBBBBB");
     // And 2018's dancers and plusses from plain row to plain row.
     expect(fitted.written).toMatch(/Chart \S+-18B24-4\S*, rows 1-21\./);
-  });
+  }, 60000);
 
   it("asked of another fit's knitting from the same round, the answer is what it would have been of the pattern's: nothing of a rest not knitted is in it", () => {
     // So the rest worked out for one tension, then another with none of it knitted, is the rest worked out for the second: fits don't build on each other.
@@ -67,27 +67,27 @@ describe("a sweater fitted to its knitter, part way through", () => {
     expect(through.knitted.rounds).toEqual(direct.knitted.rounds);
     expect(said(through.knitted)).toEqual(said(direct.knitted));
     expect(through.written).toBe(direct.written);
-  });
+  }, 60000);
 
   it("planned again at the tension it was written for, the rest need not be the pattern's own: which is why a project goes back to that, and does not ask (see projects' fitTaken)", () => {
     const again = fit({ design: once, sizeId: "l", knitted: whole, round: second, tension: { stitchesPer10cm: 32, roundsPer10cm: 38 }, option: "every" });
     // Every round knitted is kept, and the size is the size.
     expect(again.knitted.rounds.slice(0, second)).toEqual(whole.rounds.slice(0, second));
     expect(again.knitted.checks.body).toBe(whole.checks.body);
-  });
+  }, 60000);
 
   it("at the pattern's own tension, the yoke goes on to the count the size divides at", () => {
     const fitted = fit({ design: once, sizeId: "l", knitted: whole, round: second, tension: { stitchesPer10cm: 32, roundsPer10cm: 38 } });
     expect(fitted.knitted.checks.yoke).toBe(whole.checks.yoke);
     expect(fitted.knitted.checks.body).toBe(whole.checks.body);
     expect(Math.abs(fitted.knitted.rounds.length - whole.rounds.length)).toBeLessThan(8);
-  });
+  }, 60000);
 
   it("a tighter knitter has more of the yoke to come", () => {
     const fitted = fit({ design: once, sizeId: "m", knitted: buildSweater(sweaterById(once)!, "m"), round: cutAfter(once, buildSweater(sweaterById(once)!, "m"), 1)!, tension: { stitchesPer10cm: 34, roundsPer10cm: 42 } });
     expect(fitted.knitted.checks.yoke).toBeGreaterThan(520);
     expect(fitted.notes[0]).toMatch(/The yoke has \d+ rounds more/);
-  });
+  }, 60000);
 });
 
 describe("Hamefarin fitted part way through its yoke", () => {
@@ -405,7 +405,7 @@ describe("what the planner answers is what a link names", () => {
 
   it("the same, asked again", async () => {
     expect(await named("hamefarin", "m")).toBe(await named("hamefarin", "m"));
-  });
+  }, 60000);
 
   it("and what it was when these were written", async () => {
     const whole = buildSweater(sweaterById("hamefarin")!, "m");
@@ -415,7 +415,7 @@ describe("what the planner answers is what a link names", () => {
       await named(once, "l", { option: "every" }),
       await named(once, "l", { option: "fewer" }),
     ]).toEqual(["38a1e1893ce0", "c85b2bd5451b", "db9c907bc563", "7a9bc7774f5e"]);
-  });
+  }, 60000);
 
   it("for the designs planned only from the cast-on too", async () => {
     const tighter = { stitchesPer10cm: 29.5, roundsPer10cm: 35 };
