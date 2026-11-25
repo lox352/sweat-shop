@@ -80,9 +80,15 @@ test.describe("the chart moves smoothly", () => {
         if (measured.painting.unpaintedMax > limit.unpainted || measured.painting.unpaintedNearMax > limit.unpaintedNear) {
           const shown = recording.frames.filter((f) => (f.s?.unpaintedNear ?? 0) > 0);
           const around = recording.frames.filter((f) => shown.some((g) => Math.abs(g.t - f.t) < 120));
-          console.log(`old chart showing in ${shown.length} frames:\n${around.map((f) => JSON.stringify({ t: f.t, ts: f.ts, u: f.s?.unpainted, n: f.s?.unpaintedNear, scroll: f.s?.scroll, sheet: f.s?.sheet, shift: f.s?.shift, moving: f.s?.moving, chart: f.s?.chart, layer: f.transform })).join("\n")}`);
+          console.log(`old chart showing in ${shown.length} frames:\n${around.map((f) => JSON.stringify({ t: f.t, ts: f.ts, after: f.after, u: f.s?.unpainted, n: f.s?.unpaintedNear, scroll: f.s?.scroll, sheet: f.s?.sheet, shift: f.s?.shift, moving: f.s?.moving, chart: f.s?.chart, layer: f.transform })).join("\n")}`);
         }
 
+        // And a jump, the frames either side of it: whether lines were easing, and what painting had cost (lines are moved at once while it is over budget, see TileView's cost).
+        if (measured.jumps.byKind.slip > 0) {
+          const near = (jump) => recording.frames.filter((f) => !f.missing && Math.abs(f.t - jump.t) < 70);
+          const told = (f) => ({ t: f.t, ts: f.ts, after: f.after, cost: f.s?.cost, scroll: [f.s?.scroll.left, f.s?.scroll.top], shift: f.s?.shift, moving: f.s?.moving, chart: f.s?.chart, columns: f.s?.columnsShowing, rows: f.s?.rowsShowing, layer: f.transform });
+          for (const jump of measured.jumps.list.filter((j) => j.kind === "slip")) console.log(`a jump at ${jump.t}, by ${jump.dx}, ${jump.dy}:\n${near(jump).map((f) => JSON.stringify(told(f))).join("\n")}`);
+        }
         expect(errors).toEqual([]);
         expect(measured.frames, "frames recorded").toBeGreaterThan(30);
         const { jumps, jitter, scrollbars, painting, settling } = measured;

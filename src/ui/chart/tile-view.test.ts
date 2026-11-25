@@ -843,6 +843,59 @@ describe("the chart on tiles, closed up", () => {
     view.destroy();
   });
 
+  it("eases the columns still after a chart slow to paint anew as its columns moved: that was no frame of easing", () => {
+    const { first, id, other } = heldStitch();
+    let slow = 0;
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(
+      () =>
+        new Proxy({} as Record<string, unknown>, {
+          get: (target, key: string) => (key === "restore" ? () => (now += slow) : key in target ? target[key] : () => {}),
+          set: (target, key: string, value) => ((target[key] = value), true),
+        }) as unknown as CanvasRenderingContext2D,
+    );
+    const { scroller, sheet, container, scrollTo } = scrollingBox(wide, 200);
+    const view = new TileView(container, scroller, sheet);
+    view.show(content({ collapse: true, follow: id }));
+    scrollTo(0, topFor(first));
+    now += 200;
+    view.update();
+    const gap = () => view.place(other)!.x - view.place(id)!.x;
+    /** To each row in turn, a frame at a time: whether the first frame of each change moved the columns all the way. */
+    const steps = (to: number[]) =>
+      to.map((row) => {
+        scrollTo(scroller.scrollLeft, topFor(row));
+        now += 16;
+        view.update();
+        const at = gap();
+        for (let frame = 0; frame < 15; frame++) {
+          now += 16;
+          view.update();
+        }
+        return gap() === at;
+      });
+    /*
+     * Shown anew - in another wool, as it might be at another size - as the
+     * box comes to other rows and their columns open: every tile in view
+     * painted for the first time as it is, a tenth of a second each.
+     */
+    slow = 100;
+    scrollTo(0, topFor(first + 1));
+    now += 16;
+    view.show(content({ collapse: true, follow: id, palette: { ...palette } }));
+    slow = 0;
+    for (let frame = 0; frame < 20; frame++) {
+      now += 16;
+      view.update();
+    }
+    expect(view.probe().cost).toBe(0);
+    expect(steps([first, first + 1])).toEqual([false, false]);
+    // Slow frames of columns moving count as they did: then they are moved at once.
+    slow = 20;
+    steps([first, first + 1]);
+    expect(steps([first, first + 1])).toEqual([true, true]);
+    view.destroy();
+  });
+
   it("finds the stitch at a point by the columns as they are drawn", () => {
     const margin = 16;
     const { scroller, sheet, container, scrollTo } = scrollingBox(wide, 200);

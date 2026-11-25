@@ -150,6 +150,8 @@
       view: serialOf(v),
       // When the frame was sampled, after it was drawn: a scroll the page set in the frame was set before this.
       ts: round(performance.now()),
+      // Sampled after the chart was changed under it: what is read here is of the change, which the frame never drew. See `drawn`.
+      ...(drawn.view !== v || drawn.shows !== v.shows || drawn.vw !== innerWidth || drawn.vh !== innerHeight ? { after: true } : {}),
       // A pinch under way stands the sheet in at its new size by scaling it, where cells are not where the view says.
       scaled: !!box.querySelector(".chart-sheets").style.transform,
       s: state,
@@ -175,6 +177,19 @@
   const channel = new MessageChannel();
   let pending = 0;
   let sampled = 0;
+  /*
+   * And what the frame was drawn of, read in the frame itself: which view,
+   * how many times it had been given something to show, and the window's
+   * size. The sample's task waits its turn behind whatever was already
+   * waiting - a pinch ending, the page drawing itself again at the new size
+   * - and on a slow machine that runs between the frame and its sample:
+   * then the sample is of a chart just laid out afresh and a box just
+   * scrolled to keep its place in it, with not a tile painted there yet,
+   * none of which the frame showed; the next frame paints it, and is sampled
+   * in its turn. A page is never given something to show within a frame's
+   * own drawing, nor its window resized there, so these differ only then.
+   */
+  let drawn = {};
   const sampleFrame = () => {
     if (!probe.recording || sampled === pending) return;
     sampled = pending;
@@ -184,6 +199,8 @@
   const tick = (time) => {
     if (!probe.recording) return;
     pending = time;
+    const v = view();
+    drawn = { view: v, shows: v?.shows, vw: innerWidth, vh: innerHeight };
     channel.port2.postMessage(0);
     requestAnimationFrame(tick);
   };
