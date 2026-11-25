@@ -500,6 +500,30 @@ export const added = (before: number[], after: number[]): Set<number> => {
 };
 
 /**
+ * The places in a repeat where a doubling's make-ones are worked: each new
+ * copy (see added), or the place before it, its twin's, where its own bar is
+ * between two unlike yarns of `below` - the round below's repeat - and its
+ * twin's is not.
+ */
+export const madeIn = (before: number[], after: number[], below?: string[]): Set<number> => {
+  const fresh = added(before, after);
+  if (below) {
+    const w = below.length;
+    const unlike = (j: number) => below[(((j - 1) % w) + w) % w] !== below[((j % w) + w) % w];
+    let c = 0;
+    for (const q of [...fresh].sort((a, b) => a - b)) {
+      // The bar a make-one at q picks up is between the round below's stitches q - c - 1 and q - c.
+      if (unlike(q - c) && !fresh.has(q - 1) && !unlike(q - 1 - c)) {
+        fresh.delete(q);
+        fresh.add(q - 1);
+      }
+      c++;
+    }
+  }
+  return fresh;
+};
+
+/**
  * How many of make-ones at `places` in a round - in order - pick up the bar
  * between two stitches of unlike yarns in `below`, the round they are worked
  * on: harder to find and to pick up than a bar between two of one yarn. The
@@ -550,6 +574,61 @@ const nudged = (places: number[], m: number, below: string[] | undefined): numbe
 };
 
 /**
+ * Make-ones at `places` in a round of `m`, placed for a body (see Placer):
+ * each of those between two unlike yarns in `below` moved a stitch either way
+ * onto a bar between two of one yarn, where there is one that is not beside
+ * another make-one. A make-one and its mirror image in the round are moved
+ * together, opposite ways, or not at all: the round stays the same either
+ * side of its middle.
+ */
+const settled = (places: number[], m: number, below: string[] | undefined): number[] => {
+  if (!below || below.length === 0) return places;
+  const n = below.length;
+  const at = [...places];
+  const last = at.length - 1;
+  // The c-th make-one at p: between two unlike yarns? Moved without passing another, it still has c before it.
+  const unlike = (p: number, c: number) => {
+    const after = (((p - c) % n) + n) % n;
+    return below[(after - 1 + n) % n] !== below[after];
+  };
+  const free = (c: number, p: number) => p >= 0 && p < m && (c === 0 || p - at[c - 1] >= 2) && (c === last || at[c + 1] - p >= 2) && !unlike(p, c);
+  const alone = (c: number) => {
+    if (!unlike(at[c], c)) return;
+    for (const by of [-1, 1]) {
+      if (!free(c, at[c] + by)) continue;
+      at[c] += by;
+      return;
+    }
+  };
+  for (let c = 0; 2 * c <= last; c++) {
+    const d = last - c;
+    if (d === c || at[c] + at[d] !== m - 1) {
+      alone(c);
+      if (d !== c) alone(d);
+    } else if (unlike(at[c], c) || unlike(at[d], d)) {
+      for (const by of [-1, 1]) {
+        if (!free(c, at[c] + by) || !free(d, at[d] - by)) continue;
+        at[c] += by;
+        at[d] -= by;
+        break;
+      }
+    }
+  }
+  return at;
+};
+
+/**
+ * What decides where a round's new stitches go in place of even spacing: told
+ * every round of the piece in order, as it is knitted (see body.ts's Shaper).
+ */
+export interface Placer {
+  /** Where the next round's new stitches go, for it to have `count`: their places in it, in order. */
+  place(count: number): number[];
+  /** A round that has `count` stitches, its new ones at `places` in it. */
+  knitAt(count: number, places: number[]): void;
+}
+
+/**
  * Where each round of a growing piece makes its new stitches, as places in
  * the round it leaves. A doubled column's are its new copies, in every
  * repeat; a change of count's are spread evenly. In a round of one yarn they
@@ -561,8 +640,12 @@ const nudged = (places: number[], m: number, below: string[] | undefined): numbe
  * any still between two unlike yarns moved a stitch onto a bar between two of
  * one yarn, where there is one beside it. Through a unit's first round, the
  * turn with the fewest so, and so moved.
+ *
+ * With a `placer`, a change of count's are where it puts them, each then
+ * moved off a bar between two unlike yarns where it can be; a doubled
+ * column's are the band's own, as ever.
  */
-export const increasesOf = (steps: Step[], from: number, below?: (i: number) => string[] | undefined): number[][] => {
+export const increasesOf = (steps: Step[], from: number, below?: (i: number) => string[] | undefined, placer?: Placer): number[][] => {
   const LOOK = 4;
   const history: number[][] = [];
   let prev = from;
@@ -575,6 +658,8 @@ export const increasesOf = (steps: Step[], from: number, below?: (i: number) => 
     if (s.kind === "double" && before && s.map && s.reps) {
       const fresh = [...added(before, s.map)];
       at = Array.from({ length: s.reps }, (_, r) => fresh.map((q) => r * s.map!.length + q)).flat();
+    } else if (k > 0 && placer) {
+      at = settled(placer.place(m), m, under);
     } else if (k > 0) {
       const g = m / k;
       const turns: { pos: number[]; apart: number; unlike: number; turned: number }[] = [];
@@ -601,6 +686,11 @@ export const increasesOf = (steps: Step[], from: number, below?: (i: number) => 
       at = fit.length ? nudged(fit[0].pos, m, under) : [];
     }
     history.push(at.map((p) => p / m));
+    // A placer is told a doubling's make-ones where they are worked (see madeIn), which may be a stitch from where they are charted.
+    if (placer && s.kind === "double" && before && s.map && s.reps) {
+      const own = [...madeIn(before, s.map, under?.slice(0, before.length))];
+      placer.knitAt(m, Array.from({ length: s.reps }, (_, r) => own.map((q) => r * s.map!.length + q)).flat());
+    } else placer?.knitAt(m, at);
     prev = m;
     before = s.map;
     return at;

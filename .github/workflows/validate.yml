@@ -13,8 +13,8 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    # The browser tests run one at a time, on a desktop and a phone, and take about a quarter of an hour of it.
-    timeout-minutes: 35
+    # The browser tests run one at a time, on a desktop and a phone, and take a little over twenty minutes of it; the unit tests, five to ten.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

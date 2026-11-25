@@ -180,6 +180,65 @@ describe("Hamefarin worked out for a tension from the cast-on", () => {
 
 });
 
+describe("Each Year Once, shaped: planned on from anywhere along a plan, the plan is itself", () => {
+  const shaped = "wool-week-strips-once-oldest-shaped";
+  const pattern = sweaterById(shaped)!;
+  const whole = buildSweater(pattern, "l");
+  const own = { stitchesPer10cm: 32, roundsPer10cm: 38 };
+  const loose = { stitchesPer10cm: 26, roundsPer10cm: 26 };
+  const tight = { stitchesPer10cm: 34, roundsPer10cm: 42 };
+  const said = (knitted: typeof whole) => knitted.stitches.map(({ type, slot, links }) => ({ type, slot, links }));
+  const cuts: number[] = [];
+  for (let round = cutAfter(shaped, whole, 1); round !== undefined; round = cutAfter(shaped, whole, round + 1)) cuts.push(round);
+
+  it("says so, and Each Year Once does not", () => {
+    expect(pattern.fitting?.consistent).toBe(true);
+    expect(sweaterById(once)!.fitting?.consistent).toBeUndefined();
+    expect(cuts).toEqual([44, 64, 97]);
+  });
+
+  it("from every year's end at the pattern's own tension, the rest is the pattern's own, to the stitch", () => {
+    for (const round of cuts) {
+      const again = fit({ design: shaped, sizeId: "l", knitted: whole, round, tension: own });
+      expect(again.round).toBe(round);
+      expect(again.knitted.rounds).toEqual(whole.rounds);
+      expect(said(again.knitted)).toEqual(said(whole));
+      expect(again.notes[0]).toMatch(/the rest of that pattern/);
+      // And written out from where the knitting is, not from the cast-on.
+      expect(again.written).not.toMatch(/Cast on/);
+    }
+  }, 600000);
+
+  it("a tension changed, and changed back before anything more is knitted, leaves the pattern as it was", () => {
+    for (const [round, other] of [[cuts[0], tight], [cuts[1], loose]] as const) {
+      const away = fit({ design: shaped, sizeId: "l", knitted: whole, round, tension: other });
+      expect(said(away.knitted)).not.toEqual(said(whole));
+      const back = fit({ design: shaped, sizeId: "l", knitted: away.knitted, round, tension: own });
+      expect(back.knitted.rounds).toEqual(whole.rounds);
+      expect(said(back.knitted)).toEqual(said(whole));
+    }
+  }, 600000);
+
+  it("a plan made for another tension, followed to a later year's end and planned again at that tension, is itself", () => {
+    const away = fit({ design: shaped, sizeId: "l", knitted: whole, round: cuts[0], tension: tight });
+    const later = cutAfter(shaped, away.knitted, cuts[0] + 1)!;
+    expect(later).toBeGreaterThan(cuts[0]);
+    expect(away.knitted.roundPieces[later - 1]).toBe("yoke");
+    const again = fit({ design: shaped, sizeId: "l", knitted: away.knitted, round: later, tension: tight });
+    expect(again.knitted.rounds).toEqual(away.knitted.rounds);
+    expect(said(again.knitted)).toEqual(said(away.knitted));
+    // Planned from there at any other tension it is a plan of its own, from where the knitting is.
+    const other = fit({ design: shaped, sizeId: "l", knitted: away.knitted, round: later, tension: loose });
+    expect(other.notes[0]).not.toMatch(/the rest of that pattern/);
+    expect(other.knitted.rounds.slice(0, later)).toEqual(away.knitted.rounds.slice(0, later));
+  }, 600000);
+
+  it("at the pattern's own tension from the cast-on is the size as published, to the stitch", () => {
+    const fitted = fit({ design: shaped, sizeId: "l", tension: own });
+    expect(said(fitted.knitted)).toEqual(said(whole));
+  }, 600000);
+});
+
 describe("Each Year Once worked out for a tension from the cast-on", () => {
   const pattern = sweaterById(once)!;
   const plain = ({ type, slot, links }: { type: string; slot: string; links: number[] }) => ({ type, slot, links });

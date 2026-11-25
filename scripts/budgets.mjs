@@ -57,8 +57,14 @@ const kb = 1024;
  * out, to 231KB: 240KB.
  */
 // A frozen edition of the largest size is 19KB.
-// The fitting worker is 78KB: every design's planner and charts, and the engine.
-const budgets = { page: 240 * kb, stage: 260 * kb, settled: 300 * kb, edition: 40 * kb, fitting: 100 * kb, settling: 20 * kb };
+/*
+ * The fitting worker was 78KB - every design's planner and charts, and the
+ * engine - and had grown to 90KB. A yoke shaped to the body brings it to
+ * 100KB: how its increases are placed, and the bodies they are placed by,
+ * eight sizes' tables of room kept as each depth's difference from the one
+ * above (6KB; written out whole they were 18KB): 110KB.
+ */
+const budgets = { page: 240 * kb, stage: 260 * kb, settled: 300 * kb, edition: 40 * kb, fitting: 110 * kb, settling: 20 * kb };
 
 const files = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>

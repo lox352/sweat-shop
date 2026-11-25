@@ -1,7 +1,8 @@
 import type { Fitted, Fitting, FitRequest, Measurements, RoundSpec, Section, Start } from "../../types";
 import type { SweaterStitches } from "../../../../pattern/knitted";
 import { yearOf } from "../years";
-import { banded, below, grown, knit, nearest, trimsOf, Writer } from "./knit";
+import { bodyFor, shaperFrom } from "./body";
+import { banded, below, grown, knit, nearest, shortRowsOf, trimsOf, Writer } from "./knit";
 import { type Gauge, type Layout, budgets, gauge, planOf, ribsAt, type Row } from "./plan";
 import { laidOut, reachAt } from "./refit";
 import { baseSlot, trimSlot, yearOfSlot } from "./slots";
@@ -79,13 +80,17 @@ export const options: NonNullable<Fitting["options"]> = [
 
 /**
  * The fitting of an Each Year Once sampler: `prefix` its charts' ids begin
- * with, `lowTrim` the slot its waist and wrists are ribbed in.
+ * with, `lowTrim` the slot its waist and wrists are ribbed in. `shaped`, its
+ * yoke's increases go where bodies of the size have room (see body.ts), and
+ * the rest of one part knitted is the rest of the earliest plan that explains
+ * what is knitted (see Fitting.consistent).
  */
-export const fitting = (prefix: string, lowTrim: () => string): Fitting => {
+export const fitting = (prefix: string, lowTrim: () => string, shaped = false): Fitting => {
+  const bodyOf = (finished: Measurements) => (shaped ? bodyFor(finished.chestCm) : undefined);
   /** A whole sweater from the cast-on, as a published size is knitted (see knit): the ribs in the design's own trims. */
   const whole = (pieces: Pieces, finished: Measurements, g: Gauge): Made => {
     if (pieces.yoke.length === 0) throw new Error("the yoke has no room for a year at this tension");
-    const knitted = knit(finished, { rows: pieces, opened: true }, prefix, g, lowTrim());
+    const knitted = knit(finished, { rows: pieces, opened: true }, prefix, g, lowTrim(), bodyOf(finished));
     return { ...knitted, neck: knitted.checks.neck, count: knitted.checks.neck, yokeEnd: knitted.checks.yoke };
   };
 
@@ -105,7 +110,11 @@ export const fitting = (prefix: string, lowTrim: () => string): Fitting => {
     if (pieces.yoke.length > 0) {
       const to = Math.max(count, nearest(yokeTotal, 4));
       const n = pieces.yoke.length;
-      yokeEnd = grown(yoke, banded(pieces.yoke), count, to, (i) => count + (to - count) * Math.min(1, (i + 4) / n));
+      // A shaped yoke's increases go on from where its stitches are: its Shaper reads the rounds knitted.
+      const body = bodyOf(finished);
+      const neck = knitted.rounds[0].length;
+      const shaper = body && shaperFrom(knitted, round, { body, neck, roundsPerCm: g.rounds, shortRows: shortRowsOf(neck) });
+      yokeEnd = grown(yoke, banded(pieces.yoke), count, to, (i) => count + (to - count) * Math.min(1, (i + 4) / n), shaper);
       const specs: RoundSpec[] = yoke.done();
       specs[specs.length - 1] = { ...specs[specs.length - 1], check: "yoke" };
       sections.push({ label: "Yoke", piece: "yoke", rounds: specs });
@@ -224,7 +233,7 @@ export const fitting = (prefix: string, lowTrim: () => string): Fitting => {
       placement: { places, trims: { ...(from ? {} : { [trimsOf(pieces).neck]: [String(pieces.yoke[0].year)] }), [lowTrim()]: [last(pieces.body), last(pieces.sleeve)] } },
     };
   };
-  return { options, cutAfter, plan };
+  return { options, cutAfter, plan, ...(shaped ? { consistent: true } : {}) };
 };
 
 /**

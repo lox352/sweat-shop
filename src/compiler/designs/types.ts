@@ -322,6 +322,16 @@ export interface Fitting {
    */
   cutAfter?(knitted: SweaterStitches, round: number): number | undefined;
   plan(ask: FitRequest): Fitted;
+  /**
+   * The rest of one part knitted is to be the rest of the earliest plan that
+   * explains what is knitted: the whole sweater's from the cast-on at the
+   * tension asked for, where the knitting is the beginning of that; or else
+   * the plan from the earliest round it can be planned from whose rounds since
+   * are the knitting's. So a plan followed and planned again comes to itself,
+   * and a tension changed and changed back before anything is knitted leaves
+   * the pattern as it was. See compiler/fit.
+   */
+  consistent?: boolean;
 }
 
 /** A design as it is written: a Design, with the charts and the knitting of every size. */

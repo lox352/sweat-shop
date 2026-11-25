@@ -1,7 +1,7 @@
 import type { Measurements, Placement, Tension } from "../pattern/design";
 import type { SweaterStitches } from "../pattern/knitted";
 import { sweaterById } from "./designs";
-import type { Fitting, Size, SweaterPattern } from "./designs/types";
+import type { Fitted, Fitting, Size, Start, SweaterPattern } from "./designs/types";
 import { writtenPattern } from "./designs/written";
 import { atTension } from "../reading/tension";
 import { buildSweater, sizeOf } from "./engine/engine";
@@ -11,6 +11,12 @@ import { buildSweater, sizeOf } from "./engine/engine";
  * it is, and the rest planned afresh by the design (see Fitting) - for a
  * tension that is not the pattern's, or a pattern changed for good under the
  * knitting.
+ *
+ * For a design that asks it (see Fitting.consistent), the rest is the rest of
+ * the earliest plan that explains what is knitted, so that planning is the
+ * same wherever on a plan it is done from: a plan followed and planned again
+ * at its tension is itself, and a tension changed and changed back before
+ * anything more is knitted leaves the pattern as it was.
  *
  * The one place a pattern is worked out for one knitter alone. Everything
  * else the site shows is an edition, worked out once for everybody and
@@ -57,12 +63,26 @@ export const fitOptions = (design: string) => fittingOf(design)?.fitting.options
 export const cutAfter = (design: string, knitted: SweaterStitches, round: number): number | undefined =>
   fittingOf(design)?.fitting.cutAfter?.(knitted, round);
 
+/** Are two knittings the same, round for round and stitch for stitch, to a round? */
+const sameTo = (a: SweaterStitches, b: SweaterStitches, round: number): boolean => {
+  if (a.rounds.length < round || b.rounds.length < round) return false;
+  for (let r = 0; r < round; r++) {
+    if (a.roundKinds[r] !== b.roundKinds[r] || a.roundPieces[r] !== b.roundPieces[r] || a.rounds[r].length !== b.rounds[r].length) return false;
+    for (let i = 0; i < a.rounds[r].length; i++) {
+      const [x, y] = [a.stitches[a.rounds[r][i]], b.stitches[b.rounds[r][i]]];
+      if (x.type !== y.type || x.slot !== y.slot) return false;
+    }
+  }
+  return true;
+};
+
 export const fit = (ask: FitAsk, done?: (fraction: number) => void): Fit => {
   const found = fittingOf(ask.design);
   if (!found) throw new Error(`${ask.design} can't be planned on from part knitted`);
   const { pattern, fitting } = found;
   if (ask.knitted && !fitting.cutAfter) throw new Error(`${ask.design} can only be planned whole, from the cast-on`);
   const size = sizeOf(pattern, ask.sizeId);
+  const finished = ask.finished ?? size.finished;
   /*
    * What is knitted was knitted at the knitter's tension, whatever the
    * pattern said: its stitches are as they were made, and its rounds as tall
@@ -70,9 +90,8 @@ export const fit = (ask: FitAsk, done?: (fraction: number) => void): Fit => {
    */
   // The counts a pattern names are of the pattern that names them: the fitted sweater's are the rest's.
   const from = ask.knitted && ask.round !== undefined ? { knitted: { ...atTension(ask.knitted, ask.tension), checks: {} }, round: ask.round } : undefined;
-  const planned = fitting.plan({ finished: ask.finished ?? size.finished, tension: ask.tension, from, option: ask.option });
-  // The size as it now is: its own name and needles, the rest as its knitting. Named a field at a time, as a size may work its knitting out only when asked.
-  const fitted: Size = {
+  // The size as it is planned: its own name and needles, the rest as its knitting. Named a field at a time, as a size may work its knitting out only when asked.
+  const sizeFor = (planned: Fitted): Size => ({
     id: size.id,
     label: size.label,
     toFitChestCm: size.toFitChestCm,
@@ -84,8 +103,46 @@ export const fit = (ask: FitAsk, done?: (fraction: number) => void): Fit => {
     ...ask.tension,
     sections: planned.sections,
     checks: planned.checks,
+  });
+  const restOf = (planned: Fitted): SweaterPattern => ({ ...pattern, charts: planned.charts, sizes: [sizeFor(planned)] });
+
+  /*
+   * A consistent design's rest (see Fitting.consistent): the plan from an
+   * earlier start - the cast-on, or a round before this one it could have
+   * been planned from - where that plan, knitted, is what is knitted; cut to
+   * what is still to be knitted. None where the start's plan is not the
+   * knitting's, or does not turn from one instruction to the next at the
+   * round knitted to.
+   */
+  const restFrom = (start: Start | undefined, to: Start): Fitted | undefined => {
+    let planned: Fitted;
+    let cut: { section: number; spec: number } | undefined;
+    let built: SweaterStitches;
+    try {
+      planned = fitting.plan({ finished, tension: ask.tension, from: start, option: ask.option });
+      built = buildSweater(restOf(planned), size.id, start, (section, spec, rounds) => {
+        if (rounds === to.round) cut ??= { section, spec };
+      });
+    } catch {
+      return undefined;
+    }
+    if (!cut || !sameTo(built, to.knitted, to.round)) return undefined;
+    const sections = planned.sections
+      .slice(cut.section)
+      .map((section, i) => (i === 0 ? { ...section, rounds: section.rounds.slice(cut!.spec + 1) } : section))
+      .filter((section) => section.rounds.length > 0);
+    const since = start ? "an earlier round" : "the cast-on";
+    return { ...planned, sections, notes: [`What is knitted is the beginning of the pattern as it is planned from ${since} at this tension: this is the rest of that pattern.`, ...planned.notes] };
   };
-  const rest: SweaterPattern = { ...pattern, charts: planned.charts, sizes: [fitted] };
+  let planned: Fitted | undefined;
+  if (from && fitting.consistent && fitting.cutAfter) {
+    const starts: (Start | undefined)[] = [undefined];
+    for (let r = fitting.cutAfter(from.knitted, 1); r !== undefined && r < from.round; r = fitting.cutAfter(from.knitted, r + 1)) starts.push({ knitted: from.knitted, round: r });
+    for (const start of starts) if ((planned = restFrom(start, from))) break;
+  }
+  planned ??= fitting.plan({ finished, tension: ask.tension, from, option: ask.option });
+  const rest = restOf(planned);
+  const fitted = rest.sizes[0];
   const steps = planned.sections.reduce((total, section) => total + section.rounds.length, 0);
   let at = 0;
   const knitted = buildSweater(rest, fitted.id, from, () => done?.(++at / steps));
