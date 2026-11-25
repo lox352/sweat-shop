@@ -127,6 +127,8 @@ interface Tile {
   painted: number;
   /** Painted only in part, while lines eased: that part, from the chart's own top left, and the rest stale. */
   part?: Rect;
+  /** Painted as the chart is, and stale only for lines having moved since: to paint again, as a frame of easing does. */
+  again?: boolean;
   used: number;
   /** Put in its place on the layer: only once first painted, see paint. */
   placed: boolean;
@@ -547,6 +549,12 @@ export class TileView {
   private tiles = new Map<string, Tile>();
   private spare: HTMLCanvasElement[] = [];
   private content?: TileContent;
+  /**
+   * How many times it has been given something to show: for the scroll
+   * harness, which reads it as a frame is drawn and again as it samples the
+   * frame, to tell a frame sampled after the chart was changed under it.
+   */
+  shows = 0;
   private version = 0;
   private frame = 0;
   private clock = 0;
@@ -842,6 +850,7 @@ export class TileView {
       this.movedAt = performance.now();
     }
     this.content = content;
+    this.shows++;
     const ratio = Math.min(window.devicePixelRatio || 1, 3);
     if (!was || was.scene !== content.scene || !!was.collapse !== !!content.collapse) {
       this.reset(content);
@@ -1135,7 +1144,10 @@ export class TileView {
     if (from === Infinity) return;
     const edge = from - 3 * this.content!.cell;
     this.tiles.forEach((tile) => {
-      if ((across ? tile.x : tile.y) + tileSize > edge) tile.painted = -1;
+      if ((across ? tile.x : tile.y) + tileSize > edge) {
+        tile.again ||= tile.painted === this.version;
+        tile.painted = -1;
+      }
     });
   }
 
@@ -1656,10 +1668,20 @@ export class TileView {
     }
     let left = false;
     const fresh = stale.filter(inView);
+    const again = fresh.every((tile) => tile.again);
     for (const tile of fresh) this.paint(tile, content, state, easing ? partOf(tile) : undefined);
     const spent = performance.now() - time;
-    // A phone too slow to ease the lines has them moved at once instead, until it is quick enough again.
-    if (moved && fresh.length > 0) this.cost = this.cost * 0.6 + spent * 0.4;
+    /*
+     * A phone too slow to ease the lines has them moved at once instead,
+     * until it is quick enough again. Counted in the frames that paint again
+     * what lines moved, as every frame of easing does - and not in one that
+     * paints tiles for the first time as the chart is, opened or zoomed or
+     * scrolled to, which is slower, the first of all much slower, and says
+     * little of a frame of easing: counted, a chart slow to open had the
+     * first columns to open after it jump open, however long after, on a
+     * machine that eases them well enough.
+     */
+    if (moved && fresh.length > 0 && again) this.cost = this.cost * 0.6 + spent * 0.4;
     if (easing) {
       // And the tiles round the box, as far as is painted round it: see above.
       for (const tile of stale) if (!inView(tile)) this.paint(tile, content, state, partOf(tile));
@@ -2694,6 +2716,7 @@ export class TileView {
     if (region.width <= 0 || region.height <= 0) return;
     paintRegion(ctx, region, content.scene, state);
     tile.painted = this.version;
+    tile.again = false;
     tile.part = part;
     if (!tile.placed) {
       tile.canvas.style.left = `${tile.tx * tileSize}px`;

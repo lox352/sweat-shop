@@ -244,6 +244,8 @@ export const measure = (recording, { allow = 24 } = {}) => {
   const period = periodOf(dts);
   const dropped = dts.filter((dt) => dt > period * 1.5);
   const loafs = recording.loafs ?? [];
+  /** A frame whose sample is of the frame as it was drawn: taken soon after it, and before the chart was changed again. */
+  const asDrawn = (f) => (f.ts ?? f.t) - f.t <= period * 1.5 && !f.after;
 
   const motion = motionOf(frames);
   /*
@@ -513,11 +515,14 @@ export const measure = (recording, { allow = 24 } = {}) => {
       /*
        * Measured in the frames sampled as they were drawn: one sampled late,
        * a fling's scroll moved on meanwhile, shows the box where the frame
-       * never had it, and the next frame paints for where it has got to.
+       * never had it, and the next frame paints for where it has got to. Nor
+       * one sampled after the chart was changed under it, however soon (see
+       * `drawn` in recorder.js): how many those were is counted beside.
        */
-      unpaintedMax: round(Math.max(0, ...frames.filter((f) => (f.ts ?? f.t) - f.t <= period * 1.5).map((f) => f.s?.unpainted ?? 0)), 3),
+      unpaintedMax: round(Math.max(0, ...frames.filter(asDrawn).map((f) => f.s?.unpainted ?? 0)), 3),
       // And a little round the box, which a phone shows ahead of its scroll and bouncing at an end: see TileView.probe.
-      unpaintedNearMax: round(Math.max(0, ...frames.filter((f) => (f.ts ?? f.t) - f.t <= period * 1.5).map((f) => f.s?.unpaintedNear ?? 0)), 3),
+      unpaintedNearMax: round(Math.max(0, ...frames.filter(asDrawn).map((f) => f.s?.unpaintedNear ?? 0)), 3),
+      sampledAfterAChange: frames.filter((f) => f.after).length,
       costMax: round(Math.max(0, ...frames.map((f) => f.s?.cost ?? 0)), 1),
       tiles: paintSteps.reduce((sum, p) => sum + p.tiles, 0),
       tilesPerFrameMax: Math.max(0, ...paintSteps.map((p) => p.tiles)),
