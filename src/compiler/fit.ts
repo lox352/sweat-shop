@@ -112,9 +112,12 @@ export const fit = (ask: FitAsk, done?: (fraction: number) => void): Fit => {
    * been planned from - where that plan, knitted, is what is knitted; cut to
    * what is still to be knitted. None where the start's plan is not the
    * knitting's, or does not turn from one instruction to the next at the
-   * round knitted to.
+   * round knitted to. With it, the counts that plan names, the ones already
+   * knitted past among them: the sweater is that plan's, and so the same
+   * edition as the plan knitted whole - the published size's own, where the
+   * plan is the pattern's.
    */
-  const restFrom = (start: Start | undefined, to: Start): Fitted | undefined => {
+  const restFrom = (start: Start | undefined, to: Start): { planned: Fitted; checks: Record<string, number> } | undefined => {
     let planned: Fitted;
     let cut: { section: number; spec: number } | undefined;
     let built: SweaterStitches;
@@ -132,20 +135,22 @@ export const fit = (ask: FitAsk, done?: (fraction: number) => void): Fit => {
       .map((section, i) => (i === 0 ? { ...section, rounds: section.rounds.slice(cut!.spec + 1) } : section))
       .filter((section) => section.rounds.length > 0);
     const since = start ? "an earlier round" : "the cast-on";
-    return { ...planned, sections, notes: [`What is knitted is the beginning of the pattern as it is planned from ${since} at this tension: this is the rest of that pattern.`, ...planned.notes] };
+    const notes = [`What is knitted is the beginning of the pattern as it is planned from ${since} at this tension: this is the rest of that pattern.`, ...planned.notes];
+    return { planned: { ...planned, sections, notes }, checks: built.checks };
   };
-  let planned: Fitted | undefined;
+  let earlier: ReturnType<typeof restFrom>;
   if (from && fitting.consistent && fitting.cutAfter) {
     const starts: (Start | undefined)[] = [undefined];
     for (let r = fitting.cutAfter(from.knitted, 1); r !== undefined && r < from.round; r = fitting.cutAfter(from.knitted, r + 1)) starts.push({ knitted: from.knitted, round: r });
-    for (const start of starts) if ((planned = restFrom(start, from))) break;
+    for (const start of starts) if ((earlier = restFrom(start, from))) break;
   }
-  planned ??= fitting.plan({ finished, tension: ask.tension, from, option: ask.option });
+  const planned = earlier?.planned ?? fitting.plan({ finished, tension: ask.tension, from, option: ask.option });
   const rest = restOf(planned);
   const fitted = rest.sizes[0];
   const steps = planned.sections.reduce((total, section) => total + section.rounds.length, 0);
   let at = 0;
-  const knitted = buildSweater(rest, fitted.id, from, () => done?.(++at / steps));
+  const continued = buildSweater(rest, fitted.id, from, () => done?.(++at / steps));
+  const knitted = earlier ? { ...continued, checks: earlier.checks } : continued;
   return {
     knitted,
     ...(from ? { round: from.round } : {}),
