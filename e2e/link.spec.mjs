@@ -25,7 +25,7 @@ const kept = (page, more = {}) =>
       version: 1, id, name: "Dad's, for Yule", sweaterId: design, sizeId: "l", colourwayId: "night-gentle-dark", edition, progress,
       startedAt: "2026-10-03T09:00:00.000Z", updatedAt: "2026-10-03T09:00:00.000Z", ...more,
     }));
-  }, { id, design, edition, progress: endOf(68), more });
+  }, { id, design, edition, progress: endOf(64), more });
 
 const saved = (page, key = id) => page.evaluate((key) => JSON.parse(localStorage.getItem(key)), key);
 /** What a jumper's address says, read as the site writes it. */
@@ -55,7 +55,7 @@ test("a jumper's address carries the jumper: opened where it is not kept, it is 
   await page.goto("#/project/1760000000000");
   // Its link is in its address without being asked for, and follows the jumper to its chart and as it is knitted.
   await expect(page).toHaveURL(/\/project\/1760000000000\?jumper=[0-9A-Za-z_-]+$/);
-  expect(said(page.url())).toMatchObject({ v: 1, i: "1760000000000", n: "Dad's, for Yule", d: design, s: "l", c: "night-gentle-dark", e: edition, p: endOf(68) });
+  expect(said(page.url())).toMatchObject({ v: 1, i: "1760000000000", n: "Dad's, for Yule", d: design, s: "l", c: "night-gentle-dark", e: edition, p: endOf(64) });
   await page.locator(".pages-page[data-current]").getByRole("link", { name: "Keep knitting", exact: true }).click();
   await expect(page).toHaveURL(/\/chart\?knitting=1&jumper=/);
   // A round knitted is in it once the knitting pauses - and at once where the page is put away, the phone locked mid-round.
@@ -64,7 +64,7 @@ test("a jumper's address carries the jumper: opened where it is not kept, it is 
     Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
     document.dispatchEvent(new Event("visibilitychange"));
   });
-  expect(said(page.url()).p).toBeGreaterThan(endOf(68));
+  expect(said(page.url()).p).toBeGreaterThan(endOf(64));
   expect(page.url()).toMatch(/\/chart\?knitting=1&jumper=/);
   await page.goto("#/project/1760000000000");
 
@@ -145,18 +145,18 @@ test("a jumper whose pattern was recalculated is made again from its address, st
   await shown.getByRole("button", { name: "Knit the rest this way", exact: true }).click();
   await expect(section).toContainText("The rest of your pattern is recalculated for this tension", { timeout: 20_000 });
   const mine = await saved(page);
-  expect(mine.made).toEqual({ from: edition, steps: [{ fit: loose, round: 68, option: "fewer" }] });
+  expect(mine.made).toEqual({ from: edition, steps: [{ fit: loose, round: 64, option: "fewer" }] });
   const pattern = await saved(page, `edition-${design}--l--${mine.edition}`);
 
   // Its address says how the pattern was made, and names what came of it.
   await expect.poll(() => said(page.url()).e, { timeout: 10_000 }).toBe(mine.edition);
-  expect(said(page.url()).m).toEqual({ f: edition, s: [["f", 23.3, 25, 68, "fewer"]] });
+  expect(said(page.url()).m).toEqual({ f: edition, s: [["f", 23.3, 25, 64, "fewer"]] });
   // A jumper recalculated before its making was kept says only what its last fit was: its address is made of that, and says the same.
   await page.evaluate(({ id, project }) => localStorage.setItem(id, JSON.stringify(project)), { id, project: { ...mine, made: undefined } });
   await page.reload();
   await expect(page).toHaveURL(/jumper=/);
   expect((await saved(page)).made).toBeUndefined();
-  expect(said(page.url())).toMatchObject({ e: mine.edition, m: { f: edition, s: [["f", 23.3, 25, 68, "fewer"]] } });
+  expect(said(page.url())).toMatchObject({ e: mine.edition, m: { f: edition, s: [["f", 23.3, 25, 64, "fewer"]] } });
   const address = page.url().replace(/tab=fit&/, "");
 
   // Nothing of it is kept. It is planned again as it was, and is the same pattern: the same name, the same rounds, the same fit.
@@ -337,13 +337,16 @@ test("a jumper on an older edition, joined to its update part way and then recal
   await expect(page.locator(".pages-page[data-current]")).toContainText("Where you are", { timeout: 120_000 });
   const again = await saved(page);
   expect(again).toMatchObject({ id, edition: fitted.edition, progress, made: fitted.made, tension });
-  expect(again.fit).toEqual(fitted.fit);
+  // What the fit left - the knitting joined to the update - is kept where the fit was taken, to go back to: an address has the knitting, not that.
+  expect(fitted.fit.before).toMatchObject({ edition: joined.edition, made: joined.made, upTo: hamefarin });
+  const { before: _left, ...fit } = fitted.fit;
+  expect(again.fit).toEqual(fit);
   expect(await saved(page, `edition-hamefarin--m--${fitted.edition}`)).toEqual(fittedPattern);
 });
 
 test("where a jumper can't be made again from its address, it says why, and what can be done", async ({ page }) => {
   test.setTimeout(120_000);
-  const written = (more) => `#/project/1760000000000?jumper=${Buffer.from(JSON.stringify({ v: 1, i: "1760000000000", d: design, s: "l", c: "night-gentle-dark", p: endOf(68), ...more })).toString("base64url")}`;
+  const written = (more) => `#/project/1760000000000?jumper=${Buffer.from(JSON.stringify({ v: 1, i: "1760000000000", d: design, s: "l", c: "night-gentle-dark", p: endOf(64), ...more })).toString("base64url")}`;
   const alert = page.getByRole("alert");
 
   // Its pattern can't be fetched: asked for again, it can.
@@ -359,7 +362,7 @@ test("where a jumper can't be made again from its address, it says why, and what
   await alert.getByRole("button", { name: "Try again", exact: true }).click();
   await page.getByRole("button", { name: "Carry on where it was", exact: true }).click();
   await expect(page.locator(".pages-page[data-current]")).toContainText("Where you are", { timeout: 20_000 });
-  expect(await saved(page)).toMatchObject({ id, edition, progress: endOf(68) });
+  expect(await saved(page)).toMatchObject({ id, edition, progress: endOf(64) });
 
   // It names an edition the site never published, and does not say how it was made: a jumper's own, from before a link said.
   await openCleared(page, written({ e: "0123456789ab" }));
@@ -370,7 +373,7 @@ test("where a jumper can't be made again from its address, it says why, and what
   // It says its pattern was recalculated from a round the design can't plan on from, or a way the design has not got: nothing is planned, and nothing kept.
   for (const [step, why] of [
     [["f", 23.3, 25, 60, "fewer"], "can't be worked out again from where you are"],
-    [["f", 23.3, 25, 68, "sideways"], "the design no longer has it"],
+    [["f", 23.3, 25, 64, "sideways"], "the design no longer has it"],
   ]) {
     await openCleared(page, written({ e: "0123456789ab", g: [23.3, 25], m: { f: edition, s: [step] } }));
     await page.getByRole("button", { name: "Start one like it", exact: true }).click();
