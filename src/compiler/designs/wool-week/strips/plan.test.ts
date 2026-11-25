@@ -43,8 +43,8 @@ describe("Each Year Once, refitted", () => {
     for (const piece of ["yoke", "body", "sleeve"] as const) {
       expect(plan.rows[piece]).toHaveLength(plan.depth[piece]);
       expect(plan.strips[piece].reduce((total, s) => total + s.height, 0)).toBe(plan.depth[piece]);
-      // Every piece begins with a plain round, where its first shaping or its divide goes.
-      expect("plain" in plan.rows[piece][0]).toBe(true);
+      // Every piece begins with a plain round, where its first shaping or its divide goes: one beside its first band, or that band's own plain row.
+      expect(new Set(lettersOfRow(plan.rows[piece][0])).size).toBe(1);
     }
   });
 
@@ -70,16 +70,16 @@ describe("Each Year Once, refitted", () => {
   it("frames the peeries either side of 2014's star alike, in M", () => {
     const plan = planOf(measured.find((m) => m.id === "m")!.finished, { kind: "refit" });
     const rows = plan.rows.yoke.filter((r) => r.year === 2014).map((r) => ("plain" in r ? r.plain : `${r.chart}${r.row}`));
-    // A round of the peerie's background above and below each peerie, and two of the star's either side of the star.
-    expect(rows).toEqual(["B", "A4", "A3", "A2", "A1", "B", "A", "A", ...Array.from({ length: 13 }, (_, i) => `C${13 - i}`), "A", "A", "B", "A4", "A3", "A2", "A1", "B"]);
+    // A round of the peerie's background above and below each peerie, and one of the star's either side of the star.
+    expect(rows).toEqual(["B", "A4", "A3", "A2", "A1", "B", "A", ...Array.from({ length: 13 }, (_, i) => `C${13 - i}`), "A", "B", "A4", "A3", "A2", "A1", "B"]);
   });
 
-  it("gives the houses a plain row at both ends, and the sheep all but two rows of sky and one of field, in L", () => {
+  it("gives the houses their seed borders, and the sheep all but three rows of sky and two of field, each from a plain row of the hat's to another, in L", () => {
     const plan = planOf(measured.find((m) => m.id === "l")!.finished, { kind: "refit" });
     const houses = plan.rows.yoke.filter((r) => r.year === 2016 && !("plain" in r)) as Exclude<Row, { plain: string }>[];
-    expect([houses[0].row, houses[houses.length - 1].row]).toEqual([39, 11]);
+    expect([houses[0].row, houses[houses.length - 1].row]).toEqual([41, 9]);
     const sheep = plan.rows.yoke.filter((r) => r.year === 2015 && !("plain" in r)) as Exclude<Row, { plain: string }>[];
-    expect(sheep.map((r) => r.row)).toEqual(Array.from({ length: 22 }, (_, i) => 23 - i));
+    expect(sheep.map((r) => r.row)).toEqual(Array.from({ length: 20 }, (_, i) => 22 - i));
   });
 
   it("keeps 2014's two stars whole with the peerie between them, each framed in its own background, in 4XL", () => {

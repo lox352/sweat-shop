@@ -16,7 +16,7 @@ describe("a sweater fitted to its knitter, part way through", () => {
   const second = cutAfter(once, whole, first + 2)!;
 
   it("can be planned from the last round of a year on the yoke, and nowhere else", () => {
-    expect([first, second]).toEqual([44, 68]);
+    expect([first, second]).toEqual([44, 64]);
     expect(cutAfter(once, whole, second)).toBe(second);
     expect(cutAfter(once, whole, whole.roundPieces.indexOf("body") + 1)).toBeUndefined();
     expect(() => fit({ design: once, sizeId: "l", knitted: whole, round: 60, tension: loose })).toThrow(/round 60/);
@@ -32,18 +32,18 @@ describe("a sweater fitted to its knitter, part way through", () => {
         whole.stitches.slice(0, kept).map(({ type, slot, links }) => ({ type, slot, links })),
       );
       expect(fitted.knitted.rounds.slice(0, second)).toEqual(whole.rounds.slice(0, second));
-      // 420 stitches are already more than the 396 this tension wants: no more yoke, and the 24 over shared out.
+      // 412 stitches are already more than the 396 this tension wants: no more yoke, and the 16 over shared out.
       expect(fitted.knitted.roundPieces[second]).toBe("body");
       expect(fitted.knitted.checks.yoke).toBeUndefined();
-      expect(fitted.knitted.checks.body).toBe(288);
-      expect(fitted.knitted.checks["sleeve-left:top"]).toBe(86);
-      expect(fitted.notes.join(" ")).toMatch(/420 stitches round the yoke, 24 more/);
+      expect(fitted.knitted.checks.body).toBe(284);
+      expect(fitted.knitted.checks["sleeve-left:top"]).toBe(84);
+      expect(fitted.notes.join(" ")).toMatch(/412 stitches round the yoke, 16 more/);
       // About 41.5cm of body and 46cm of sleeve at 25 rounds to 10cm.
       expect(pieceRounds(fitted.knitted, "body")).toBeGreaterThan(96);
       expect(pieceRounds(fitted.knitted, "body")).toBeLessThan(106);
       expect(pieceRounds(fitted.knitted, "sleeve-left")).toBeGreaterThan(108);
       expect(pieceRounds(fitted.knitted, "sleeve-left")).toBeLessThan(118);
-      expect(fitted.finished.chestCm).toBeCloseTo(123.5, 0);
+      expect(fitted.finished.chestCm).toBeCloseTo(122, 0);
       expect(fitted.written).toMatch(/^Body \(body\)/m);
     });
   }
@@ -395,7 +395,7 @@ describe("what the planner answers is what a link names", () => {
       await named("hamefarin", "m", { knitted: whole, round: cutAfter("hamefarin", whole, 1)! }),
       await named(once, "l", { option: "every" }),
       await named(once, "l", { option: "fewer" }),
-    ]).toEqual(["38a1e1893ce0", "c85b2bd5451b", "ac1ea7bf16fd", "f3a0f35c2180"]);
+    ]).toEqual(["38a1e1893ce0", "c85b2bd5451b", "db9c907bc563", "7a9bc7774f5e"]);
   });
 
   it("for the designs planned only from the cast-on too", async () => {
