@@ -4,7 +4,7 @@ import { editionOf } from "../library/editions";
 import { type EditionFile, decodeEdition } from "../library/editions/format";
 import { keepEdition, ownEdition } from "../library/editions/own";
 import { knittingToHand } from "../library/knitting";
-import { currentVersion, isFit, isMade, isShadesOf, isTension, listProjects, type Project, writeProject } from "./projects";
+import { currentVersion, fitKnittedInto, isFit, isMade, isShadesOf, isTension, listProjects, type Project, writeProject } from "./projects";
 import { isLog, readLog, writeLog, type Row } from "./timing/log";
 
 /** A project as a backup holds it: with its knitting-time log, if it has one, and its knitting, where that is its own (see library/editions/own). */
@@ -28,7 +28,8 @@ export const backupText = () => JSON.stringify({ format: "sweat-shop-projects", 
   exportedAt: new Date().toISOString(), projects: listProjects().map((project): BackupProject => {
     const timeLog = readLog(project.id);
     const knitting = project.edition ? ownEdition(project.sweaterId, project.sizeId, project.edition) : undefined;
-    return { ...project, ...(timeLog.length > 0 ? { timeLog } : {}), ...(knitting ? { knitting } : {}) };
+    // What a fit left is kept on the device, to go back to: a backup holds the knitting a project knits.
+    return { ...fitKnittedInto(project), ...(timeLog.length > 0 ? { timeLog } : {}), ...(knitting ? { knitting } : {}) };
   }) });
 
 /**

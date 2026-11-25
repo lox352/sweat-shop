@@ -6,6 +6,7 @@ import { useSweater } from "../useSweater";
 import { useColourway } from "../useColourway";
 import { viewChart } from "../../reading/counted";
 import { currentEdition, editionOf, isSuperseded, errataOf } from "../../library/editions";
+import { isOwn } from "../../library/editions/own";
 import PatternUpdated from "./PatternUpdated";
 import MyTension from "./MyTension";
 import Refit from "./Refit";
@@ -32,6 +33,10 @@ import {
   deleteProject,
   keepKnitting,
   dropUnknitted,
+  fitKnittedInto,
+  fitLeaves,
+  fitLeft,
+  fitTaken,
   madeWith,
   withMade,
   storageKeyFor,
@@ -362,32 +367,18 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
   // The rest worked out for the knitter's tension, taken: the knitting is now the project's own, every stitch worked where it was. See Refit.
   const takeFit = useCallback((fitted: Fitted) => {
     if (!keepKnitting(fitted.file)) return;
-    change((current) => ({
-      ...withMade(current, madeWith(current, { fit: fitted.tension, ...(fitted.round === undefined ? {} : { round: fitted.round }), ...(fitted.option ? { option: fitted.option } : {}) })),
-      edition: fitted.file.edition,
-      fit: {
-        tension: fitted.tension,
-        finished: fitted.finished,
-        round: fitted.round,
-        // The published edition it left, through any fit before this one: none, where what it left was knitting of its own - joined to an update - which is not kept to go back to.
-        from: current.fit ? current.fit.from : current.made ? undefined : editionOf(current),
-        ...(fitted.option ? { option: fitted.option } : {}),
-        ...(fitted.placement ? { placement: fitted.placement } : {}),
-      },
-      // Worked out from the pattern as it is now.
-      upTo: currentEdition(current.sweaterId, current.sizeId),
-    }));
+    // Worked out from the pattern as it is now. What it left is kept, to go back to: see fitTaken.
+    change((current) => fitTaken(current, { ...fitted, edition: fitted.file.edition }, currentEdition(current.sweaterId, current.sizeId)));
     dropUnknitted();
   }, [change]);
 
   const leaveFit = useCallback(() => {
-    change((current) => {
-      const { fit, upTo, made, ...rest } = current;
-      void upTo;
-      void made;
-      // Back to a published edition: nothing of its own to say how it was made.
-      return fit?.from ? { ...rest, edition: fit.from } : current;
-    });
+    change(fitLeft);
+    dropUnknitted();
+  }, [change]);
+  // The knitting has passed the round its fit was planned from: what the fit left is let go.
+  const passFit = useCallback(() => {
+    change(fitKnittedInto);
     dropUnknitted();
   }, [change]);
 
@@ -477,6 +468,7 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
       joinUpdate={joinUpdate}
       takeFit={takeFit}
       leaveFit={leaveFit}
+      passFit={passFit}
     />
   );
 };
@@ -500,6 +492,7 @@ const ProjectView: React.FC<{
   joinUpdate: (knitting: SweaterStitches, round: number) => void;
   takeFit: (fitted: Fitted) => void;
   leaveFit: () => void;
+  passFit: () => void;
 }> = ({
   view,
   sweaterId,
@@ -519,6 +512,7 @@ const ProjectView: React.FC<{
   joinUpdate,
   takeFit,
   leaveFit,
+  passFit,
 }) => {
   const sweater = sweaterById(sweaterId)!;
   const size = sweater.sizes.find((s) => s.id === project.sizeId) ?? sweater.sizes[0];
@@ -526,6 +520,21 @@ const ProjectView: React.FC<{
   const edition = editionOf(project);
   const built = useSweater(sweater, size.id, project.progress, edition);
   const { stitches, rounds, index, yoke, holdRegions, view: counted, views, following } = built;
+  // What the fit left, where it can still be gone back to (see fitTaken): the pattern it was written or worked out for, and whether it was the project's own.
+  const leaves = fitLeaves(project);
+  const fitRound = project.fit?.round;
+  const knittedInto = fitRound !== undefined && project.progress > (built.rounds[fitRound - 1]?.at(-1) ?? -1);
+  const back = useMemo(
+    () =>
+      leaves && !knittedInto && (!leaves.own || isOwn(sweater.id, size.id, leaves.edition))
+        ? { tension: leaves.tension ?? { stitchesPer10cm: size.stitchesPer10cm, roundsPer10cm: size.roundsPer10cm }, own: leaves.own }
+        : undefined,
+    [leaves?.edition, leaves?.own, leaves?.tension?.stitchesPer10cm, leaves?.tension?.roundsPer10cm, knittedInto, sweater.id, size.id, size.stitchesPer10cm, size.roundsPer10cm], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const kept = !!project.fit?.before;
+  useEffect(() => {
+    if (kept && knittedInto) passFit();
+  }, [kept, knittedInto, passFit]);
   /*
    * Which of the chart's views it shows: the one the knitting is in while you
    * knit, and otherwise the one you pick, or that one again. See reading/views.
@@ -959,6 +968,7 @@ const ProjectView: React.FC<{
           progress={project.progress}
           tension={project.tension}
           fit={project.fit}
+          back={back}
           palette={palette}
           coloursOn={coloursOn}
           roundNames={names}

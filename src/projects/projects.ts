@@ -73,8 +73,14 @@ export interface ProjectFit {
   finished: Measurements;
   /** The round the rest was planned from: every round to it is as the pattern had it. None, where the whole was planned, from the cast-on. */
   round?: number;
-  /** The edition it was fitted from, to go back to. */
+  /** The published edition it was fitted from, to go back to. */
   from?: string;
+  /**
+   * What it was fitted from, where that was knitting of the project's own -
+   * fitted before, or joined to an update: kept on the device with all that
+   * was said of it, to go back to, until the knitting passes `round`.
+   */
+  before?: Before;
   /** Which of the design's ways of laying the rest out. */
   option?: string;
   /**
@@ -83,6 +89,14 @@ export interface ProjectFit {
    * wool by it, so it is theirs to keep, and not worked out again.
    */
   placement?: Placement;
+}
+
+/** Knitting of a project's own that a fit left: its edition, kept, and what the project said of it. */
+export interface Before {
+  edition: string;
+  fit?: ProjectFit;
+  made?: Made;
+  upTo?: string;
 }
 
 /**
@@ -128,7 +142,17 @@ export const isFit = (value: unknown): value is ProjectFit => {
     (fit.round === undefined || (Number.isSafeInteger(fit.round) && fit.round > 0)) &&
     (fit.from === undefined || (typeof fit.from === "string" && /^[0-9a-f]{1,64}$/.test(fit.from))) &&
     (fit.option === undefined || (typeof fit.option === "string" && fit.option.length <= 40)) &&
-    (fit.placement === undefined || isPlacement(fit.placement));
+    (fit.placement === undefined || isPlacement(fit.placement)) &&
+    (fit.before === undefined || isBefore(fit.before));
+};
+
+/** Whether something read back is what a fit left. What it left has itself nothing to go back to. */
+const isBefore = (value: unknown): value is Before => {
+  const before = value as Partial<Before> | null;
+  return typeof before === "object" && before !== null && isEditionName(before.edition) &&
+    (before.fit === undefined || (isFit(before.fit) && before.fit.from === undefined && before.fit.before === undefined)) &&
+    (before.made === undefined || isMade(before.made)) &&
+    (before.upTo === undefined || isEditionName(before.upTo));
 };
 
 const isEditionName = (value: unknown): value is string => typeof value === "string" && /^[0-9a-f]{1,64}$/.test(value);
@@ -179,6 +203,94 @@ export const madeWith = (project: Project, step: Step): Made | undefined => {
   if (before) return { ...before, steps: [...before.steps, step] };
   const edition = editionOf(project);
   return edition ? { from: edition, steps: [step] } : undefined;
+};
+
+/**
+ * A project with the rest of its knitting worked out again and taken (see
+ * library/fit): `edition` the knitting that came of it, now the project's
+ * own, and `upTo` the published edition it was worked out from.
+ *
+ * What it left is kept to go back to (see fitLeft), so that a knitter who
+ * has the rest worked out for another tension, knits none of it, and has it
+ * worked out for the tension they had, has the pattern they had: not one
+ * planned again, which need not be the same. A published edition is named
+ * (`from`); knitting of the project's own is kept with what was said of it
+ * (`before`). A fit taken on a fit not knitted into - planned from the same
+ * round - takes its place: it leaves what that one left, and is made as that
+ * one was, the last step changed.
+ */
+export const fitTaken = (
+  project: Project,
+  fitted: { edition: string; tension: Tension; finished: Measurements; round?: number; option?: string; placement?: Placement },
+  upTo: string | undefined,
+): Project => {
+  const { edition, round, option, placement } = fitted;
+  const step: Step = { fit: fitted.tension, ...(round === undefined ? {} : { round }), ...(option ? { option } : {}) };
+  const was = project.fit;
+  // On a fit no round of which is knitted: this one is from the same round.
+  const instead = was !== undefined && round !== undefined && was.round === round;
+  const steps = madeOf(project)?.steps;
+  const last = steps?.[steps.length - 1];
+  const made =
+    instead && steps && last && "fit" in last && last.round === round
+      ? { ...madeOf(project)!, steps: [...steps.slice(0, -1), step] }
+      : madeWith(project, step);
+  // Knitting of its own, which no published file holds: what a fit before this one came to, with a round of it knitted, or an update joined.
+  const own = round !== undefined && !instead && (was !== undefined || project.made !== undefined) && project.edition !== undefined;
+  const left: Pick<ProjectFit, "from" | "before"> = instead
+    ? { ...(was.from ? { from: was.from } : {}), ...(was.before ? { before: was.before } : {}) }
+    : own
+      ? { before: { edition: project.edition!, ...(was ? { fit: bare(was) } : {}), ...(project.made ? { made: project.made } : {}), ...(project.upTo ? { upTo: project.upTo } : {}) } }
+      : // The published edition it left, through a whole sweater planned from the cast-on before this one.
+        was ? (was.from ? { from: was.from } : {}) : project.made ? {} : editionOf(project) ? { from: editionOf(project) } : {};
+  const { upTo: _, ...rest } = withMade(project, made);
+  void _;
+  return {
+    ...rest,
+    edition,
+    fit: { tension: fitted.tension, finished: fitted.finished, ...(round === undefined ? {} : { round }), ...left, ...(option ? { option } : {}), ...(placement ? { placement } : {}) },
+    ...(upTo ? { upTo } : {}),
+  };
+};
+
+/** A fit with nothing to go back to: what a fit left has passed it. */
+const bare = (fit: ProjectFit): ProjectFit => {
+  const { from, before, ...rest } = fit;
+  void from;
+  void before;
+  return rest;
+};
+
+/** What a project's fit left, as far as the project says: the published edition, or the knitting of its own. None, where it has no fit or kept nothing of what it left. */
+export const fitLeaves = (project: Pick<Project, "fit">): { edition: string; own: boolean; tension?: Tension } | undefined =>
+  project.fit?.from !== undefined
+    ? { edition: project.fit.from, own: false }
+    : project.fit?.before
+      ? { edition: project.fit.before.edition, own: true, ...(project.fit.before.fit ? { tension: project.fit.before.fit.tension } : {}) }
+      : undefined;
+
+/**
+ * A project gone back from its fit to what the fit left, exactly as it was:
+ * a published edition, with nothing of its own to say how it was made; or
+ * the knitting of its own it had, with its fit and its making. Unchanged,
+ * where it has nothing to go back to.
+ */
+export const fitLeft = (project: Project): Project => {
+  const { fit, upTo, made, ...rest } = project;
+  void upTo;
+  void made;
+  if (fit?.from !== undefined) return { ...rest, edition: fit.from };
+  const before = fit?.before;
+  if (!before) return project;
+  return { ...rest, edition: before.edition, ...(before.fit ? { fit: before.fit } : {}), ...(before.made ? { made: before.made } : {}), ...(before.upTo ? { upTo: before.upTo } : {}) };
+};
+
+/** A project whose knitting has passed the round its fit was planned from: what the fit left can't be gone back to, and is no longer kept. */
+export const fitKnittedInto = (project: Project): Project => {
+  if (!project.fit?.before) return project;
+  const { before, ...fit } = project.fit;
+  void before;
+  return { ...project, fit };
 };
 
 /** A project with its making set, or with none. */
@@ -406,7 +518,8 @@ export const keepKnitting = (file: EditionFile): boolean => {
 /** Drop any knitting kept on the device that no project knits now, and any shape settled for it. */
 export const dropUnknitted = () => {
   const projects = listProjects();
-  dropEditionsBut(projects);
+  // What a project knits, and what its fit left that it may still go back to.
+  dropEditionsBut(projects.flatMap((project) => [project, ...(project.fit?.before ? [{ sweaterId: project.sweaterId, sizeId: project.sizeId, edition: project.fit.before.edition }] : [])]));
   void dropShapesBut(projects.flatMap((project) => (project.edition ? [editionKey(project.sweaterId, project.sizeId, project.edition)] : [])));
 };
 

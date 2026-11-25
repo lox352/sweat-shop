@@ -1,5 +1,7 @@
-import { afterEach, expect, it, vi } from "vitest";
-import { getStorageNotice, listProjects, readProject, retrySaving, startProject, writeProject } from "./projects";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { type Project, dropUnknitted, fitKnittedInto, fitLeaves, fitLeft, fitTaken, getStorageNotice, listProjects, readProject, retrySaving, startProject, writeProject } from "./projects";
+import { keepEdition, ownEdition } from "../library/editions/own";
+import type { EditionFile } from "../library/editions/format";
 
 afterEach(() => { vi.restoreAllMocks(); retrySaving(); localStorage.clear(); });
 
@@ -70,4 +72,84 @@ it("does not take a project whose making does not read, and takes one whose does
   }
   localStorage.setItem("project-bad", JSON.stringify({ ...good, id: "project-bad", made: { from: "0123456789ab", steps: [{ join: "ba9876543210", round: 3 }, { fit: tension, round: 9, option: "every" }, { fit: tension }] } }));
   expect(listProjects()).toHaveLength(2);
+});
+
+/**
+ * The rest worked out for another tension and none of it knitted, then asked
+ * for at the tension it was: the knitter has the pattern they had, exactly -
+ * what the fit left is gone back to, never planned again.
+ */
+describe("a fit not knitted into, gone back from", () => {
+  const measures = { chestCm: 100, neckCm: 45, yokeDepthCm: 22, bodyLengthCm: 40, upperArmCm: 32, sleeveLengthCm: 45, cuffCm: 20 };
+  const written = { stitchesPer10cm: 32, roundsPer10cm: 38 };
+  const loose = { stitchesPer10cm: 26, roundsPer10cm: 26 };
+  const looser = { stitchesPer10cm: 24, roundsPer10cm: 25 };
+  const published = (): Project => ({ ...startProject("h", "s", "c"), edition: "aaaaaaaaaaaa", progress: 4000 });
+  const fitted = (edition: string, tension: typeof written, round: number) => ({ edition, tension, finished: measures, round, option: "every" });
+
+  it("from a published edition: the project is as it was", () => {
+    const before = published();
+    const away = fitTaken(before, fitted("bbbbbbbbbbbb", loose, 64), "aaaaaaaaaaaa");
+    expect(away.edition).toBe("bbbbbbbbbbbb");
+    expect(away.fit).toMatchObject({ tension: loose, round: 64, from: "aaaaaaaaaaaa" });
+    expect(away.made).toEqual({ from: "aaaaaaaaaaaa", steps: [{ fit: loose, round: 64, option: "every" }] });
+    expect(fitLeaves(away)).toEqual({ edition: "aaaaaaaaaaaa", own: false });
+    expect(fitLeft(away)).toEqual(before);
+  });
+
+  it("on another fit not knitted into: it takes that one's place, and going back is still to the pattern as written", () => {
+    const before = published();
+    const away = fitTaken(before, fitted("bbbbbbbbbbbb", loose, 64), "aaaaaaaaaaaa");
+    const further = fitTaken(away, fitted("cccccccccccc", looser, 64), "aaaaaaaaaaaa");
+    expect(further.fit).toMatchObject({ tension: looser, round: 64, from: "aaaaaaaaaaaa" });
+    // Made as the first was, from the same round of the same edition: one step, not two.
+    expect(further.made).toEqual({ from: "aaaaaaaaaaaa", steps: [{ fit: looser, round: 64, option: "every" }] });
+    expect(fitLeft(further)).toEqual(before);
+  });
+
+  it("from knitting of its own, a fit knitted on from: the project is as it was, its fit and its making with it", () => {
+    // Fitted at the end of one year and knitted on to the end of the next.
+    const first = { ...fitKnittedInto(fitTaken(published(), fitted("bbbbbbbbbbbb", loose, 44), "aaaaaaaaaaaa")), progress: 9000 };
+    const own = { ...first, fit: { tension: first.fit!.tension, finished: first.fit!.finished, round: 44, option: "every" } } satisfies Project;
+    const away = fitTaken(own, fitted("cccccccccccc", looser, 64), "aaaaaaaaaaaa");
+    expect(away.edition).toBe("cccccccccccc");
+    // Nothing published is what it left: the pattern as written is knitted past.
+    expect(away.fit!.from).toBeUndefined();
+    expect(fitLeaves(away)).toEqual({ edition: "bbbbbbbbbbbb", own: true, tension: loose });
+    expect(away.made!.steps).toEqual([{ fit: loose, round: 44, option: "every" }, { fit: looser, round: 64, option: "every" }]);
+    expect(fitLeft(away)).toEqual(own);
+    // And through a third tension, not knitted into either.
+    const third = fitTaken(away, fitted("dddddddddddd", written, 64), "aaaaaaaaaaaa");
+    expect(third.made!.steps).toEqual([{ fit: loose, round: 44, option: "every" }, { fit: written, round: 64, option: "every" }]);
+    expect(fitLeft(third)).toEqual(own);
+  });
+
+  it("the knitting it left is kept on the device while it can be gone back to, and let go once the fit is knitted into", () => {
+    const file = (edition: string) => ({ design: "h", size: "s", edition }) as unknown as EditionFile;
+    for (const edition of ["bbbbbbbbbbbb", "cccccccccccc"]) expect(keepEdition(file(edition))).toBe(true);
+    const own = { ...fitTaken(published(), fitted("bbbbbbbbbbbb", loose, 44), "aaaaaaaaaaaa"), progress: 9000 };
+    const away = writeProject(fitTaken({ ...own, fit: { tension: loose, finished: measures, round: 44 } }, fitted("cccccccccccc", looser, 64), "aaaaaaaaaaaa"));
+    dropUnknitted();
+    expect(ownEdition("h", "s", "bbbbbbbbbbbb")).toBeDefined();
+    expect(ownEdition("h", "s", "cccccccccccc")).toBeDefined();
+    const past = writeProject(fitKnittedInto(readProject(away.id)!));
+    expect(past.fit!.before).toBeUndefined();
+    expect(fitLeaves(past)).toBeUndefined();
+    expect(fitLeft(past)).toEqual(past);
+    dropUnknitted();
+    expect(ownEdition("h", "s", "bbbbbbbbbbbb")).toBeUndefined();
+    expect(ownEdition("h", "s", "cccccccccccc")).toBeDefined();
+  });
+
+  it("a project whose fit says what it left reads back, and one that says it badly does not", () => {
+    const good = published();
+    const before = { edition: "bbbbbbbbbbbb", fit: { tension: loose, finished: measures, round: 44 }, made: { from: "aaaaaaaaaaaa", steps: [{ fit: loose, round: 44 }] }, upTo: "aaaaaaaaaaaa" };
+    const fit = { tension: looser, finished: measures, round: 64 };
+    writeProject({ ...good, edition: "cccccccccccc", fit: { ...fit, before } });
+    expect(readProject(good.id)?.fit?.before).toEqual(before);
+    for (const bad of [{ edition: 7 }, { ...before, fit: { ...before.fit, from: "aaaaaaaaaaaa" } }, { ...before, made: { steps: [] } }, { ...before, upTo: "zz" }]) {
+      localStorage.setItem(good.id, JSON.stringify({ ...good, edition: "cccccccccccc", fit: { ...fit, before: bad } }));
+      expect(readProject(good.id), JSON.stringify(bad)).toBeUndefined();
+    }
+  });
 });

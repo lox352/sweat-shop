@@ -57,6 +57,25 @@ describe("a sweater fitted to its knitter, part way through", () => {
     expect(fitted.written).toMatch(/Chart \S+-18B24-4\S*, rows 1-21\./);
   });
 
+  it("asked of another fit's knitting from the same round, the answer is what it would have been of the pattern's: nothing of a rest not knitted is in it", () => {
+    // So the rest worked out for one tension, then another with none of it knitted, is the rest worked out for the second: fits don't build on each other.
+    const tighter = { stitchesPer10cm: 28, roundsPer10cm: 33 };
+    const away = fit({ design: once, sizeId: "l", knitted: whole, round: second, tension: loose, option: "every" });
+    const direct = fit({ design: once, sizeId: "l", knitted: whole, round: second, tension: tighter, option: "every" });
+    const through = fit({ design: once, sizeId: "l", knitted: away.knitted, round: second, tension: tighter, option: "every" });
+    const said = (knitted: typeof whole) => knitted.stitches.map(({ type, slot, links }) => ({ type, slot, links }));
+    expect(through.knitted.rounds).toEqual(direct.knitted.rounds);
+    expect(said(through.knitted)).toEqual(said(direct.knitted));
+    expect(through.written).toBe(direct.written);
+  });
+
+  it("planned again at the tension it was written for, the rest need not be the pattern's own: which is why a project goes back to that, and does not ask (see projects' fitTaken)", () => {
+    const again = fit({ design: once, sizeId: "l", knitted: whole, round: second, tension: { stitchesPer10cm: 32, roundsPer10cm: 38 }, option: "every" });
+    // Every round knitted is kept, and the size is the size.
+    expect(again.knitted.rounds.slice(0, second)).toEqual(whole.rounds.slice(0, second));
+    expect(again.knitted.checks.body).toBe(whole.checks.body);
+  });
+
   it("at the pattern's own tension, the yoke goes on to the count the size divides at", () => {
     const fitted = fit({ design: once, sizeId: "l", knitted: whole, round: second, tension: { stitchesPer10cm: 32, roundsPer10cm: 38 } });
     expect(fitted.knitted.checks.yoke).toBe(whole.checks.yoke);

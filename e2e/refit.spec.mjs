@@ -126,8 +126,19 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
 
   // And until the knitting passes the round it was fitted from, the pattern as written can be gone back to.
   await page.goto("#/project/1760000000000?tab=fit");
-  await page.getByRole("region", { name: "Your tension" }).getByRole("button", { name: "Go back to the pattern as written", exact: true }).click();
-  await expect(page.getByRole("region", { name: "Your tension" }).getByRole("heading", { name: "Recalculate the rest" })).toBeVisible();
+  const goBack = section.getByRole("button", { name: "Go back to the pattern as written", exact: true });
+  await expect(goBack).toBeVisible({ timeout: 20_000 });
+  // A knitter who puts back the tension the pattern was written for, with none of the recalculated rest knitted, is not offered the rest planned
+  // again, which need not come to the pattern they had: they are offered that pattern.
+  await page.evaluate((id) => {
+    const project = JSON.parse(localStorage.getItem(id));
+    localStorage.setItem(id, JSON.stringify({ ...project, tension: { stitchesPer10cm: 32, roundsPer10cm: 38 } }));
+  }, id);
+  await page.reload();
+  await expect(section).toContainText("This is the tension your pattern was written for before the rest was recalculated", { timeout: 20_000 });
+  await expect(section.getByRole("button", { name: "Recalculate the rest", exact: true })).toHaveCount(0);
+  await goBack.click();
+  await expect(goBack).toHaveCount(0);
   const back = await page.evaluate((id) => JSON.parse(localStorage.getItem(id)), id);
   expect(back.edition).toBe(edition);
   expect(back.fit).toBeUndefined();
