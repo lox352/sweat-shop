@@ -9,7 +9,7 @@ const lettersOfRow = (r: Row) => ("plain" in r ? [r.plain] : lettersOf(r.year, r
 
 describe("the lined-up plan, oldest at the neck", () => {
   it.each(measured)("puts every year in once, each strip about the same height, in $label", ({ finished }) => {
-    const plan = planOf(finished, { kind: "lined", newestFirst: false });
+    const plan = planOf(finished, { kind: "lined" });
     const { yoke, body } = plan.strips;
     const thirteen = [...yoke, ...body];
     expect(thirteen.map((s) => s.year)).toEqual(years);
@@ -21,16 +21,29 @@ describe("the lined-up plan, oldest at the neck", () => {
     for (const piece of ["yoke", "body", "sleeve"] as const) {
       expect(plan.rows[piece]).toHaveLength(plan.depth[piece]);
       expect(plan.strips[piece].reduce((total, s) => total + s.height, 0)).toBe(plan.depth[piece]);
+      // Every piece begins with a plain round, as Each Year Once's do: the body's is the dividing round, the sleeve's the round it is taken up in.
+      expect(new Set(lettersOfRow(plan.rows[piece][0])).size).toBe(1);
     }
-    // The sleeves knit the body's strips round for round, then carry its last year on, its pattern begun within a round or three of the body's:
-    // the hat's sequence runs out before the cuff, and its plain rounds are shared above and below.
+    // The divide falls between two years, within two centimetres of the yoke's depth.
+    expect(Math.abs(plan.depth.yoke - budgets(finished).yoke)).toBeLessThanOrEqual(8);
+    // The sleeves knit the body's strips round for round, then its last year again, cut fuller: as tall as takes the sleeve to the cuff.
     const last = body[body.length - 1];
     const before = plan.rows.body.length - last.height;
     expect(plan.rows.sleeve.slice(0, before)).toEqual(plan.rows.body.slice(0, before));
     expect(new Set(plan.rows.sleeve.slice(before).map((r) => r.year))).toEqual(new Set([last.year]));
-    const firstRow = (rows: Row[]) => rows.findIndex((r, i) => i >= before && !("plain" in r));
-    expect(firstRow(plan.rows.sleeve) - firstRow(plan.rows.body)).toBeGreaterThanOrEqual(0);
-    expect(firstRow(plan.rows.sleeve) - firstRow(plan.rows.body)).toBeLessThanOrEqual(3);
+    expect(plan.rows.sleeve.length - before).toBeGreaterThan(last.height);
+    expect(Math.abs(plan.depth.sleeve - 1 - budgets(finished).sleeve)).toBeLessThanOrEqual(2);
+    const patterned = (rows: Row[]) => rows.filter((r) => !("plain" in r)).length;
+    expect(patterned(plan.rows.sleeve.slice(before))).toBeGreaterThan(patterned(plan.rows.body.slice(before)));
+  });
+
+  it("is laid out by Each Year Once's own rules: a year in a strip is that year as a piece of its own", () => {
+    const plan = planOf(measured.find((m) => m.id === "l")!.finished, { kind: "lined" });
+    // 2014 in its 15 rounds: a plain round, where the first increases go, and its star between its two peeries cut to fit.
+    const rows = plan.rows.yoke.filter((r) => r.year === 2014).map((r) => ("plain" in r ? `plain ${r.plain}` : `${r.chart}${r.row}`));
+    expect(rows).toHaveLength(plan.strips.yoke[0].height);
+    expect(rows[0]).toMatch(/^plain /);
+    expect(rows.filter((r) => r.startsWith("C"))).toEqual(Array.from({ length: 13 }, (_, i) => `C${13 - i}`));
   });
 });
 
@@ -92,42 +105,30 @@ describe("Each Year Once, refitted", () => {
 });
 
 describe("both layouts", () => {
-  const layouts = [{ kind: "lined", newestFirst: false }, { kind: "refit" }] as const;
+  const layouts = [{ kind: "lined" }, { kind: "refit" }] as const;
   const cases = layouts.flatMap((layout) => measured.map((m) => ({ ...m, layout, kind: layout.kind })));
 
   it.each(cases)("colour every plain round from the pattern beside it: $kind, $label", ({ finished, layout }) => {
     const plan = planOf(finished, layout);
     for (const piece of ["yoke", "body", "sleeve"] as const) {
       const rows = plan.rows[piece];
-      rows.forEach((r, i) => {
+      rows.forEach((r) => {
         if (!("plain" in r)) return;
-        // A plain round's yarn is one its own year knits - in Thirteen Strips, in the three pattern rows nearest it either side; in Each Year
-        // Once, which frames each year in one yarn above and below, anywhere: never a stripe from elsewhere.
-        const patterned = (rs: Row[]) => rs.filter((x) => x.year === r.year && !("plain" in x));
-        const near = layout.kind === "refit" ? patterned(rows) : [...patterned(rows.slice(0, i)).slice(-3), ...patterned(rows.slice(i + 1)).slice(0, 3)];
+        // A plain round's yarn is one its own year knits: never a stripe from elsewhere.
+        const near = rows.filter((x) => x.year === r.year && !("plain" in x));
         if (near.length) expect(near.some((x) => lettersOfRow(x).includes(r.plain))).toBe(true);
       });
     }
   });
 
-  // Each Year Once frames each quantum alike rather than each year (see above).
-  it.each(cases.filter((c) => c.kind === "lined"))("frame every year alike, as many plain rounds above it as below: $kind, $label", ({ finished, layout }) => {
+  it.each(cases)("frame every quantum alike, as many plain rounds above it as below: $kind, $label", ({ finished, layout }) => {
     const plan = planOf(finished, layout);
-    for (const piece of ["yoke", "body", "sleeve"] as const) {
-      const rows = plan.rows[piece];
-      for (const year of new Set(rows.map((r) => r.year))) {
-        // A year's rounds, and how many at each end are plain: rounds in its yarn, or its pattern's own plain rows.
-        const own = rows.filter((r) => r.year === year);
-        const plain = (r: Row) => "plain" in r || new Set(lettersOfRow(r)).size === 1;
-        const run = (rs: Row[]) => rs.findIndex((r) => !plain(r));
-        expect(run(own), `${piece}, ${year}`).toBe(run([...own].reverse()));
-      }
-    }
+    for (const piece of ["yoke", "body", "sleeve"] as const) for (const f of plan.frames![piece]) expect(f.above, `${piece}, ${f.year}`).toBe(f.below);
   });
 });
 
 describe("a plain round between quanta that don't go together", () => {
-  const layouts = [{ kind: "lined", newestFirst: false }, { kind: "refit" }] as const;
+  const layouts = [{ kind: "lined" }, { kind: "refit" }] as const;
   it.each(layouts.flatMap((layout) => measured.map((m) => ({ ...m, layout, kind: layout.kind }))))(
     "never knits two such rows one after the other: $kind, $label",
     ({ finished, layout }) => {

@@ -217,7 +217,7 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
 | --- | --- |
 | `wool-week-strips-once-oldest.ts` | **Each Year Once.** 2014 to 2016 round the yoke, 2017 to 2021 down the body, 2022 to 2026 down both sleeves, each year as full as its piece has room for (`refit.ts`) |
 | `wool-week-strips-once-oldest-shaped.ts` | **Each Year Once, shaped.** Each Year Once round for round, with every round's increases on the yoke put where bodies of the size have room for them and not evenly round (`body.ts`, below) |
-| `wool-week-strips-lined-oldest.ts` | **Thirteen Strips.** All thirteen years from the neck to the hem, each in a strip of about the same height; the sleeves knit the body's strips round for round and carry 2026 on to the cuff (`lined` in `plan.ts`) |
+| `wool-week-strips-lined-oldest.ts` | **Thirteen Strips.** All thirteen years from the neck to the hem, each in a strip of about the same height; the sleeves knit the body's strips round for round, with 2026 cut fuller to reach the cuff (`lined.ts`) |
 
 - **A yoke shaped to the body** (`body.ts`; `shaped` in a sampler's file).
   A round yoke that increases evenly has too many stitches down the middle
@@ -306,31 +306,28 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
 - **The cuts** (`cuts.ts`). Each hat cut into building blocks: a motif, and
   the symmetrical additions it can take, and, where a chart mirrors about a
   row, cropped evenly about it.
-- **Thirteen Strips' plan.** Every strip within five per cent of its piece's
-  average, give or take the round it is rounded to: a plain round, which
-  carries any shaping, then a cut, padded with plain rounds. Both plans put a
-  plain round wherever two quanta meet that don't go together (see Quanta
-  below). It keeps the rules of Each Year Once's plan that a fixed height
-  leaves room for:
-  - Every year is framed alike, as many plain rounds in its own yarn above
-    its pattern as below: its plain round, its padding, and its pattern's
-    own plain edge rows. Of every cut and every way of taking its edge rows
-    off that does so, a strip takes the one with the most pattern.
-  - Its plain round may be left out beside a pattern whose own top row is
-    one colour, that row taking the shaping; never where it begins a piece.
-  - Padding above carries on the background of the pattern's top edge, and
-    below, its bottom edge's; a round where two quanta meet, or where the
-    repeat changes, the stronger one's.
-  - A pattern framed alike fits only every other height: 2026's crops are
-    all an even number of rows, 2021's to 2025's odd. So the heights are
-    found together, a small search for the cheapest that frames every strip
-    alike within the five per cent; the divide may move a round or two, and
-    a piece may be a round or more shorter, where nothing else will do.
-  - The sleeves knit the body's strips round for round, then carry 2026 on
-    through the rest of its hat to the cuff, framed alike too: the hat runs
-    out before the cuff, so the plain rounds left are shared above and
-    below, and its pattern begins up to three rounds lower than on the body.
-    The sleeve may be a round longer or shorter for it.
+- **Thirteen Strips' plan** (`lined.ts`). Its strips are Each Year Once's
+  pieces, a year each: a strip is one year laid out by the rules below, cut
+  down its ladder to the rounds it is given, its quanta framed alike, and
+  begun with a plain round, which carries any shaping. So the two samplers
+  cut and frame a year one way, and what is fixed there is fixed in both.
+  What is its own:
+  - Every strip within five per cent of its piece's average, give or take
+    the round it is rounded to; where the years will not go so - at a
+    looser tension a year has no cut that short - within the least more
+    that they will.
+  - The divide falls between two strips, as near the yoke's depth as the
+    strips' heights let it. A pattern framed alike fits only some heights,
+    so the heights are found together, a small search for the cheapest; the
+    divide may move a round or two, and a piece may be a round or more
+    shorter, where nothing else will do.
+  - The sleeves knit the body's strips round for round, then 2026 again as
+    tall as takes the sleeve to the cuff: the same hat, cut fuller. The
+    sleeve may be a round or two longer or shorter for it.
+  - The same function lays out a whole size and the rest of one part
+    knitted (`linedUp`), as Each Year Once's does (`laidOut`), and the
+    samplers' one `fitting` plans with either: see the README's "Fitting a
+    sweater part way through".
 - **Each Year Once's plan** (`refit.ts`), by these rules:
   - A plain round outside a pattern carries on the background of the
     quantum beside it: the commonest yarn among the background stitches

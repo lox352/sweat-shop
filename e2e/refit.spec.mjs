@@ -384,7 +384,6 @@ test("Each Year Once for a tension chosen with the size: every year, from the ca
  */
 for (const { design, size, written, swatch, says, casts } of [
   { design: "paul-klee", size: "m1", written: [22, 34], swatch: [24, 37], says: /The yoke is the pattern's size L, as written: at your tension its 260 stitches round the body come nearest M1's measurements\./, casts: 118 },
-  { design: "wool-week-strips-lined-oldest", size: "m", written: [32, 38], swatch: [28, 34], says: /Every year is a strip of 13 to 16 rounds at this tension/, casts: 128 },
   { design: "feline-raglan", size: "m", written: [32, 38], swatch: [28, 34], says: /Each feline is drawn afresh for this tension: \d+ stitches wide and \d+ rounds tall/, casts: 128 },
   { design: "feline-yoke", size: "m", written: [32, 38], swatch: [28, 34], says: /Each feline is drawn afresh for this tension: \d+ stitches wide and \d+ rounds tall/, casts: 128 },
 ]) {
@@ -425,14 +424,79 @@ for (const { design, size, written, swatch, says, casts } of [
   });
 }
 
-test("a tension the design can't be laid out at says why, and the pattern stays as written", async ({ page }) => {
-  await page.goto("#/sweater/wool-week-strips-lined-oldest?size=m&tab=size");
+/*
+ * Thirteen Strips is planned by the machinery Each Year Once is (see
+ * src/compiler/fit.test.ts): from a tension chosen with the size, and on
+ * from the round the knitter is in.
+ */
+test("Thirteen Strips for a tension chosen with the size: every year a strip of the tension's height, from the cast-on", async ({ page }) => {
+  test.setTimeout(240_000);
+  const lined = "wool-week-strips-lined-oldest";
+  await withoutSettling(page);
+  await page.goto(`#/sweater/${lined}?size=m&tab=size`);
   const section = page.getByRole("region", { name: "Tension", exact: true });
   await expect(section).toContainText("32 stitches and 38 rounds to 10cm", { timeout: 30_000 });
-  await recalculateFor(page, 22, 26);
+  await recalculateFor(page, 28, 34);
+  const shown = section.locator(".size-recalculated");
+  await expect(shown).toBeVisible({ timeout: 150_000 });
+  await shown.getByRole("button", { name: "Change", exact: true }).click();
+  const card = tensionCard(page);
+  await card.getByText("What recalculating changed").click();
+  await expect(card).toContainText(/Every year is a strip of 13 to 16 rounds at this tension\./);
+  await expect(card).toContainText("each sleeve the same strips round for round, with 2026 Birsie Beanny cut fuller to reach the cuff");
+  await expect(card.locator(".refit-written")).toContainText("Cast on 128");
+  await card.getByRole("button", { name: "Close", exact: true }).click();
+
+  await page.getByRole("tab", { name: "Start", exact: true }).click();
+  await expect(page.locator(".ready-choices")).toContainText("Recalculated for yours");
+  await page.getByRole("button", { name: "Start knitting", exact: true }).click();
+  await expect(page.locator(".knitting-panel")).toContainText(/of \d+ stitches/, { timeout: 30_000 });
+  const started = await page.evaluate(() => JSON.parse(localStorage.getItem(Object.keys(localStorage).find((key) => key.startsWith("project-")))));
+  const current = editions[lined].m.current;
+  expect(started).toMatchObject({ sizeId: "m", progress: 0, tension: { stitchesPer10cm: 28, roundsPer10cm: 34 }, upTo: current, fit: { from: current } });
+  expect(started.fit.round).toBeUndefined();
+  // Every year is placed, from the neck down, for a colourway that steps down the sweater.
+  expect(Object.keys(started.fit.placement.places)).toHaveLength(13);
+});
+
+test("Thirteen Strips part way down a year: the year finished as it was begun, and the years to come lined up again in the rounds there are", async ({ page }) => {
+  test.setTimeout(240_000);
+  const lined = "wool-week-strips-lined-oldest";
+  const current = editions[lined].l.current;
+  const published = JSON.parse(readFileSync(`public/editions/${lined}--l--${current}.json`, "utf8"));
+  const runs = published.rounds[54];
+  const tension = { stitchesPer10cm: 27, roundsPer10cm: 27 };
+  await page.goto("");
+  await page.evaluate(({ id, design, edition, progress, tension }) => {
+    const now = new Date().toISOString();
+    localStorage.setItem(id, JSON.stringify({ version: 1, id, sweaterId: design, sizeId: "l", colourwayId: "naturals-dark", edition, progress, tension, startedAt: now, updatedAt: now }));
+  }, { id, design: lined, edition: current, progress: runs[runs.length - 2] + runs[runs.length - 1] - 1, tension });
+  await withoutSettling(page);
+  await page.goto("#/project/1760000000000?tab=fit");
+  const section = page.getByRole("region", { name: "Your tension" });
+  const shown = section.locator(".refit-shown");
+  await section.getByRole("button", { name: "Recalculate the rest", exact: true }).click();
+  await expect(shown).toBeVisible({ timeout: 150_000 });
+  await expect(shown).toContainText("From the end of Yoke, round 55.");
+  await expect(shown).toContainText("the rest of 2016 Crofthoose Hat");
+  await expect(shown).toContainText(/Every year still to come is a strip of \d+ to \d+ rounds at this tension\./);
+  await expect(shown.getByRole("row", { name: /Chest/ })).toContainText("115.5cm");
+  await shown.getByRole("button", { name: "Knit the rest this way", exact: true }).click();
+  await expect(section).toContainText("The rest of your pattern is recalculated for this tension, from the end of Yoke, round 55.", { timeout: 20_000 });
+  const saved = await page.evaluate((id) => JSON.parse(localStorage.getItem(id)), id);
+  expect(saved.fit).toMatchObject({ round: 55, from: current, tension });
+  const own = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), `edition-${lined}--l--${saved.edition}`);
+  expect(own.rounds.slice(0, 55)).toEqual(published.rounds.slice(0, 55));
+});
+
+test("a tension the design can't be laid out at says why, and the pattern stays as written", async ({ page }) => {
+  await page.goto("#/sweater/wool-week-strips-lined-oldest?size=xs&tab=size");
+  const section = page.getByRole("region", { name: "Tension", exact: true });
+  await expect(section).toContainText("32 stitches and 38 rounds to 10cm", { timeout: 30_000 });
+  await recalculateFor(page, 22, 24);
   const alert = section.getByRole("alert");
   await expect(alert).toContainText("The pattern can't be recalculated for that tension.", { timeout: 60_000 });
-  await expect(alert).toContainText("thirteen strips will not go in");
+  await expect(alert).toContainText("2014 to 2026 will not go in");
   await expect(section.locator(".size-recalculated")).toHaveCount(0);
   await page.getByRole("tab", { name: "Start", exact: true }).click();
   await expect(page.locator(".ready-choices")).toContainText("As the pattern");

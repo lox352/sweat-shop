@@ -13,21 +13,21 @@ Yoke (yoke)
   Chart wool-week-strips-lined-oldest-14C12-4w24b012233c322, rows 1-9.
   Chart wool-week-strips-lined-oldest-14C3w24d0-6.18b1, rows 1-1.
   Chart wool-week-strips-lined-oldest-14C2-1w26x6.18b10, rows 1-2.
-  Shaping round in 14A: k4, [m1, k5, m1, k6] x 2, m1, k7, m1, k5, m1, k6, [m1, k5] x 2, [m1, k6] x 2, m1, k5, [m1, k6] x 2, m1, k4, m1, k6, m1, k7, m1, k5, [m1, k6] x 2, m1, k5, m1, k7, [m1, k5] x 2, m1, k6, m1, k5, m1, k6, m1, k7, m1, k5, m1, k6, [m1, k5] x 2, [m1, k6] x 2, m1, k5, [m1, k6] x 2, m1, k4, m1, k6, m1, k7, m1, k5, [m1, k6] x 2, m1, k5, m1, k7, m1, k1, to 306 sts.
+  Shaping round in 14A: k4, [m1, k5] x 3, m1, k6, [m1, k5] x 4, m1, k6, [m1, k5] x 4, m1, k6, [m1, k5] x 4, m1, k6, [m1, k5] x 4, m1, k6, [m1, k5] x 4, m1, k6, [m1, k5] x 4, m1, k6, [m1, k5] x 4, m1, k6, [m1, k5] x 4, m1, k6, [m1, k5] x 4, m1, k6, m1, k1, to 310 sts.
   1 round of k1 in 14A.
-  1 round of k1 in 15D.
-  Shaping round in 15D/g0: k16, [m1, k19] x 7, m1, k20, [m1, k19] x 7, m1, k4, to 322 sts.
+  1 round of k1 in 15D/g0.
+  Chart wool-week-strips-lined-oldest-15A19-19w5x1.2b0, rows 1-1.
+  Shaping round in 15D/g0: k18, m1, k19, [m1, k20] x 2, m1, k18, [m1, k19, m1, k20] x 3, m1, k20, m1, k18, m1, k19, m1, k20, m1, k19, m1, k2, to 326 sts.
   Chart wool-week-strips-lined-oldest-15A17-17w2b0, rows 1-1.
   1 round of k1 in 15D/g0.
-  Chart wool-week-strips-lined-oldest-15A15t322-360w30b0, rows 1-1, 1 repeats a round.
-  Chart wool-week-strips-lined-oldest-15A14-9w30b11233c2, rows 1-6.
-  Chart wool-week-strips-lined-oldest-15A8w30d0-0b1, rows 1-1.
-  Chart wool-week-strips-lined-oldest-15A7-6w31x0b10, rows 1-2.
-  Shaping round in 15A/g0: k13, [m1, k18, m1, k19] x 2, [m1, k19, m1, k18] x 2, [m1, k19] x 2, [m1, k18, m1, k19] x 2, [m1, k19, m1, k18] x 2, m1, k19, m1, k6, to 392 sts.
+  Chart wool-week-strips-lined-oldest-15A15t326-360w30b0, rows 1-1, 1 repeats a round.
+  Chart wool-week-strips-lined-oldest-15A14-10w30b11233c, rows 1-5.
+  Chart wool-week-strips-lined-oldest-15A9w30d0-0b2, rows 1-1.
+  Chart wool-week-strips-lined-oldest-15A8-6w31x0b110, rows 1-3.
+  Shaping round in 15A/g0: m1, k16, [m1, k17] x 10, m1, k16, [m1, k17] x 10, to 394 sts.
   Chart wool-week-strips-lined-oldest-15A4-4w2b0, rows 1-1.
   1 round of k1 in 15A/g0.
-  1 round of k1 in 15A.
-  Shaping round in 16D/g0: k6, [m1, k14] x 27, m1, k8, to 420 sts.
+  Shaping round in 16D/g0: k16, [m1, k15] x 6, m1, k16, [m1, k15] x 5, m1, k16, [m1, k15] x 6, m1, k16, [m1, k15] x 5, m1, to 420 sts.
   Chart wool-week-strips-lined-oldest-16A28-24w14x5.9b0123c2, rows 1-5.
   Chart wool-week-strips-lined-oldest-16A23w14d5.9-1.5.9b1, rows 1-1.
   Chart wool-week-strips-lined-oldest-16A22-22w15x1.5.9b0, rows 1-1.
@@ -56,20 +56,23 @@ Yoke (yoke)
 Body (body)
   Divide, in 19G: k108, put 122 on hold for sleeve-right, cast on 18, k216, put 122 on hold for sleeve-left, cast on 18, k108. (468 sts)
   Shaping round in 19G: k29, [m1, k59, m1, k58] x 3, m1, k59, m1, k29, to 476 sts.
-  Chart wool-week-strips-lined-oldest-19C16-1w28b000112233c2211000, rows 1-16.
+  1 round of k1 in 19G.
+  Chart wool-week-strips-lined-oldest-19C14-3w28b0112233c22110, rows 1-12.
   Shaping round in 19C: k60, m1, [k119, m1] x 3, k59, to 480 sts.
+  2 rounds of k1 in 19C.
   1 round of k1 in 20A.
   Chart wool-week-strips-lined-oldest-20B19-3w24b030001223c22100030, rows 1-17.
   1 round of k1 in 20A.
-  Chart wool-week-strips-lined-oldest-21B27-9w24b0001122233c322211000, rows 1-19.
-  Shaping round in 22A: k19, k2tog, [k38, k2tog] x 11, k19, to 468 sts.
-  2 rounds of k1 in 22A.
+  1 round of k1 in 21A.
+  Chart wool-week-strips-lined-oldest-21B26-10w24b001122233c32221100, rows 1-17.
+  Shaping round in 21A: k19, k2tog, [k38, k2tog] x 11, k19, to 468 sts.
   Chart wool-week-strips-lined-oldest-22C13-1w13b0011223c221100, rows 1-13.
-  Shaping round in 22A: k29, [m1, k59, m1, k58] x 3, m1, k59, m1, k29, to 476 sts.
-  2 rounds of k1 in 22A.
+  Chart wool-week-strips-lined-oldest-22B14-8w6b0023200, rows 1-7.
+  Shaping round in 23A: k29, [m1, k59, m1, k58] x 3, m1, k59, m1, k29, to 476 sts.
   1 round of k1 in 23A.
-  Chart wool-week-strips-lined-oldest-23C21-5w34b001122233c32221100, rows 1-17.
+  Chart wool-week-strips-lined-oldest-23C20-6w34b00112233c3221100, rows 1-15.
   Shaping round in 23A: k14, [k2tog, [k28, k2tog] x 3, k27] x 3, k2tog, [k28, k2tog] x 3, k13, to 460 sts.
+  1 round of k1 in 23A.
   2 rounds of k1 in 24A.
   Chart wool-week-strips-lined-oldest-24C15-1w20b00012233c3221100, rows 1-15.
   Shaping round in 24A: k29, [m1, k58, m1, k57] x 3, m1, k58, m1, k28, to 468 sts.
@@ -78,21 +81,20 @@ Body (body)
   Chart wool-week-strips-lined-oldest-25A16-1w18b001122233c2221100, rows 1-16.
   Shaping round in 25A: k20, m1, [k39, m1] x 11, k19, to 480 sts.
   1 round of k1 in 25A.
-  1 round of k1 in 26DA.
-  Chart wool-week-strips-lined-oldest-26Body29-12w32b0011122233c22211100, rows 1-18.
+  2 rounds of k1 in 26FA.
+  Chart wool-week-strips-lined-oldest-26Body26-11w32b001122233c2221100, rows 1-16.
   Shaping round in 26DA: k19, k2tog, [k38, k2tog] x 11, k19, to 468 sts.
+  1 round of k1 in 26DA.
   Change to the ribbing needles.
   14 rounds of k1, k1, p1, p1 in trim/26. (468 sts) [rib]
   Bind off in pattern, (k1, k1, p1, p1), in trim/26. [rib]
 
 Left sleeve (sleeve-left)
   Begin sleeve-left: pick up and knit 9, knit the held stitches, pick up and knit 9, in 19G. (140 sts)
-  1 round of k1 in 19G. Markers: after 0, place for the start of the left sleeve's rounds.
-  2 rounds of k1 in 19G/g0.
+  2 rounds of k1 in 19G. Markers: after 0, place for the start of the left sleeve's rounds.
   Chart wool-week-strips-lined-oldest-s-19C14-3w28b0112233c22110, rows 1-12.
-  Shaping round in 19C/g0: k17, [k2tog, k33] x 3, k2tog, k16, to 136 sts.
-  1 round of k1 in 19C/g0.
-  1 round of k1 in 19C.
+  Shaping round in 19C: k17, [k2tog, k33] x 3, k2tog, k16, to 136 sts.
+  2 rounds of k1 in 19C.
   1 round of k1 in 20A.
   Chart wool-week-strips-lined-oldest-s-20B19-17w8b030, rows 1-3.
   Shaping round in 20A/g0: k16, [k2tog, k32] x 3, k2tog, k16, to 132 sts.
@@ -100,21 +102,23 @@ Left sleeve (sleeve-left)
   Shaping round in 20A/g0: k16, [k2tog, k31] x 3, k2tog, k15, to 128 sts.
   Chart wool-week-strips-lined-oldest-s-20B5-3w8b030, rows 1-3.
   1 round of k1 in 20A.
-  Shaping round in 21A/g0: k20, [k2tog, k41] x 2, k2tog, k20, to 125 sts.
+  Shaping round in 21A: k20, [k2tog, k41] x 2, k2tog, k20, to 125 sts.
   Chart wool-week-strips-lined-oldest-s-21B26-25w25x23b00, rows 1-2.
   Chart wool-week-strips-lined-oldest-s-21B24w25m23-0b1, rows 1-1.
   Chart wool-week-strips-lined-oldest-s-21B23-10w24b122233c32221100, rows 1-14.
-  Shaping round in 21A/g0: k59, k2tog, k59, to 119 sts.
-  3 rounds of k1 in 22A.
-  Shaping round in 22A/g0: k29, k2tog, k57, k2tog, k29, to 117 sts.
+  Shaping round in 21A: k19, [k2tog, k38] x 2, k2tog, k19, to 117 sts.
+  1 round of k1 in 22A/g0.
   Chart wool-week-strips-lined-oldest-s-22C12-2w13b011223c22110, rows 1-11.
   Shaping round in 22A/g0: k19, [k2tog, k37] x 2, k2tog, k18, to 114 sts.
-  3 rounds of k1 in 22A.
-  1 round of k1 in 23A.
-  Chart wool-week-strips-lined-oldest-s-23C21-19w38x1.9.23.31b001, rows 1-3.
-  Chart wool-week-strips-lined-oldest-s-23C18w38m1.9.23.31-1.31b1, rows 1-1.
-  Chart wool-week-strips-lined-oldest-s-23C17-5w36x1.31b22233c32221100, rows 1-13.
+  1 round of k1 in 22C/f0.
+  Chart wool-week-strips-lined-oldest-s-22B13-9w6b02320, rows 1-5.
+  Shaping round in 22C/f0: k18, [k2tog, k36] x 2, k2tog, k18, to 111 sts.
+  2 rounds of k1 in 23A.
+  Chart wool-week-strips-lined-oldest-s-23C20-16w37x1.16.31b00112, rows 1-5.
+  Chart wool-week-strips-lined-oldest-s-23C15w37m1.16.31-1.31b2, rows 1-1.
+  Chart wool-week-strips-lined-oldest-s-23C14-6w36x1.31b33c3221100, rows 1-9.
   Shaping round in 23A: k17, [k2tog, k34] x 2, k2tog, k17, to 105 sts.
+  1 round of k1 in 23A.
   2 rounds of k1 in 24A.
   1 round of k1 in 24A/g0.
   Chart wool-week-strips-lined-oldest-s-24C14-12w21x19b001, rows 1-3.
@@ -128,24 +132,21 @@ Left sleeve (sleeve-left)
   Chart wool-week-strips-lined-oldest-s-25A11w19m8-0b2, rows 1-1.
   Chart wool-week-strips-lined-oldest-s-25A10-1w18b233c2221100, rows 1-10.
   2 rounds of k1 in 25A.
-  3 rounds of k1 in 26DA.
-  Chart wool-week-strips-lined-oldest-s-26Body29t90-80w40x25+++++++++++b0, rows 1-1, 1 repeats a round.
-  Chart wool-week-strips-lined-oldest-s-26Body28-3w40p8b0011112222333c3322221111000, rows 1-26.
-  Shaping round in 26DA/g0: k9, [k2tog, k18] x 3, k2tog, k9, to 76 sts.
-  1 round of k1 in 26DA/g0.
-  1 round of k1 in 26DA.
+  2 rounds of k1 in 26BA.
+  Chart wool-week-strips-lined-oldest-s-26Body34t90-80w40x29++++++++b0, rows 1-1, 1 repeats a round.
+  Chart wool-week-strips-lined-oldest-s-26Body33-7w40p8b00111122222333c3222221111000, rows 1-27.
+  Shaping round in 26BA: k9, [k2tog, k18] x 3, k2tog, k9, to 76 sts.
+  1 round of k1 in 26BA.
   Change to the ribbing needles.
   14 rounds of k1, k1, p1, p1 in trim/26. (76 sts) [rib]
   Bind off in pattern, (k1, k1, p1, p1), in trim/26. [rib]
 
 Right sleeve (sleeve-right)
   Begin sleeve-right: pick up and knit 9, knit the held stitches, pick up and knit 9, in 19G. (140 sts)
-  1 round of k1 in 19G. Markers: after 0, place for the start of the right sleeve's rounds.
-  2 rounds of k1 in 19G/g0.
+  2 rounds of k1 in 19G. Markers: after 0, place for the start of the right sleeve's rounds.
   Chart wool-week-strips-lined-oldest-s-19C14-3w28b0112233c22110, rows 1-12.
-  Shaping round in 19C/g0: k17, [k2tog, k33] x 3, k2tog, k16, to 136 sts.
-  1 round of k1 in 19C/g0.
-  1 round of k1 in 19C.
+  Shaping round in 19C: k17, [k2tog, k33] x 3, k2tog, k16, to 136 sts.
+  2 rounds of k1 in 19C.
   1 round of k1 in 20A.
   Chart wool-week-strips-lined-oldest-s-20B19-17w8b030, rows 1-3.
   Shaping round in 20A/g0: k16, [k2tog, k32] x 3, k2tog, k16, to 132 sts.
@@ -153,21 +154,23 @@ Right sleeve (sleeve-right)
   Shaping round in 20A/g0: k16, [k2tog, k31] x 3, k2tog, k15, to 128 sts.
   Chart wool-week-strips-lined-oldest-s-20B5-3w8b030, rows 1-3.
   1 round of k1 in 20A.
-  Shaping round in 21A/g0: k20, [k2tog, k41] x 2, k2tog, k20, to 125 sts.
+  Shaping round in 21A: k20, [k2tog, k41] x 2, k2tog, k20, to 125 sts.
   Chart wool-week-strips-lined-oldest-s-21B26-25w25x23b00, rows 1-2.
   Chart wool-week-strips-lined-oldest-s-21B24w25m23-0b1, rows 1-1.
   Chart wool-week-strips-lined-oldest-s-21B23-10w24b122233c32221100, rows 1-14.
-  Shaping round in 21A/g0: k59, k2tog, k59, to 119 sts.
-  3 rounds of k1 in 22A.
-  Shaping round in 22A/g0: k29, k2tog, k57, k2tog, k29, to 117 sts.
+  Shaping round in 21A: k19, [k2tog, k38] x 2, k2tog, k19, to 117 sts.
+  1 round of k1 in 22A/g0.
   Chart wool-week-strips-lined-oldest-s-22C12-2w13b011223c22110, rows 1-11.
   Shaping round in 22A/g0: k19, [k2tog, k37] x 2, k2tog, k18, to 114 sts.
-  3 rounds of k1 in 22A.
-  1 round of k1 in 23A.
-  Chart wool-week-strips-lined-oldest-s-23C21-19w38x1.9.23.31b001, rows 1-3.
-  Chart wool-week-strips-lined-oldest-s-23C18w38m1.9.23.31-1.31b1, rows 1-1.
-  Chart wool-week-strips-lined-oldest-s-23C17-5w36x1.31b22233c32221100, rows 1-13.
+  1 round of k1 in 22C/f0.
+  Chart wool-week-strips-lined-oldest-s-22B13-9w6b02320, rows 1-5.
+  Shaping round in 22C/f0: k18, [k2tog, k36] x 2, k2tog, k18, to 111 sts.
+  2 rounds of k1 in 23A.
+  Chart wool-week-strips-lined-oldest-s-23C20-16w37x1.16.31b00112, rows 1-5.
+  Chart wool-week-strips-lined-oldest-s-23C15w37m1.16.31-1.31b2, rows 1-1.
+  Chart wool-week-strips-lined-oldest-s-23C14-6w36x1.31b33c3221100, rows 1-9.
   Shaping round in 23A: k17, [k2tog, k34] x 2, k2tog, k17, to 105 sts.
+  1 round of k1 in 23A.
   2 rounds of k1 in 24A.
   1 round of k1 in 24A/g0.
   Chart wool-week-strips-lined-oldest-s-24C14-12w21x19b001, rows 1-3.
@@ -181,12 +184,11 @@ Right sleeve (sleeve-right)
   Chart wool-week-strips-lined-oldest-s-25A11w19m8-0b2, rows 1-1.
   Chart wool-week-strips-lined-oldest-s-25A10-1w18b233c2221100, rows 1-10.
   2 rounds of k1 in 25A.
-  3 rounds of k1 in 26DA.
-  Chart wool-week-strips-lined-oldest-s-26Body29t90-80w40x25+++++++++++b0, rows 1-1, 1 repeats a round.
-  Chart wool-week-strips-lined-oldest-s-26Body28-3w40p8b0011112222333c3322221111000, rows 1-26.
-  Shaping round in 26DA/g0: k9, [k2tog, k18] x 3, k2tog, k9, to 76 sts.
-  1 round of k1 in 26DA/g0.
-  1 round of k1 in 26DA.
+  2 rounds of k1 in 26BA.
+  Chart wool-week-strips-lined-oldest-s-26Body34t90-80w40x29++++++++b0, rows 1-1, 1 repeats a round.
+  Chart wool-week-strips-lined-oldest-s-26Body33-7w40p8b00111122222333c3222221111000, rows 1-27.
+  Shaping round in 26BA: k9, [k2tog, k18] x 3, k2tog, k9, to 76 sts.
+  1 round of k1 in 26BA.
   Change to the ribbing needles.
   14 rounds of k1, k1, p1, p1 in trim/26. (76 sts) [rib]
   Bind off in pattern, (k1, k1, p1, p1), in trim/26. [rib]

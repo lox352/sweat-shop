@@ -5,14 +5,16 @@ import { bodyFor, shaperFrom } from "./body";
 import { isSolidRound, restOfBand } from "./kept";
 import { banded, below, grown, knit, nearest, shortRowsOf, trimsOf, Writer } from "./knit";
 import { type Gauge, type KeptRow, type Layout, budgets, gauge, keptSolid, planOf, ribsAt, type Row, type Worked } from "./plan";
+import { linedUp } from "./lined";
 import { laidOut, reachAt } from "./refit";
 import { baseSlot, trimSlot, yearOfSlot } from "./slots";
 
 /**
- * Each Year Once for one knitter: a whole sweater from the cast-on, or the
- * rest of one from part of its yoke knitted, planned for what is on the
- * needles at the knitter's own tension (see Fitting). A published size is
- * the first of those at the pattern's tension.
+ * A strip sampler for one knitter, whichever way it is laid out: a whole
+ * sweater from the cast-on, or the rest of one from part of its yoke
+ * knitted, planned for what is on the needles at the knitter's own tension
+ * (see Fitting). A published size is the first of those at the pattern's
+ * tension.
  *
  * - **Where.** From nothing; or after any round of a year on the yoke.
  *   After the last round of a year, what follows is laid out afresh: every
@@ -50,10 +52,13 @@ import { baseSlot, trimSlot, yearOfSlot } from "./slots";
  *   not need are shared between the body and the sleeves and said, never
  *   decreased away: the knitter chose a size, and is told what it comes to.
  *   So are any it still lacks, where they could not be made.
- * - **The years.** Those not yet knitted, in order, shared between the pieces
- *   and each cut as its piece has room for (see refit's laidOut). Two ways:
- *   every year still to come; or as many of the next as fit at about the
- *   height the pattern gives a year, the last left out.
+ * - **The years.** Those not yet knitted, in order, as the sampler lays its
+ *   years out: Each Year Once shares them between the pieces, each cut as its
+ *   piece has room for (see refit's laidOut); Thirteen Strips lines them up
+ *   from the yoke down the body in strips of about the same height, and has
+ *   the body's again down each sleeve (see lined's linedUp). Two ways: every
+ *   year still to come; or as many of the next as fit at about the height
+ *   the pattern gives a year, the last left out.
  */
 
 const all = Array.from({ length: 13 }, (_, i) => 2014 + i);
@@ -65,11 +70,11 @@ const all = Array.from({ length: 13 }, (_, i) => 2014 + i);
  * for each set of measurements, as laying the pattern out is no small sum.
  */
 const underarms = new Map<string, number>();
-const underarmOf = (finished: Measurements): number => {
-  const key = JSON.stringify(finished);
+const underarmOf = (finished: Measurements, layout: Layout): number => {
+  const key = `${layout.kind} ${JSON.stringify(finished)}`;
   let share = underarms.get(key);
   if (share === undefined) {
-    const { rows } = planOf(finished, { kind: "refit" });
+    const { rows } = planOf(finished, layout);
     share = rows.yoke.length / (rows.yoke.length + rows.body.length);
     underarms.set(key, share);
   }
@@ -189,24 +194,32 @@ const countsAt = (finished: Measurements, g: Gauge) => {
   return { chest, underarm, upperArm, cuff, yokeTotal: chest - 2 * underarm + 2 * (upperArm - underarm) };
 };
 
-export const options: NonNullable<Fitting["options"]> = [
-  { id: "every", label: "Every year still to come", detail: "Each hat not yet knitted, cut as its piece has room for." },
+const options = (layout: Layout): NonNullable<Fitting["options"]> => [
+  {
+    id: "every",
+    label: "Every year still to come",
+    detail: layout.kind === "lined" ? "Each hat not yet knitted, in strips of about the same height." : "Each hat not yet knitted, cut as its piece has room for.",
+  },
   { id: "fewer", label: "Fewer years, fuller", detail: "As many of the next hats as fit at about the height the pattern gives them. The last years are left out." },
 ];
 
 /**
- * The fitting of an Each Year Once sampler: `prefix` its charts' ids begin
- * with, `lowTrim` the slot its waist and wrists are ribbed in. `shaped`, its
- * yoke's increases go where bodies of the size have room (see body.ts), and
- * the rest of one part knitted is the rest of the earliest plan that explains
- * what is knitted (see Fitting.consistent).
+ * The fitting of a strip sampler laid out one way: `prefix` its charts' ids
+ * begin with, `lowTrim` the slot its waist and wrists are ribbed in.
+ * `shaped`, its yoke's increases go where bodies of the size have room (see
+ * body.ts), and the rest of one part knitted is the rest of the earliest plan
+ * that explains what is knitted (see Fitting.consistent).
  */
-export const fitting = (prefix: string, lowTrim: () => string, shaped = false): Fitting => {
+export const fitting = (prefix: string, layout: Layout, lowTrim: () => string, shaped = false): Fitting => {
+  const lines = layout.kind === "lined";
+  // Lined up, the years go down the yoke and the body, and one is enough to go on with; shared out, a body and a sleeve want one each.
+  const least = lines ? 1 : 2;
+  const lay = lines ? linedUp : laidOut;
   const bodyOf = (finished: Measurements) => (shaped ? bodyFor(finished.chestCm) : undefined);
   /** A whole sweater from the cast-on, as a published size is knitted (see knit): the ribs in the design's own trims. */
   const whole = (pieces: Pieces, finished: Measurements, g: Gauge): Made => {
     if (pieces.yoke.length === 0) throw new Error("the yoke has no room for a year at this tension");
-    const knitted = knit(finished, { rows: pieces, opened: true }, prefix, g, lowTrim(), bodyOf(finished));
+    const knitted = knit(finished, { rows: pieces }, prefix, g, lowTrim(), bodyOf(finished));
     return { ...knitted, neck: knitted.checks.neck, count: knitted.checks.neck, yokeEnd: knitted.checks.yoke };
   };
 
@@ -272,7 +285,7 @@ export const fitting = (prefix: string, lowTrim: () => string, shaped = false): 
     const round1 = shared ? nearest((chest * yokeEnd) / yokeTotal, 4) : chest;
     const held = (yokeEnd - (round1 - 2 * underarm)) / 2;
     if (held < 2) throw new Error("the yoke has too few stitches for sleeves");
-    const low = below({ body: banded(pieces.body), sleeve: banded(pieces.sleeve) }, { body: round1, underarm, held, cuff }, lowTrim(), prefix, ribsAt(g), true);
+    const low = below({ body: banded(pieces.body), sleeve: banded(pieces.sleeve) }, { body: round1, underarm, held, cuff }, lowTrim(), prefix, ribsAt(g));
     sections.push({ label: "Body", piece: "body", rounds: low.body }, ...low.sleeves);
     return {
       sections,
@@ -321,16 +334,17 @@ export const fitting = (prefix: string, lowTrim: () => string, shaped = false): 
     const restWith = (again: boolean) => {
       const tail = again ? soonest : within;
       const coming = all.filter((year) => (again ? year >= done : year > done));
-      if (coming.length < 2) throw new Error("there are too few years left to plan a body and sleeves from");
+      if (coming.length < least) throw new Error("there are too few years left to plan a body and sleeves from");
 
       /* Which years, and where: the rest of the yoke made one way. */
       const laidFor = (way: Way) => {
         const left = { yoke: budget - way.kept.length - (way.extra ? 1 : 0), body: want.body, sleeve: want.sleeve };
-        const total = Math.max(0, left.yoke) + left.body + left.sleeve;
+        // The rounds the years have between them: lined up, a sleeve's are its body's over again.
+        const total = Math.max(0, left.yoke) + left.body + (lines ? 0 : left.sleeve);
         const written = budgets(finished, gauge);
-        const fuller = Math.min(coming.length, Math.max(2, Math.round((total * 13) / (written.yoke + written.body + written.sleeve))));
+        const fuller = Math.min(coming.length, Math.max(least, Math.round((total * 13) / (written.yoke + written.body + (lines ? 0 : written.sleeve)))));
         const years = option === "fewer" ? coming.slice(0, fuller) : coming;
-        const laid = laidOut(years, left, reach);
+        const laid = lay(years, left, reach);
         if (!laid) throw new Error(`${named(years)} will not go in the ${rounds(total)} ${from ? "left" : "there are"}`);
         const pieces = { yoke: laid.yoke.rows, body: laid.body.rows, sleeve: laid.sleeve.rows, years: { yoke: laid.yoke.years, body: laid.body.years, sleeve: laid.sleeve.years } };
         return { way, left, years, pieces, coming, again };
@@ -411,7 +425,7 @@ export const fitting = (prefix: string, lowTrim: () => string, shaped = false): 
       chestCm: half(checks.body / g.stitches),
       neckCm: half(made.neck / g.stitches),
       yokeDepthCm: half(yokeRounds / g.rounds),
-      // The body's first row is the dividing round, and the sleeve's the round it is taken up in (see Plan's opened).
+      // The body's first row is the dividing round, and the sleeve's the round it is taken up in (see Plan).
       bodyLengthCm: half((pieces.body.length + ribs.hem + 1) / g.rounds),
       upperArmCm: half(checks["sleeve-left:top"] / g.stitches),
       sleeveLengthCm: half((pieces.sleeve.length + ribs.cuff + 1) / g.rounds),
@@ -459,7 +473,19 @@ export const fitting = (prefix: string, lowTrim: () => string, shaped = false): 
           `the chest comes to ${fits.chestCm}cm for ${finished.chestCm}cm, the upper arm to ${fits.upperArmCm}cm for ${finished.upperArmCm}cm.`,
       );
     }
-    notes.push(`The body has ${named(pieces.years.body)} in ${rounds(pieces.body.length)}, each sleeve ${named(pieces.years.sleeve)} in ${rounds(pieces.sleeve.length)}.`);
+    if (lines) {
+      // Each strip's rounds, but the sleeve's last, which is as long as the sleeve wants.
+      const heights = [...new Set([...pieces.yoke, ...pieces.body].map((row) => row.year))].map((year) => [...pieces.yoke, ...pieces.body].filter((row) => row.year === year).length);
+      const [low, high] = [Math.min(...heights), Math.max(...heights)];
+      const onward = pieces.years.sleeve[pieces.years.sleeve.length - 1];
+      notes.push(
+        `${heights.length === 1 ? "The year" : "Every year"} ${from ? "still to come " : ""}is a strip of ${low === high ? rounds(low) : `${low} to ${rounds(high)}`} at this tension. ` +
+          `The body has ${named(pieces.years.body)} in ${rounds(pieces.body.length)}, and each sleeve the same strips round for round, ` +
+          `with ${onward} ${yearOf(onward).name} cut fuller to reach the cuff, in ${rounds(pieces.sleeve.length)}.`,
+      );
+    } else {
+      notes.push(`The body has ${named(pieces.years.body)} in ${rounds(pieces.body.length)}, each sleeve ${named(pieces.years.sleeve)} in ${rounds(pieces.sleeve.length)}.`);
+    }
     const out = coming.filter((year) => !years.includes(year));
     if (out.length > 0) notes.push(`Left out: ${named(out)}.`);
 
@@ -477,17 +503,22 @@ export const fitting = (prefix: string, lowTrim: () => string, shaped = false): 
      * years over a body of five put the underarm at 31% of the way where the
      * pattern's is at 36%, and a journey that turns from blue to purple at
      * the top of the pattern's body turned sixteen rounds down this one's.
+     *
+     * A year the sleeve has again after the body is placed by the body's:
+     * lined up, they are level round for round, but for the last.
      */
     const first = kinds.findIndex((_, i) => from && yearAt(from.knitted, i + 1) !== undefined);
     const yokeDone = (first < 0 ? 0 : kinds.slice(first).filter((kind) => kind === "round").length) + kept;
     const yokeAll = yokeDone + pieces.yoke.length + (way.extra ? 1 : 0);
-    const armpit = underarmOf(finished);
+    const armpit = underarmOf(finished, layout);
     const middles = (rows: Row[]): [number, number][] =>
       [...new Set(rows.map((row) => row.year))].map((year) => [year, (rows.findIndex((row) => row.year === year) + rows.map((row) => row.year).lastIndexOf(year) + 1) / 2]);
     const places = Object.fromEntries([
       ...middles(pieces.yoke).map(([year, at]) => [String(year), armpit * ((yokeDone + at) / yokeAll)]),
       ...middles(pieces.body).map(([year, at]) => [String(year), armpit + (1 - armpit) * (at / pieces.body.length)]),
-      ...middles(pieces.sleeve).map(([year, at]) => [String(year), armpit + (1 - armpit) * (at / pieces.sleeve.length)]),
+      ...middles(pieces.sleeve)
+        .filter(([year]) => !pieces.years.body.includes(year))
+        .map(([year, at]) => [String(year), armpit + (1 - armpit) * (at / pieces.sleeve.length)]),
     ]);
     const last = (rows: Row[]) => String(rows[rows.length - 1].year);
 
@@ -501,52 +532,5 @@ export const fitting = (prefix: string, lowTrim: () => string, shaped = false): 
       placement: { places, trims: { ...(from ? {} : { [trimsOf(pieces).neck]: [String(pieces.yoke[0].year)] }), [lowTrim()]: [last(pieces.body), last(pieces.sleeve)] } },
     };
   };
-  return { options, cutAfter, startAfter, plan, ...(shaped ? { consistent: true } : {}) };
+  return { options: options(layout), cutAfter, startAfter, plan, ...(shaped ? { consistent: true } : {}) };
 };
-
-/**
- * A lined-up sampler for one knitter: the whole of it from the cast-on, laid
- * out for the size's measurements at their tension as a published size is at
- * the pattern's (see plan's lined) - every year a strip of the height the
- * tension gives it, and the same strips down each sleeve. Its sleeves are its
- * body's strips over again, round for round, so the rest of one part knitted
- * can't be planned yet: it has no cutAfter.
- */
-export const fittingWhole = (prefix: string, layout: Layout): Fitting => ({
-  plan: ({ finished, tension, from }: FitRequest): Fitted => {
-    if (from) throw new Error("a lined-up sampler can only be planned whole, from the cast-on");
-    const g: Gauge = { stitches: tension.stitchesPer10cm / 10, rounds: tension.roundsPer10cm / 10 };
-    // Thirteen strips, each a round of its own yarn and a cut of its hat, want rounds enough between the neck's rib and the hem's.
-    const room = budgets(finished, g);
-    let laid: ReturnType<typeof planOf>;
-    try {
-      laid = planOf(finished, layout, g);
-    } catch (error) {
-      throw new Error(`thirteen strips will not go in the ${rounds(room.yoke + room.body)} the yoke and body have at this tension (${error instanceof Error ? error.message : String(error)})`);
-    }
-    const { sections, charts, checks } = knit(finished, laid, prefix, g);
-    const ribs = ribsAt(g);
-    const fits: Measurements = {
-      chestCm: half(checks.body / g.stitches),
-      neckCm: half(checks.neck / g.stitches),
-      yokeDepthCm: half((ribs.neck + laid.rows.yoke.length + 1) / g.rounds),
-      bodyLengthCm: half((laid.rows.body.length + ribs.hem + 2) / g.rounds),
-      upperArmCm: half(checks["sleeve-left:top"] / g.stitches),
-      sleeveLengthCm: half((laid.rows.sleeve.length + ribs.cuff + 2) / g.rounds),
-      cuffCm: half(checks["sleeve-left:cuff"] / g.stitches),
-    };
-    const yearsOf = (strips: { year: number }[]) => named(strips.map((strip) => strip.year));
-    const heights = [...laid.strips.yoke, ...laid.strips.body].map((strip) => strip.height);
-    const last = laid.strips.sleeve[laid.strips.sleeve.length - 1];
-    return {
-      sections,
-      charts,
-      checks,
-      finished: fits,
-      notes: [
-        `Every year is a strip of ${Math.min(...heights)} to ${Math.max(...heights)} rounds at this tension: ${yearsOf(laid.strips.yoke)} round the yoke, which grows from ${checks.neck} stitches to ${checks.yoke}, and ${yearsOf(laid.strips.body)} down the body.`,
-        `Each sleeve has the body's strips round for round, and ${last.year} ${yearOf(last.year).name} carries on to the cuff in ${rounds(last.height)}.`,
-      ],
-    };
-  },
-});
