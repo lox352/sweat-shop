@@ -79,8 +79,10 @@ export const remake = (linked: Linked, progress?: (fraction: number) => void): {
         // The published edition the first fit left, which a fit can be gone back from: see Refit.
         if (!fitted) fittedFrom = !whole && nth === 0 ? made.from : undefined;
         const found: Fitted[] = [];
+        // The rounds the plans before this one began after, as the project knew them when it asked: see Refit.
+        const earlier = made.steps.slice(0, nth).flatMap((one) => ("fit" in one && one.round !== undefined ? [one.round] : []));
         const asked = askForFit(
-          { design: sweater.id, sizeId, ...(whole ? {} : { knitted: knitting, round: step.round }), tension: step.fit, ...(step.option ? { option: step.option } : {}) },
+          { design: sweater.id, sizeId, ...(whole ? {} : { knitted: knitting, round: step.round, ...(earlier.length ? { earlier } : {}) }), tension: step.fit, ...(step.option ? { option: step.option } : {}) },
           { progress: (fraction) => progress?.((nth + fraction) / made.steps.length), fitted: (one) => found.push(one) },
         );
         cancelNow = asked.cancel;

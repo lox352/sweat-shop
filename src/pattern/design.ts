@@ -222,8 +222,11 @@ export interface Design {
    * knitter has a choice (a whole one is laid out the design's one way). See
    * library/fit. `partWay` where the rest of one part knitted can be planned
    * too: a design without it can only be planned whole, before it is begun.
+   * `anyRound` where that can be from the round the knitter is in, a band
+   * begun finished as it was begun: a design without it plans on from the
+   * end of the band they are in.
    */
-  fitting?: { options?: FitOption[]; partWay?: boolean };
+  fitting?: { options?: FitOption[]; partWay?: boolean; anyRound?: boolean };
   sizes: SizeAbout[];
 }
 

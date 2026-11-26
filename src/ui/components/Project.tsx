@@ -37,6 +37,7 @@ import {
   fitLeaves,
   fitLeft,
   fitTaken,
+  madeOf,
   madeWith,
   withMade,
   storageKeyFor,
@@ -365,10 +366,10 @@ const Project: React.FC<{ view: "overview" | "chart" }> = ({ view }) => {
   }, [change]);
 
   // The rest worked out for the knitter's tension, taken: the knitting is now the project's own, every stitch worked where it was. See Refit.
-  const takeFit = useCallback((fitted: Fitted) => {
+  const takeFit = useCallback((fitted: Fitted, instead?: boolean) => {
     if (!keepKnitting(fitted.file)) return;
     // Worked out from the pattern as it is now. What it left is kept, to go back to: see fitTaken.
-    change((current) => fitTaken(current, { ...fitted, edition: fitted.file.edition }, currentEdition(current.sweaterId, current.sizeId)));
+    change((current) => fitTaken(current, { ...fitted, edition: fitted.file.edition, ...(instead === undefined ? {} : { instead }) }, currentEdition(current.sweaterId, current.sizeId)));
     dropUnknitted();
   }, [change]);
 
@@ -490,7 +491,7 @@ const ProjectView: React.FC<{
   takeUpdate: () => void;
   seeUpdate: () => void;
   joinUpdate: (knitting: SweaterStitches, round: number) => void;
-  takeFit: (fitted: Fitted) => void;
+  takeFit: (fitted: Fitted, instead?: boolean) => void;
   leaveFit: () => void;
   passFit: () => void;
 }> = ({
@@ -527,7 +528,7 @@ const ProjectView: React.FC<{
   const back = useMemo(
     () =>
       leaves && !knittedInto && (!leaves.own || isOwn(sweater.id, size.id, leaves.edition))
-        ? { tension: leaves.tension ?? { stitchesPer10cm: size.stitchesPer10cm, roundsPer10cm: size.roundsPer10cm }, own: leaves.own }
+        ? { edition: leaves.edition, tension: leaves.tension ?? { stitchesPer10cm: size.stitchesPer10cm, roundsPer10cm: size.roundsPer10cm }, own: leaves.own }
         : undefined,
     [leaves?.edition, leaves?.own, leaves?.tension?.stitchesPer10cm, leaves?.tension?.roundsPer10cm, knittedInto, sweater.id, size.id, size.stitchesPer10cm, size.roundsPer10cm], // eslint-disable-line react-hooks/exhaustive-deps
   );
@@ -950,6 +951,8 @@ const ProjectView: React.FC<{
 
   // Whether the rest can still be recalculated: the design can, and the whole sweater is still one round on the needles.
   const canFit = mayFit(sweater, built, project.progress);
+  // The rounds its recalculations so far were planned from, for a design whose plans are picked up where they are followed: see compiler/fit.
+  const earlier = (madeOf(project)?.steps ?? []).flatMap((step) => ("fit" in step && step.round !== undefined ? [step.round] : []));
   const tensionPage = (
     <MyTension key={project.id} size={size} fitted={fitted} tension={project.tension} onChange={setTension} recalculates={canFit}>
       {/* Where the rest is recalculated for this tension already, it says so; where it could be, it offers to; and where it is too late to, it says why nothing is offered. */}
@@ -969,6 +972,8 @@ const ProjectView: React.FC<{
           tension={project.tension}
           fit={project.fit}
           back={back}
+          canFit={canFit}
+          earlier={earlier}
           palette={palette}
           coloursOn={coloursOn}
           roundNames={names}

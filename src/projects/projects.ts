@@ -215,24 +215,26 @@ export const madeWith = (project: Project, step: Step): Made | undefined => {
  * worked out for the tension they had, has the pattern they had: not one
  * planned again, which need not be the same. A published edition is named
  * (`from`); knitting of the project's own is kept with what was said of it
- * (`before`). A fit taken on a fit not knitted into - planned from the same
- * round - takes its place: it leaves what that one left, and is made as that
- * one was, the last step changed.
+ * (`before`). A fit taken on a fit not knitted into takes its place: it is
+ * worked out from what that one left, not from that one's rest (see Refit,
+ * which says so: `instead`), so it leaves what that one left, and is made as
+ * that one was, the last step changed. Where it is not said, it is so of a
+ * fit planned from the same round.
  */
 export const fitTaken = (
   project: Project,
-  fitted: { edition: string; tension: Tension; finished: Measurements; round?: number; option?: string; placement?: Placement },
+  fitted: { edition: string; tension: Tension; finished: Measurements; round?: number; option?: string; placement?: Placement; instead?: boolean },
   upTo: string | undefined,
 ): Project => {
   const { edition, round, option, placement } = fitted;
   const step: Step = { fit: fitted.tension, ...(round === undefined ? {} : { round }), ...(option ? { option } : {}) };
   const was = project.fit;
-  // On a fit no round of which is knitted: this one is from the same round.
-  const instead = was !== undefined && round !== undefined && was.round === round;
+  // On a fit no round of which is knitted: this one was worked out from what that one left.
+  const instead = was !== undefined && round !== undefined && (fitted.instead ?? was.round === round);
   const steps = madeOf(project)?.steps;
   const last = steps?.[steps.length - 1];
   const made =
-    instead && steps && last && "fit" in last && last.round === round
+    instead && steps && last && "fit" in last && last.round === was.round
       ? { ...madeOf(project)!, steps: [...steps.slice(0, -1), step] }
       : madeWith(project, step);
   // Knitting of its own, which no published file holds: what a fit before this one came to, with a round of it knitted, or an update joined.

@@ -45,5 +45,11 @@ export const useFit = () => {
     );
   }, []);
 
-  return { state, ask, reset };
+  /** The asking could not be made at all: said as a working out that failed is. */
+  const fail = useCallback((why: string) => {
+    asked.current?.cancel();
+    setState({ at: "failed", why });
+  }, []);
+
+  return { state, ask, reset, fail };
 };

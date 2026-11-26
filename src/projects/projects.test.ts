@@ -107,6 +107,20 @@ describe("a fit not knitted into, gone back from", () => {
     expect(fitLeft(further)).toEqual(before);
   });
 
+  it("on a fit not knitted into, worked out from what that one left and from a round before it: it takes that one's place too", () => {
+    // The rest was planned from the end of a band, round 64; the knitter, at round 60, has it planned from where they are (see Refit).
+    const before = published();
+    const away = fitTaken(before, fitted("bbbbbbbbbbbb", loose, 64), "aaaaaaaaaaaa");
+    const sooner = fitTaken(away, { ...fitted("cccccccccccc", loose, 60), instead: true }, "aaaaaaaaaaaa");
+    expect(sooner.fit).toMatchObject({ tension: loose, round: 60, from: "aaaaaaaaaaaa" });
+    expect(sooner.made).toEqual({ from: "aaaaaaaaaaaa", steps: [{ fit: loose, round: 60, option: "every" }] });
+    expect(fitLeft(sooner)).toEqual(before);
+    // Worked out from the rest in hand, it is one more thing done to it: said so, even from the same round.
+    const on = fitTaken(away, { ...fitted("dddddddddddd", looser, 64), instead: false }, "aaaaaaaaaaaa");
+    expect(on.made!.steps).toEqual([{ fit: loose, round: 64, option: "every" }, { fit: looser, round: 64, option: "every" }]);
+    expect(fitLeaves(on)).toEqual({ edition: "bbbbbbbbbbbb", own: true, tension: loose });
+  });
+
   it("from knitting of its own, a fit knitted on from: the project is as it was, its fit and its making with it", () => {
     // Fitted at the end of one year and knitted on to the end of the next.
     const first = { ...fitKnittedInto(fitTaken(published(), fitted("bbbbbbbbbbbb", loose, 44), "aaaaaaaaaaaa")), progress: 9000 };

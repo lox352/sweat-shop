@@ -30,12 +30,14 @@ export interface FitQuestion {
    */
   round?: number;
   option?: string;
+  /** The rounds earlier plans of this knitting began after, where the project knows them: see the compiler's FitAsk.earlier. */
+  earlier?: number[];
 }
 
 export interface Fitted {
   /** The whole sweater - the rounds knitted, and the rest - as an edition. */
   file: EditionFile;
-  /** The round the rest begins after: where the knitter is, or the first after it the design can plan on from. None, for a whole sweater from the cast-on. */
+  /** The round the rest begins after: the round the knitter is in, finished as it is charted, or the first after it the design can plan on from. None, for a whole sweater from the cast-on. */
   round?: number;
   tension: Tension;
   /** What it will measure. */
