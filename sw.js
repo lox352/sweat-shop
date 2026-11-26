@@ -1,5 +1,5 @@
-const version = "30fa3f7dc699b492";
-const assets = ["404.html","apple-touch-icon.png","assets/SweaterComparison-D1KKs_NQ.css","assets/SweaterComparison-kcyp_4qY.js","assets/SweaterStage-DlBz1nNT.js","assets/index-B_rfhwnz.css","assets/index-DxVVyilS.js","assets/index-mzBScp02.js","favicon.svg","fonts/README.md","fonts/fonts.css","fonts/oswald-variable.woff2","fonts/source-sans-3-italic.woff2","fonts/source-sans-3-variable.woff2","icon-192.png","icon-512.png","icon-maskable-512.png","index.html","manifest.webmanifest","robots.txt"];
+const version = "c58778d255dd8c43";
+const assets = ["404.html","apple-touch-icon.png","assets/SweaterComparison-Cfpp26bf.js","assets/SweaterComparison-D1KKs_NQ.css","assets/SweaterStage-cJ_6Rp1K.js","assets/index-B_rfhwnz.css","assets/index-BiF9jRBm.js","assets/index-DxVVyilS.js","favicon.svg","fonts/README.md","fonts/fonts.css","fonts/oswald-variable.woff2","fonts/source-sans-3-italic.woff2","fonts/source-sans-3-variable.woff2","icon-192.png","icon-512.png","icon-maskable-512.png","index.html","manifest.webmanifest","robots.txt"];
 const prefix = "sweat-shop-static-";
 const cacheName = prefix + version;
 const urlFor = path => new URL(path, self.registration.scope).href;
