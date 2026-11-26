@@ -145,6 +145,70 @@ test("a knitter at the end of a band has the rest worked out for their tension, 
   expect(await page.evaluate((key) => localStorage.getItem(key), `edition-${design}--l--${project.edition}`)).toBeNull();
 });
 
+test("a knitter part way down a band has the rest worked out from where they are: the band finished as it was begun, on the count the yoke wants", async ({ page }) => {
+  test.setTimeout(240_000);
+  // 27 stitches and 27 rounds to 10cm, on a pattern written for 32 and 38: at the end of 2015 the yoke is as deep as it is to be, and 44 stitches short.
+  const tension = { stitchesPer10cm: 27, roundsPer10cm: 27 };
+  await page.goto("");
+  await page.evaluate(({ id, design, edition, progress, tension }) => {
+    const now = new Date().toISOString();
+    localStorage.setItem(id, JSON.stringify({ version: 1, id, sweaterId: design, sizeId: "l", colourwayId: "naturals-dark", edition, progress, tension, startedAt: now, updatedAt: now }));
+  }, { id, design, edition, progress: endOf(64), tension });
+  await withoutSettling(page);
+  await page.goto("#/project/1760000000000?tab=fit");
+  const section = page.getByRole("region", { name: "Your tension" });
+  const shown = section.locator(".refit-shown");
+  const saved = () => page.evaluate((id) => JSON.parse(localStorage.getItem(id)), id);
+
+  // At the end of the band, the yoke is done: it has one round more to make its stitches in, and then divides. Nothing is shared out short.
+  await section.getByRole("button", { name: "Recalculate the rest", exact: true }).click();
+  await expect(shown).toBeVisible({ timeout: 90_000 });
+  await expect(shown).toContainText("From the end of Yoke, round 64.");
+  await expect(shown).toContainText("The yoke has 1 round more, a round before the dividing round to make stitches in, and grows from 412 stitches to 456.");
+  await expect(shown).not.toContainText("shared between the body and the sleeves");
+  await expect(shown.getByRole("row", { name: /Chest/ })).toContainText("115.5cm");
+  await shown.getByRole("button", { name: "Knit the rest this way", exact: true }).click();
+  await expect(section).toContainText("The rest of your pattern is recalculated for this tension, from the end of Yoke, round 64.", { timeout: 20_000 });
+  const first = await saved();
+  expect(first.fit).toMatchObject({ round: 64, from: edition, tension });
+  // Where the knitting is, there is nothing sooner to plan from.
+  await expect(section.getByRole("button", { name: "Recalculate from where you are", exact: true })).toHaveCount(0);
+
+  // The same jumper four rounds back, part way down 2015: the rest in hand was planned from further on than the knitter is, and can be planned from
+  // where they are.
+  await page.evaluate(({ id, progress }) => {
+    const project = JSON.parse(localStorage.getItem(id));
+    localStorage.setItem(id, JSON.stringify({ ...project, progress }));
+  }, { id, progress: endOf(60) });
+  await page.reload();
+  await expect(section).toContainText("You are at Yoke, round 60, before that.", { timeout: 20_000 });
+  await section.getByRole("button", { name: "Recalculate from where you are", exact: true }).click();
+  await expect(shown).toBeVisible({ timeout: 90_000 });
+  await expect(shown).toContainText("From the end of Yoke, round 60.");
+  // 2015 goes on as it was begun, and grows in its own plain rounds: no round is added, and the dividing round makes nothing.
+  await expect(shown).toContainText("The yoke has 4 rounds more, the rest of 2015 Baa-ble Hat, and grows from 384 stitches to 456.");
+  await expect(shown.getByRole("row", { name: /Chest/ })).toContainText("115.5cm");
+  await shown.getByText("The rest, written out").click();
+  await expect(shown.locator(".refit-written")).toContainText(/Yoke \(yoke\)[\s\S]*to 456 sts\.[\s\S]*Body \(body\)\s+Divide, in 16D/);
+  await shown.getByRole("button", { name: "Knit the rest this way", exact: true }).click();
+  await expect(section).toContainText("The rest of your pattern is recalculated for this tension, from the end of Yoke, round 60.", { timeout: 20_000 });
+  const second = await saved();
+  // Worked out from the pattern the first left, it takes the first's place: one thing done to the published pattern, which can still be gone back to.
+  expect(second.fit).toMatchObject({ round: 60, from: edition, tension });
+  expect(second.made).toEqual({ from: edition, steps: [{ fit: tension, round: 60, option: "every" }] });
+  expect(second.edition).not.toBe(first.edition);
+  const own = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), `edition-${design}--l--${second.edition}`);
+  // Every round knitted is as it was; 2015 ends on round 64, as it did; and the first's knitting is let go.
+  expect(own.rounds.slice(0, 60)).toEqual(file.rounds.slice(0, 60));
+  expect(await page.evaluate((key) => localStorage.getItem(key), `edition-${design}--l--${first.edition}`)).toBeNull();
+  await expect(section.getByRole("button", { name: "Go back to the pattern as written", exact: true })).toBeVisible();
+
+  // The chart carries on from the same stitch: round 61, the round of dots, on the 384 stitches on the needle.
+  await page.goto("#/project/1760000000000/chart?knitting=1");
+  await expect(page.locator(".chart-next")).toBeAttached({ timeout: 20_000 });
+  await expect(page.locator(".knitting-panel")).toContainText("of 384 stitches");
+});
+
 test("Hamefarin is worked out again from the end of a band: the bands still to come, on the stitches there are", async ({ page }) => {
   test.setTimeout(600_000);
   const current = editions.hamefarin.m.current;

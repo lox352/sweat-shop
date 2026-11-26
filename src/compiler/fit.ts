@@ -14,8 +14,9 @@ import { buildSweater, sizeOf } from "./engine/engine";
  *
  * For a design that asks it (see Fitting.consistent), the rest is the rest of
  * the earliest plan that explains what is knitted, so that planning is the
- * same wherever on a plan it is done from: a plan followed and planned again
- * at its tension is itself, and a tension changed and changed back before
+ * same wherever on a plan it is done from - at the end of one of its
+ * instructions or part way down one: a plan followed and planned again at
+ * its tension is itself, and a tension changed and changed back before
  * anything more is knitted leaves the pattern as it was.
  *
  * The one place a pattern is worked out for one knitter alone. Everything
@@ -26,7 +27,7 @@ import { buildSweater, sizeOf } from "./engine/engine";
 export interface FitAsk {
   design: string;
   sizeId: string;
-  /** What is knitted, and the round it is knitted to: one the design can plan on from (see cutAfter). Neither, for a whole sweater from the cast-on. */
+  /** What is knitted, and the round it is knitted to: one the design can plan on from (see startAfter). Neither, for a whole sweater from the cast-on. */
   knitted?: SweaterStitches;
   round?: number;
   /** The knitter's own tension. */
@@ -34,6 +35,13 @@ export interface FitAsk {
   /** What it is to measure: the size's own, unless other measurements are asked for. */
   finished?: Measurements;
   option?: string;
+  /**
+   * Rounds an earlier plan of this knitting began after, where that is known
+   * (a project keeps them: see projects' Made): for a consistent design, they
+   * are tried with the rounds it can plan afresh from, so a plan begun part
+   * way down a band and planned again further on is itself too.
+   */
+  earlier?: number[];
 }
 
 export interface Fit {
@@ -59,9 +67,20 @@ const fittingOf = (design: string): { pattern: SweaterPattern; fitting: Fitting 
 /** The ways a design can lay out the rest; none for a design that can't plan one. */
 export const fitOptions = (design: string) => fittingOf(design)?.fitting.options ?? [];
 
-/** The first round, at or after `round`, the rest can be planned from: none where the design can't, or it is too late. */
+/** The first round, at or after `round`, the rest can be planned afresh from: none where the design can't, or it is too late. */
 export const cutAfter = (design: string, knitted: SweaterStitches, round: number): number | undefined =>
   fittingOf(design)?.fitting.cutAfter?.(knitted, round);
+
+/**
+ * The first round, at or after `round`, the rest can be planned on from: the
+ * round itself, for a design that can finish a band it has begun (see
+ * Fitting.startAfter), and otherwise the first it can plan afresh from. None
+ * where the design can't, or it is too late.
+ */
+export const startAfter = (design: string, knitted: SweaterStitches, round: number): number | undefined => {
+  const fitting = fittingOf(design)?.fitting;
+  return fitting?.startAfter ? fitting.startAfter(knitted, round) : fitting?.cutAfter?.(knitted, round);
+};
 
 /** Are two knittings the same, round for round and stitch for stitch, to a round? */
 const sameTo = (a: SweaterStitches, b: SweaterStitches, round: number): boolean => {
@@ -119,20 +138,36 @@ export const fit = (ask: FitAsk, done?: (fraction: number) => void): Fit => {
    */
   const restFrom = (start: Start | undefined, to: Start): { planned: Fitted; checks: Record<string, number> } | undefined => {
     let planned: Fitted;
-    let cut: { section: number; spec: number } | undefined;
+    // The instruction the round knitted to is in, and how many of its rounds are still to come: none, where it ends there.
+    let cut: { section: number; spec: number; left: number } | undefined;
     let built: SweaterStitches;
     try {
       planned = fitting.plan({ finished, tension: ask.tension, from: start, option: ask.option });
       built = buildSweater(restOf(planned), size.id, start, (section, spec, rounds) => {
-        if (rounds === to.round) cut ??= { section, spec };
+        if (rounds >= to.round) cut ??= { section, spec, left: rounds - to.round };
       });
     } catch {
       return undefined;
     }
     if (!cut || !sameTo(built, to.knitted, to.round)) return undefined;
+    // Part way down an instruction, what is left of it: the last rows of a chart worked once through, or so many rounds fewer. No other can be parted.
+    const { left } = cut;
+    const within = planned.sections[cut.section].rounds[cut.spec];
+    let rest: typeof within | undefined;
+    if (left > 0) {
+      if (within.type === "chart" && (within.passes ?? 1) === 1) {
+        const { markers: _, ...chart } = within;
+        void _;
+        rest = { ...chart, rows: [within.rows[1] - left + 1, within.rows[1]] };
+      } else if (within.type === "rounds") {
+        const { markers: _, ...plain } = within;
+        void _;
+        rest = { ...plain, count: left };
+      } else return undefined;
+    }
     const sections = planned.sections
       .slice(cut.section)
-      .map((section, i) => (i === 0 ? { ...section, rounds: section.rounds.slice(cut!.spec + 1) } : section))
+      .map((section, i) => (i === 0 ? { ...section, rounds: [...(rest ? [rest] : []), ...section.rounds.slice(cut!.spec + 1)] } : section))
       .filter((section) => section.rounds.length > 0);
     const since = start ? "an earlier round" : "the cast-on";
     const notes = [`What is knitted is the beginning of the pattern as it is planned from ${since} at this tension: this is the rest of that pattern.`, ...planned.notes];
@@ -140,8 +175,12 @@ export const fit = (ask: FitAsk, done?: (fraction: number) => void): Fit => {
   };
   let earlier: ReturnType<typeof restFrom>;
   if (from && fitting.consistent && fitting.cutAfter) {
-    const starts: (Start | undefined)[] = [undefined];
-    for (let r = fitting.cutAfter(from.knitted, 1); r !== undefined && r < from.round; r = fitting.cutAfter(from.knitted, r + 1)) starts.push({ knitted: from.knitted, round: r });
+    // The cast-on, then every round before this one a plan could have begun after that is known of: those the design plans afresh from, and those
+    // an earlier plan of this knitting is said to have begun after. The earliest first.
+    const rounds = new Set<number>();
+    for (let r = fitting.cutAfter(from.knitted, 1); r !== undefined && r < from.round; r = fitting.cutAfter(from.knitted, r + 1)) rounds.add(r);
+    for (const r of ask.earlier ?? []) if (Number.isInteger(r) && r >= 1 && r < from.round && fitting.startAfter?.(from.knitted, r) === r) rounds.add(r);
+    const starts: (Start | undefined)[] = [undefined, ...[...rounds].sort((a, b) => a - b).map((round) => ({ knitted: from.knitted, round }))];
     for (const start of starts) if ((earlier = restFrom(start, from))) break;
   }
   const planned = earlier?.planned ?? fitting.plan({ finished, tension: ask.tension, from, option: ask.option });

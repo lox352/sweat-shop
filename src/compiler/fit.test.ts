@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { sweaterById, sweaters } from "./designs";
 import { buildSweater } from "./engine/engine";
 import { asEdition } from "../library/editions/own";
-import { cutAfter, fit, fitOptions } from "./fit";
+import { cutAfter, fit, fitOptions, startAfter } from "./fit";
 
 const once = "wool-week-strips-once-oldest";
 const pieceRounds = (knitted: ReturnType<typeof buildSweater>, piece: string) => knitted.roundPieces.filter((one) => one === piece).length;
@@ -15,12 +15,20 @@ describe("a sweater fitted to its knitter, part way through", () => {
   const first = cutAfter(once, whole, 1)!;
   const second = cutAfter(once, whole, first + 2)!;
 
-  it("can be planned from the last round of a year on the yoke, and nowhere else", () => {
+  it("can be planned afresh from the last round of a year on the yoke, and on from any round of one", () => {
     expect([first, second]).toEqual([44, 64]);
     expect(cutAfter(once, whole, second)).toBe(second);
     expect(cutAfter(once, whole, whole.roundPieces.indexOf("body") + 1)).toBeUndefined();
-    expect(() => fit({ design: once, sizeId: "l", knitted: whole, round: 60, tension: loose })).toThrow(/round 60/);
+    // Any round of a year's band is one the rest can be planned on from: the year is finished as it was begun (see below).
+    for (const round of [18, 30, first, first + 1, 60, second]) expect(startAfter(once, whole, round), `round ${round}`).toBe(round);
+    // In the neck's ribbing or its short rows, the first round after them; and once the yoke is divided, none.
+    expect(startAfter(once, whole, 1)).toBe(18);
+    expect(startAfter(once, whole, whole.roundPieces.indexOf("body") + 1)).toBeUndefined();
+    // A design with no way to finish a band begun plans on from where it plans afresh.
+    const hamefarin = buildSweater(sweaterById("hamefarin")!, "m");
+    expect(startAfter("hamefarin", hamefarin, 1)).toBe(cutAfter("hamefarin", hamefarin, 1));
     expect(cutAfter("paul-klee", whole, 1)).toBeUndefined();
+    expect(startAfter("paul-klee", whole, 1)).toBeUndefined();
     expect(fitOptions(once).map((option) => option.id)).toEqual(["every", "fewer"]);
   }, 60000);
 
@@ -53,8 +61,8 @@ describe("a sweater fitted to its knitter, part way through", () => {
     // The rounds a zigzag is knitted in, each by the zigzag's yarn: a band of teal and a band of blue, where there were three with a row off the first and the last.
     const yarns = fitted.knitted.rounds.map((ids) => new Set(ids.map((id) => fitted.knitted.stitches[id].slot.split("/")[0])));
     expect(yarns.flatMap((slots) => (slots.has("17B") ? ["B"] : slots.has("17C") ? ["C"] : [])).join("")).toBe("CCCCCCCBBBBBBB");
-    // And 2018's dancers and plusses from plain row to plain row.
-    expect(fitted.written).toMatch(/Chart \S+-18B24-4\S*, rows 1-21\./);
+    // And 2018's dancers between their two rows of plusses, from plain row to plain row.
+    expect(fitted.written).toMatch(/Chart \S+-18B17-1\S*, rows 1-17\./);
   }, 60000);
 
   it("asked of another fit's knitting from the same round, the answer is what it would have been of the pattern's: nothing of a rest not knitted is in it", () => {
@@ -88,6 +96,174 @@ describe("a sweater fitted to its knitter, part way through", () => {
     expect(fitted.knitted.checks.yoke).toBeGreaterThan(520);
     expect(fitted.notes[0]).toMatch(/The yoke has \d+ rounds more/);
   }, 60000);
+});
+
+describe("Each Year Once planned on from part way down a year", () => {
+  const pattern = sweaterById(once)!;
+  const whole = buildSweater(pattern, "l");
+  // The knitter this was made for: 27 stitches and 27 rounds to 10cm on a pattern written for 32 and 38, so every round is bigger and there are fewer of them.
+  const tension = { stitchesPer10cm: 27, roundsPer10cm: 27 };
+  type Knitted = typeof whole;
+  const said = (knitted: Knitted, rounds: [number, number]) => knitted.rounds.slice(rounds[0] - 1, rounds[1]).map((ids) => ids.map((id) => `${knitted.stitches[id].type} ${knitted.stitches[id].slot}`));
+  const yarns = (knitted: Knitted, round: number) => knitted.rounds[round - 1].map((id) => knitted.stitches[id].slot);
+  const made = (knitted: Knitted, round: number) => knitted.rounds[round - 1].filter((id) => knitted.stitches[id].type === "m1").length;
+  const oneYarn = (knitted: Knitted, round: number) => new Set(yarns(knitted, round)).size === 1;
+  const yokeRounds = (knitted: Knitted) => knitted.roundPieces.indexOf("body");
+
+  it("size L from round 60, part way down 2015: the year is finished as it was begun, and grows to the yoke's count in its own rounds of one yarn", () => {
+    const fitted = fit({ design: once, sizeId: "l", knitted: whole, round: 60, tension, option: "every" });
+    const { knitted } = fitted;
+    expect(fitted.round).toBe(60);
+    // Every stitch knitted is kept.
+    const kept = whole.rounds[59][whole.rounds[59].length - 1] + 1;
+    expect(knitted.stitches.slice(0, kept).map(({ type, slot, links }) => ({ type, slot, links }))).toEqual(whole.stitches.slice(0, kept).map(({ type, slot, links }) => ({ type, slot, links })));
+    // 2015 goes on for the four rounds it had left, each the round the pattern had there - the same yarns in the same order - on the count the yoke
+    // now wants: the dots and a plain round on the 384 stitches on the needle, then on 456.
+    expect(yokeRounds(knitted)).toBe(64);
+    for (const round of [61, 62, 63, 64]) {
+      const was = yarns(whole, round);
+      expect(yarns(knitted, round).every((slot, j) => slot === was[j % was.length]), `round ${round}`).toBe(true);
+      expect(knitted.roundLabels[round - 1]).toBe(whole.roundLabels[round - 1].replace("plain", round === 62 ? "shaping" : "plain"));
+    }
+    expect([60, 61, 62, 63, 64].map((round) => knitted.rounds[round - 1].length)).toEqual([384, 384, 456, 456, 456]);
+    // Its new stitches are all made in a round of one yarn, and none in the dividing round, which follows a plain round.
+    expect([61, 62, 63, 64, 65].map((round) => made(knitted, round))).toEqual([0, 72, 0, 0, 0]);
+    expect(oneYarn(knitted, 62)).toBe(true);
+    expect(knitted.roundLabels[64]).toMatch(/dividing round/);
+    // So the size is the size: 312 stitches round the chest and 96 round the arm, where the yoke left as it was would give 280 and 90.
+    expect(knitted.checks).toMatchObject({ yoke: 456, body: 312, "sleeve-left:top": 96 });
+    expect(fitted.finished).toMatchObject({ chestCm: 115.5, upperArmCm: 35.5 });
+    expect(fitted.notes[0]).toBe(
+      "The yoke has 4 rounds more, the rest of 2015 Baa-ble Hat, and grows from 384 stitches to 456. It is then within 5 rounds of its depth at this tension, too few for another year, and the body is as much longer.",
+    );
+    expect(fitted.notes.join(" ")).not.toMatch(/shared between/);
+    // 2015 is not planned afresh: it keeps the yarns it was begun in, and the years after it are placed.
+    expect(Object.keys(fitted.placement!.places).sort()[0]).toBe("2016");
+    expect(fitted.written).toMatch(/^Yoke \(yoke\)\n(.*\n)+?\nBody \(body\)\n {2}Divide, in 16D/m);
+  }, 60000);
+
+  it("from the middle of a motif, the motif goes on stitch for stitch: its repeats, and its own doubled columns", () => {
+    // Round 55 is the fourth of the sheep's ten.
+    const fitted = fit({ design: once, sizeId: "l", knitted: whole, round: 55, tension, option: "every" });
+    expect(said(fitted.knitted, [1, 61])).toEqual(said(whole, [1, 61]));
+    expect([62, 63, 64].map((round) => fitted.knitted.rounds[round - 1].length)).toEqual([456, 456, 456]);
+    expect(yokeRounds(fitted.knitted)).toBe(64);
+    expect(fitted.knitted.checks.body).toBe(312);
+  }, 60000);
+
+  it("where the count on the needle is already what the yoke wants, the year goes on exactly as charted", () => {
+    // At the pattern's own tension from part way down 2016, the last year on the yoke.
+    const fitted = fit({ design: once, sizeId: "l", knitted: whole, round: 80, tension: { stitchesPer10cm: 32, roundsPer10cm: 38 }, option: "every" });
+    const end = yokeRounds(whole);
+    expect(yokeRounds(fitted.knitted)).toBe(end);
+    expect(fitted.knitted.rounds.slice(0, end).map((ids) => ids.length)).toEqual(whole.rounds.slice(0, end).map((ids) => ids.length));
+    for (let round = 81; round <= end; round++) expect(yarns(fitted.knitted, round), `round ${round}`).toEqual(yarns(whole, round));
+    expect(fitted.knitted.checks.body).toBe(whole.checks.body);
+  }, 60000);
+
+  it("a yoke that would come out too deep stops the year at the end of a run of its pattern, never part way through one, and says so", () => {
+    // Part way down 2016's second strip of houses, at 27 rounds to 10cm, the yoke is already eleven rounds deeper than the size's.
+    const fitted = fit({ design: once, sizeId: "l", knitted: whole, round: 80, tension, option: "every" });
+    const { knitted } = fitted;
+    // The strip in hand is finished, as charted, and the yoke divides: the round after it in the pattern began another run, on a new count.
+    expect(yokeRounds(knitted)).toBe(82);
+    expect(said(knitted, [1, 82])).toEqual(said(whole, [1, 82]));
+    expect(made(whole, 83)).toBeGreaterThan(0);
+    expect(fitted.notes[0]).toMatch(/^The yoke has 2 rounds more, the rest of 2016 Crofthoose Hat, which stops 15 rounds short of where it was planned to, and stays at 476 stitches\./);
+    // More stitches than the tension wants are shared out and said, as ever; and 2016, more than a third knitted, is not laid out again.
+    expect(fitted.notes.join(" ")).toMatch(/476 stitches round the yoke, 20 more/);
+    expect(fitted.notes.join(" ")).toMatch(/The body has 2017 to 2020/);
+  }, 60000);
+
+  it("a year that must stop with little of it knitted is laid out afresh with the years to come, so none of it is lost", () => {
+    // Size XS at the same tension, one round into 2016's first strip of houses: the yoke is as deep as it is to be.
+    const xs = buildSweater(pattern, "xs");
+    const fitted = fit({ design: once, sizeId: "xs", knitted: xs, round: 62, tension, option: "every" });
+    const { knitted } = fitted;
+    // The strip in hand is finished, four rounds more, and a round of one yarn makes the stitches the yoke lacks before it divides.
+    expect(yokeRounds(knitted)).toBe(67);
+    expect(said(knitted, [1, 66])).toEqual(said(xs, [1, 66]));
+    expect(oneYarn(knitted, 67)).toBe(true);
+    expect([66, 67].map((round) => knitted.rounds[round - 1].length)).toEqual([336, 348]);
+    expect(fitted.notes[0]).toMatch(/^The yoke has no room for the rest of 2016 Crofthoose Hat as it was planned, and little of it is knitted: it stops at the end of the part of its pattern in hand, and is laid out afresh/);
+    // 2016 is the body's first year, and has a place in a colourway that steps down the sweater.
+    expect(fitted.notes.join(" ")).toMatch(/The body has 2016 to 2020/);
+    expect(Object.keys(fitted.placement!.places).sort()[0]).toBe("2016");
+    // With none of its pattern knitted - only its opening round of one yarn - it stops at once.
+    const opening = fit({ design: once, sizeId: "xs", knitted: xs, round: 61, tension, option: "every" });
+    expect(opening.notes[0]).toMatch(/it stops here, and is laid out afresh/);
+    expect(opening.notes.join(" ")).toMatch(/The body has 2016 to 2020/);
+  }, 60000);
+
+  it("a year barely begun whose end would leave the yoke too shallow is laid out afresh too, with the yoke's depth to fill", () => {
+    // 30 stitches and 30 rounds to 10cm: 2015 as the pattern has it, twenty rounds, would end thirteen rounds short of the yoke's depth, too few for 2016.
+    const at = { stitchesPer10cm: 30, roundsPer10cm: 30 };
+    // One round into it, its opening round of one yarn: laid out again, 2015 and 2016 fill the yoke, as they would from the round before.
+    const begun = fit({ design: once, sizeId: "l", knitted: whole, round: 45, tension: at, option: "every" });
+    expect(begun.notes[0]).toMatch(/^The yoke would be too shallow at the end of 2015 Baa-ble Hat as it was planned, and little of it is knitted: it stops here, and is laid out afresh/);
+    expect(begun.notes[1]).toBe("The yoke has 33 rounds more, 2015 to 2016, and grows from 328 stitches to 504.");
+    expect(Math.abs(begun.finished.yokeDepthCm - 23.5)).toBeLessThanOrEqual(0.5);
+    expect(said(begun.knitted, [1, 45])).toEqual(said(whole, [1, 45]));
+    // Half way down its sheep it goes on as it was begun, and the yoke is as much shallower as it is said to be.
+    const half = fit({ design: once, sizeId: "l", knitted: whole, round: 56, tension: at, option: "every" });
+    expect(half.notes[0]).toMatch(/^The yoke has 8 rounds more, the rest of 2015 Baa-ble Hat, and grows from 360 stitches to 504\. It is then within 13 rounds of its depth/);
+    expect(half.finished.yokeDepthCm).toBe(19.5);
+  }, 60000);
+
+  it("a yoke that is done at a year's end but short of its count has one round more to make the stitches in, before the dividing round", () => {
+    const end = cutAfter(once, whole, 60)!;
+    const fitted = fit({ design: once, sizeId: "l", knitted: whole, round: end, tension, option: "every" });
+    const { knitted } = fitted;
+    expect(end).toBe(64);
+    expect(yokeRounds(knitted)).toBe(65);
+    // The round is of the yarn the dividing round is knitted in, and the dividing round makes nothing.
+    expect(oneYarn(knitted, 65)).toBe(true);
+    expect(yarns(knitted, 65)[0]).toBe(yarns(knitted, 66)[0]);
+    expect([64, 65].map((round) => knitted.rounds[round - 1].length)).toEqual([412, 456]);
+    expect(made(knitted, 65)).toBe(44);
+    expect(knitted.roundLabels[65]).toMatch(/dividing round/);
+    expect(made(knitted, 66)).toBe(0);
+    expect(knitted.checks).toMatchObject({ yoke: 456, body: 312, "sleeve-left:top": 96 });
+    expect(fitted.finished.chestCm).toBe(115.5);
+    expect(fitted.notes[0]).toMatch(/^The yoke has 1 round more, a round before the dividing round to make stitches in, and grows from 412 stitches to 456\./);
+    expect(fitted.notes.join(" ")).not.toMatch(/shared between/);
+  }, 60000);
+
+  it("a run in hand that leaves the yoke on an odd count, past the count it wants: a round more makes it one it can divide on, and what is over is said", () => {
+    // Size S, part way down 2016's first strip of houses, whose last round doubles a column in each of its 27 repeats: 378 stitches to 405.
+    const small = buildSweater(pattern, "s");
+    const fitted = fit({ design: once, sizeId: "s", knitted: small, round: 66, tension, option: "every" });
+    const { knitted } = fitted;
+    expect(said(knitted, [1, 70])).toEqual(said(small, [1, 70]));
+    expect([70, 71].map((round) => knitted.rounds[round - 1].length)).toEqual([405, 406]);
+    expect(oneYarn(knitted, 71)).toBe(true);
+    expect(yokeRounds(knitted)).toBe(71);
+    expect(made(knitted, 72)).toBe(0);
+    expect(fitted.notes.join(" ")).toMatch(/406 stitches round the yoke, 18 more than this tension wants/);
+  }, 60000);
+
+  it("from any round of any year on the yoke, tighter and looser: what is knitted is kept, the yoke never loses a stitch, and the dividing round makes none", () => {
+    for (const sizeId of ["xs", "4xl"]) {
+      const knitted = buildSweater(pattern, sizeId);
+      const last = yokeRounds(knitted);
+      for (const at of [{ stitchesPer10cm: 27, roundsPer10cm: 27 }, { stitchesPer10cm: 34, roundsPer10cm: 42 }]) {
+        for (let round = startAfter(once, knitted, 1)! + 3; round <= last; round += 11) {
+          const name = `${sizeId} at ${at.stitchesPer10cm} from round ${round}`;
+          expect(startAfter(once, knitted, round), name).toBe(round);
+          const fitted = fit({ design: once, sizeId, knitted, round, tension: at, option: "every" });
+          const divide = yokeRounds(fitted.knitted) + 1;
+          expect(said(fitted.knitted, [1, round]), name).toEqual(said(knitted, [1, round]));
+          expect(divide, name).toBeGreaterThan(round);
+          const counts = fitted.knitted.rounds.slice(round - 1, divide - 1).map((ids) => ids.length);
+          expect(counts, name).toEqual([...counts].sort((a, b) => a - b));
+          expect(made(fitted.knitted, divide), name).toBe(0);
+          // The chest is the size's, unless the yoke has stitches it can't use or could not make, which is said.
+          const size = pattern.sizes.find((one) => one.id === sizeId)!;
+          if (!/shared between/.test(fitted.notes.join(" "))) expect(Math.abs(fitted.finished.chestCm - size.finished.chestCm), name).toBeLessThanOrEqual(1);
+        }
+      }
+    }
+  }, 600000);
 });
 
 describe("Hamefarin fitted part way through its yoke", () => {
@@ -239,6 +415,39 @@ describe("Each Year Once, shaped: planned on from anywhere along a plan, the pla
   it("at the pattern's own tension from the cast-on is the size as published, to the stitch", () => {
     const fitted = fit({ design: shaped, sizeId: "l", tension: own });
     expect(said(fitted.knitted)).toEqual(said(whole));
+  }, 600000);
+
+  it("from part way down a year at the pattern's own tension, the rest is the pattern's own too, to the stitch: a chart taken up at the row it is at", async () => {
+    const named = async (knitted: typeof whole) => (await asEdition(knitted, shaped, "l")).edition;
+    // Part way down a band of each year, and in the rounds of one yarn between two.
+    for (const round of [30, 45, 58, 62, 80]) {
+      expect(startAfter(shaped, whole, round)).toBe(round);
+      const again = fit({ design: shaped, sizeId: "l", knitted: whole, round, tension: own });
+      expect(again.round).toBe(round);
+      expect(again.knitted.rounds, `round ${round}`).toEqual(whole.rounds);
+      expect(said(again.knitted), `round ${round}`).toEqual(said(whole));
+      expect(again.notes[0]).toMatch(/the rest of that pattern/);
+      expect(await named(again.knitted)).toBe(await named(whole));
+    }
+  }, 600000);
+
+  it("a plan begun part way down a year, followed and planned again at its tension, is itself, where the round it began after is known", () => {
+    // Planned on from the middle of 2015's sheep for a looser knitter: the year is finished as it was begun, and the rest is that knitter's own.
+    const away = fit({ design: shaped, sizeId: "l", knitted: whole, round: 55, tension: loose });
+    expect(away.notes[0]).toMatch(/the rest of 2015 Baa-ble Hat/);
+    expect(said(away.knitted)).not.toEqual(said(whole));
+    // Followed further down that year, into the rounds it grows in, and on into the body's first rounds' year: the plan from round 55 explains it.
+    const end = away.knitted.roundPieces.indexOf("body");
+    for (const later of [58, 62, end]) {
+      const again = fit({ design: shaped, sizeId: "l", knitted: away.knitted, round: later, tension: loose, earlier: [55] });
+      expect(again.knitted.rounds, `round ${later}`).toEqual(away.knitted.rounds);
+      expect(said(again.knitted), `round ${later}`).toEqual(said(away.knitted));
+      expect(again.knitted.checks).toEqual(away.knitted.checks);
+      expect(again.notes[0]).toMatch(/planned from an earlier round/);
+    }
+    // A round that is said and explains nothing is no matter: the pattern's own knitting, asked of at its own tension, is still the pattern's.
+    const still = fit({ design: shaped, sizeId: "l", knitted: whole, round: 62, tension: own, earlier: [55, 1, 9999, 61.5] });
+    expect(said(still.knitted)).toEqual(said(whole));
   }, 600000);
 });
 

@@ -350,11 +350,25 @@ The rest recalculated keeps to these:
   `fitting`, in `src/compiler/designs/types.ts`). The engine only learns to
   carry on from knitting already made (`Needles.resume`). A published
   edition is the same planner starting from nothing.
-- **A pattern changes only between bands**: `cutAfter` says which round, at
-  or after the knitter's, the rest can be planned from.
-- **Stitches the knitting has over what the tension wants are never
-  decreased away quietly**: they are shared out and the knitter is told what
-  the sweater then measures.
+- **A pattern is laid out afresh only between bands**: `cutAfter` says which
+  round, at or after the knitter's, that can be from. A design that can
+  finish a band it has begun plans on from the knitter's own round
+  (`startAfter`): Each Year Once keeps the rounds of the year in hand as the
+  pattern has them, read off its own stitches (`strips/kept.ts`), and knits
+  them on the count the yoke now wants - its new stitches in that year's own
+  rounds of one yarn, never in the dividing round. The band's length changes
+  only where it must: it stops at the end of a part of its pattern where
+  going on would leave the yoke too deep, and a year stopped with little of
+  it knitted is laid out again with the years to come.
+- **A yoke short of its count is made up before it divides**, in the rounds
+  it has left, or in one round more where it has none. **Stitches the
+  knitting has over what the tension wants are never decreased away
+  quietly**: they are shared out and the knitter is told what the sweater
+  then measures.
+- **Recalculations don't build on each other.** Asked again with none of the
+  recalculated rest knitted, the rest is worked out from the pattern that
+  rest left, and takes its place (`Refit`, `fitTaken`): so a rest planned
+  from further on than the knitter is can be planned from where they are.
 - **The project owns the result**: an edition named by its knitting, kept on
   the device and carried in backups, with the tension, the measurements and
   the round it was fitted from on the project (`fit`).

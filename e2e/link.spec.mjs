@@ -372,7 +372,8 @@ test("where a jumper can't be made again from its address, it says why, and what
 
   // It says its pattern was recalculated from a round the design can't plan on from, or a way the design has not got: nothing is planned, and nothing kept.
   for (const [step, why] of [
-    [["f", 23.3, 25, 60, "fewer"], "can't be worked out again from where you are"],
+    // (Round 5 is in the neck's ribbing. Any round of a year on the yoke can be planned on from: see refit.spec.)
+    [["f", 23.3, 25, 5, "fewer"], "can't be worked out again from where you are"],
     [["f", 23.3, 25, 64, "sideways"], "the design no longer has it"],
   ]) {
     await openCleared(page, written({ e: "0123456789ab", g: [23.3, 25], m: { f: edition, s: [step] } }));

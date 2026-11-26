@@ -248,10 +248,58 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     part knitted is the rest of the earliest plan that explains what is
     knitted: the whole sweater's from the cast-on at the tension asked for,
     where the knitting is the beginning of that, or else the plan from the
-    earliest year's end whose rounds since are the knitting's. A plan
-    followed to a later year's end and planned again at its tension is the
-    same plan; a tension changed, and changed back before anything more is
-    knitted, leaves the pattern as it was.
+    earliest year's end whose rounds since are the knitting's - or from a
+    round part way down a year that the jumper says an earlier plan of it
+    began after. A plan followed to any later round, at the end of one of
+    its instructions or part way down a chart, and planned again at its
+    tension is the same plan; a tension changed, and changed back before
+    anything more is knitted, leaves the pattern as it was.
+- **Planned on from part way down a year** (`strips/fit.ts`, `kept.ts`). A
+  knitter whose tension is not the pattern's has the rest worked out from
+  the round they are in, not from the end of the year they are in. Laid out
+  afresh only from a year's end, a yoke could be as deep as it was to be
+  with rounds of its last year still charted and stitches still to make: a
+  size L knitted at 27 stitches and 27 rounds to 10cm came to a 105cm chest
+  for 116cm, the forty stitches it lacked shared out at the divide.
+  - **The year in hand is finished as it was begun.** Its rounds still to
+    come are read off the pattern in hand, stitch by stitch - whatever
+    edition or earlier plan that is - and kept in order: a round of one
+    yarn, or a run of patterned rounds with one repeat of each, the
+    smallest they all share. Nothing is laid out again from the hat, so a
+    motif half knitted goes on as the half above it.
+  - **It is knitted on the count the yoke now wants.** A round of one yarn
+    takes any change of count. A run goes on a whole number of its own
+    repeat - any number, where it begins after a round of one yarn; the
+    number it has, where it was begun in a round already knitted, its own
+    doubled columns with it. A count changes through a run's first round
+    only where the band has no round of one yarn to change it in.
+  - **Its length is left alone unless it must change.** Where going on to
+    its end would leave the yoke more than its reach too deep (about two
+    centimetres), the band stops where the yoke is nearest its depth: at
+    the end of a run or in the rounds of one yarn after it, never part way
+    through a run. What was to follow in it is left out, and said.
+  - **A year barely begun is not lost.** One that must stop so with under a
+    third of its patterned rounds knitted stops as soon as it can and is
+    laid out afresh with the years to come: it is the first of them, just
+    under where it stopped. That year is on the jumper twice, a little of
+    it and then all of it; every other, once. A year with as little knitted
+    is laid out afresh too where going on to its end as it was planned
+    would leave the yoke more than its reach too shallow, with too little
+    left for another year: laid out again it has the yoke's depth to fill.
+    (A year further on than that goes on as it was begun, and the yoke is
+    as much shallower as the knitter is told: the body is as much longer.)
+  - **The yoke reaches its count before it divides.** In the rounds it has;
+    and where it has none - it is done at a year's end, or its last rounds
+    are all pattern - in one round more, of the yarn the body begins in.
+    The dividing round never makes a stitch: it has the underarms to cast
+    on. Only stitches that can't be made are shared out and said: a run in
+    hand that doubles its own columns past the count, a yoke with more
+    than the tension wants.
+  - **Recalculations don't build on each other** (`Refit.tsx`). The rest of
+    a year in hand is the pattern in hand's, so a second recalculation
+    would read the first's. Asked again with none of the first's rest
+    knitted, it is worked out from the pattern the first left, and takes
+    its place.
 - **Turned, so every picture stands up.** Knitted from the neck down, a
   hat's chart is read from its top row: the sheep, houses, boat and ram stand
   the right way up on the jumper as worn, and the lettering reads.

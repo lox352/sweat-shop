@@ -3,6 +3,9 @@ import { measured } from "./design";
 import { gauge, planOf, type Layout } from "./plan";
 import { growing, mapOf, narrowing, type Step, unitsOf } from "./shaping";
 import eachYearOnce from "../../wool-week-strips-once-oldest";
+import { sweaterById } from "../..";
+import { buildSweater } from "../../../engine/engine";
+import { restOfBand } from "./kept";
 
 const nearest = (v: number, m: number) => Math.max(m, Math.round(v / m) * m);
 
@@ -174,6 +177,52 @@ describe("a sleeve narrowed by its quanta, seamless where it can be", () => {
       const charts = specs.flatMap((spec) => (spec.type === "chart" ? [spec.chart] : []));
       // A row taken in from one padding to the less: 2026's lattice from 36 stitches to 34 in L, 38 to 36 in XL.
       expect(charts.filter((chart) => /-s-26Body\d+w\d+-\d+p\d/.test(chart)), id).toHaveLength(1);
+    }
+  });
+});
+
+describe("the rest of a band part knitted, grown on as the pattern in hand has it", () => {
+  // Size L's yoke as published; 2015's band is its rounds 45 to 64: the sheep in 52 to 61, a round of one yarn, a round of dots, a plain round.
+  const whole = buildSweater(sweaterById("wool-week-strips-once-oldest")!, "l");
+  const grownFrom = (round: number, to: number, end = 64) => {
+    const rows = restOfBand(whole, round, end)!;
+    const from = whole.rounds[round - 1].length;
+    return { rows, from, steps: growing(rows, { from, to, want: (i) => from + (to - from) * Math.min(1, (i + 4) / rows.length) }) };
+  };
+
+  it("a run begun in a round already knitted goes on on the repeats it has, and the count changes in the rounds of one yarn after it", () => {
+    const { rows, steps } = grownFrom(55, 456);
+    // The sheep to their last round as they are charted, their doubled columns with them; then the round of one yarn takes the yoke to its count.
+    expect(steps.map((s) => s.count)).toEqual([360, 372, 372, 372, 384, 384, 456, 456, 456]);
+    expect(steps.slice(0, 6).every((s) => s.kept && s.reps === 12)).toBe(true);
+    expect(steps.slice(0, 6).map((s) => s.kind)).toEqual(["same", "double", "same", "same", "double", "same"]);
+    // The round of dots, a run of its own, is on as many of its repeat of two as the count is.
+    expect(steps[7]).toMatchObject({ kept: true, kind: "same", reps: 228 });
+    // No count changes through a kept round of pattern while a round of one yarn can take it.
+    steps.forEach((s, i) => expect(s.kept && s.kind === "change", `round ${i + 1}`).toBeFalsy());
+    expect(unitsOf(rows).map((u) => u.rows.length)).toEqual([6, 1, 1, 1]);
+  });
+
+  it("a run that begins after a round of one yarn goes on a whole number of its own repeat, as many as the count wants", () => {
+    // From round 50, the round of one yarn before the sheep takes them to thirteen repeats of thirty where the pattern in hand has twelve.
+    const { steps } = grownFrom(50, 456);
+    expect(steps[0].count).toBe(390);
+    expect(steps.slice(1, 11).map((s) => [s.count, s.reps])).toEqual([[390, 13], [390, 13], [390, 13], [390, 13], [390, 13], [403, 13], [403, 13], [403, 13], [416, 13], [416, 13]]);
+    expect(steps[steps.length - 1].count).toBe(456);
+    steps.forEach((s, i) => expect(s.kept && s.kind === "change", `round ${i + 1}`).toBeFalsy());
+  });
+
+  it("with no round of one yarn to grow in, a run takes the change through its first round", () => {
+    // The round of dots alone, from the 412 stitches before it.
+    const { steps } = grownFrom(62, 456, 63);
+    expect(steps).toHaveLength(1);
+    expect(steps[0]).toMatchObject({ count: 456, kind: "change", kept: true, reps: 228 });
+  });
+
+  it("is as it is charted where the yoke wants the count the pattern in hand takes it to, and there is one round to take it there in", () => {
+    for (const round of [55, 60, 62]) {
+      const { steps } = grownFrom(round, whole.rounds[63].length);
+      expect(steps.map((s) => s.count), `from ${round}`).toEqual(whole.rounds.slice(round, 64).map((ids) => ids.length));
     }
   });
 });
