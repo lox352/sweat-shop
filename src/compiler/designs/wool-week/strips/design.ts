@@ -2,7 +2,7 @@ import type { Chart, Colourway, Size, SweaterPattern } from "../../types";
 import { yearOf, years } from "../years";
 import { bodyFor } from "./body";
 import { colourways, steps } from "./colours";
-import { fitting, fittingWhole } from "./fit";
+import { fitting } from "./fit";
 import { knit, type Knitted, trimsOf } from "./knit";
 import { type Layout, type Measured, gauge, planOf } from "./plan";
 import { allSlots, letterOf, trimSlot, yearOfSlot, yearsOfTrim } from "./slots";
@@ -121,8 +121,8 @@ export const stripSampler = ({ id, name, story, layout, shaped = false }: StripS
     },
     slotsVaryBySize: true,
     steps,
-    // Each Year Once can be planned on from a year's end on its yoke. A lined-up layout, whose sleeves are its body's strips over again, can't yet: only whole, from the cast-on.
-    fitting: layout.kind === "refit" ? fitting(`${id}-`, () => trimsNow().low, shaped) : fittingWhole(`${id}-`, layout),
+    // Whichever way it is laid out, it can be planned for a knitter's tension: whole, or on from any round of a year on its yoke.
+    fitting: fitting(`${id}-`, layout, () => trimsNow().low, shaped),
     // Other people's charts, knitted as they drew them: floats as long as they come, caught behind the work, and every round in two yarns.
     rules: { colours: 2, float: Infinity },
     tensions: { rib: { stitch: 0.9 } },

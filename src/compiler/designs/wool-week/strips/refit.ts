@@ -19,7 +19,7 @@ import { background } from "./quanta";
  *    sleeves end with one: the first or last quantum's own plain row, or a
  *    round beside it where it has none - never both. The body's first is the
  *    dividing round itself, and a sleeve's the round its stitches are taken
- *    up in (see Plan's opened), so no round goes before a piece's first band
+ *    up in (see Plan), so no round goes before a piece's first band
  *    that goes before no other.
  * 3. A cut's plain edge rows are kept or dropped in pairs, so a band is
  *    framed alike top and bottom.
@@ -537,7 +537,7 @@ const YEARS = Object.keys(ladders).map(Number);
 const toRow = (r: R): Row => ("plain" in r ? { year: r.year, plain: r.plain } : r);
 
 /** A piece laid out: its years, the rounds it was given for them, the cut of each, and its rounds - a round fewer where an odd one was left out (rule 5). */
-interface Piece {
+export interface Piece {
   years: number[];
   total: number;
   /** How far down it had to go to fit: 0 by its years' rungs, each quantum framed by rounds of its own. */
@@ -549,7 +549,11 @@ interface Piece {
 }
 
 const pieces = new Map<string, Piece | undefined>();
-const pieceOf = (name: "yoke" | "body" | "sleeve", years: number[], total: number): Piece | undefined => {
+/**
+ * These years, in order, as one piece of so many rounds, cut by rule 6. A
+ * yoke begins with a plain round; a body or a sleeve ends with one too.
+ */
+export const pieceOf = (name: "yoke" | "body" | "sleeve", years: number[], total: number): Piece | undefined => {
   if (years.length === 0) return { years, total: 0, depth: 0, placed: [], rows: [], strips: [], frames: [] };
   const key = `${name} ${years.join(",")} ${total}`;
   if (pieces.has(key)) return pieces.get(key);
@@ -599,7 +603,7 @@ export const laidOut = (years: number[], left: { yoke: number; body: number; sle
     const yoke = pieceOf("yoke", years.slice(0, k), k > 0 ? left.yoke + dy : 0);
     // A yoke may come out a round short of what it was given: the body has that too.
     // The body and the sleeve each a round more than is left for them below their first: that first is the dividing round, or the round the
-    // sleeve's stitches are taken up in, which is their first band's plain round (see Plan's opened).
+    // sleeve's stitches are taken up in, which is their first band's plain round (see Plan).
     const body = yoke && pieceOf("body", years.slice(k, k + m), left.body + left.yoke - yoke.rows.length + 1);
     const sleeve = body && pieceOf("sleeve", years.slice(k + m), left.sleeve + 1);
     if (!(yoke && body && sleeve)) continue;
@@ -628,7 +632,6 @@ export const refit = (size: Measured, g?: Gauge): Plan => {
   if (!laid) throw new Error("the years will not go in this size");
   const { yoke, body, sleeve } = laid;
   return {
-    opened: true,
     strips: { yoke: yoke.strips, body: body.strips, sleeve: sleeve.strips },
     rows: { yoke: yoke.rows, body: body.rows, sleeve: sleeve.rows },
     depth: { yoke: yoke.rows.length, body: body.rows.length, sleeve: sleeve.rows.length },

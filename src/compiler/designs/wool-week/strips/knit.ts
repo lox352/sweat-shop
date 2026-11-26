@@ -542,10 +542,9 @@ export const below = (
   lowTrim: string,
   prefix: string,
   ribs: ReturnType<typeof ribsAt>,
-  opened = false,
 ) => {
-  // Where a plan's pieces are opened by their own first rows (see Plan), the dividing round and the round a sleeve is taken up in are those rows.
-  const after = (rows: Row[]) => (opened ? rows.slice(1) : rows);
+  // A plan's pieces are opened by their own first rows (see Plan): the dividing round and the round a sleeve is taken up in are those rows.
+  const after = (rows: Row[]) => rows.slice(1);
   // The sleeves take what the body leaves: each sleeve's held stitches, and the underarm cast on beside them.
   const top = held + underarm;
   const half = (body - 2 * underarm) / 2;
@@ -685,7 +684,7 @@ export const shaperOf = (size: Measured, yoke: Row[], bodies: Body, g: Gauge = g
 };
 
 /** A size knitted whole from its plan's rows, at a tension: its waist and wrists ribbed in the trim given, or else the one its last years give. */
-export const knit = (size: Measured, given: Pick<Plan, "rows" | "opened">, prefix: string, g: Gauge = gauge, lowTrimGiven?: string, bodies?: Body): Knitted => {
+export const knit = (size: Measured, given: Pick<Plan, "rows">, prefix: string, g: Gauge = gauge, lowTrimGiven?: string, bodies?: Body): Knitted => {
   const plan = { ...given, rows: { yoke: banded(given.rows.yoke), body: banded(given.rows.body), sleeve: banded(given.rows.sleeve) } };
   const ribs = ribsAt(g);
   const { neck, body, underarm, yokeTotal } = yokeCounts(size, g);
@@ -706,7 +705,7 @@ export const knit = (size: Measured, given: Pick<Plan, "rows" | "opened">, prefi
     ...yoke.done(),
   ];
   yokeSpecs[yokeSpecs.length - 1] = { ...yokeSpecs[yokeSpecs.length - 1], check: "yoke" };
-  const low = below(plan.rows, { body, underarm, held: (yokeEnd - (body - 2 * underarm)) / 2, cuff }, lowTrim, prefix, ribs, given.opened);
+  const low = below(plan.rows, { body, underarm, held: (yokeEnd - (body - 2 * underarm)) / 2, cuff }, lowTrim, prefix, ribs);
   return {
     sections: [{ label: "Yoke", piece: "yoke", rounds: yokeSpecs }, { label: "Body", piece: "body", rounds: low.body }, ...low.sleeves],
     charts: [...yoke.charts.values(), ...low.charts],

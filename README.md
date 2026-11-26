@@ -353,9 +353,9 @@ The rest recalculated keeps to these:
 - **A pattern is laid out afresh only between bands**: `cutAfter` says which
   round, at or after the knitter's, that can be from. A design that can
   finish a band it has begun plans on from the knitter's own round
-  (`startAfter`): Each Year Once keeps the rounds of the year in hand as the
-  pattern has them, read off its own stitches (`strips/kept.ts`), and knits
-  them on the count the yoke now wants - its new stitches in that year's own
+  (`startAfter`): the strip samplers keep the rounds of the year in hand as
+  the pattern has them, read off its own stitches (`strips/kept.ts`), and
+  knit them on the count the yoke now wants - its new stitches in that year's own
   rounds of one yarn, never in the dividing round. The band's length changes
   only where it must: it stops at the end of a part of its pattern where
   going on would leave the yoke too deep, and a year stopped with little of
@@ -396,11 +396,11 @@ the size is changed, which is another question. Where the design can't be
 laid out at the tension it says why, and the pattern stays as written. The
 project then begins on knitting of its own.
 
-Every design can from the cast-on, and two can part way too (a design's
+Every design can from the cast-on, and three can part way too (a design's
 `fitting` has a `cutAfter` only where it can; the catalogue says so as
 `partWay`, and a design's page and a project's say which it is). **Each Year
 Once** plans from the cast-on, or on
-from the last round of a year on its yoke: the years not yet knitted shared
+from any round of a year on its yoke: the years not yet knitted shared
 between the pieces and each cut as its piece has room for, a pattern kept
 whole while it can be, every year or fewer of them fuller - a choice only
 part way, where years no longer fit as they were: from the cast-on it has
@@ -412,12 +412,17 @@ plans from the cast-on, or on from the last round of a band of its yoke:
 the bands still to come graded from the stitches on the needles, one left
 out where the yoke has no depth for it.
 
-The rest plan whole, and not on from part knitted. **Thirteen Strips** is
-laid out for the size's measurements at the tension given by the function
-that lays out its published sizes: every year a strip of the height the
-tension gives it, and the same strips down each sleeve - so it can't be part
-way, and can't be at all at a tension so loose that thirteen strips have not
-the rounds. **The feline jumpers** are knitted to the tension's counts, each
+**Thirteen Strips** is planned by the same machinery, whole or on from any
+round of a year on its yoke (`fitting`, in the samplers' `fit.ts`, takes the
+layout): a year in hand finished as it was begun, and the years to come lined
+up again in the rounds there are - every one a strip of the height the
+tension then gives it, from the yoke down the body, and the body's strips
+again down each sleeve. Its strips are Each Year Once's pieces, a year each
+(`linedUp`, in `lined.ts`, over `refit.ts`'s `pieceOf`), so a year is cut
+and framed one way in both. Every year, or fewer of them fuller; at a tension
+so loose that thirteen have not the rounds, it says so.
+
+The rest plan whole, and not on from part knitted. **The feline jumpers** are knitted to the tension's counts, each
 feline drawn afresh as large as the front then has room for, in stitches as
 much wider than tall as the knitter's; their bands are pictures of a set
 number of stitches, and at some tensions will not go round a size, which is

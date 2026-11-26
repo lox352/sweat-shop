@@ -32,7 +32,7 @@ const copies = (s: Step) => {
 };
 
 const cases = (["refit", "lined"] as const).flatMap((kind) =>
-  measured.map((m) => ({ ...m, kind, layout: (kind === "refit" ? { kind } : { kind, newestFirst: false }) as Layout })),
+  measured.map((m) => ({ ...m, kind, layout: { kind } as Layout })),
 );
 
 describe("a yoke grown by its quanta", () => {
