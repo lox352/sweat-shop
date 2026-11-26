@@ -477,7 +477,11 @@ ways. Each is one file, `src/data/sweaters/wool-week-strips-*.ts`, a call to
     of colours together. Colour journey (a step round the colour circle each
     year), Night journey (the same on dark grounds), each also in step (its
     hue set by how far down the jumper a band sits, as Each Year Once in M
-    has it, so a body band and the sleeve band level with it share a hue)
+    has it, so a body band and the sleeve band level with it share a hue;
+    on a jumper recalculated for its knitter the underarm stays where the
+    pattern has it in that journey, the yoke's years sharing the way to it
+    and the body's and sleeves' the way from it, however deep the yoke has
+    come out beside the body)
     and in step on half the circle, gentler; Shetland landscape (each
     year a place, in soft heathers), Undyed grounds with dyed figures,
     Shaded Fair Isle, the hats' own hues, Bohus heathers, Muhu stockings (the

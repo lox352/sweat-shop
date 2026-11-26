@@ -32,6 +32,24 @@ import { baseSlot, trimSlot, yearOfSlot } from "./slots";
 
 const all = Array.from({ length: 13 }, (_, i) => 2014 + i);
 
+/**
+ * How far down the jumper the underarm is, of the way from the neck to the
+ * hem, as the pattern has it for these measurements at its own tension: its
+ * yoke's rounds of colourwork among its yoke's and body's. Worked out once
+ * for each set of measurements, as laying the pattern out is no small sum.
+ */
+const underarms = new Map<string, number>();
+const underarmOf = (finished: Measurements): number => {
+  const key = JSON.stringify(finished);
+  let share = underarms.get(key);
+  if (share === undefined) {
+    const { rows } = planOf(finished, { kind: "refit" });
+    share = rows.yoke.length / (rows.yoke.length + rows.body.length);
+    underarms.set(key, share);
+  }
+  return share;
+};
+
 /** The year a round is knitted in, by its last stitch: none in the ribbing's trim. */
 const yearAt = (knitted: SweaterStitches, round: number): number | undefined => {
   const ids = knitted.rounds[round - 1];
@@ -209,15 +227,23 @@ export const fitting = (prefix: string, lowTrim: () => string, shaped = false): 
      * jumper: the yoke the first part of the way, then the body and the
      * sleeves each the rest from the underarm, so a body band and the sleeve
      * band level with it share a place. Each year at the middle of its rounds.
+     *
+     * The underarm is where the pattern has it for these measurements, however
+     * deep this knitter's yoke has come out beside their body: the yoke's
+     * years share the way to it, and the body's and the sleeves' the way from
+     * it. Taken instead as this yoke's own share of the rounds, a yoke of two
+     * years over a body of five put the underarm at 31% of the way where the
+     * pattern's is at 36%, and a journey that turns from blue to purple at
+     * the top of the pattern's body turned sixteen rounds down this one's.
      */
     const first = kinds.findIndex((_, i) => from && yearAt(from.knitted, i + 1) !== undefined);
     const yokeDone = first < 0 ? 0 : kinds.slice(first).filter((kind) => kind === "round").length;
     const yokeAll = yokeDone + pieces.yoke.length;
-    const armpit = yokeAll / (yokeAll + pieces.body.length);
+    const armpit = underarmOf(finished);
     const middles = (rows: Row[]): [number, number][] =>
       [...new Set(rows.map((row) => row.year))].map((year) => [year, (rows.findIndex((row) => row.year === year) + rows.map((row) => row.year).lastIndexOf(year) + 1) / 2]);
     const places = Object.fromEntries([
-      ...middles(pieces.yoke).map(([year, at]) => [String(year), (yokeDone + at) / (yokeAll + pieces.body.length)]),
+      ...middles(pieces.yoke).map(([year, at]) => [String(year), armpit * ((yokeDone + at) / yokeAll)]),
       ...middles(pieces.body).map(([year, at]) => [String(year), armpit + (1 - armpit) * (at / pieces.body.length)]),
       ...middles(pieces.sleeve).map(([year, at]) => [String(year), armpit + (1 - armpit) * (at / pieces.sleeve.length)]),
     ]);
