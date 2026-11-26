@@ -90,7 +90,8 @@ describe("a colourway that steps down the sweater, placed on one laid out for on
       expect(body.length).toBeGreaterThan(1);
       expect(sleeve.length).toBeGreaterThan(1);
       // A year still to go round the yoke is above the pattern's underarm; every band of the body and the sleeves below it, the first of each just below.
-      for (const year of yoke) expect(places[year]).toBeLessThan(underarm);
+      // (A yoke short of stitches has one round more before it divides, in the yarn the body begins in: that round is the body's first year's.)
+      for (const year of yoke.filter((one) => one !== body[0])) expect(places[year]).toBeLessThan(underarm);
       for (const year of [...body, ...sleeve]) expect(places[year]).toBeGreaterThan(underarm);
       for (const first of [body[0], sleeve[0]]) expect(places[first]).toBeLessThan(underarm + 0.12);
       // And the body's first band, 2016 here, is knitted in what the pattern's first body band is: past the blues.

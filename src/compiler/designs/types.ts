@@ -321,6 +321,13 @@ export interface Fitting {
    * planned whole, from the cast-on.
    */
   cutAfter?(knitted: SweaterStitches, round: number): number | undefined;
+  /**
+   * The first round, at or after `round`, the rest can be planned on from as
+   * it stands, where that is sooner than cutAfter's: a round part way down a
+   * band, for a design that can finish a band it has begun and plan on from
+   * there. A design without it plans on only from where it can plan afresh.
+   */
+  startAfter?(knitted: SweaterStitches, round: number): number | undefined;
   plan(ask: FitRequest): Fitted;
   /**
    * The rest of one part knitted is to be the rest of the earliest plan that

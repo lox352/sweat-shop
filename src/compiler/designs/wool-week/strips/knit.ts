@@ -2,7 +2,7 @@ import type { Chart, ChartCell, RoundSpec, Section, ShapingOp } from "../../type
 import { decreaseEvenly, increaseEvenly } from "../../writing";
 import { yearOf } from "../years";
 import { lettersOf, solid } from "./cuts";
-import { type Gauge, gauge, ribsAt, type Measured, type Plan, type Row } from "./plan";
+import { type ChartRow, type Gauge, gauge, isKept, type KeptRow, ribsAt, type Measured, type Plan, type Row, type Worked } from "./plan";
 import { quantumOf } from "./quanta";
 import { type Body, Shaper, type ShortRows } from "./body";
 import { growing, increasesOf, madeIn, narrowing, type Placer, type Step, tileOf, unitsOf } from "./shaping";
@@ -39,10 +39,19 @@ const lightness = (slot: string): number => {
 };
 const darkest = (slots: string[]) => slots.reduce((d, s) => (lightness(s) < lightness(d) ? s : d));
 
-type ChartRow = Exclude<Row, { plain: string }>;
-const isPlain = (r: Row): r is { year: number; plain: string } => "plain" in r;
+const isPlain = (r: Worked): r is { year: number; plain: string } => "plain" in r;
 const rowIsSolid = (r: Row) => !isPlain(r) && solid(lettersOf(r.year, r.chart)[r.row - 1]);
-export const slotOfRound = (r: Row): string => (isPlain(r) ? plainSlot(r.year, r.plain) : tileOf(r)[0]);
+export const slotOfRound = (r: Worked): string => (isKept(r) ? r.kept.cells[0].slot : isPlain(r) ? plainSlot(r.year, r.plain) : tileOf(r)[0]);
+
+/** A short name for what a chart of kept rounds holds, for its id: the same rounds have the same, and others another. */
+const digest = (rows: ChartCell[][]): string => {
+  let h = 0x811c9dc5;
+  for (const row of rows) {
+    for (const cell of row) for (const ch of `${cell.slot}${cell.symbol ?? ""}${cell.spacer ? "~" : ""},`) h = Math.imul(h ^ ch.charCodeAt(0), 0x01000193);
+    h = Math.imul(h ^ 59, 0x01000193);
+  }
+  return (h >>> 0).toString(36);
+};
 
 /**
  * What the samplers' markers mark, as the knitting panel names them - "Place
@@ -186,6 +195,8 @@ export class Writer {
   specs: RoundSpec[] = [];
   charts = new Map<string, Chart>();
   private run: { key: string; year: number; chart: string; w: number; rows: ChartRow[]; map?: number[]; seam?: number; maps?: number[][]; resized?: number } | null = null;
+  /** Kept rounds being gathered into one chart: see keep. */
+  private held: { key: string; year: number; rows: ChartCell[][] } | null = null;
 
   constructor(
     private readonly prefix: string,
@@ -198,6 +209,13 @@ export class Writer {
   }
 
   private flush() {
+    if (this.held) {
+      const { year, rows } = this.held;
+      const id = `${this.prefix}${String(year).slice(2)}k${rows[0].length}h${digest(rows)}`;
+      if (!this.charts.has(id)) this.charts.set(id, { id, name: this.nameOf(year), rows });
+      this.specs.push({ type: "chart", chart: id, rows: [1, rows.length] });
+      this.held = null;
+    }
     if (!this.run) return;
     const { year, chart, w, rows, map, seam } = this.run;
     if (seam !== undefined) {
@@ -229,7 +247,7 @@ export class Writer {
     const wide = map && (map.length !== r.w || map.some((x, q) => x !== q)) ? map : undefined;
     const key = `${r.year}${r.chart}${wide ? wide.length : r.w}${resized ? `r${resized}` : wide ? doubling(wide) : ""}`;
     const prev = this.run?.rows[this.run.rows.length - 1];
-    if (this.run && (this.run.key !== key || prev!.row !== r.row + 1)) this.flush();
+    if (this.held || (this.run && (this.run.key !== key || prev!.row !== r.row + 1))) this.flush();
     if (!this.run) this.run = { key, year: r.year, chart: r.chart, w: wide ? wide.length : r.w, rows: [], map: resized ? undefined : wide, maps: resized ? [] : undefined, resized };
     this.run.rows.push(r);
     this.run.maps?.push(map!);
@@ -291,7 +309,7 @@ export class Writer {
       // Rounds that keep their count go together in one chart, as a band's rows do.
       const key = `${r.year}${r.chart}s${to}o${off}`;
       const prev = this.run?.rows[this.run.rows.length - 1];
-      if (this.run && (this.run.key !== key || prev!.row !== r.row + 1)) this.flush();
+      if (this.held || (this.run && (this.run.key !== key || prev!.row !== r.row + 1))) this.flush();
       if (!this.run) this.run = { key, year: r.year, chart: r.chart, w: to, rows: [], seam: off };
       this.run.rows.push(r);
       return;
@@ -305,6 +323,38 @@ export class Writer {
       row = cells.map((c, j) => (at.has(j) ? { ...c, symbol: "k2tog" } : c));
     }
     const id = `${this.prefix}${String(r.year).slice(2)}${r.chart}${r.row}s${from}-${to}o${off}${bandsOf([r])}`;
+    this.charts.set(id, { id, name: this.nameOf(r.year), rows: [row] });
+    this.specs.push({ type: "chart", chart: id, rows: [1, 1], repeats: 1 });
+  }
+
+  /**
+   * A round kept as the pattern in hand has it (see kept.ts), on a whole
+   * number of its own repeat: a run's rounds go together in one chart while
+   * they keep their repeat, and a round whose repeat makes a stitch of its
+   * own is a chart to itself.
+   */
+  keep(r: KeptRow) {
+    const { cells, run } = r.kept;
+    const key = `${r.year}k${run}w${cells.length}`;
+    const shapes = cells.some((cell) => cell.symbol);
+    if (this.run || shapes || (this.held && this.held.key !== key)) this.flush();
+    if (!this.held) this.held = { key, year: r.year, rows: [] };
+    this.held.rows.push(cells);
+    if (shapes) this.flush();
+  }
+
+  /**
+   * A kept run's first round on more stitches than the needle has: its
+   * repeat all the way round, the new stitches at `places`, or spread evenly,
+   * each knitted in the yarn the pattern has there.
+   */
+  keepChanging(r: KeptRow, from: number, to: number, places?: number[]) {
+    this.flush();
+    const { cells } = r.kept;
+    const change = to - from;
+    const at = new Set(places ?? Array.from({ length: change }, (_, k) => Math.floor(((k + 0.5) * to) / change)));
+    const row: ChartCell[] = Array.from({ length: to }, (_, j) => (at.has(j) ? { ...cells[j % cells.length], symbol: "m1" as const } : cells[j % cells.length]));
+    const id = `${this.prefix}${String(r.year).slice(2)}k${cells.length}t${from}-${to}h${digest([row])}`;
     this.charts.set(id, { id, name: this.nameOf(r.year), rows: [row] });
     this.specs.push({ type: "chart", chart: id, rows: [1, 1], repeats: 1 });
   }
@@ -400,13 +450,13 @@ const tiled = (w: Writer, rows: Row[], start: number, want: (i: number) => numbe
  * The yoke's rounds as its quanta grow it (see shaping): from the neck to
  * `to`, near the target. Returns the count it leaves.
  */
-export const grown = (w: Writer, rows: Row[], from: number, to: number, want: (i: number) => number, placer?: Placer): number => {
+export const grown = (w: Writer, rows: Worked[], from: number, to: number, want: (i: number) => number, placer?: Placer): number => {
   const steps = growing(rows, { from, to, want });
   // Each round's yarns, stitch by stitch, as it is knitted (see Writer): for its make-ones to be put between two of one yarn where they can.
   const yarnsOf = (i: number): string[] => {
     const [r, s] = [rows[i], steps[i]];
     if (!s.map) return Array<string>(s.count).fill(slotOfRound(r));
-    const tile = s.map.map((x) => tileOf(r as ChartRow)[x]);
+    const tile = isKept(r) ? r.kept.cells.map((cell) => cell.slot) : s.map.map((x) => tileOf(r as ChartRow)[x]);
     return Array.from({ length: s.count }, (_, j) => tile[j % tile.length]);
   };
   const places = increasesOf(steps, from, (i) => (i > 0 ? yarnsOf(i - 1) : undefined), placer);
@@ -414,7 +464,11 @@ export const grown = (w: Writer, rows: Row[], from: number, to: number, want: (i
   let map: number[] | undefined;
   steps.forEach((s, i) => {
     const r = rows[i];
-    if (!s.map) {
+    if (isKept(r) && s.map) {
+      // A kept run's round: as the pattern in hand has it, its first taking a change of count where the run begins on more.
+      if (s.kind === "change") w.keepChanging(r, count, s.count, places[i]);
+      else w.keep(r);
+    } else if (!s.map) {
       // A round of one yarn: plain, or taking its make-ones.
       if (s.count !== count) w.shape(slotOfRound(r), count, s.count, places[i]);
       else w.plain(slotOfRound(r));

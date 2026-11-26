@@ -1,3 +1,4 @@
+import type { ChartCell } from "../../types";
 import { type Cut, type CutRow, type Round, cutsOf, edgeOf, groundOf, isPlain, patterns, patternOf, seamsOf, topDown } from "./cuts";
 import { refit } from "./refit";
 import type { Band } from "./slots";
@@ -50,11 +51,37 @@ export interface Measured {
 }
 
 /**
- * A round of a strip before any counts: plain in one of the year's yarns, or
- * a row of one of its charts - and, once a piece is being knitted, where that
- * row stands in its band (see knit's banded).
+ * A round of a band already begun, still to be knitted, as the pattern in
+ * hand has it (see kept.ts): read off that pattern's own stitches, not laid
+ * out afresh, so the band is finished as it was started.
  */
-export type Row = { year: number; plain: string } | ({ year: number; band?: Band } & CutRow);
+export interface Kept {
+  /** One repeat of the round as it is knitted, a make-one where the repeat has one of its own; a round all of one yarn is a repeat of one stitch. */
+  cells: ChartCell[];
+  /** How many repeats the pattern in hand knits it on. */
+  reps: number;
+  /** Which run of the band's patterned rounds it is one of: a run is knitted on one number of repeats, so its rounds stay lined up. None for a round of one yarn. */
+  run?: number;
+  /** Its run was begun in a round already knitted, and goes on on the repeats it has. */
+  carried?: true;
+  /** Where the pattern in hand makes this round's new stitches, as places in the round, where they are not in every repeat alike: a shaping round's, or those spread through a run's first round. */
+  places?: number[];
+}
+
+/** A round of one of a year's charts, and where it stands in its band once a piece is being knitted (see knit's banded). */
+export type ChartRow = { year: number; band?: Band } & CutRow;
+export type KeptRow = { year: number; kept: Kept };
+
+/**
+ * A round of a strip before any counts: plain in one of the year's yarns, or
+ * a row of one of its charts.
+ */
+export type Row = { year: number; plain: string } | ChartRow;
+/** A round to be knitted: one laid out; or, in the rest of a band part knitted, one kept as the pattern in hand has it. */
+export type Worked = Row | KeptRow;
+export const isKept = (r: Worked): r is KeptRow => "kept" in r;
+/** A kept round all of one yarn: where a count may change freely. */
+export const keptSolid = (r: KeptRow): boolean => r.kept.cells.every((cell) => cell.slot === r.kept.cells[0].slot) && r.kept.run === undefined;
 
 export interface Strip {
   year: number;
