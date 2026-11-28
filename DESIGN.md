@@ -840,4 +840,4 @@ Putting stitches on hold is a step for each stitch, linked to the stitch it
 holds, as a run of knits is a stitch for each: said and done as one, "put 80
 stitches on hold" (see reading/spans). So the step has a place on the chart,
 which the knitting goes to: the first stitch to be held, in the round below,
-outlined with its bracket in the outline's crimson.
+outlined, its bracket painted in the outline's crimson while it is.

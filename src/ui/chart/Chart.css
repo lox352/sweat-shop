@@ -520,19 +520,6 @@
   pointer-events: none;
 }
 
-/* A stitch to put on hold: its bracket (see chart-painter's) in the outline's crimson, over the one painted. */
-.chart-next-hold::before {
-  content: "";
-  position: absolute;
-  left: 12%;
-  right: 12%;
-  top: 14%;
-  height: calc(22% + 2px);
-  margin: -1px -1px 0;
-  border: 2px solid var(--crimson);
-  border-bottom: 0;
-}
-
 .chart-caption {
   margin: 0.75rem 0 0;
   font-size: var(--text-s);

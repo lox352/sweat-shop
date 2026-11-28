@@ -420,9 +420,9 @@ test("the dividing round puts each sleeve on hold, casts on its underarm, and go
   const began = await across();
   await page.getByRole("button", { name: /^Knit 68 in / }).click();
   await expect(page.locator(".knitting-panel")).toContainText("Put 80 stitches on hold");
-  // The chart goes there with the knitting: to the first stitch to be held, in the round below, outlined with its bracket.
+  // The chart goes there with the knitting: to the first stitch to be held, in the round below, outlined.
   await expect.poll(async () => Math.abs((await across()) - began)).toBeGreaterThan(300);
-  await expect(page.locator(".chart-next.chart-next-hold")).toBeVisible();
+  await expect(page.locator(".chart-next")).toBeVisible();
   await expect(page.locator(".knitting-panel")).toContainText("right sleeve");
   await expect(page.getByRole("button", { name: "End of round", exact: true })).toHaveCount(0);
   // The chart is the view from the neck until the first stitch cast on at the underarm, which is the body's.

@@ -126,6 +126,8 @@ export interface PaintState {
   hatch: [number, number][];
   /** The regions on hold, each a set of stitch ids: washed over and crosshatched. */
   onHold: Set<number>[];
+  /** The stitch to put on hold next, where that is what is to be done: its bracket painted in the marker's colour, as its outline is. */
+  holding?: number;
   overlay?: ChartOverlay;
   colours: ChartColours;
   /** Device pixels to a CSS pixel, so the rules land on whole device pixels. */
@@ -783,12 +785,14 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
 
   /*
    * A stitch put on hold: a bracket over the top of its cell, open below,
-   * which runs on across a run of them as the holder they go onto.
+   * which runs on across a run of them as the holder they go onto. The one
+   * to be held next is in the colour of the outline round it.
    */
   if (scene.held.length > 0 && cell >= detailed) {
     const drop = cell * 0.22;
-    const draw = () => {
+    const draw = (next: boolean) => () => {
       for (const id of scene.held) {
+        if ((id === state.holding) !== next) continue;
         const a = at(id);
         if (!a || a.w <= 0) continue;
         const y = a.y + a.h * 0.14;
@@ -798,8 +802,12 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
         ctx.lineTo(a.x + a.w * 0.88, y + drop);
       }
     };
-    strokeIn(draw, "#fff", 3.5);
-    strokeIn(draw, colours.piece, 1.6);
+    strokeIn(draw(false), "#fff", 3.5);
+    strokeIn(draw(false), colours.piece, 1.6);
+    if (state.holding !== undefined) {
+      strokeIn(draw(true), "#fff", 3.5);
+      strokeIn(draw(true), colours.marker, 1.6);
+    }
   }
 
   // A short row's turn: a hook from its last stitch round into the row above.

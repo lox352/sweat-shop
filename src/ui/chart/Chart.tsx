@@ -304,7 +304,7 @@ const Chart: React.FC<ChartProps> = ({
   /*
    * What is to be done next, on this chart. A stitch to put on hold is one
    * already made, in the round below: the step that holds it says which, and
-   * it is outlined where it is, its bracket with it (see .chart-next-hold).
+   * it is outlined where it is, its bracket painted the outline's colour.
    * Anything else is at the needle.
    */
   const holding = useMemo(() => {
@@ -774,7 +774,7 @@ const Chart: React.FC<ChartProps> = ({
             margin={leftMargin(cellSize)}
             follow={nextId}
             mark={nextId === undefined && !onPick ? here : undefined}
-            holding={holding !== undefined && showAt === undefined}
+            holding={showAt === undefined ? holding : undefined}
             collapse
             // Placed again in the same frame as the tiles, or it would lag them a frame as lines open and close.
             onMove={picked !== undefined ? (now) => (now ? flushSync(moved) : moved()) : undefined}
