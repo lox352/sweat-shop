@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "../compiler/engine/engine";
-import { holdRegions, onHoldAt } from "./holds";
+import { holdRegions, knittedFromHeld, onHoldAt } from "./holds";
 import { testSweater, testSweaterDivided as dividedAs } from "../compiler/engine/test-sweater";
 import { indexRounds } from "./progress";
 import hamefarin from "../compiler/designs/hamefarin";
@@ -14,8 +14,9 @@ const roundsOf = (piece: string) => {
 const yokeLast = roundsOf("yoke").at(-1)!;
 /** The body's underarm cast-ons, the right sleeve's four and then the left's. */
 const underarms = roundsOf("body")[0].filter((id) => built.stitches[id].type === "castOn");
+/** The step that takes a holder's stitches up, or the last of those that hold them, a step a stitch: by which they are held. */
 const step = (type: string, holder: string) =>
-  built.stitches.find((stitch) => stitch.type === type && stitch.holder === holder)!.id;
+  built.stitches.filter((stitch) => stitch.type === type && stitch.holder === holder).at(-1)!.id;
 
 describe("stitches put on hold", () => {
   it("are recorded as runs of the round they were held from, with the edge cast on in their place and the steps that hold and take them up", () => {
@@ -44,12 +45,27 @@ describe("stitches put on hold", () => {
       const knitting = buildSweater(hamefarin, size.id);
       expect(knitting.holds.map((held) => held.holder)).toEqual(["sleeve-right", "sleeve-left"]);
       for (const held of knitting.holds) {
-        expect(held.stitches.length).toBe(knitting.stitches[held.heldAt].count);
+        expect(knitting.stitches.filter((stitch) => stitch.type === "hold" && stitch.holder === held.holder).map((stitch) => stitch.links[0])).toEqual(held.stitches);
         expect(held.resumedAt).toBeGreaterThan(held.heldAt);
         const pickedUp = knitting.stitches.filter((stitch) => stitch.type === "pickUp" && stitch.piece === held.holder);
         expect(pickedUp.map((stitch) => stitch.from).sort()).toEqual([...held.edge!].sort());
       }
     }
+  });
+});
+
+describe("a stitch put on hold", () => {
+  it("is knitted into by the first stitch of its sleeve over it, which is where the knitting is taken to be while it is held", () => {
+    for (const held of built.holds) {
+      const first = roundsOf(held.holder)[0];
+      for (const id of held.stitches) {
+        const over = knittedFromHeld(built.stitches, id)!;
+        expect(first).toContain(over);
+        expect(built.stitches[over].links[0]).toBe(id);
+      }
+    }
+    // And nothing is, for a stitch never held.
+    expect(knittedFromHeld(built.stitches, yokeLast[0])).toBeUndefined();
   });
 });
 

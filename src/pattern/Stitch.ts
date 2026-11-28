@@ -19,6 +19,7 @@ export interface Stitch {
    *
    * The first part is as long as the stitch's consumption: one for a knit,
    * two for a k2tog, none for an increase, a cast-on or a picked-up stitch.
+   * A "hold" step takes one too: the stitch it slips onto the holder.
    * The last entry is the stitch worked just before it, which the yarn runs
    * on from - absent only where the yarn starts, at the very first cast-on
    * stitch and at the first stitch of a piece begun with new yarn.
@@ -52,10 +53,16 @@ export interface Stitch {
    * the size changed to.
    */
   needles?: number;
-  /** A "hold" or "resume" step: which holder, and how many stitches. */
+  /** A "hold" or "resume" step: which holder. */
   holder?: string;
+  /**
+   * A "resume" step: how many stitches it takes back up. A "hold" step is one
+   * stitch, the one it links to, and says no count - but in an edition frozen
+   * when one step put a whole run on hold, which says how many and links to
+   * none of them.
+   */
   count?: number;
-  /** A "hold" step that wraps the first stitch held before it goes, to leave no hole. */
+  /** A "hold" step that wraps the stitch it holds before it goes, to leave no hole: the first of a run. */
   wrap?: boolean;
   /** A "marker" step: what the marker marks - "the raglan line", "the new beginning of the round". */
   marker?: string;

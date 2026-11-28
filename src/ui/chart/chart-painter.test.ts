@@ -254,6 +254,22 @@ describe("a fork across an increase's two loops, its columns closed up", () => {
     expect(inked.length).toBe(2);
   });
 
+  it("paints the bracket of the stitch to hold next in the marker's colour, and the rest as they were", () => {
+    const built = buildSweater(testSweater, "one");
+    const laid = layOutSweater(built.stitches, built.rounds, built.roundKinds, built.roundPieces);
+    const held = built.holds.flatMap((one) => one.stitches);
+    const withHeld = sceneOf(laid, built.stitches, built.rounds, { held });
+    const whole = { x: 0, y: 0, width: laid.columns * cell + 40, height: laid.rows * cell };
+    const brackets = (holding?: number) => {
+      const paint = recorder();
+      paintRegion(paint.ctx, whole, withHeld, { ...stateFor(laid), holding });
+      const of = (colour: string) => paint.strokes.filter((one) => one.width === 1.6 && one.colour === colour).flatMap((one) => one.points).length;
+      return [of(defaultColours.piece), of(defaultColours.marker)];
+    };
+    expect(brackets()).toEqual([held.length, 0]);
+    expect(brackets(held[0])).toEqual([held.length - 1, 1]);
+  });
+
   it("paints a short row's turned stitch the height of two rows where nothing stands over it, its yarn across both", () => {
     const state = stateFor(layout);
     const empty = (row: number, column: number) =>

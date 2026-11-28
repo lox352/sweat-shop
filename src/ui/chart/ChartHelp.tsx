@@ -338,7 +338,7 @@ export function TextRound({ stitches, rounds, round, labels, names, palette, pie
     <ol>{parts.map(part => "run" in part
       ? <li key={part.run.startId}>{runInstruction(part.run)} in {yarnFor(palette, part.run.slot).name}</li>
       : part.step.type === "hold"
-        ? <li key={part.step.id}>Put the next {part.step.count} stitches on hold for the {pieceLabel(part.step.holder)}.</li>
+        ? <li key={part.step.id}>Put the next {part.count} stitches on hold for the {pieceLabel(part.step.holder)}.</li>
         : null)}
       {stitches[(ids.at(-1) ?? 0) + 1]?.type === "join" && <li>{joinsCastOn(stitches, (ids.at(-1) ?? 0) + 1)
         ? "Cast on one more stitch and join in the round, lifting the first stitch cast on over it."

@@ -115,6 +115,8 @@ export interface TileContent {
    * chart, but nothing held still for it and nothing scrolled to it.
    */
   mark?: number;
+  /** The stitch to put on hold next, where that is what is to be done: marked by its bracket, painted in another colour, and nothing outlined. See PaintState.holding. */
+  holding?: number;
 }
 
 interface Tile {
@@ -883,13 +885,15 @@ export class TileView {
     this.ratio = ratio;
     if (!same) this.version++;
     else if (was.progress !== content.progress) this.progressed(was.progress, content.progress);
+    // The bracket of the stitch to hold next is painted in another colour: its tile and the last one's, painted again.
+    if (same && was.holding !== content.holding) this.repaintOver([was.holding, content.holding]);
     /*
      * Drawn again with nothing new to show - what is placed over the tiles
      * placed again, as the lines move - there is nothing to bring up to date
      * here: the frame under way does that. Brought up to date anyway, the
      * lines eased on a step after what was placed over them was placed.
      */
-    if (same && was.progress === content.progress && was.follow === content.follow && was.mark === content.mark) return;
+    if (same && was.progress === content.progress && was.follow === content.follow && was.mark === content.mark && was.holding === content.holding) return;
     this.update(true);
   }
 
@@ -1195,6 +1199,24 @@ export class TileView {
       const lined = tile.y < b1 && tile.y + tileSize > b0;
       if (over || lined) tile.painted = -1;
     });
+  }
+
+  /** The tiles over these stitches, to be painted again. */
+  private repaintOver(ids: (number | undefined)[]) {
+    const { scene, cell } = this.content!;
+    const { start: top, size: height } = this.rows.places;
+    const { start: left, size: width } = this.columns.places;
+    for (const id of ids) {
+      const row = id === undefined ? 0 : scene.rowOf[id];
+      if (id === undefined || !row) continue;
+      const column = scene.columnOf[id];
+      this.tiles.forEach((tile) => {
+        const over =
+          tile.x < left[column] + width[column] + cell && tile.x + tileSize > left[column] - cell &&
+          tile.y < top[row] + height[row] + cell && tile.y + tileSize > top[row] - cell;
+        if (over) tile.painted = -1;
+      });
+    }
   }
 
   private schedule() {
@@ -1803,6 +1825,7 @@ export class TileView {
       progress: content.progress,
       hatch: content.hatch,
       onHold: content.onHold,
+      holding: content.holding,
       overlay: content.overlay,
       colours: content.colours,
       ratio: this.ratio,
@@ -2014,10 +2037,10 @@ export class TileView {
     return this.drawn;
   }
 
-  /** The outline round the stitch to be worked next, on the layer with the tiles: followed, or only marked. */
+  /** The outline round the stitch to be worked next, on the layer with the tiles: followed, or only marked. None while a stitch is to be put on hold, which its bracket marks. */
   private placeNext(content: TileContent) {
     const next = content.follow ?? content.mark;
-    const at = next === undefined ? undefined : this.placeOnLayer(next);
+    const at = next === undefined || content.holding !== undefined ? undefined : this.placeOnLayer(next);
     this.next.hidden = !at;
     if (!at) return;
     const style = this.next.style;

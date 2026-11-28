@@ -19,9 +19,13 @@ import { isFabric, isStep, secondLoop, worksInto } from "../pattern/Stitch";
  *   that works the double stitch it makes - `closes`. The span is the turn
  *   alone; it reaches forward to that stitch without containing everything
  *   between.
+ * - Stitches put on hold: a step for each, one after another onto the same
+ *   holder, as a run of knits is a stitch for each. Said as one - "put 80
+ *   stitches on hold" - and done as one: a holder half filled is nowhere a
+ *   pattern stops.
  */
 export interface Span {
-  type: "kfb" | "turn";
+  type: "kfb" | "turn" | "hold";
   /** The first stitch or step, and one past the last. */
   start: number;
   end: number;
@@ -44,6 +48,12 @@ export const spansOf = (stitches: Stitch[]): Span[] => {
   for (const stitch of stitches) {
     if (secondLoop(stitch, stitches[stitch.id - 1])) {
       spans.push({ type: "kfb", start: stitch.id - 1, end: stitch.id + 1, said: "one", done: "one" });
+      continue;
+    }
+    if (stitch.type === "hold") {
+      const last = spans[spans.length - 1];
+      if (last?.type === "hold" && last.end === stitch.id && stitches[stitch.id - 1].holder === stitch.holder) last.end++;
+      else spans.push({ type: "hold", start: stitch.id, end: stitch.id + 1, said: "one", done: "one" });
       continue;
     }
     if (stitch.type === "turn") {
@@ -80,6 +90,18 @@ export const doneWith = (stitches: Stitch[], id: number): Span | undefined => {
     doneAsOne.set(stitches, at);
   }
   return at.get(id);
+};
+
+/**
+ * What is still to go on hold at the hold step `id`: how many stitches, and
+ * the last step of its run. A step is a stitch, but for one in an edition
+ * frozen when a single step held a whole run, which says how many.
+ */
+export const holdFrom = (stitches: Stitch[], id: number): { count: number; last: number } => {
+  const end = doneWith(stitches, id)?.end ?? id + 1;
+  let count = 0;
+  for (let k = id; k < end; k++) count += stitches[k].count ?? 1;
+  return { count, last: end - 1 };
 };
 
 /** Where to stand for a stitch: the first of the span done as one it is part of, or itself. */

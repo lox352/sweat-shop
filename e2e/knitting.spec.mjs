@@ -75,7 +75,7 @@ async function tapBeside(page, across) {
  * steps fall in the order of work. See src/compiler/engine/engine.ts.
  */
 const yokeDone = 21146;
-const bodyDone = 56077;
+const bodyDone = 56235;
 /** The first stitch of the yoke's last round, its 75th, of 432 stitches. */
 const yokeLastRound = 20715;
 /*
@@ -87,8 +87,8 @@ const yokeLastRound = 20715;
  */
 const kleeBeforeSetUp = 13004;
 const kleeBeforeHold = 20367;
-const kleeBeforeRib = 36194;
-const kleeBeforeBindOff = 43510;
+const kleeBeforeRib = 36348;
+const kleeBeforeBindOff = 43664;
 
 test("the design and its projects work without WebGL, and nothing fetches the solver", async ({ page }) => {
   await page.addInitScript(() => {
@@ -416,8 +416,13 @@ test("the dividing round puts each sleeve on hold, casts on its underarm, and go
   await expect(onHold).toHaveCount(0);
 
   // Across the back to the right sleeve, which goes on hold.
+  const across = () => page.locator(".chart-scroll").evaluate(box => box.scrollLeft);
+  const began = await across();
   await page.getByRole("button", { name: /^Knit 68 in / }).click();
   await expect(page.locator(".knitting-panel")).toContainText("Put 80 stitches on hold");
+  // The chart goes there with the knitting: to the cell over the first stitch to be held, which its bracket marks and no outline.
+  await expect.poll(async () => Math.abs((await across()) - began)).toBeGreaterThan(300);
+  await expect(page.locator(".chart-next")).toBeHidden();
   await expect(page.locator(".knitting-panel")).toContainText("right sleeve");
   await expect(page.getByRole("button", { name: "End of round", exact: true })).toHaveCount(0);
   // The chart is the view from the neck until the first stitch cast on at the underarm, which is the body's.
@@ -640,7 +645,7 @@ test("Each Year Once knits every hat from 2014 to 2026 once, the yoke's first, t
   await expect(onChart("2014 Shwook Hat")).toBeVisible();
   await knittedTo(page, 17500, sampler);
   await expect(onChart("2016 Crofthoose Hat")).toBeVisible();
-  await knittedTo(page, 92900, sampler);
+  await knittedTo(page, 93082, sampler);
   await expect(onChart("2026 Birsie Beanny, sleeve")).toBeVisible();
   await expect(page.locator(".chart-page")).toHaveAttribute("data-view", "held-sleeve-left");
 });
@@ -1293,24 +1298,24 @@ test("zoomed out as far as it goes, the chart's whole width fits the box, and it
 });
 
 test("between its sleeves going on hold, the chart is what is left on the needles: the first sleeve gone, the second still there", async ({ page }) => {
-  // Each Year Once in a medium: its right sleeve on hold at 29624, its left at 29795.
+  // Each Year Once in a medium: its right sleeve on hold, a step a stitch, by 29715, and its left by 29977.
   const sampler = { sweaterId: "wool-week-strips-once-oldest", sizeId: "m", colourwayId: "early-light" };
   const chartPage = page.locator(".chart-page");
   await knittedTo(page, 29500, sampler);
   await expect(chartPage).toHaveAttribute("data-view", "neck");
-  await knittedTo(page, 29700, sampler);
-  await expect(chartPage).toHaveAttribute("data-view", "remaining-29624");
+  await knittedTo(page, 29800, sampler);
+  await expect(chartPage).toHaveAttribute("data-view", "remaining-29715");
   // The tabs are the finished pattern's views: the body's is the one the knitting is in, and shows it as it stands.
   await page.getByRole("button", { name: "Stop knitting", exact: true }).click();
   await expect(page.getByRole("tab")).toHaveCount(4);
   await expect(page.getByRole("tab", { name: /^Body/ })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("tab", { name: /^Body/ })).toContainText("knitting");
-  await expect(chartPage).toHaveAttribute("data-view", "remaining-29624");
+  await expect(chartPage).toHaveAttribute("data-view", "remaining-29715");
   // Wider than the body's, by the second sleeve's stitches.
   const columns = () => page.locator(".chart-tiles").getAttribute("data-columns");
   const between = Number(await columns());
-  await knittedTo(page, 29800, sampler);
-  await expect(chartPage).toHaveAttribute("data-view", "remaining-29795");
+  await knittedTo(page, 30000, sampler);
+  await expect(chartPage).toHaveAttribute("data-view", "remaining-29977");
   expect(between).toBeGreaterThan(Number(await columns()));
 });
 

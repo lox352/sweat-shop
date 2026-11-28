@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { Stitch, isStep } from "../../pattern/Stitch";
+import { Stitch, isStep, worksInto } from "../../pattern/Stitch";
 import { type ChartLayout, layOutSweater } from "../../reading/layout";
 import { scrollAcross } from "./scroll-corner";
 import type { MarkerLine } from "../../reading/view";
@@ -12,7 +12,7 @@ import { sceneFor } from "./view-scene";
 import { type ChartOverlay, defaultColours, leftMargin } from "./chart-painter";
 import { StitchLegend, TextRound } from "./ChartHelp";
 import { faceAfter, otherFaceRows } from "./chart-marks";
-import { type HoldRegion, onHoldAt } from "../../reading/holds";
+import { type HoldRegion, knittedFromHeld, onHoldAt } from "../../reading/holds";
 import StitchPicker from "./StitchPicker";
 import { keyEntryAt } from "../../reading/stitch-key";
 import { useSettings } from "../../projects/settings";
@@ -224,18 +224,11 @@ const Chart: React.FC<ChartProps> = ({
    * hold part way round, a change of needles - it is the stitch after the
    * step: a step has no cell to mark, and the knitting goes on from there.
    */
-  const here = useMemo(() => {
+  const afterStep = useMemo(() => {
     let id = progress + 1;
     while (stitches[id] && isStep(stitches[id])) id++;
     return id;
   }, [progress, stitches]);
-  /*
-   * The stitch the chart goes to and keeps in view: the next to be worked,
-   * while it is knitted, or one it is asked to show. Looked around and not
-   * knitted, the next stitch is only marked, so that where the knitting has
-   * got to is never lost from the chart (see TileView's mark).
-   */
-  const nextId = showAt ?? (follow ? here : undefined);
   /*
    * Scrolled away from the stitch being worked, to look along the chart, the
    * way back to it without knitting on: a tap knits a run, and the next is
@@ -295,6 +288,48 @@ const Chart: React.FC<ChartProps> = ({
     () => sceneFor(laid, { stitches, rounds, face, makeOneLean, markers, names, pieces, holdRegions }),
     [laid, stitches, rounds, face, makeOneLean, markers, names, pieces, holdRegions],
   );
+  /*
+   * Where the needle is on this chart, and so which round the knitting is
+   * in. The stitch after a step may not be on it: a sleeve going on hold is
+   * followed by the underarm cast on in its place, which is on the chart of
+   * what is left on the needles, not shown until the step is taken. It is
+   * then the last stitch worked before the step.
+   */
+  const needle = useMemo(() => {
+    if (layout.cells.has(afterStep)) return afterStep;
+    let id = Math.min(progress, stitches.length - 1);
+    while (id > 0 && isStep(stitches[id])) id--;
+    return layout.cells.has(id) ? id : afterStep;
+  }, [afterStep, layout, progress, stitches]);
+  /*
+   * A stitch to put on hold next is one already made, in the round below:
+   * the step that holds it says which, and its bracket is painted the colour
+   * a stitch to work is outlined in.
+   */
+  const holding = useMemo(() => {
+    const next = stitches[progress + 1];
+    const held = next?.type === "hold" ? worksInto(next)[0] : undefined;
+    return held !== undefined && layout.cells.has(held) ? held : undefined;
+  }, [layout, progress, stitches]);
+  /*
+   * Where the knitting is, on this chart: at the needle, but for a stitch to
+   * put on hold. There it is the stitch to be knitted into that one when its
+   * piece is taken up, in the cell over the bracket - the stitch is in hand
+   * twice, held and then knitted - and nothing is outlined: the bracket is
+   * its mark.
+   */
+  const here = useMemo(() => {
+    if (holding === undefined) return needle;
+    const over = knittedFromHeld(stitches, holding);
+    return over !== undefined && layout.cells.has(over) ? over : holding;
+  }, [holding, layout, needle, stitches]);
+  /*
+   * The stitch the chart goes to and keeps in view: the next to be worked,
+   * while it is knitted, or one it is asked to show. Looked around and not
+   * knitted, the next stitch is only marked, so that where the knitting has
+   * got to is never lost from the chart (see TileView's mark).
+   */
+  const nextId = showAt ?? (follow ? here : undefined);
   /*
    * And every stitch is drawn as it looks from the side shown: from the right
    * side, as it is there, the rows purled back from the wrong side knits like
@@ -557,11 +592,11 @@ const Chart: React.FC<ChartProps> = ({
    */
   const nextRound = useMemo(() => {
     if (!backable || !onJump) return undefined;
-    const round = layout.cells.get(here)?.round;
+    const round = layout.cells.get(needle)?.round;
     let id = round === undefined ? undefined : rounds[round]?.[0];
     while (id !== undefined && stitches[id] && isStep(stitches[id])) id++;
     return id !== undefined && layout.cells.has(id) ? id : undefined;
-  }, [backable, onJump, layout, here, rounds, stitches]);
+  }, [backable, onJump, layout, needle, rounds, stitches]);
   useEffect(() => {
     if (nextRound === undefined) return;
     const warm = setTimeout(() => {
@@ -671,7 +706,8 @@ const Chart: React.FC<ChartProps> = ({
     };
   }, []);
 
-  const focusRound = at?.round;
+  // The round in hand: the needle's, where the chart is at a stitch to put on hold, which is of another round.
+  const focusRound = (at && holding !== undefined && nextId === here ? layout.cells.get(needle) : at)?.round;
 
   if (layout.rows === 0) return <p>This pattern has no stitches to chart.</p>;
 
@@ -748,6 +784,7 @@ const Chart: React.FC<ChartProps> = ({
             margin={leftMargin(cellSize)}
             follow={nextId}
             mark={nextId === undefined && !onPick ? here : undefined}
+            holding={showAt === undefined ? holding : undefined}
             collapse
             // Placed again in the same frame as the tiles, or it would lag them a frame as lines open and close.
             onMove={picked !== undefined ? (now) => (now ? flushSync(moved) : moved()) : undefined}

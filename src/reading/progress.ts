@@ -3,6 +3,7 @@ import { type KindId, boundOff, kinds, makesTwo } from "../pattern/kinds";
 import type { Piece } from "../pattern/design";
 import type { RoundKind } from "../pattern/rounds";
 import { chartRows } from "./layout";
+import { holdFrom } from "./spans";
 
 /**
  * Where you are in a sweater, and what to work next.
@@ -125,8 +126,8 @@ export interface Position {
   needlesNext?: number;
   /** Whether the next thing to do is join the cast-on into a round. */
   joinNext?: "castOn";
-  /** Stitches to put on hold next, part way through the dividing round. */
-  holdNext?: { holder: string; count: number; wrap?: boolean };
+  /** Stitches to put on hold next, part way through the dividing round, and the last of the steps that hold them, a step a stitch: where the knitting is once they are held. */
+  holdNext?: { holder: string; count: number; wrap?: boolean; last: number };
   /** Held stitches to take back up next, to begin a piece with them, and the needles they go onto. */
   resumeNext?: { holder: string; count: number; needles?: number };
   /** A turn next, at the end of a short row, and the side the row after it is worked from. */
@@ -182,7 +183,7 @@ export const positionOf = (
     joinNext: next?.type === "join" ? "castOn" : undefined,
     holdNext:
       next?.type === "hold"
-        ? { holder: next.holder ?? "", count: next.count ?? 0, ...(next.wrap ? { wrap: true } : {}) }
+        ? { holder: next.holder ?? "", ...holdFrom(stitches, next.id), ...(next.wrap ? { wrap: true } : {}) }
         : undefined,
     resumeNext:
       next?.type === "resume"
@@ -461,9 +462,10 @@ export const upcomingRuns = (
 /**
  * A round written out, as a pattern writes it: its runs in working order,
  * with any step part way through it in its place - the dividing round's
- * sleeves going on hold between the back and the underarm.
+ * sleeves going on hold between the back and the underarm, each a run of
+ * steps said as one, with how many stitches it holds.
  */
-export type RoundPart = { run: Run } | { step: Stitch };
+export type RoundPart = { run: Run } | { step: Stitch; count?: number };
 
 export const roundParts = (stitches: Stitch[], ids: number[], index: RoundIndex): RoundPart[] => {
   const parts: RoundPart[] = [];
@@ -472,6 +474,12 @@ export const roundParts = (stitches: Stitch[], ids: number[], index: RoundIndex)
   while (at < last) {
     const next = stitches[at + 1];
     if (!next) break;
+    if (next.type === "hold") {
+      const { count, last: held } = holdFrom(stitches, next.id);
+      parts.push({ step: next, count });
+      at = held;
+      continue;
+    }
     if (isStep(next)) {
       parts.push({ step: next });
       at++;

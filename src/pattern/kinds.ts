@@ -51,7 +51,7 @@ export interface Kind {
   family: Family;
   /** The method, as a knitter would name it. */
   variant: string;
-  /** How it is worked, in moves on the needles: what the engine does for one. A step has none; what it does is the engine's own. */
+  /** How it is worked, in moves on the needles: what the engine does for one. A step has none, what it does being the engine's own - but a hold, which takes the loop it sets aside. */
   recipe: Move[];
   /** How many loops on the needle it works: what its recipe takes. */
   takes: number;
@@ -119,7 +119,8 @@ export const kinds: Record<KindId, Kind> = {
   // The steps: part of the order of work, and no fabric.
   join: kind("step", "join", "", "join in the round", { effort: "join" }),
   needles: kind("step", "needles", "", "change needles", { effort: "needles" }),
-  hold: kind("step", "hold", "", "put stitches on hold", { effort: "hold" }),
+  // One loop slipped off the needle onto a holder, and not kept: a run of them is said as one, "put 80 stitches on hold" (see reading/spans).
+  hold: kind("step", "hold", "take(1) slip", "put stitches on hold", { effort: "hold" }),
   resume: kind("step", "resume", "", "take up the held stitches", { effort: "resume" }),
   turn: kind("step", "german", "", "turn and make a double stitch", { effort: "turn" }),
   marker: kind("step", "marker", "", "place a marker"),

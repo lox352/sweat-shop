@@ -388,8 +388,9 @@ export default class Needles {
   }
 
   /**
-   * Put the next `count` stitches on hold, part way through a round: a step.
-   * They wait on waste yarn under `name` until a piece takes them back up.
+   * Put the next `count` stitches on hold, part way through a round: a step
+   * for each, linked to the stitch it holds, one after another. They wait on
+   * waste yarn under `name` until a piece takes them back up.
    *
    * More may go onto a holder already holding some, to be one block with
    * them, taken up together: the stitches straight after them on the needle,
@@ -415,12 +416,17 @@ export default class Needles {
     } else if (this.holders.has(name)) {
       throw new Error(`there is already a holder called ${name}`);
     }
+    if (count < 1) throw new Error(`${this.label}: nothing to hold under ${name}`);
     const held = this.take(count);
-    const step = this.step("hold");
-    step.holder = name;
-    step.count = count;
-    if (wrap) step.wrap = true;
-    const part = { at: step.id, stitches: [...held] };
+    let last = 0;
+    held.forEach((id, k) => {
+      const step = this.step("hold");
+      step.links = [id];
+      step.holder = name;
+      if (wrap && k === 0) step.wrap = true;
+      last = step.id;
+    });
+    const part = { at: last, stitches: [...held] };
     if (record) {
       record.stitches = first ? [...held, ...record.stitches] : [...record.stitches, ...held];
       record.parts.push(part);
@@ -429,7 +435,7 @@ export default class Needles {
     } else {
       this.holders.set(name, held);
       this.holding.set(name, { round: this.roundsBegun, from, to: this.cursor });
-      this.holds.push({ holder: name, stitches: [...held], parts: [part], heldAt: step.id });
+      this.holds.push({ holder: name, stitches: [...held], parts: [part], heldAt: last });
     }
     return this;
   }

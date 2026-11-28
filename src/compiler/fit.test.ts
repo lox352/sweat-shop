@@ -780,7 +780,7 @@ describe("what the planner answers is what a link names", () => {
       await named("hamefarin", "m", { knitted: whole, round: cutAfter("hamefarin", whole, 1)! }),
       await named(once, "l", { option: "every" }),
       await named(once, "l", { option: "fewer" }),
-    ]).toEqual(["38a1e1893ce0", "c85b2bd5451b", "db9c907bc563", "7a9bc7774f5e"]);
+    ]).toEqual(["34a5e2f2e20c", "fadd291e9e13", "8f281bd7ee7c", "e7eca363e2ef"]);
   }, 60000);
 
   /*
@@ -799,7 +799,7 @@ describe("what the planner answers is what a link names", () => {
       await named(shaped, "l", { tension: { stitchesPer10cm: 34, roundsPer10cm: 42 } }),
       await named(shaped, "l", { knitted: whole, round: first, tension: { stitchesPer10cm: 30, roundsPer10cm: 36 } }),
       await named(shaped, "l", { knitted: whole, round: first, tension: { stitchesPer10cm: 32, roundsPer10cm: 38 } }),
-    ]).toEqual(["c1c29c6adecd", "f79a0885fb8d", (await asEdition(whole, shaped, "l")).edition]);
+    ]).toEqual(["6a2efbca3c41", "bbb9a070e2b6", (await asEdition(whole, shaped, "l")).edition]);
   }, 120000);
 
   it("for Thirteen Strips, and the designs planned only from the cast-on, too", async () => {
@@ -809,6 +809,6 @@ describe("what the planner answers is what a link names", () => {
       await named("feline-raglan", "m", { tension: tighter }),
       await named("feline-yoke", "m", { tension: tighter }),
       await named("paul-klee", "m1", { tension: { stitchesPer10cm: 24.5, roundsPer10cm: 36 } }),
-    ]).toEqual(["e97dc4c4a8f4", "550074b996a9", "45f34976ebd6", "148b674281c5"]);
+    ]).toEqual(["81931a19db70", "ac2fe9e2dba3", "82d7a5fe0dca", "7b877d54b2f2"]);
   }, 600000);
 });

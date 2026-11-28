@@ -42,9 +42,10 @@
  * "needles" is changing to needles of another size, between the ribbing and
  * the yoke and back again for the hem and the cuffs.
  *
- * "hold" is putting stitches aside on waste yarn, part way through a round:
- * the sleeves, when the yoke is divided from the body. The stitch carries how
- * many, and which holder.
+ * "hold" is putting a stitch aside on waste yarn, part way through a round:
+ * the sleeves, when the yoke is divided from the body, a step for each of
+ * their stitches. The step links to the stitch it holds, and carries which
+ * holder.
  *
  * "resume" is putting held stitches back on the needles, to begin the piece
  * they are for: each sleeve begins with one.
