@@ -95,12 +95,14 @@ describe("what to work next", () => {
       stitchInRound: 8,
       piece: { id: "body", lastRow: 11 },
       row: 7,
-      holdNext: { holder: "sleeve-right", count: 8 },
+      holdNext: { holder: "sleeve-right", count: 8, last: divide[7] + 8 },
     });
+    // A step for each of the eight, said as one however many are left of them.
+    expect(positionOf(stitches, divide[7] + 3, index).holdNext).toMatchObject({ count: 5, last: divide[7] + 8 });
     // The end of the round is no further than the step.
     expect(endOfRound(divide[0] - 1, index, stitches)).toBe(divide[7]);
     // And straight after the step, the underarm.
-    expect(runInstruction(currentRun(stitches, divide[7] + 1, index)!)).toBe("Cast on 4");
+    expect(runInstruction(currentRun(stitches, divide[7] + 8, index)!)).toBe("Cast on 4");
   });
 
   it("writes the dividing round out whole, its sleeves going on hold in their places", () => {

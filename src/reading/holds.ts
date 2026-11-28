@@ -1,4 +1,4 @@
-import type { Stitch } from "../pattern/Stitch";
+import { type Stitch, isFabric } from "../pattern/Stitch";
 import { kinds } from "../pattern/kinds";
 import type { Held } from "../pattern/rounds";
 
@@ -33,6 +33,8 @@ export const holdRegions = (stitches: Stitch[], holds: Held[]): HoldRegion[] =>
     // Stitches are in the order they are worked, so a stitch's parents always come before it.
     for (let id = first + 1; id < stitches.length; id++) {
       const stitch = stitches[id];
+      // The steps that hold them are no part of what is held.
+      if (!isFabric(stitch)) continue;
       if (stitch.type === "pickUp" && stitch.from !== undefined && edge.has(stitch.from)) {
         region.add(id);
         continue;

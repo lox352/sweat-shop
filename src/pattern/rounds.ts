@@ -29,7 +29,9 @@ export interface Held {
   /** The held stitches, in the order they sit round the needle: one block, however many steps put it on hold. */
   stitches: number[];
   /**
-   * Each step that put some of them on hold, and the ones it did. A block is
+   * Each run of steps that put some of them on hold, a step a stitch: the
+   * last step of the run, by which all of them are held, and the stitches
+   * the run held. A block is
    * usually held in one; a sleeve can be held a part at a time, with cast-on
    * stitches between the parts, so long as nothing else is worked between
    * them - or as the round begins and as it ends, a block that straddles its
@@ -42,6 +44,7 @@ export interface Held {
    * when it takes its held stitches up again.
    */
   edge?: number[];
+  /** The last step of the first run to hold any of them: from there on, they are on hold. */
   heldAt: number;
   resumedAt?: number;
 }

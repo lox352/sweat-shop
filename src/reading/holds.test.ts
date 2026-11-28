@@ -14,8 +14,9 @@ const roundsOf = (piece: string) => {
 const yokeLast = roundsOf("yoke").at(-1)!;
 /** The body's underarm cast-ons, the right sleeve's four and then the left's. */
 const underarms = roundsOf("body")[0].filter((id) => built.stitches[id].type === "castOn");
+/** The step that takes a holder's stitches up, or the last of those that hold them, a step a stitch: by which they are held. */
 const step = (type: string, holder: string) =>
-  built.stitches.find((stitch) => stitch.type === type && stitch.holder === holder)!.id;
+  built.stitches.filter((stitch) => stitch.type === type && stitch.holder === holder).at(-1)!.id;
 
 describe("stitches put on hold", () => {
   it("are recorded as runs of the round they were held from, with the edge cast on in their place and the steps that hold and take them up", () => {
@@ -44,7 +45,7 @@ describe("stitches put on hold", () => {
       const knitting = buildSweater(hamefarin, size.id);
       expect(knitting.holds.map((held) => held.holder)).toEqual(["sleeve-right", "sleeve-left"]);
       for (const held of knitting.holds) {
-        expect(held.stitches.length).toBe(knitting.stitches[held.heldAt].count);
+        expect(knitting.stitches.filter((stitch) => stitch.type === "hold" && stitch.holder === held.holder).map((stitch) => stitch.links[0])).toEqual(held.stitches);
         expect(held.resumedAt).toBeGreaterThan(held.heldAt);
         const pickedUp = knitting.stitches.filter((stitch) => stitch.type === "pickUp" && stitch.piece === held.holder);
         expect(pickedUp.map((stitch) => stitch.from).sort()).toEqual([...held.edge!].sort());

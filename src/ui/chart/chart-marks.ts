@@ -4,6 +4,7 @@ import type { RoundKind } from "../../pattern/rounds";
 import { Mark, castOnPartWayMark, forkMark, makeOneMark, markFor } from "../../reading/stitch-marks";
 import { castOnPartWay } from "../../reading/stitch-key";
 import { type Face, seenFrom } from "../../reading/sides";
+import { doneWith, holdFrom } from "../../reading/spans";
 
 export type { Face };
 
@@ -153,7 +154,8 @@ export const holdsIn = perSweater((
   rounds.forEach((ids, index) => ids.forEach((id) => roundOf.set(id, index)));
   const out: Hold[] = [];
   for (const stitch of stitches) {
-    if (stitch.type !== "hold" || !stitch.holder || stitch.count === undefined) continue;
+    // Once for a run of them, at its first step.
+    if (stitch.type !== "hold" || !stitch.holder || doneWith(stitches, stitch.id)?.start !== stitch.id) continue;
     let before = stitch.id - 1;
     while (before > 0 && isStep(stitches[before])) before--;
     let after = stitch.id + 1;
@@ -161,7 +163,7 @@ export const holdsIn = perSweater((
     const round = roundOf.get(before);
     if (round === undefined || roundOf.get(after) !== round) continue;
     const label = pieces.find((piece) => piece.id === stitch.holder)?.label ?? stitch.holder;
-    out.push({ before, after, holder: stitch.holder, count: stitch.count, label });
+    out.push({ before, after, holder: stitch.holder, count: holdFrom(stitches, stitch.id).count, label });
   }
   return out;
 });

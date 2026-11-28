@@ -52,6 +52,8 @@ describe("the test sweater, stitch by stitch", () => {
   it("takes its steps where a knitter would", () => {
     const steps = stitches
       .filter(isStep)
+      // A sleeve goes on hold a step a stitch, each linked to the stitch it holds: once here, at its first.
+      .filter((stitch) => stitch.type !== "hold" || stitches[stitch.id - 1].type !== "hold")
       .map((stitch) => [stitch.type, stitch.holder ?? (stitch.type === "needles" ? stitch.needles : undefined)]);
     expect(steps).toEqual([
       ["join", undefined],
@@ -63,6 +65,11 @@ describe("the test sweater, stitch by stitch", () => {
     ]);
     // The join comes straight after the last stitch cast on.
     expect(byType("join")[0].id).toBe(25);
+    for (const held of built.holds) {
+      const holding = stitches.filter((stitch) => stitch.type === "hold" && stitch.holder === held.holder);
+      expect(holding.map((stitch) => stitch.links)).toEqual(held.stitches.map((id) => [id]));
+      expect(holding.at(-1)!.id).toBe(held.heldAt);
+    }
   });
 
   it("closes the cast-on into a ring at the join", () => {

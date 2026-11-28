@@ -505,7 +505,7 @@ const KnittingPanel: React.FC<KnittingPanelProps> = ({
             variant="primary"
             size="lg"
             className="knitting-go"
-            onClick={() => setProgress(progress + 1)}
+            onClick={() => setProgress(position.holdNext?.last ?? progress + 1)}
           >
             {position.holdNext
               ? "Held: carry on"

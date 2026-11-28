@@ -65,12 +65,15 @@ describe("a body divided at the underarms", () => {
   const divide = round("Body · dividing round");
 
   it("wraps the first stitch of each sleeve before it goes on hold", () => {
-    const holds = stitches.filter((stitch) => stitch.type === "hold");
+    // A step for each stitch held: the first of each sleeve's is the one wrapped.
+    const all = stitches.filter((stitch) => stitch.type === "hold");
+    const holds = all.filter((stitch) => stitches[stitch.id - 1].type !== "hold");
     expect(holds.map((hold) => [hold.holder, hold.wrap])).toEqual([
       ["sleeve-right", true],
       ["sleeve-left", true],
     ]);
-    expect(positionOf(stitches, holds[0].id - 1, index).holdNext).toEqual({ holder: "sleeve-right", count: 10, wrap: true });
+    expect(all.filter((hold) => hold.wrap)).toEqual(holds);
+    expect(positionOf(stitches, holds[0].id - 1, index).holdNext).toEqual({ holder: "sleeve-right", count: 10, wrap: true, last: holds[0].id + 9 });
   });
 
   it("casts on one more at each underarm and passes it over the next stitch, slipped, to close up", () => {

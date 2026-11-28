@@ -133,7 +133,8 @@ describe.each(paulKlee.sizes.map((size, at) => [size.label, size, at] as const))
     expect(right.indexOf(step.id + 1)).toBe(right.length / 2);
     // "K to marker, RM", wrap and hold the sleeve, "RM", cast on: the raglan's markers come off either side of each sleeve.
     const order = stitches
-      .filter((one) => one.id > divide[0] && one.id < divide[divide.length - 1] && (one.type === "marker" || one.type === "hold"))
+      // A sleeve goes on hold a step a stitch: said once, at its first.
+      .filter((one) => one.id > divide[0] && one.id < divide[divide.length - 1] && (one.type === "marker" || (one.type === "hold" && stitches[one.id - 1].type !== "hold")))
       .map((one) => (one.type === "hold" ? `hold ${one.holder}` : `${one.removed ? "off" : "on"} ${one.marker}`));
     expect(order).toEqual([
       `off ${raglanLines[0]}`,

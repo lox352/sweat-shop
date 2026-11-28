@@ -115,6 +115,8 @@ export interface TileContent {
    * chart, but nothing held still for it and nothing scrolled to it.
    */
   mark?: number;
+  /** That stitch is one to put on hold, not to work: its bracket outlined with it. */
+  holding?: boolean;
 }
 
 interface Tile {
@@ -889,7 +891,7 @@ export class TileView {
      * here: the frame under way does that. Brought up to date anyway, the
      * lines eased on a step after what was placed over them was placed.
      */
-    if (same && was.progress === content.progress && was.follow === content.follow && was.mark === content.mark) return;
+    if (same && was.progress === content.progress && was.follow === content.follow && was.mark === content.mark && was.holding === content.holding) return;
     this.update(true);
   }
 
@@ -2019,6 +2021,7 @@ export class TileView {
     const next = content.follow ?? content.mark;
     const at = next === undefined ? undefined : this.placeOnLayer(next);
     this.next.hidden = !at;
+    this.next.classList.toggle("chart-next-hold", !!content.holding);
     if (!at) return;
     const style = this.next.style;
     style.left = `${at.x + content.margin - 1}px`;

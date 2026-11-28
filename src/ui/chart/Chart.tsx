@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { Stitch, isStep } from "../../pattern/Stitch";
+import { Stitch, isStep, worksInto } from "../../pattern/Stitch";
 import { type ChartLayout, layOutSweater } from "../../reading/layout";
 import { scrollAcross } from "./scroll-corner";
 import type { MarkerLine } from "../../reading/view";
@@ -289,19 +289,30 @@ const Chart: React.FC<ChartProps> = ({
     [laid, stitches, rounds, face, makeOneLean, markers, names, pieces, holdRegions],
   );
   /*
-   * Where the knitting has got to on this chart. The stitch after a step may
-   * not be on it: a sleeve going on hold is followed by the underarm cast on
-   * in its place, which is on the chart of what is left on the needles, not
-   * shown until the step is taken. The step is then at the last stitch worked
-   * before it, where the needle is: the chart stays with the knitting there
-   * rather than being left wherever the round began.
+   * Where the needle is on this chart, and so which round the knitting is
+   * in. The stitch after a step may not be on it: a sleeve going on hold is
+   * followed by the underarm cast on in its place, which is on the chart of
+   * what is left on the needles, not shown until the step is taken. It is
+   * then the last stitch worked before the step.
    */
-  const here = useMemo(() => {
+  const needle = useMemo(() => {
     if (layout.cells.has(afterStep)) return afterStep;
     let id = Math.min(progress, stitches.length - 1);
     while (id > 0 && isStep(stitches[id])) id--;
     return layout.cells.has(id) ? id : afterStep;
   }, [afterStep, layout, progress, stitches]);
+  /*
+   * What is to be done next, on this chart. A stitch to put on hold is one
+   * already made, in the round below: the step that holds it says which, and
+   * it is outlined where it is, its bracket with it (see .chart-next-hold).
+   * Anything else is at the needle.
+   */
+  const holding = useMemo(() => {
+    const next = stitches[progress + 1];
+    const held = next?.type === "hold" ? worksInto(next)[0] : undefined;
+    return held !== undefined && layout.cells.has(held) ? held : undefined;
+  }, [layout, progress, stitches]);
+  const here = holding ?? needle;
   /*
    * The stitch the chart goes to and keeps in view: the next to be worked,
    * while it is knitted, or one it is asked to show. Looked around and not
@@ -571,11 +582,11 @@ const Chart: React.FC<ChartProps> = ({
    */
   const nextRound = useMemo(() => {
     if (!backable || !onJump) return undefined;
-    const round = layout.cells.get(here)?.round;
+    const round = layout.cells.get(needle)?.round;
     let id = round === undefined ? undefined : rounds[round]?.[0];
     while (id !== undefined && stitches[id] && isStep(stitches[id])) id++;
     return id !== undefined && layout.cells.has(id) ? id : undefined;
-  }, [backable, onJump, layout, here, rounds, stitches]);
+  }, [backable, onJump, layout, needle, rounds, stitches]);
   useEffect(() => {
     if (nextRound === undefined) return;
     const warm = setTimeout(() => {
@@ -685,7 +696,8 @@ const Chart: React.FC<ChartProps> = ({
     };
   }, []);
 
-  const focusRound = at?.round;
+  // The round in hand: the needle's, where what is outlined is a stitch of the round below to put on hold.
+  const focusRound = (at && nextId === holding ? layout.cells.get(needle) : at)?.round;
 
   if (layout.rows === 0) return <p>This pattern has no stitches to chart.</p>;
 
@@ -762,6 +774,7 @@ const Chart: React.FC<ChartProps> = ({
             margin={leftMargin(cellSize)}
             follow={nextId}
             mark={nextId === undefined && !onPick ? here : undefined}
+            holding={holding !== undefined && showAt === undefined}
             collapse
             // Placed again in the same frame as the tiles, or it would lag them a frame as lines open and close.
             onMove={picked !== undefined ? (now) => (now ? flushSync(moved) : moved()) : undefined}

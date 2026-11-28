@@ -20,6 +20,7 @@
  */
 import { Stitch, isFabric, isStep, seen } from "../../pattern/Stitch";
 import { kinds } from "../../pattern/kinds";
+import { doneWith } from "../../reading/spans";
 import type { Action } from "./log";
 
 export const operations = [
@@ -89,7 +90,8 @@ export class Prefix {
     for (const stitch of stitches) {
       if (stitch.id === 0) continue;
       const base = baseOf(stitch);
-      if (base) ops[stitch.id].add(base);
+      // A run of stitches put on hold is one thing done, at its first: see reading/spans.
+      if (base && !(stitch.type === "hold" && doneWith(stitches, stitch.id)?.start !== stitch.id)) ops[stitch.id].add(base);
       if (isStep(stitch) || !isFabric(stitch)) continue;
       if (previous && stitch.type !== "castOn" && previous.type !== "castOn") {
         if (previous.slot !== stitch.slot) ops[stitch.id].add("colourChange");
