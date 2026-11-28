@@ -12,7 +12,7 @@ import { sceneFor } from "./view-scene";
 import { type ChartOverlay, defaultColours, leftMargin } from "./chart-painter";
 import { StitchLegend, TextRound } from "./ChartHelp";
 import { faceAfter, otherFaceRows } from "./chart-marks";
-import { type HoldRegion, onHoldAt } from "../../reading/holds";
+import { type HoldRegion, knittedFromHeld, onHoldAt } from "../../reading/holds";
 import StitchPicker from "./StitchPicker";
 import { keyEntryAt } from "../../reading/stitch-key";
 import { useSettings } from "../../projects/settings";
@@ -302,18 +302,27 @@ const Chart: React.FC<ChartProps> = ({
     return layout.cells.has(id) ? id : afterStep;
   }, [afterStep, layout, progress, stitches]);
   /*
-   * What is to be done next, on this chart. A stitch to put on hold is one
-   * already made, in the round below: the step that holds it says which, and
-   * the chart goes to it where it is, its bracket painted the colour a
-   * stitch to work is outlined in, and it is not outlined itself.
-   * Anything else is at the needle.
+   * A stitch to put on hold next is one already made, in the round below:
+   * the step that holds it says which, and its bracket is painted the colour
+   * a stitch to work is outlined in.
    */
   const holding = useMemo(() => {
     const next = stitches[progress + 1];
     const held = next?.type === "hold" ? worksInto(next)[0] : undefined;
     return held !== undefined && layout.cells.has(held) ? held : undefined;
   }, [layout, progress, stitches]);
-  const here = holding ?? needle;
+  /*
+   * Where the knitting is, on this chart: at the needle, but for a stitch to
+   * put on hold. There it is the stitch to be knitted into that one when its
+   * piece is taken up, in the cell over the bracket - the stitch is in hand
+   * twice, held and then knitted - and nothing is outlined: the bracket is
+   * its mark.
+   */
+  const here = useMemo(() => {
+    if (holding === undefined) return needle;
+    const over = knittedFromHeld(stitches, holding);
+    return over !== undefined && layout.cells.has(over) ? over : holding;
+  }, [holding, layout, needle, stitches]);
   /*
    * The stitch the chart goes to and keeps in view: the next to be worked,
    * while it is knitted, or one it is asked to show. Looked around and not
@@ -697,8 +706,8 @@ const Chart: React.FC<ChartProps> = ({
     };
   }, []);
 
-  // The round in hand: the needle's, where what the chart is at is a stitch of the round below to put on hold.
-  const focusRound = (at && nextId === holding ? layout.cells.get(needle) : at)?.round;
+  // The round in hand: the needle's, where the chart is at a stitch to put on hold, which is of another round.
+  const focusRound = (at && holding !== undefined && nextId === here ? layout.cells.get(needle) : at)?.round;
 
   if (layout.rows === 0) return <p>This pattern has no stitches to chart.</p>;
 

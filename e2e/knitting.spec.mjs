@@ -420,7 +420,7 @@ test("the dividing round puts each sleeve on hold, casts on its underarm, and go
   const began = await across();
   await page.getByRole("button", { name: /^Knit 68 in / }).click();
   await expect(page.locator(".knitting-panel")).toContainText("Put 80 stitches on hold");
-  // The chart goes there with the knitting: to the first stitch to be held, in the round below, which its bracket marks and no outline.
+  // The chart goes there with the knitting: to the cell over the first stitch to be held, which its bracket marks and no outline.
   await expect.poll(async () => Math.abs((await across()) - began)).toBeGreaterThan(300);
   await expect(page.locator(".chart-next")).toBeHidden();
   await expect(page.locator(".knitting-panel")).toContainText("right sleeve");

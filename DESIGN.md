@@ -839,6 +839,9 @@ after each part. A stitch put on hold carries a bracket over its cell.
 Putting stitches on hold is a step for each stitch, linked to the stitch it
 holds, as a run of knits is a stitch for each: said and done as one, "put 80
 stitches on hold" (see reading/spans). So the step has a place on the chart,
-which the knitting goes to: the first stitch to be held, in the round below,
-its bracket painted crimson while it is. It is not outlined, as a stitch to
-be worked is: the bracket is its mark.
+and the first stitch to be held, in the round below, has its bracket painted
+crimson while it is. Where the knitting is then, for the chart to go to and
+keep in view, is the cell over that bracket: the stitch to be knitted into
+the held one when its piece is taken up, in hand twice - held, and later
+knitted. Nothing is outlined there, as a stitch to be worked is: the bracket
+is the mark.

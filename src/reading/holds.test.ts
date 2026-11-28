@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSweater } from "../compiler/engine/engine";
-import { holdRegions, onHoldAt } from "./holds";
+import { holdRegions, knittedFromHeld, onHoldAt } from "./holds";
 import { testSweater, testSweaterDivided as dividedAs } from "../compiler/engine/test-sweater";
 import { indexRounds } from "./progress";
 import hamefarin from "../compiler/designs/hamefarin";
@@ -51,6 +51,21 @@ describe("stitches put on hold", () => {
         expect(pickedUp.map((stitch) => stitch.from).sort()).toEqual([...held.edge!].sort());
       }
     }
+  });
+});
+
+describe("a stitch put on hold", () => {
+  it("is knitted into by the first stitch of its sleeve over it, which is where the knitting is taken to be while it is held", () => {
+    for (const held of built.holds) {
+      const first = roundsOf(held.holder)[0];
+      for (const id of held.stitches) {
+        const over = knittedFromHeld(built.stitches, id)!;
+        expect(first).toContain(over);
+        expect(built.stitches[over].links[0]).toBe(id);
+      }
+    }
+    // And nothing is, for a stitch never held.
+    expect(knittedFromHeld(built.stitches, yokeLast[0])).toBeUndefined();
   });
 });
 

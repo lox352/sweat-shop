@@ -1,4 +1,4 @@
-import { type Stitch, isFabric } from "../pattern/Stitch";
+import { type Stitch, isFabric, worksInto } from "../pattern/Stitch";
 import { kinds } from "../pattern/kinds";
 import type { Held } from "../pattern/rounds";
 
@@ -52,3 +52,25 @@ export const holdRegions = (stitches: Stitch[], holds: Held[]): HoldRegion[] =>
 /** The regions on hold once the knitting has got as far as `progress`. */
 export const onHoldAt = (regions: HoldRegion[], progress: number): HoldRegion[] =>
   regions.filter((region) => region.heldAt <= progress && (region.resumedAt === undefined || progress < region.resumedAt));
+
+const knitFrom = new WeakMap<Stitch[], Map<number, number>>();
+
+/**
+ * The stitch knitted into a stitch put on hold, once its piece takes it up:
+ * the sleeve's first over it. While the stitch is the one to hold, that is
+ * where the knitting is taken to be - as though the stitch to come were
+ * knitted there now, and it is in hand twice: held, and then knitted.
+ */
+export const knittedFromHeld = (stitches: Stitch[], held: number): number | undefined => {
+  let over = knitFrom.get(stitches);
+  if (!over) {
+    over = new Map();
+    const waiting = new Set(stitches.filter((stitch) => stitch.type === "hold").flatMap(worksInto));
+    for (const stitch of waiting.size > 0 ? stitches : []) {
+      if (!isFabric(stitch)) continue;
+      for (const below of worksInto(stitch)) if (waiting.has(below) && !over.has(below)) over.set(below, stitch.id);
+    }
+    knitFrom.set(stitches, over);
+  }
+  return over.get(held);
+};
