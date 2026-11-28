@@ -224,18 +224,11 @@ const Chart: React.FC<ChartProps> = ({
    * hold part way round, a change of needles - it is the stitch after the
    * step: a step has no cell to mark, and the knitting goes on from there.
    */
-  const here = useMemo(() => {
+  const afterStep = useMemo(() => {
     let id = progress + 1;
     while (stitches[id] && isStep(stitches[id])) id++;
     return id;
   }, [progress, stitches]);
-  /*
-   * The stitch the chart goes to and keeps in view: the next to be worked,
-   * while it is knitted, or one it is asked to show. Looked around and not
-   * knitted, the next stitch is only marked, so that where the knitting has
-   * got to is never lost from the chart (see TileView's mark).
-   */
-  const nextId = showAt ?? (follow ? here : undefined);
   /*
    * Scrolled away from the stitch being worked, to look along the chart, the
    * way back to it without knitting on: a tap knits a run, and the next is
@@ -295,6 +288,27 @@ const Chart: React.FC<ChartProps> = ({
     () => sceneFor(laid, { stitches, rounds, face, makeOneLean, markers, names, pieces, holdRegions }),
     [laid, stitches, rounds, face, makeOneLean, markers, names, pieces, holdRegions],
   );
+  /*
+   * Where the knitting has got to on this chart. The stitch after a step may
+   * not be on it: a sleeve going on hold is followed by the underarm cast on
+   * in its place, which is on the chart of what is left on the needles, not
+   * shown until the step is taken. The step is then at the last stitch worked
+   * before it, where the needle is: the chart stays with the knitting there
+   * rather than being left wherever the round began.
+   */
+  const here = useMemo(() => {
+    if (layout.cells.has(afterStep)) return afterStep;
+    let id = Math.min(progress, stitches.length - 1);
+    while (id > 0 && isStep(stitches[id])) id--;
+    return layout.cells.has(id) ? id : afterStep;
+  }, [afterStep, layout, progress, stitches]);
+  /*
+   * The stitch the chart goes to and keeps in view: the next to be worked,
+   * while it is knitted, or one it is asked to show. Looked around and not
+   * knitted, the next stitch is only marked, so that where the knitting has
+   * got to is never lost from the chart (see TileView's mark).
+   */
+  const nextId = showAt ?? (follow ? here : undefined);
   /*
    * And every stitch is drawn as it looks from the side shown: from the right
    * side, as it is there, the rows purled back from the wrong side knits like
