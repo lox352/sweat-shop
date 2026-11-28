@@ -126,7 +126,7 @@ export interface PaintState {
   hatch: [number, number][];
   /** The regions on hold, each a set of stitch ids: washed over and crosshatched. */
   onHold: Set<number>[];
-  /** The stitch to put on hold next, where that is what is to be done: its bracket painted in the marker's colour, as its outline is. */
+  /** The stitch to put on hold next, where that is what is to be done: its bracket painted in the marker's colour, the colour of the outline round a stitch to work. */
   holding?: number;
   overlay?: ChartOverlay;
   colours: ChartColours;
@@ -786,7 +786,8 @@ export const paintRegion = (ctx: Ctx2D, region: Region, scene: ChartScene, state
   /*
    * A stitch put on hold: a bracket over the top of its cell, open below,
    * which runs on across a run of them as the holder they go onto. The one
-   * to be held next is in the colour of the outline round it.
+   * to be held next is in the marker's colour, as the outline round a stitch
+   * to be worked next is: it has no outline of its own.
    */
   if (scene.held.length > 0 && cell >= detailed) {
     const drop = cell * 0.22;

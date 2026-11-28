@@ -304,7 +304,8 @@ const Chart: React.FC<ChartProps> = ({
   /*
    * What is to be done next, on this chart. A stitch to put on hold is one
    * already made, in the round below: the step that holds it says which, and
-   * it is outlined where it is, its bracket painted the outline's colour.
+   * the chart goes to it where it is, its bracket painted the colour a
+   * stitch to work is outlined in, and it is not outlined itself.
    * Anything else is at the needle.
    */
   const holding = useMemo(() => {
@@ -696,7 +697,7 @@ const Chart: React.FC<ChartProps> = ({
     };
   }, []);
 
-  // The round in hand: the needle's, where what is outlined is a stitch of the round below to put on hold.
+  // The round in hand: the needle's, where what the chart is at is a stitch of the round below to put on hold.
   const focusRound = (at && nextId === holding ? layout.cells.get(needle) : at)?.round;
 
   if (layout.rows === 0) return <p>This pattern has no stitches to chart.</p>;

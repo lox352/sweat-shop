@@ -115,7 +115,7 @@ export interface TileContent {
    * chart, but nothing held still for it and nothing scrolled to it.
    */
   mark?: number;
-  /** The stitch to put on hold next, where that is what is to be done: its bracket painted as its outline is. See PaintState.holding. */
+  /** The stitch to put on hold next, where that is what is to be done: marked by its bracket, painted in another colour, and not outlined. See PaintState.holding. */
   holding?: number;
 }
 
@@ -2037,10 +2037,10 @@ export class TileView {
     return this.drawn;
   }
 
-  /** The outline round the stitch to be worked next, on the layer with the tiles: followed, or only marked. */
+  /** The outline round the stitch to be worked next, on the layer with the tiles: followed, or only marked. None round a stitch to put on hold, which its bracket marks. */
   private placeNext(content: TileContent) {
     const next = content.follow ?? content.mark;
-    const at = next === undefined ? undefined : this.placeOnLayer(next);
+    const at = next === undefined || next === content.holding ? undefined : this.placeOnLayer(next);
     this.next.hidden = !at;
     if (!at) return;
     const style = this.next.style;
